@@ -1,6 +1,7 @@
 # XWorld: a simulator package for Reinforcement Learning
 This repository currently contains a collection of simulators for Reinforcement Learning research.
-|**Name**|**Description**|**Thread-compatible?* **|**Optional?**|**Build-on-the-fly?**|
+
+|**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Build-on-the-fly?**|
 |-----------|---------------|----------------|-------------|---------------|
 |**SimpleGame**|A simple 1D array-walking game.|Yes|No|Yes|
 |**SimpleRace**|A simple synthetic car racing game.|Yes|No|Yes|
