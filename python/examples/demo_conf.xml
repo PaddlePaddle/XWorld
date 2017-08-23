@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <About>
+    <Summary>Cliff walking mission based on Sutton and Barto.</Summary>
+  </About>
+        <ModSettings>
+            <MsPerTick>10</MsPerTick>
+        </ModSettings>
+
+  <ServerSection>
+    <ServerInitialConditions>
+      <Time>
+        <StartTime>1</StartTime>
+        <AllowPassageOfTime>false</AllowPassageOfTime>
+      </Time>
+    </ServerInitialConditions>
+    <ServerHandlers>
+      <FlatWorldGenerator generatorString="3;7,220*1,5*3,2;2;,biome_1"/>
+      <DrawingDecorator>
+        <!-- coordinates for cuboid are inclusive -->
+        <DrawCuboid x1="-2" y1="226" z1="-2" x2="2" y2="226" z2="2" type="air" />
+        <DrawCuboid x1="-2" y1="225" z1="-2" x2="2" y2="225" z2="2" type="dirt" />
+        <DrawBlock x="-2"  y="225" z="-2" type="cobblestone" />    <!-- the starting marker -->
+        <DrawBlock x="2"  y="225" z="2" type="lapis_block" />     <!-- the destination marker -->
+      </DrawingDecorator>
+      <!-- The actual timeLimit is: timeLimitMs * MsPerTick / 50-->
+      <ServerQuitFromTimeUp timeLimitMs="2000000"/>
+      <ServerQuitWhenAnyAgentFinishes/>
+    </ServerHandlers>
+  </ServerSection>
+
+  <AgentSection mode="Survival">
+    <Name>Cristina</Name>
+    <AgentStart>
+      <Placement x="0.5" y="226" z="0.5" pitch="30" yaw="0"/>
+    </AgentStart>
+    <AgentHandlers>
+      <DiscreteMovementCommands/>
+      <MissionQuitCommands/>
+      <VideoProducer  want_depth="0" viewpoint="0">
+        <Width> 128 </Width>
+        <Height> 128 </Height>
+      </VideoProducer>
+    <ObservationFromFullStats/>
+      <RewardForTouchingBlockType>
+        <Block reward="-4" type="cobblestone" behaviour="onceOnly"/>
+        <Block reward="4" type="lapis_block" behaviour="onceOnly"/>
+      </RewardForTouchingBlockType>
+      <AgentQuitFromTouchingBlockType>
+          <Block type="cobblestone" />
+          <Block type="lapis_block" />
+      </AgentQuitFromTouchingBlockType>
+      <RewardForSendingCommand reward="-0.1" />
+    </AgentHandlers>
+  </AgentSection>
+
+</Mission>

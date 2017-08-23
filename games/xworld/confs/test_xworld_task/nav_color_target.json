@@ -1,0 +1,37 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 4,
+            "width" : 4
+        },
+
+        "items" : {
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                    "robot" : [3, 1]
+                }
+            },
+
+            "goal" : {
+                "number" : [2],
+                "instances" : {
+                    "strawberry" : [1, 1],
+                    "watermelon" : [0, 1]
+                }
+            }
+        }
+    },
+
+    "teacher" : {
+        "task_groups" : {
+            "XWorldNav" : {
+                "schedule" : "weighted",
+                "weight" : 1,
+                "tasks" : {
+                    "XWorldNavColorTargetTask" : 1
+                }
+            }
+        }
+    }
+}
