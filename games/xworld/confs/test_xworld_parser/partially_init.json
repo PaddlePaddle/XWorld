@@ -1,0 +1,40 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 3,
+            "width" : 3
+        },
+
+        "items" : {
+            "goal" : {
+                "number" : [2],
+                "instances" : {
+                    "apple" : [1, 2]
+                }
+            },
+
+            "block" : {
+                "number" : [1],
+                "instances" : {
+                    "brick" : [0, 2]
+                }
+            },
+
+            "agent" : {
+                "number" : [2],
+                "instances" : {
+                    "robot" : [0, 0],
+                    "robot" : [1, 0]
+                }
+            },
+
+            "dummy" : {
+                "number" : [2],
+                "instances" : {
+                    "dummy" : [0, 1],
+                    "dummy" : []  // location not defined
+                }
+            }
+        }
+    }
+}

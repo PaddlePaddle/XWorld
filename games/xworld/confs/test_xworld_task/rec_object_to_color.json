@@ -1,0 +1,36 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 3,
+            "width" : 3
+        },
+
+        "items" : {
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                    "robot" : [0, 1]
+                }
+            },
+
+            "goal" : {
+                "number" : [1],
+                "instances" : {
+                    "banana" : [0, 0]
+                }
+            }
+        }
+    },
+
+    "teacher" : {
+        "task_groups" : {
+            "XWorldRec" : {
+                "schedule" : "weighted",
+                "weight" : 1,
+                "tasks" : {
+                    "XWorldRecObjectToColorTask" : 1
+                }
+            }
+        }
+    }
+}

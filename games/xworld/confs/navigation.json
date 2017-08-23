@@ -1,0 +1,70 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 7,
+            "width" : 7
+        },
+
+        "levels" : 5,
+
+        "items" : {
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                }
+            },
+
+            "goal" : {
+                "number" : [1,3],
+                "category" : [
+                    "animal",
+                    "fruit",
+                    "shape"
+                ],
+                "instances" : {
+                }
+            },
+
+            "block" : {
+                "number" : [0,10],
+                "instances" : {
+                }
+            }
+        }
+    },
+
+    "teacher" : {
+        "task_groups" : {
+            "XWorldNav" : {
+                "held_out" : [
+                ],
+                "weight" : 0.5,
+                "schedule" : "random",  // optional, default "random"
+                "tasks" : {
+                    "XWorldNavTargetTask" : 1,
+                    "XWorldNavNearTask" : 1,
+                    "XWorldNavColorTargetTask" : 1,
+                    "XWorldNavBetweenTask" : 1
+                }
+            },
+            "XWorldRec" : {
+                "schedule" : "weighted",
+                "weight" : 1,
+                "tasks" : {
+                    "XWorldRecDirectionToObjectTask" : 1,
+                    "XWorldRecObjectToDirectionTask" : 1,
+                    "XWorldRecColorToObjectTask" : 1,
+                    "XWorldRecObjectToColorTask" : 1,
+                    "XWorldRecDirectionToColorTask" : 1,
+                    "XWorldRecColorToDirectionTask" : 1,
+                    "XWorldRecDirectionAndObjectToObjectTask" : 1,
+                    "XWorldRecDirectionAndObjectToColorTask" : 1,
+                    "XWorldRecColorAndObjectTask" : 1,
+                    "XWorldRecBetweenToObjectTask" : 1,
+                    "XWorldRecBetweenToDirectionTask" : 1,
+                    "XWorldRecBetweenToColorTask" : 1
+                }
+            }
+        }
+    }
+}
