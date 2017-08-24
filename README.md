@@ -21,7 +21,7 @@ The following softwares must be installed before building XWorld.
 
 In Ubuntu 14.04 and 16.04, you can do
 ```
-sudo apt-get install libboost-all-dev libgflags-dev libgoogle-glog-dev libgtest0 libgtest-dev
+sudo apt-get install libboost-all-dev libgflags-dev libgoogle-glog-dev libgtest-dev
 ```
 
 # Build
@@ -71,4 +71,4 @@ If you use the XWorld2D environment for your research, please consider citing
 If you use our wrappers for the third-party simulators, please follow their original guide for citation.
 
 # License
-This repository has the Apache2.0 license, except that all the third-party simulators (i.e., ALE, Malmo, DeepMind Lab) have their own licenses.  
+This repository has the Apache2.0 license, except that all the third-party simulators (i.e., ALE, Malmo, DeepMind Lab) have their own licenses.

@@ -232,14 +232,14 @@ void SimulatorInterface::help() {
            "curriculum:int:0, task_mode:str:'one_channel', "
            "tg_exclusive:bool:True}\n"
            "atari      : {action:int}               {screen:list}          "
-           "     {context:int:4, ale_rom:str:''}"
+           "     {context:int:4, ale_rom:str:''}\n"
            "minecraft  : {action:int}               {screen:list}          "
            "     {mission:str:'', conf_path:str:'', "
            "client_ip:str:'127.0.0.1', client_port:int:10000, "
-           "ms_per_tick:int:10, context:int:1}"
+           "ms_per_tick:int:10, context:int:1}\n"
            "deepmind_lab: {action:int}              {screen:list}          "
            "     {context:int:1, runfiles_path:str:'', "
-           "level_script:str:''}";
+           "level_script:str:''}\n";
 }
 
 void SimulatorInterface::reset_game() {
