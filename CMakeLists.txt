@@ -75,6 +75,8 @@ add_subdirectory(games/xworld)
 
 if(NOT OpenCV_DIR)
   add_dependencies(simple_race opencv)
+  add_dependencies(arcade opencv)
+  add_dependencies(xworld opencv)
 endif()
 
 set(OBJECT_LIBS_LIST
