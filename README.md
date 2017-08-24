@@ -2,13 +2,13 @@
 This repository currently contains a collection of simulators for Reinforcement Learning research.
 
 |**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Build-on-the-fly?**|
-|-----------|---------------|----------------|-------------|---------------|
+|:--------------|---------------|:---------------:|:---------------:|:---------------:|
 |**SimpleGame**|A simple 1D array-walking game.|Yes|No|Yes|
 |**SimpleRace**|A simple synthetic car racing game.|Yes|No|Yes|
 |**XWorld2D**|A 2D environment for an agent to learn vision and language abilities.|Yes|No|Yes|
 |**Atari**|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|No|Yes|
-|**Malmo**|Wrappers for Microsoft [Malmo](https://github.com/Microsoft/malmo) Project.|*TBD*|Yes|No,has to be installed manually first.|
-|**DeepMind Lab**|Wrappers for Deepmind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|Yes|
+|**Malmo**|Wrappers for Microsoft [Malmo](https://github.com/Microsoft/malmo) Project.|*TBD*|Yes|No, has to be installed manually first.|
+|**DeepMind Lab**|Wrappers for DeepMind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|Yes|
 
 *If each thread has a different environment instance, then they don't interfere with each other. But if all threads share the same instance, then there is interference.
 
@@ -65,8 +65,8 @@ To get started, several examples of the simulator Python APIs can be found in
 # Citations
 If you use the XWorld2D environment for your research, please consider citing
 
-* Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/pdf/1703.09831.pdf), arXiv 1703.09831, 2017.
-* Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/pdf/1705.09906.pdf), arXiv 1705.09906, 2017.
+* Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/abs/1703.09831), arXiv 1703.09831, 2017.
+* Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), arXiv 1705.09906, 2017.
 
 If you use our wrappers for the third-party simulators, please follow their original guide for citation.
 
