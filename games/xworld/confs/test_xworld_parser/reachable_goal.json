@@ -1,0 +1,38 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 4,
+            "width" : 4
+        },
+
+        "items" : {
+            "goal" : {
+                "number" : [1],
+                "instances" : {
+                    "banana" : [3, 1]
+                }
+            },
+
+            "block" : {
+                "number" : [5],
+                "instances" : {
+                    "brick" : [1, 1],
+                    "brick" : [1, 2]
+                }
+            },
+
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                    "robot" : [0, 0]
+                }
+            },
+
+            "dummy" : {
+                "number" : [0],
+                "instances" : {
+                }
+            }
+        }
+    }
+}

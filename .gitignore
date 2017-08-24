@@ -1,0 +1,16 @@
+*~
+*.a
+*.o
+*.so
+*.pyc
+*.tar.gz
+issue.info
+Makefile
+CTestTestfile.cmake
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+#*#
+HPPL_ERROR_LOG
+external
+build

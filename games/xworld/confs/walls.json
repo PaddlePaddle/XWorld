@@ -1,0 +1,70 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 3,
+            "width" : 3
+        },
+
+        "levels" : 1,
+
+        "items" : {
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                }
+            },
+
+            "goal" : {
+                "number" : [2],
+                "category" : [
+                    "animal",
+                    "fruit",
+                    "shape"
+                ],
+                "instances" : {
+                }
+            },
+
+            "block" : {
+                "number" : [1,2],
+                "instances" : {
+                }
+            }
+        }
+    },
+
+    "teacher" : {
+        "task_groups" : {
+            // "XWorldNav" : {
+            //     "held_out" : [
+            //     ],
+            //     "weight" : 0.5,
+            //     "schedule" : "random",  // optional, default "random"
+            //     "tasks" : {
+            //         "XWorldNavTargetTask" : 1,
+            //         "XWorldNavNearTask" : 1,
+            //         "XWorldNavColorTargetTask" : 1,
+            //         "XWorldNavBetweenTask" : 1
+            //     }
+            // },
+            "XWorldRec" : {
+                "schedule" : "weighted",
+                "weight" : 1,
+                "tasks" : {
+                    "XWorldRecDirectionToObjectTask" : 1,
+                    "XWorldRecObjectToDirectionTask" : 1,
+                    "XWorldRecColorToObjectTask" : 1,
+                    "XWorldRecObjectToColorTask" : 1,
+                    "XWorldRecDirectionToColorTask" : 1,
+                    "XWorldRecColorToDirectionTask" : 1,
+                    "XWorldRecDirectionAndObjectToObjectTask" : 2,
+                    "XWorldRecDirectionAndObjectToColorTask" : 2,
+                    "XWorldRecColorAndObjectTask" : 1,
+                    "XWorldRecBetweenToObjectTask" : 1,
+                    "XWorldRecBetweenToDirectionTask" : 1,
+                    "XWorldRecBetweenToColorTask" : 1
+                }
+            }
+        }
+    }
+}
