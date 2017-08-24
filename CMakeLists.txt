@@ -73,6 +73,12 @@ add_subdirectory(games/simple_race)
 add_subdirectory(games/arcade)
 add_subdirectory(games/xworld)
 
+if(NOT OpenCV_DIR)
+  add_dependencies(simple_race opencv)
+  add_dependencies(arcade opencv)
+  add_dependencies(xworld opencv)
+endif()
+
 set(OBJECT_LIBS_LIST
   $<TARGET_OBJECTS:simple_game>
   $<TARGET_OBJECTS:simple_race>
@@ -89,10 +95,6 @@ include(opt_game)
 add_library(simulator SHARED
   ${SIMULATOR_SOURCES}
   ${OBJECT_LIBS_LIST})
-
-if(NOT OpenCV_DIR)
-  add_dependencies(simulator opencv)
-endif()
 
 if(WITH_TESTING)
   enable_testing()
