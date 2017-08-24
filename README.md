@@ -12,12 +12,18 @@ This repository currently contains a collection of simulators for Reinforcement 
 
 *If each thread has a different environment instance, then they don't interfere with each other. But if all threads share the same instance, then there is interference.
 
+# Requirements
+* Compiler: GCC 4.8 or above
+* CMake: CMake 3.0 or above
+* Python: Python 2.7
+
 # Dependencies
 The following softwares must be installed before building XWorld.
 * [Boost](http://www.boost.org/)
 * [Glog](https://github.com/google/glog)
 * [GFlags](https://github.com/gflags/gflags)
 * [GTest](https://github.com/google/googletest)
+* [Python](https://www.python.org/)
 
 In Ubuntu 14.04 and 16.04, you can do
 ```
@@ -40,13 +46,26 @@ cmake [<optional parameters>] ..
 For example,
 ```
 cd ~/XWorld; mkdir build; cd build
-cmake -DWITH_DEEPMIND_LAB=ON ..
+cmake ..
 ```
 
 Finally, in the build directory do
 ```
 make
 make test
+```
+
+By default, XWorld only builds the first four games: SimpleGame, SimpleRace, Atari, and XWorld2D. Optionally, you can install [DeepMind Lab](https://deepmind.com/blog/open-sourcing-deepmind-lab) and [Project Malmo](https://www.microsoft.com/en-us/research/project/project-malmo).
+
+To use DeepMind Lab, please install the external dependencies by following the instructions included in this [DeepMind Lab build documentation](https://github.com/deepmind/lab/blob/master/docs/build.md#how-to-build-deepmind-lab) and run the cmake command
+```
+cmake -DWITH_DEEPMIND_LAB=ON ..
+```
+which will automatically download and build DeepMind Lab.
+
+To use Malmo, please first follow the instructions on [https://github.com/Microsoft/malmo](https://github.com/Microsoft/malmo) to install Malmo, and then run the cmake command
+```
+cmake -DMALMO_ROOT=/path/to/MALMO ..
 ```
 
 # Use
