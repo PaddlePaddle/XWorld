@@ -69,3 +69,6 @@ If you use the XWorld2D environment for your research, please consider citing
 * Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/pdf/1705.09906.pdf), arXiv 1705.09906, 2017.
 
 If you use our wrappers for the third-party simulators, please follow their original guide for citation.
+
+# License
+This repository has the Apache2.0 license, except that all the third-party simulators (i.e., ALE, Malmo, DeepMind Lab) have their own licenses.  
