@@ -18,10 +18,11 @@
 
 #include "minecraft_simulator.h"
 
-namespace simulator { namespace mcw {
+namespace simulator {
+namespace mcw {
 
 class MinecraftSimulatorBase : public MinecraftSimulator {
-public:
+  public:
     MinecraftSimulatorBase(const std::string& conf);
 
     virtual ~MinecraftSimulatorBase() {}
@@ -34,14 +35,10 @@ public:
     virtual int game_over() override;
 
     // get the number of actions the agent (learner) possesses
-    virtual int get_num_actions() override {
-        return action_names_.size();
-    }
+    virtual int get_num_actions() override { return action_names_.size(); }
 
     // get the number of lives
-    virtual int get_lives() override {
-        return 1;
-    }
+    virtual int get_lives() override { return 1; }
 
     // visualize the current screen
     virtual void show_screen(float reward) override;
@@ -52,16 +49,18 @@ public:
     // read the current screen
     virtual void get_screen(StatePacket& screen) override;
 
-    virtual void get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) override {
+    virtual void get_screen_out_dimensions(size_t& height,
+                                           size_t& width,
+                                           size_t& channels) override {
         height = mission_->getVideoHeight(0);
         width = mission_->getVideoWidth(0);
-        channels = 3; // hardcoded as color
+        channels = 3;  // hardcoded as color
     }
 
     virtual void define_state_specs(StatePacket& state) override;
 
-    static MinecraftSimulatorBase* create(
-        const std::string& mission, const std::string& conf_file);
+    static MinecraftSimulatorBase* create(const std::string& mission,
+                                          const std::string& conf_file);
 
   protected:
     // Create a new mission in mission_. Called when reset_game is called
@@ -71,9 +70,7 @@ public:
 
     // called by observe(). Should check if desired state after action is
     // reached
-    virtual bool reached_desired_state() {
-        return true;
-    }
+    virtual bool reached_desired_state() { return true; }
 
   protected:
     // get an valid observation to world_state_ and return the reward
@@ -91,11 +88,13 @@ public:
 class MinecraftSimulatorDemo : public MinecraftSimulatorBase {
   public:
     MinecraftSimulatorDemo(const std::string& conf_file)
-            : MinecraftSimulatorBase(conf_file) {}
+        : MinecraftSimulatorBase(conf_file) {}
+
   protected:
     virtual void new_mission() override;
     virtual void update_state(int action_id) override;
     virtual bool reached_desired_state() override;
+
   private:
     static bool approximately_equal(float x, float y) {
         return std::abs(x - y) < 0.01;
@@ -106,5 +105,5 @@ class MinecraftSimulatorDemo : public MinecraftSimulatorBase {
     bool got_reward_;
     bool reached_location_;
 };
-
-}}  // namespace simulator::mcw
+}
+}  // namespace simulator::mcw

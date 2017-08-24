@@ -14,10 +14,11 @@
 
 #include "minecraft_simulator_base.h"
 
-namespace simulator { namespace mcw {
+namespace simulator {
+namespace mcw {
 
 void MinecraftSimulatorDemo::new_mission() {
-   // TODO: make this more flexible
+    // TODO: make this more flexible
     int x = 0;
     int z = 0;
     do {
@@ -28,10 +29,11 @@ void MinecraftSimulatorDemo::new_mission() {
     current_x_ = x + 0.5;
     current_z_ = z + 0.5;
     current_yaw_ = 90 * yaw;
-    mission_->startAtWithPitchAndYaw(
-        current_x_, 226, current_z_,
-        /* pitch= */30,
-        current_yaw_);
+    mission_->startAtWithPitchAndYaw(current_x_,
+                                     226,
+                                     current_z_,
+                                     /* pitch= */ 30,
+                                     current_yaw_);
 
     // do not need reward for the first observe()
     got_reward_ = true;
@@ -59,19 +61,17 @@ void MinecraftSimulatorDemo::update_state(int action_id) {
     got_reward_ = false;
     reached_location_ = false;
     VLOG(2) << "action=" << action_names_[action_id] << " to"
-            << " x=" << current_x_ - 0.5
-            << " z=" << current_z_ - 0.5
+            << " x=" << current_x_ - 0.5 << " z=" << current_z_ - 0.5
             << " yaw=" << current_yaw_ / 90;
-
 }
 
 bool MinecraftSimulatorDemo::reached_desired_state() {
-    auto video_frame = world_state_.video_frames.empty() ? nullptr
-            : world_state_.video_frames.back();
+    auto video_frame = world_state_.video_frames.empty()
+                           ? nullptr
+                           : world_state_.video_frames.back();
     VLOG(3) << " video: " << !world_state_.video_frames.empty()
-            << " obs: "
-            << (!world_state_.observations.empty()
-                && world_state_.observations.back()->text != "{}")
+            << " obs: " << (!world_state_.observations.empty() &&
+                            world_state_.observations.back()->text != "{}")
             << " reward: " << !world_state_.rewards.empty()
             << " x=" << (video_frame ? video_frame->xPos - 0.5 : 100)
             << " z=" << (video_frame ? video_frame->zPos - 0.5 : 100)
@@ -81,11 +81,12 @@ bool MinecraftSimulatorDemo::reached_desired_state() {
     }
     if (!world_state_.video_frames.empty()) {
         auto video_frame = world_state_.video_frames.back();
-        reached_location_ = approximately_equal(video_frame->xPos, current_x_)
-                && approximately_equal(video_frame->zPos, current_z_)
-                && approximately_equal(video_frame->yaw, current_yaw_);
+        reached_location_ =
+            approximately_equal(video_frame->xPos, current_x_) &&
+            approximately_equal(video_frame->zPos, current_z_) &&
+            approximately_equal(video_frame->yaw, current_yaw_);
     }
     return got_reward_ && reached_location_;
 }
-
-}}  // namespace simulator::mcw
+}
+}  // namespace simulator::mcw

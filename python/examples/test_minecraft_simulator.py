@@ -9,6 +9,7 @@ import time
 
 client_port = 10000
 
+
 def launch_client():
     try:
         malmo_root = os.environ["MALMO_ROOT"]
@@ -17,8 +18,11 @@ def launch_client():
         exit()
 
     p = subprocess.Popen(
-        'cd ' + malmo_root + '/Minecraft; ./launchClient.sh -port %d' % client_port,
-        shell=True, stdout=PIPE, stderr=PIPE)
+        'cd ' + malmo_root + '/Minecraft; ./launchClient.sh -port %d' %
+        client_port,
+        shell=True,
+        stdout=PIPE,
+        stderr=PIPE)
 
     while True:
         for stdout_line in iter(p.stdout.readline, ""):
@@ -26,18 +30,19 @@ def launch_client():
                 return p
         time.sleep(3)
 
+
 if __name__ == "__main__":
 
-    client = launch_client();
+    client = launch_client()
 
     options = {
-        "conf_path" : "./demo_conf.xml",
-        "mission" : "demo",
-        "client_ip" : "127.0.0.1",
-        "client_port" : client_port,
-        "ms_per_tick" : 10,
-        "context" : 1,
-        "pause_screen" : False
+        "conf_path": "./demo_conf.xml",
+        "mission": "demo",
+        "client_ip": "127.0.0.1",
+        "client_port": client_port,
+        "ms_per_tick": 10,
+        "context": 1,
+        "pause_screen": False
     }
     minecraft = Simulator.create("minecraft", options)
 

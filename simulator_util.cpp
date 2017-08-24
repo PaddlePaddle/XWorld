@@ -13,19 +13,20 @@
 // limitations under the License.
 
 #include "simulator_util.h"
+#include <gflags/gflags.h>
+#include <glog/logging.h>
+#include <boost/algorithm/string.hpp>
+#include <fstream>
+#include <map>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <boost/algorithm/string.hpp>
-#include <glog/logging.h>
-#include <gflags/gflags.h>
-#include <map>
 #include <random>
 #include <thread>
-#include <fstream>
 
 DEFINE_int32(simulator_seed, 0, "simulator rand engine seed");
 
-namespace simulator { namespace util {
+namespace simulator {
+namespace util {
 
 /**
  * We wish to generate deterministic seeds for simulator threads if a global
@@ -50,9 +51,7 @@ class ThreadCounter {
 };
 static thread_local ThreadCounter __tc;
 
-std::default_random_engine& thread_local_reng() {
-    return __tc.reng_;
-}
+std::default_random_engine& thread_local_reng() { return __tc.reng_; }
 
 float get_rand_range_val(const float upper_range) {
     auto& reng = thread_local_reng();
@@ -77,7 +76,7 @@ int simple_importance_sampling(const std::vector<double>& acc_weights) {
     // sample a weight
     double weight = get_rand_range_val(acc_weights.back());
     // find the interval
-    for (size_t i = 0; i < acc_weights.size(); i ++) {
+    for (size_t i = 0; i < acc_weights.size(); i++) {
         if (weight <= acc_weights[i]) {
             return i;
         }
@@ -85,13 +84,13 @@ int simple_importance_sampling(const std::vector<double>& acc_weights) {
     LOG(FATAL) << "Weight out of range";
 }
 
-void save_screen(int e, int x, int y, int d, void *ptr) {
+void save_screen(int e, int x, int y, int d, void* ptr) {
     if (e == cv::EVENT_LBUTTONDBLCLK) {
-        cv::Mat* frame_ptr = (cv::Mat *)ptr;
+        cv::Mat* frame_ptr = (cv::Mat*)ptr;
         CHECK(frame_ptr != nullptr);
-        std::string write_path = "/tmp/" + \
-                generate_random_str(6) + ".png";
-        cv::imwrite(write_path, *frame_ptr,
+        std::string write_path = "/tmp/" + generate_random_str(6) + ".png";
+        cv::imwrite(write_path,
+                    *frame_ptr,
                     std::vector<int>({CV_IMWRITE_PNG_COMPRESSION, 0})
                     /*best*/);
         LOG(INFO) << "Current frame saved to: " << write_path;
@@ -99,12 +98,12 @@ void save_screen(int e, int x, int y, int d, void *ptr) {
 }
 
 std::string generate_random_str(int len) {
-    static const std::string alphanum = \
-            "0123456789"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "abcdefghijklmnopqrstuvwxyz";
+    static const std::string alphanum =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
     std::string str = "";
-    for (int i = 0; i < len; i ++) {
+    for (int i = 0; i < len; i++) {
         str += alphanum[get_rand_ind(alphanum.length())];
     }
     return str;
@@ -115,7 +114,7 @@ std::string remove_instance_ids(const std::string& sentence) {
     boost::split(words, sentence, boost::is_any_of(" "));
     // remove all the instance ids in the command
     std::string ret = "";
-    for (size_t i = 0; i < words.size(); i ++) {
+    for (size_t i = 0; i < words.size(); i++) {
         if (i > 0) {
             ret += " ";
         }
@@ -129,20 +128,19 @@ std::string remove_instance_id(const std::string& word) {
     return word.substr(0, idx);
 }
 
-
-double compare_sentences_multi(const std::vector<std::string>& sent_set, const std::string& pred_sent) {
-    auto count_matched_word = [] (std::vector<std::string> src_words,
+double compare_sentences_multi(const std::vector<std::string>& sent_set,
+                               const std::string& pred_sent) {
+    auto count_matched_word = [](std::vector<std::string> src_words,
                                  std::vector<std::string> dst_words) {
         // count the number of words in src_words matched with dst_words
         std::map<std::string, int> mapOfWords;
 
-        int matched_word_cnt = 0; // number of matched between gt and predicted
+        int matched_word_cnt = 0;  // number of matched between gt and predicted
         for (size_t i = 0; i < dst_words.size(); i++) {
             if (mapOfWords.find(dst_words[i]) != mapOfWords.end()) {
                 mapOfWords[dst_words[i]]++;
-            }
-            else {
-                mapOfWords[dst_words[i]]=1;
+            } else {
+                mapOfWords[dst_words[i]] = 1;
             }
         }
         for (size_t i = 0; i < src_words.size(); i++) {
@@ -164,16 +162,15 @@ double compare_sentences_multi(const std::vector<std::string>& sent_set, const s
             return rate;
         } else {
             boost::split(words, sent_set[i], boost::is_any_of(" "));
-            int matched_word_cnt = count_matched_word(words, pred_words)
-                                 + count_matched_word(pred_words, words);
-            double single_rate =  double(matched_word_cnt)/double(pred_words.size()
-                                  + words.size());
+            int matched_word_cnt = count_matched_word(words, pred_words) +
+                                   count_matched_word(pred_words, words);
+            double single_rate = double(matched_word_cnt) /
+                                 double(pred_words.size() + words.size());
             rate = std::max(rate, single_rate);
         }
     }
     return rate;
 }
-
 
 bool check_unique_and_different(const std::vector<std::string>& lst,
                                 const std::string& value) {
@@ -191,5 +188,5 @@ std::string read_file(const std::string& fileName) {
     CHECK(is.read(&str[0], length)) << "Fail to read file: " << fileName;
     return str;
 }
-
-} } // namespace simulator::util
+}
+}  // namespace simulator::util

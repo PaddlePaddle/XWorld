@@ -13,17 +13,20 @@
 // limitations under the License.
 
 #include "arcade.h"
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <glog/logging.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 DECLARE_bool(pause_screen);
-DEFINE_int32(ale_random_starts, 30, "play the action 0 N times at the beginning"
-                               " where N is randomly selected between"
-                               " 1 and random_starts.");
+DEFINE_int32(ale_random_starts,
+             30,
+             "play the action 0 N times at the beginning"
+             " where N is randomly selected between"
+             " 1 and random_starts.");
 
-namespace simulator { namespace arcade_game {
+namespace simulator {
+namespace arcade_game {
 
 using namespace ale;
 
@@ -35,13 +38,13 @@ void Arcade::show_screen(float reward) {
     cv::Mat img(IMG_HEIGHT, IMG_WIDTH, CV_8UC3);
     for (size_t h = 0, base = 0; h < IMG_HEIGHT; ++h) {
         for (size_t w = 0; w < IMG_WIDTH; ++w, base += 3) {
-            cv::Vec3b& color = img.at<cv::Vec3b>(cv::Point(w,h));
+            cv::Vec3b& color = img.at<cv::Vec3b>(cv::Point(w, h));
             color[0] = screen_ale_[base + 2];
             color[1] = screen_ale_[base + 1];
             color[2] = screen_ale_[base];
         }
     }
-    const cv::Mat imgLarge(IMG_HEIGHT * 4 , IMG_WIDTH * 4, CV_8UC3);
+    const cv::Mat imgLarge(IMG_HEIGHT * 4, IMG_WIDTH * 4, CV_8UC3);
     cv::resize(img, imgLarge, imgLarge.size());
 
     // imshow is not thread safe, so we use lock here.
@@ -119,27 +122,26 @@ float Arcade::take_action(const StatePacket& actions) {
     return reward;
 }
 
-int Arcade::get_num_actions() {
-    return minimal_actions_.size();
-}
+int Arcade::get_num_actions() { return minimal_actions_.size(); }
 
 void Arcade::get_screen_rgb() {
     ale_.getScreenRGB(screen_ale_);
     for (size_t h = 0, base = 0; h < IMG_HEIGHT; ++h) {
-        for (size_t w = 0; w < IMG_WIDTH; ++w, base+=3) {
+        for (size_t w = 0; w < IMG_WIDTH; ++w, base += 3) {
             screen_rgb_[h * IMG_WIDTH + w] = screen_ale_[base];
-            screen_rgb_[IMG_HEIGHT*IMG_WIDTH + h*IMG_WIDTH + w] = screen_ale_[base + 1];
-            screen_rgb_[2*IMG_HEIGHT*IMG_WIDTH + h*IMG_WIDTH + w] = screen_ale_[base + 2];
+            screen_rgb_[IMG_HEIGHT * IMG_WIDTH + h * IMG_WIDTH + w] =
+                screen_ale_[base + 1];
+            screen_rgb_[2 * IMG_HEIGHT * IMG_WIDTH + h * IMG_WIDTH + w] =
+                screen_ale_[base + 2];
         }
     }
 }
 
-void Arcade::down_sample_image(const GameFrame& screen,
-                               GameFrame& screen_out) {
+void Arcade::down_sample_image(const GameFrame& screen, GameFrame& screen_out) {
     cv::Mat img(IMG_HEIGHT, IMG_WIDTH, CV_8UC3);
     for (size_t h = 0; h < IMG_HEIGHT; ++h) {
         for (size_t w = 0; w < IMG_WIDTH; ++w) {
-            cv::Vec3b& color = img.at<cv::Vec3b>(cv::Point(w,h));
+            cv::Vec3b& color = img.at<cv::Vec3b>(cv::Point(w, h));
             color[0] = screen[h * IMG_WIDTH + w];
             color[1] = screen[IMG_WIDTH * IMG_HEIGHT + h * IMG_WIDTH + w];
             color[2] = screen[2 * IMG_WIDTH * IMG_HEIGHT + h * IMG_WIDTH + w];
@@ -148,17 +150,18 @@ void Arcade::down_sample_image(const GameFrame& screen,
     const int IMG_HEIGHT_TMP = 110, IMG_WIDTH_TMP = 84;
     const int border_y = (IMG_HEIGHT_TMP - IMG_HEIGHT_OUT);
     const int border_x = (IMG_WIDTH_TMP - IMG_WIDTH_OUT) / 2;
-    cv::Mat img_tmp(IMG_HEIGHT_TMP , IMG_WIDTH_TMP, CV_8UC3);
+    cv::Mat img_tmp(IMG_HEIGHT_TMP, IMG_WIDTH_TMP, CV_8UC3);
     cv::Mat img_out(IMG_HEIGHT_OUT, IMG_WIDTH_OUT, CV_8UC3);
     cv::resize(img, img_tmp, img_tmp.size());
-    cv::Mat cropped = img_tmp(cv::Rect(border_x, border_y, IMG_HEIGHT_OUT, IMG_WIDTH_OUT));
+    cv::Mat cropped =
+        img_tmp(cv::Rect(border_x, border_y, IMG_HEIGHT_OUT, IMG_WIDTH_OUT));
     cropped.copyTo(img_out);
     if (screen_out.size() != IMG_HEIGHT_OUT * IMG_WIDTH_OUT) {
         screen_out.resize(IMG_HEIGHT_OUT * IMG_WIDTH_OUT);
     }
     for (size_t h = 0; h < IMG_HEIGHT_OUT; ++h) {
         for (size_t w = 0; w < IMG_WIDTH_OUT; ++w) {
-            cv::Vec3b& color = img_out.at<cv::Vec3b>(cv::Point(w,h));
+            cv::Vec3b& color = img_out.at<cv::Vec3b>(cv::Point(w, h));
             int y = rgb2y(color[0], color[1], color[2]);
             CHECK_GE(y, 0);
             CHECK_LE(y, 255);
@@ -167,9 +170,7 @@ void Arcade::down_sample_image(const GameFrame& screen,
     }
 }
 
-int Arcade::get_lives() {
-    return ale_.lives();
-}
+int Arcade::get_lives() { return ale_.lives(); }
 
 void Arcade::get_screen(StatePacket& screen) {
     GameFrame screen_vec;
@@ -185,10 +186,12 @@ void Arcade::define_state_specs(StatePacket& state) {
     state.add_key("screen");
 }
 
-void Arcade::get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) {
+void Arcade::get_screen_out_dimensions(size_t& height,
+                                       size_t& width,
+                                       size_t& channels) {
     height = IMG_HEIGHT_OUT;
     width = IMG_WIDTH_OUT;
-    channels = 1; // hardcoded grayscale
+    channels = 1;  // hardcoded grayscale
 }
-
-}} //  namespace simulator::arcade_game
+}
+}  //  namespace simulator::arcade_game

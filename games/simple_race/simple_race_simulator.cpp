@@ -14,40 +14,40 @@
 
 #include "simple_race_simulator.h"
 
-DEFINE_bool(race_full_manouver, false, "whether enable full manouver or only turns");
+DEFINE_bool(race_full_manouver,
+            false,
+            "whether enable full manouver or only turns");
 DEFINE_bool(random, false, "randomly set up race");
 DEFINE_string(difficulty, "easy", "difficulty level [easy | hard]");
 DEFINE_double(reward_scale, 1.0, "actual_reward = reward * reward_scale");
 
-namespace simulator { namespace simple_race {
+namespace simulator {
+namespace simple_race {
 
 using cv::Mat;
 using cv::Point2f;
 
 void draw_circle(Mat img, Point2f c, float r) {
-    circle(img, c, r, cv::Scalar(255,255,255), 1, 8);
+    circle(img, c, r, cv::Scalar(255, 255, 255), 1, 8);
 }
 
 void draw_line(Mat img, Point2f p1, Point2f p2) {
-    line(img, p1, p2, cv::Scalar(255,255,255), 1, 8);
+    line(img, p1, p2, cv::Scalar(255, 255, 255), 1, 8);
 }
 
-template<typename T>
-std::ostream& operator<<(std::ostream &os, const std::vector<T> vec) {
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> vec) {
     os << "( ";
-    for (size_t i = 0; i < vec.size(); ++i)
-        os << vec[i] << " ";
+    for (size_t i = 0; i < vec.size(); ++i) os << vec[i] << " ";
     os << ")";
     return os;
 }
 
 // -------------------------------- Track --------------------------------
-CircleTrack::CircleTrack() {
-    CircleTrack(0.0f, 0.0f, 100.0f, 20.0f);
-}
+CircleTrack::CircleTrack() { CircleTrack(0.0f, 0.0f, 100.0f, 20.0f); }
 
-CircleTrack::CircleTrack(float cx, float cy, float inner_radius, float width) :
-        _center(cx, cy), _inner_radius(inner_radius) {
+CircleTrack::CircleTrack(float cx, float cy, float inner_radius, float width)
+    : _center(cx, cy), _inner_radius(inner_radius) {
     _width = width;
     _outer_radius = inner_radius + _width;
 }
@@ -77,7 +77,7 @@ Point2f CircleTrack::get_start_pos(bool random) {
     } else {
         float theta = util::get_rand_range_val(1.0) * 2 * PI;
         float r = _inner_radius + util::get_rand_range_val(1.0) * _width;
-        return Point2f(r*cos(theta), r*sin(theta)) + _center;
+        return Point2f(r * cos(theta), r * sin(theta)) + _center;
     }
 }
 
@@ -92,18 +92,16 @@ float CircleTrack::horizontal_displacement(float x, float y) {
 
 cv::Point2f CircleTrack::get_tangent_vec(const Point2f &p) {
     Point2f t(_center.y - p.y, p.x - _center.x);
-    return t * (1/cv::norm(t));
+    return t * (1 / cv::norm(t));
 }
 
-StraightTrack::StraightTrack() {
-    StraightTrack(0.0f, 0.0f, 100.0f, 20.0f);
-}
+StraightTrack::StraightTrack() { StraightTrack(0.0f, 0.0f, 100.0f, 20.0f); }
 
-StraightTrack::StraightTrack(float x, float y, float length, float width) :
-        _mid_pos(x, y), _length(length) {
+StraightTrack::StraightTrack(float x, float y, float length, float width)
+    : _mid_pos(x, y), _length(length) {
     _width = width;
-    _start_pos = _mid_pos - Point2f(0.0f, _length/2);
-    _end_pos = _mid_pos + Point2f(0.0f, _length/2);
+    _start_pos = _mid_pos - Point2f(0.0f, _length / 2);
+    _end_pos = _mid_pos + Point2f(0.0f, _length / 2);
 }
 
 StraightTrack::StraightTrack(const StraightTrack &st) {
@@ -115,13 +113,18 @@ StraightTrack::StraightTrack(const StraightTrack &st) {
 }
 
 void StraightTrack::draw(Mat img) {
-    draw_line(img, _start_pos + Point2f(-_width/2, 0.0f), _end_pos + Point2f(-_width/2, 0.0f));
-    draw_line(img, _start_pos + Point2f(_width/2, 0.0f), _end_pos + Point2f(_width/2, 0.0f));
+    draw_line(img,
+              _start_pos + Point2f(-_width / 2, 0.0f),
+              _end_pos + Point2f(-_width / 2, 0.0f));
+    draw_line(img,
+              _start_pos + Point2f(_width / 2, 0.0f),
+              _end_pos + Point2f(_width / 2, 0.0f));
 }
 
 bool StraightTrack::out_of_bound(const cv::Point2f &pos) {
-    return (pos.x < _mid_pos.x - _width/2) || (pos.x > _mid_pos.x + _width/2) ||
-           (pos.y < _start_pos.y) || (pos.y > _end_pos.y);
+    return (pos.x < _mid_pos.x - _width / 2) ||
+           (pos.x > _mid_pos.x + _width / 2) || (pos.y < _start_pos.y) ||
+           (pos.y > _end_pos.y);
 }
 
 bool StraightTrack::race_finish(const cv::Point2f &pos) {
@@ -159,16 +162,16 @@ Point2f StraightTrack::get_tangent_vec(const Point2f &p) {
 }
 
 // -------------------------------- Car --------------------------------
-BaseCar::BaseCar() : _pos(0.0f,0.0f), _angle(PI/2) {}
+BaseCar::BaseCar() : _pos(0.0f, 0.0f), _angle(PI / 2) {}
 
-BaseCar::BaseCar(float x, float y, float angle) : _pos(x,y), _angle(angle) {}
+BaseCar::BaseCar(float x, float y, float angle) : _pos(x, y), _angle(angle) {}
 
 void BaseCar::move(float d, float da) {
     _angle += da;
-    if (_angle > 2*PI)
-        _angle -= 2*PI;
+    if (_angle > 2 * PI)
+        _angle -= 2 * PI;
     else if (_angle < 0)
-        _angle += 2*PI;
+        _angle += 2 * PI;
 
     _pos += d * Point2f(cos(_angle), sin(_angle));
 }
@@ -183,20 +186,19 @@ void BaseCar::set_angle(bool random) {
 
 CircleCar::CircleCar() : BaseCar(), _radius(5.0f) {}
 
-CircleCar::CircleCar(float x, float y, float angle, float radius) :
-         BaseCar(x, y, angle), _radius(radius) {
-}
+CircleCar::CircleCar(float x, float y, float angle, float radius)
+    : BaseCar(x, y, angle), _radius(radius) {}
 
 void CircleCar::draw(Mat img) {
     draw_circle(img, _pos, _radius);
-    Point2f p = _pos + 2 * _radius*Point2f(cos(_angle), sin(_angle));
+    Point2f p = _pos + 2 * _radius * Point2f(cos(_angle), sin(_angle));
     draw_line(img, _pos, p);
 }
 
 // -------------------------------- Race Engine --------------------------------
-RaceEngine::RaceEngine(float width, float height) :
-        _width(width), _height(height), _random(FLAGS_random) {
-    _delta_ang = PI/10;
+RaceEngine::RaceEngine(float width, float height)
+    : _width(width), _height(height), _random(FLAGS_random) {
+    _delta_ang = PI / 10;
     _delta_fwd = 1;
 }
 
@@ -206,9 +208,10 @@ void RaceEngine::add_track(std::shared_ptr<Track> track) {
 
 void RaceEngine::reset_game() {
     if (_random) {
-        int track_id = round(
-            std::max(0.0, std::min(floor(util::get_rand_range_val(1.0) * _track_pools.size()),
-                                   double(_track_pools.size()-1))));
+        int track_id = round(std::max(
+            0.0,
+            std::min(floor(util::get_rand_range_val(1.0) * _track_pools.size()),
+                     double(_track_pools.size() - 1))));
         _track = _track_pools[track_id];
     } else {
         _track = _track_pools[0];
@@ -216,7 +219,8 @@ void RaceEngine::reset_game() {
 
     _car.set_pos(_track->get_start_pos(_random));
     _car.set_angle(_random);
-    VLOG(1) << "start pos: " << _random << " " << _car.get_pos() << " " << _car.get_angle();
+    VLOG(1) << "start pos: " << _random << " " << _car.get_pos() << " "
+            << _car.get_angle();
     _steps = 0;
     _last_reward = 0.0f;
 }
@@ -226,7 +230,7 @@ bool RaceEngine::game_over() {
 }
 
 float RaceEngine::act(Action a) {
-    _steps ++;
+    _steps++;
     int action_id = (int)a;
     if (FLAGS_lock_step) {
         int key = cv::waitKey(0) % 256;
@@ -271,15 +275,15 @@ float RaceEngine::act(Action a) {
     _car.move(d_forward, d_turn);
     _last_reward = get_reward(d_forward, _car.get_angle());
 
-    VLOG(1) << "[" << _steps << "] action " << a << "(" << d_forward << "," << d_turn << ")"
+    VLOG(1) << "[" << _steps << "] action " << a << "(" << d_forward << ","
+            << d_turn << ")"
             << ", loc: " << _car.get_pos() << ", angle: " << _car.get_angle();
-
 
     return _last_reward;
 }
 
 Mat RaceEngine::draw() {
-    Mat canvas = Mat::zeros( _height, _width, CV_8UC3 );
+    Mat canvas = Mat::zeros(_height, _width, CV_8UC3);
     _track->draw(canvas);
     _car.draw(canvas);
 
@@ -287,12 +291,23 @@ Mat RaceEngine::draw() {
     get_screen(state);
     float theta = state[1] >= 0 ? acos(state[0]) : -acos(state[0]);
     char msg[1000];
-    sprintf(msg, "angle: %.2f(%.2f, %.2f), dist to mid: %.2f, dist to end: %.2f",
-            theta / PI * 180, state[0], state[1], state[2], state[3]);
-    cv::putText(canvas, std::string(msg),
-            cv::Point(10,40), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255) ,1, 8);
-    VLOG(1) << "[" << _steps << "] state: " << state << ", " << "angle to tagent: " << theta;
-
+    sprintf(msg,
+            "angle: %.2f(%.2f, %.2f), dist to mid: %.2f, dist to end: %.2f",
+            theta / PI * 180,
+            state[0],
+            state[1],
+            state[2],
+            state[3]);
+    cv::putText(canvas,
+                std::string(msg),
+                cv::Point(10, 40),
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.4,
+                cv::Scalar(255, 255, 255),
+                1,
+                8);
+    VLOG(1) << "[" << _steps << "] state: " << state << ", "
+            << "angle to tagent: " << theta;
 
     return canvas;
 }
@@ -306,7 +321,7 @@ float RaceEngine::get_reward(float forward, float angle) {
     float reward_finish = _track->race_finish(p) ? 2.0f : 0.0f;
     float reward_boundary = 0;
     if (FLAGS_difficulty == "easy") {
-        reward_boundary = - fabs(_track->horizontal_displacement(p));
+        reward_boundary = -fabs(_track->horizontal_displacement(p));
         VLOG(1) << "[" << _steps << "] reward_finish: " << reward_finish;
         VLOG(1) << "[" << _steps << "] reward_boundary: " << reward_boundary;
         VLOG(1) << "[" << _steps << "] reward_speed: " << reward_speed;
@@ -326,7 +341,8 @@ float RaceEngine::get_reward(float forward, float angle) {
 void RaceEngine::get_screen(std::vector<float> &state) {
     Point2f t = _track->get_tangent_vec(_car.get_pos());
     float a = _car.get_angle();
-    float cos_theta = std::max(-1.0d, std::min(1.0d, t.x * cos(a) + t.y * sin(a)));
+    float cos_theta =
+        std::max(-1.0d, std::min(1.0d, t.x * cos(a) + t.y * sin(a)));
     float sin_theta = sqrt(1 - cos_theta * cos_theta);
     float theta = acos(cos_theta);
     if (cos(a) * t.y + sin(a) * t.x < 0) {
@@ -345,19 +361,17 @@ void RaceEngine::get_screen(std::vector<float> &state) {
 RaceEngine::ActionVect RaceEngine::get_action_set() {
     if (FLAGS_race_full_manouver) {
         LOG(INFO) << "using all manouver";
-        return RaceEngine::ActionVect({0,1,2,3,4,5,6,7,8});
+        return RaceEngine::ActionVect({0, 1, 2, 3, 4, 5, 6, 7, 8});
     } else {
         LOG(INFO) << "left/right turns only";
-        return RaceEngine::ActionVect({4,7});
+        return RaceEngine::ActionVect({4, 7});
     }
 }
 
-bool RaceEngine::out_of_bound() {
-    return _track->out_of_bound(_car.get_pos());
-}
+bool RaceEngine::out_of_bound() { return _track->out_of_bound(_car.get_pos()); }
 
-SimpleRaceGame::SimpleRaceGame(float width, float height) :
-    _race(width, height) {
+SimpleRaceGame::SimpleRaceGame(float width, float height)
+    : _race(width, height) {
     _legal_actions = _race.get_action_set();
 }
 
@@ -367,11 +381,10 @@ void SimpleRaceGame::reset_game() {
 }
 
 int SimpleRaceGame::game_over() {
-    return GameSimulator::game_over()
-            | (_race.game_over()? DEAD: ALIVE);
+    return GameSimulator::game_over() | (_race.game_over() ? DEAD : ALIVE);
 }
 
-float SimpleRaceGame::take_action(const StatePacket& actions) {
+float SimpleRaceGame::take_action(const StatePacket &actions) {
     CHECK_EQ(actions.size(), 1);
     int action_id = *(actions.get_buffer("action")->get_id());
     CHECK_LT(action_id, _legal_actions.size());
@@ -379,9 +392,7 @@ float SimpleRaceGame::take_action(const StatePacket& actions) {
     return _race.act(a);
 }
 
-int SimpleRaceGame::get_num_actions() {
-    return _legal_actions.size();
-}
+int SimpleRaceGame::get_num_actions() { return _legal_actions.size(); }
 
 void SimpleRaceGame::get_screen(StatePacket &screen) {
     _race.get_screen(_screen);
@@ -389,13 +400,15 @@ void SimpleRaceGame::get_screen(StatePacket &screen) {
     screen.add_buffer_value("screen", _screen);
 }
 
-void SimpleRaceGame::define_state_specs(StatePacket& state) {
+void SimpleRaceGame::define_state_specs(StatePacket &state) {
     state = StatePacket();
     state.add_key("reward");
     state.add_key("screen");
 }
 
-void SimpleRaceGame::get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) {
+void SimpleRaceGame::get_screen_out_dimensions(size_t &height,
+                                               size_t &width,
+                                               size_t &channels) {
     height = 1;
     if (_screen.empty()) {
         _race.get_screen(_screen);
@@ -404,9 +417,7 @@ void SimpleRaceGame::get_screen_out_dimensions(size_t& height, size_t& width, si
     channels = 1;
 }
 
-int SimpleRaceGame::get_lives() {
-    return 1;
-}
+int SimpleRaceGame::get_lives() { return 1; }
 
 void SimpleRaceGame::show_screen(float reward) {
     cv::Mat img = _race.draw();
@@ -417,5 +428,5 @@ void SimpleRaceGame::show_screen(float reward) {
 void SimpleRaceGame::add_track(std::shared_ptr<simple_race::Track> track) {
     _race.add_track(track);
 }
-
-}} // namespace simulator::simple_race
+}
+}  // namespace simulator::simple_race

@@ -16,12 +16,13 @@
 #include <memory>
 #include <vector>
 
-namespace simulator { namespace simple_game {
+namespace simulator {
+namespace simple_game {
 
-SimpleGameEngine::SimpleGameEngine(size_t array_size) :
-        _array_size(array_size),
-        _state_vec(array_size, 0),
-        _rewards(array_size, 0.0f) {
+SimpleGameEngine::SimpleGameEngine(size_t array_size)
+    : _array_size(array_size),
+      _state_vec(array_size, 0),
+      _rewards(array_size, 0.0f) {
     reset_game();
 }
 
@@ -35,15 +36,14 @@ void SimpleGameEngine::reset_game() {
 }
 
 bool SimpleGameEngine::game_over() {
-    return _cur_pos <= 0
-           || _cur_pos >= static_cast<int>(_state_vec.size() - 1);
+    return _cur_pos <= 0 || _cur_pos >= static_cast<int>(_state_vec.size() - 1);
 }
 
 float SimpleGameEngine::act(Action a) {
     if (game_over()) return get_reward();
     int action_id = (int)a;
     switch (action_id) {
-        case 0: // move left
+        case 0:  // move left
             _state_vec[_cur_pos] = 0;
             --_cur_pos;
             break;
@@ -60,7 +60,7 @@ float SimpleGameEngine::act(Action a) {
     return get_reward();
 }
 
-void SimpleGameEngine::get_screen(GameFrame &state_vec) {
+void SimpleGameEngine::get_screen(GameFrame& state_vec) {
     state_vec = _state_vec;
 }
 
@@ -74,11 +74,10 @@ float SimpleGameEngine::get_reward() {
 }
 
 SimpleGameEngine::ActionVect SimpleGameEngine::get_action_set() {
-    return ActionVect({0,1});
+    return ActionVect({0, 1});
 }
 
-SimpleGame::SimpleGame(size_t array_size) :
-        _game(array_size) {
+SimpleGame::SimpleGame(size_t array_size) : _game(array_size) {
     _legal_actions = _game.get_action_set();
     _game.reset_game();
 }
@@ -89,8 +88,7 @@ void SimpleGame::reset_game() {
 }
 
 int SimpleGame::game_over() {
-    return GameSimulator::game_over()
-            | (_game.game_over()? SUCCESS: ALIVE);
+    return GameSimulator::game_over() | (_game.game_over() ? SUCCESS : ALIVE);
 }
 
 float SimpleGame::take_action(const StatePacket& actions) {
@@ -101,7 +99,7 @@ float SimpleGame::take_action(const StatePacket& actions) {
     return _game.act(a);
 }
 
-void SimpleGame::get_screen(StatePacket &screen) {
+void SimpleGame::get_screen(StatePacket& screen) {
     GameFrame screen_vec;
     _game.get_screen(screen_vec);
     screen = StatePacket();
@@ -114,7 +112,9 @@ void SimpleGame::define_state_specs(StatePacket& state) {
     state.add_key("screen");
 }
 
-void SimpleGame::get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) {
+void SimpleGame::get_screen_out_dimensions(size_t& height,
+                                           size_t& width,
+                                           size_t& channels) {
     height = 1;
     width = _array_size;
     channels = 1;
@@ -131,8 +131,6 @@ void SimpleGame::show_screen(float reward) {
     LOG(INFO) << "state_vec: " << ss.str();
 }
 
-int SimpleGame::get_lives() {
-    return game_over()? 0 : 1;
+int SimpleGame::get_lives() { return game_over() ? 0 : 1; }
 }
-
-}} // namespace simulator::simple_game
+}  // namespace simulator::simple_game

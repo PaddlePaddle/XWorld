@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstdlib>
-#include <gtest/gtest.h>
 #include <games/deepmind_lab/deepmind_lab_simulator.h>
+#include <gtest/gtest.h>
+#include <cstdlib>
 
 using namespace simulator;
 
@@ -61,7 +61,7 @@ TEST(DMLAB_PLAYER, all_tests) {
     int length = screen->get_value_width() / 3;
     std::vector<double> avg_rgb(3);
 
-    for (int i = 0; i < (int) avg_rgb.size(); i++) {
+    for (int i = 0; i < (int)avg_rgb.size(); i++) {
         for (int j = 0; j < length; j++) {
             avg_rgb[i] += fv->get_value(i * length + j);
         }
@@ -70,10 +70,10 @@ TEST(DMLAB_PLAYER, all_tests) {
     }
 
     // Check the observation is blue sky.
-    EXPECT_LT(avg_rgb[0], 0.6*255);  // r
-    EXPECT_GT(avg_rgb[1], 0.85*255); // g
-    EXPECT_LT(avg_rgb[1], 0.9*255);  // g
-    EXPECT_GT(avg_rgb[2], 0.95*255); // b
+    EXPECT_LT(avg_rgb[0], 0.6 * 255);   // r
+    EXPECT_GT(avg_rgb[1], 0.85 * 255);  // g
+    EXPECT_LT(avg_rgb[1], 0.9 * 255);   // g
+    EXPECT_GT(avg_rgb[2], 0.95 * 255);  // b
 
     // reward
     // Move forward until the agent touches item with reward 1.

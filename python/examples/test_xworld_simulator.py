@@ -2,6 +2,7 @@
 
 from py_simulator import Simulator
 
+
 def compute_action(states, num_actions):
     """
     A bad action computation method
@@ -11,14 +12,15 @@ def compute_action(states, num_actions):
     action = (abs(hash(sentence)) + int(sum(screen))) % num_actions
     return action
 
+
 if __name__ == "__main__":
     options = {
-        "conf_path" : "./empty_ground.json",
-        "curriculum" : 0,
-        "task_mode" : "arxiv_lang_acquisition",
-        "context" : 1,
-        "pause_screen" : True,
-        "tg_exclusive" : True
+        "conf_path": "./empty_ground.json",
+        "curriculum": 0,
+        "task_mode": "arxiv_lang_acquisition",
+        "context": 1,
+        "pause_screen": True,
+        "tg_exclusive": True
     }
     xworld = Simulator.create("xworld", options)
 

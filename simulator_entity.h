@@ -31,8 +31,7 @@ class Vec3 {
         z = x;
     }
 
-    Vec3(double x_, double y_, double z_)
-            : x(x_), y(y_), z(z_) {}
+    Vec3(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {}
 
     Vec3 operator-(const Vec3& l) const {
         return Vec3(x - l.x, y - l.y, z - l.z);
@@ -42,13 +41,9 @@ class Vec3 {
         return Vec3(x + l.x, y + l.y, z + l.z);
     }
 
-    bool operator==(const Vec3& l) const {
-        return square_distance(l) < EPS;
-    }
+    bool operator==(const Vec3& l) const { return square_distance(l) < EPS; }
 
-    double L2_norm() const {
-        return x * x + y * y + z * z;
-    }
+    double L2_norm() const { return x * x + y * y + z * z; }
 
     double square_distance(const Vec3& l) const {
         Vec3 diff = (*this) - l;
@@ -65,17 +60,22 @@ class Vec3 {
         }
         double delta = atan(1.0) / 2;
         Vec3 vec = l - (*this);
-        double angle = atan2(vec.y, vec.x) + delta * 8; // [0, 2pi]
-        std::vector<std::string> dir = {
-            "southeast", "south", "southwest", "west",
-            "northwest", "north", "northeast", "east"};
+        double angle = atan2(vec.y, vec.x) + delta * 8;  // [0, 2pi]
+        std::vector<std::string> dir = {"southeast",
+                                        "south",
+                                        "southwest",
+                                        "west",
+                                        "northwest",
+                                        "north",
+                                        "northeast",
+                                        "east"};
         std::vector<int> start = {9, 11, 13, 15, 1, 3, 5, 7};
-        for (size_t i = 0; i < dir.size(); i ++) {
+        for (size_t i = 0; i < dir.size(); i++) {
             if (angle >= start[i] * delta && angle < (start[i] + 2) * delta) {
                 return dir[i];
             }
         }
-        return "west"; // [2pi-delta, 2pi], [0, delta]
+        return "west";  // [2pi-delta, 2pi], [0, delta]
     }
 };
 
@@ -89,7 +89,7 @@ class Entity {
     Entity() : id(""), type(""), location(Vec3()) {}
     std::string property(std::string key) const {
         CHECK(properties_.find(key) != properties_.end())
-                << "unrecognized key!";
+            << "unrecognized key!";
         return properties_.at(key);
     }
     void set_property(std::string key, std::string value) {
@@ -103,8 +103,8 @@ class Entity {
         }
         return keys;
     }
-    std::string id;      // name + id
-    std::string type;    // "agent", "goal", "block", "dummy", "world"
+    std::string id;    // name + id
+    std::string type;  // "agent", "goal", "block", "dummy", "world"
     Vec3 location;
 
   protected:
@@ -116,4 +116,4 @@ class Entity {
 
 typedef std::shared_ptr<Entity> EntityPtr;
 
-} // namespace simulator
+}  // namespace simulator

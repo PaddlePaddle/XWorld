@@ -17,10 +17,11 @@
 #include <vector>
 #include "simulator.h"
 
-namespace simulator { namespace simple_game {
+namespace simulator {
+namespace simple_game {
 
 class SimpleGameEngine {
-public:
+  public:
     typedef int Action;
     typedef std::vector<Action> ActionVect;
 
@@ -32,17 +33,15 @@ public:
 
     float act(Action a);
 
-    void get_screen(GameFrame &state_vec);
+    void get_screen(GameFrame& state_vec);
 
     float get_reward();
 
     ActionVect get_action_set();
 
-    int get_num_actions() {
-        return NUM_ACTIONS;
-    }
+    int get_num_actions() { return NUM_ACTIONS; }
 
-private:
+  private:
     bool valid_range() {
         return _cur_pos >= 0 && _cur_pos < static_cast<int>(_state_vec.size());
     }
@@ -67,16 +66,14 @@ private:
 // The game ends if the agent arrives at either end.
 // The optimal policy is to always move the left.
 class SimpleGame : public GameSimulator {
-public:
+  public:
     SimpleGame(size_t array_size = ARRAY_SIZE);
 
     virtual void reset_game() override;
 
     virtual int game_over() override;
 
-    virtual int get_num_actions() override {
-        return _legal_actions.size();
-    }
+    virtual int get_num_actions() override { return _legal_actions.size(); }
 
     virtual int get_lives() override;
 
@@ -84,13 +81,15 @@ public:
 
     virtual float take_action(const StatePacket& actions) override;
 
-    virtual void get_screen(StatePacket &screen) override;
+    virtual void get_screen(StatePacket& screen) override;
 
     void define_state_specs(StatePacket& state);
 
-    virtual void get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) override;
+    virtual void get_screen_out_dimensions(size_t& height,
+                                           size_t& width,
+                                           size_t& channels) override;
 
-private:
+  private:
     static const size_t ARRAY_SIZE = 16;
 
     float get_reward();
@@ -100,5 +99,5 @@ private:
     SimpleGameEngine _game;
     SimpleGameEngine::ActionVect _legal_actions;
 };
-
-}} // namespace simulator::simple_game
+}
+}  // namespace simulator::simple_game

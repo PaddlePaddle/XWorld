@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
 #include <gflags/gflags.h>
+#include <ctime>
+#include <limits>
 #include <unordered_map>
 #include <unordered_set>
-#include <limits>
-#include <ctime>
+#include <vector>
 #include "data_packet.h"
 #include "simulator_util.h"
 
@@ -38,7 +38,7 @@ enum GameOverCode {
 typedef std::vector<uint8_t> GameFrame;
 
 class GameSimulator {
-public:
+  public:
     GameSimulator();
 
     virtual ~GameSimulator() {}
@@ -128,7 +128,7 @@ public:
      * learning. As a result, all values in the map are designed as strings.
      */
     virtual void get_extra_info(
-            std::unordered_map<std::string, std::string>& info) {
+        std::unordered_map<std::string, std::string>& info) {
         info.clear();
     }
 
@@ -144,20 +144,23 @@ public:
 
     virtual std::string last_action() { return last_action_; }
 
-    static const int N_BUFFERS = 2;  // "reward" and "screen" are two basic buffers
+    static const int N_BUFFERS =
+        2;  // "reward" and "screen" are two basic buffers
 
     /**
      * @brief get the image dimensions used by CNN
      */
-    virtual void get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) = 0;
+    virtual void get_screen_out_dimensions(size_t& height,
+                                           size_t& width,
+                                           size_t& channels) = 0;
 
-protected:
+  protected:
     int64_t max_steps_;
-    int64_t num_steps_; // number of steps since the beginning of the game
+    int64_t num_steps_;  // number of steps since the beginning of the game
 
-    std::string last_action_; // store the last action for the agent
+    std::string last_action_;  // store the last action for the agent
 
-    StatePacket screens_; // maintain the most recent FLAGS_context screens
+    StatePacket screens_;  // maintain the most recent FLAGS_context screens
 
     // global mutex to serialize calls of cv::imshow, which is not thread-safe.
     static std::mutex s_display_mutex_;
@@ -220,8 +223,7 @@ typedef std::shared_ptr<GameSimulator> SimulatorPtr;
  */
 
 class GameSimulatorMulti : public GameSimulator {
-
-public:
+  public:
     GameSimulatorMulti() : active_agent_id_(0) {}
 
     virtual ~GameSimulatorMulti() {}
@@ -238,8 +240,7 @@ public:
     // this function is called to return max_steps to AgentSpecificSimulator
     int64_t get_max_steps() { return max_steps_; }
 
-protected:
-
+  protected:
     int active_agent_id_;
     std::unordered_map<std::string, int> agents_;
 };
@@ -254,12 +255,12 @@ class Entity;
 struct TeachingEnvBuffer {
     ///////// teacher's buffer /////////
     std::string teacher_sent;
-    std::string teacher_sent_type;     // for display only; not for agent
-    std::string teacher_sent_answer;   // only useful for supervised task
+    std::string teacher_sent_type;    // for display only; not for agent
+    std::string teacher_sent_answer;  // only useful for supervised task
     double reward;
-    std::string event;                 // stores an event's name during the session
-                                       // e.g., "correct_goal", "wrong_goal", "hit_wall"
-                                       // can be used by the environment to decide game_over()
+    std::string event;  // stores an event's name during the session
+                        // e.g., "correct_goal", "wrong_goal", "hit_wall"
+                        // can be used by the environment to decide game_over()
     ///////// agent's buffer ////////
     std::string agent_sent;
     int agent_action;
@@ -281,8 +282,9 @@ struct TeachingEnvBuffer {
 class TeachingEnvironment {
   public:
     TeachingEnvironment(int curriculum_learning = 0)
-            : beginning_(true), num_games_since_simulation_(0),
-              curriculum_learning_(curriculum_learning) {}
+        : beginning_(true),
+          num_games_since_simulation_(0),
+          curriculum_learning_(curriculum_learning) {}
 
     virtual ~TeachingEnvironment() {}
 
@@ -314,21 +316,15 @@ class TeachingEnvironment {
         return buffer_.teacher_sent_answer;
     }
 
-    void add_teacher_reward(double reward) {
-        buffer_.reward += reward;
-    }
+    void add_teacher_reward(double reward) { buffer_.reward += reward; }
 
-    double get_teacher_reward() const {
-        return buffer_.reward;
-    }
+    double get_teacher_reward() const { return buffer_.reward; }
 
     void record_event_in_buffer(const std::string& event) {
         buffer_.event = event;
     }
 
-    const std::string& get_event_from_buffer() const {
-        return buffer_.event;
-    }
+    const std::string& get_event_from_buffer() const { return buffer_.event; }
 
     void record_agent_sent_in_buffer(const std::string& sentence) {
         buffer_.agent_sent = sentence;
@@ -342,9 +338,7 @@ class TeachingEnvironment {
         buffer_.agent_action = action;
     }
 
-    int get_agent_action_from_buffer() const {
-        return buffer_.agent_action;
-    }
+    int get_agent_action_from_buffer() const { return buffer_.agent_action; }
 
     // This function can be used to decide wheter some property of
     // an entity is valid for the game
@@ -357,7 +351,8 @@ class TeachingEnvironment {
     virtual void get_all_entities(std::vector<Entity>& entities) = 0;
 
     // get all possible objects that can appear in the game
-    // this function is used for computing the total number of sentences by teacher
+    // this function is used for computing the total number of sentences by
+    // teacher
     virtual void get_all_possible_objects(std::vector<Entity>& objects) = 0;
 
     // The linking node between the teacher and the agent
@@ -378,13 +373,9 @@ class TeachingEnvironment {
         return 0;
     }
 
-    void clear_agent_env_buffer() {
-        buffer_.clear_agent_env_buffer();
-    }
+    void clear_agent_env_buffer() { buffer_.clear_agent_env_buffer(); }
 
-    void clear_teacher_env_buffer() {
-        buffer_.clear_teacher_env_buffer();
-    }
+    void clear_teacher_env_buffer() { buffer_.clear_teacher_env_buffer(); }
 
     bool beginning_of_the_game() { return beginning_; }
 
@@ -393,11 +384,13 @@ class TeachingEnvironment {
     int curriculum_learning() { return curriculum_learning_; }
 
   protected:
-    bool beginning_; // whether any agent has taken action since the game starts
+    bool
+        beginning_;  // whether any agent has taken action since the game starts
     int num_games_since_simulation_;  // how many games have been played
-    int curriculum_learning_;     // how many games for curriculum learning
-    TeachingEnvBuffer buffer_;    // a buffer to store exchanging information between
-                                  // the teacher and the agent
+    int curriculum_learning_;         // how many games for curriculum learning
+    TeachingEnvBuffer
+        buffer_;  // a buffer to store exchanging information between
+                  // the teacher and the agent
 };
 
 typedef std::shared_ptr<TeachingEnvironment> TeachingEnvPtr;
@@ -408,8 +401,7 @@ typedef std::shared_ptr<TeachingEnvironment> TeachingEnvPtr;
 */
 
 class AgentSpecificSimulator : public GameSimulator {
-
-public:
+  public:
     AgentSpecificSimulator(SimulatorMultiPtr simulator_ptr, int agent_id = 0);
 
     void reset_game() override;
@@ -428,19 +420,20 @@ public:
 
     void get_screen(StatePacket& screen) override;
 
-    void get_extra_info(std::unordered_map<std::string, std::string>& info) override;
+    void get_extra_info(
+        std::unordered_map<std::string, std::string>& info) override;
 
-    void get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) override;
+    void get_screen_out_dimensions(size_t& height,
+                                   size_t& width,
+                                   size_t& channels) override;
 
     void define_state_specs(StatePacket& state);
 
-private:
-    void activate_my_agent() {
-        simulator_ptr_->set_active_agent_id(agent_id_);
-    }
+  private:
+    void activate_my_agent() { simulator_ptr_->set_active_agent_id(agent_id_); }
 
     SimulatorMultiPtr simulator_ptr_;
     const int agent_id_;
 };
 
-} // namespace simulator
+}  // namespace simulator

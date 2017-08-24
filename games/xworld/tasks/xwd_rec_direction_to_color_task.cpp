@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "teaching_task.h"
 #include "../xworld_task.h"
+#include "teaching_task.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 class XWorldRecDirectionToColorTask : public XWorldTask {
   public:
     XWorldRecDirectionToColorTask(const std::string& name,
-                               TeachingEnvPtr game,
-                               const std::vector<std::string>& held_out)
-            : XWorldTask(name, game, held_out) {}
+                                  TeachingEnvPtr game,
+                                  const std::vector<std::string>& held_out)
+        : XWorldTask(name, game, held_out) {}
+
   private:
     void register_stages() override;
 
-    std::string idle(ScannerPtr scanner, SentenceTemplatePtr sen_temp,
+    std::string idle(ScannerPtr scanner,
+                     SentenceTemplatePtr sen_temp,
                      TeachingEnvPtr game) override;
 
     void define_sen_temp_rules(SentenceTemplatePtr sen_temp,
@@ -34,9 +37,10 @@ class XWorldRecDirectionToColorTask : public XWorldTask {
 
     std::vector<std::vector<Entity>> find_goal(ScannerPtr scanner) override;
 
-    void generate_sentence(
-        const std::vector<std::vector<Entity>>& goal_sets,
-        ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) override;
+    void generate_sentence(const std::vector<std::vector<Entity>>& goal_sets,
+                           ScannerPtr scanner,
+                           SentenceTemplatePtr sen_temp,
+                           TeachingEnvPtr game) override;
 };
 
 REGISTER_TASK(XWorldRecDirectionToColorTask);
@@ -47,30 +51,36 @@ void XWorldRecDirectionToColorTask::register_stages() {
     REGISTER_STAGE(conversation_wrapup);
 }
 
-std::string XWorldRecDirectionToColorTask::idle(
-    ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
+std::string XWorldRecDirectionToColorTask::idle(ScannerPtr scanner,
+                                                SentenceTemplatePtr sen_temp,
+                                                TeachingEnvPtr game) {
     return find_goal_and_generate_sentence(
-        scanner, sen_temp, game,
-        FLAGS_task_mode == "arxiv_lang_acquisition"? "idle": "simple_recognition_reward");
+        scanner,
+        sen_temp,
+        game,
+        FLAGS_task_mode == "arxiv_lang_acquisition"
+            ? "idle"
+            : "simple_recognition_reward");
 }
 
 void XWorldRecDirectionToColorTask::define_sen_temp_rules(
     SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
     XWorldTask::define_sen_temp_rules(sen_temp, game);
-    sen_temp->add_rule(sen_temp->start_symbol(), {"$G $X ?",
-                    "$X of $G ?",
-                    "Tell the $X of $G .",
-                    "What $X does the $G have ?",
-                    "What is the $X of $G ?",
-                    "Identify the $X of $G .",
-                    "Say the $X of $G ."});
+    sen_temp->add_rule(sen_temp->start_symbol(),
+                       {"$G $X ?",
+                        "$X of $G ?",
+                        "Tell the $X of $G .",
+                        "What $X does the $G have ?",
+                        "What is the $X of $G ?",
+                        "Identify the $X of $G .",
+                        "Say the $X of $G ."});
     sen_temp->add_rule("$G", {"object in $W"});
-    sen_temp->add_rule("$W", directions_, true/*must_bound*/);
+    sen_temp->add_rule("$W", directions_, true /*must_bound*/);
     sen_temp->add_rule("$X", {"color", "property"});
 }
 
-std::vector<std::vector<Entity>> XWorldRecDirectionToColorTask::find_goal(ScannerPtr scanner) {
-
+std::vector<std::vector<Entity>> XWorldRecDirectionToColorTask::find_goal(
+    ScannerPtr scanner) {
     std::vector<std::vector<Entity>> goal_sets;
     auto around = surrounding_filter(scanner->agent_, "color_goal", scanner);
     for (const auto& a : around) {
@@ -81,11 +91,13 @@ std::vector<std::vector<Entity>> XWorldRecDirectionToColorTask::find_goal(Scanne
 
 void XWorldRecDirectionToColorTask::generate_sentence(
     const std::vector<std::vector<Entity>>& goal_sets,
-    ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
-
+    ScannerPtr scanner,
+    SentenceTemplatePtr sen_temp,
+    TeachingEnvPtr game) {
     auto goal_set = util::sample_set<std::vector<Entity>>(goal_sets);
-    sen_temp->bind("$W", get_direction(scanner->agent_.location, goal_set[0].location));
+    sen_temp->bind(
+        "$W", get_direction(scanner->agent_.location, goal_set[0].location));
     answer_ = goal_set[0].property("color");
 }
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

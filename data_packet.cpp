@@ -32,7 +32,7 @@ void StateBuffer::copy_from(BufferPtr buffer) {
         auto data = buffer->get_value();
         init_value(buffer->get_value_size(), 1, data->is_uint8());
         auto dst_data = get_value();
-        for (size_t i = 0; i < buffer->get_value_size(); i ++) {
+        for (size_t i = 0; i < buffer->get_value_size(); i++) {
             dst_data->set_value(i, data->get_value(i));
         }
     }
@@ -60,16 +60,14 @@ void StateBuffer::init_id(size_t sz) {
     id_ = std::make_shared<std::vector<int>>(sz, 0);
 }
 
-void StateBuffer::init_str() {
-    str_ = std::make_shared<std::string>();
-}
+void StateBuffer::init_str() { str_ = std::make_shared<std::string>(); }
 
 void StateBuffer::sync_value_ptr() {
     if (reals_) {
         CHECK_GT(reals_->size(), 0);
         // we always have floating values in state buffers
-        CHECK(std::type_index(typeid(*(reals_->data())))
-              == std::type_index(typeid(float)));
+        CHECK(std::type_index(typeid(*(reals_->data()))) ==
+              std::type_index(typeid(float)));
         v_->f_val_ = reals_->data();
     } else if (pixels_) {
         CHECK_GT(pixels_->size(), 0);
@@ -120,5 +118,4 @@ size_t StateBuffer::get_id_size() {
         return 0;
     }
 }
-
 }

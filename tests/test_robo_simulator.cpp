@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <games/roboschool/robo_simulator.h>
 #include <gtest/gtest.h>
 #include <iostream>
-#include <games/roboschool/robo_simulator.h>
 #include <vector>
 
 using simulator::robo_simulator::RoboSimulator;
@@ -47,7 +47,7 @@ void demo() {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     if (argc == 1) {
         testing::InitGoogleTest(&argc, argv);
         return RUN_ALL_TESTS();

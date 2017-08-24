@@ -13,15 +13,16 @@
 // limitations under the License.
 
 #pragma once
-#include <unordered_map>
-#include <unordered_set>
-#include <queue>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include "xitem.h"
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
 #include "simulator_entity.h"
+#include "xitem.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 namespace pt = boost::property_tree;
 
@@ -29,11 +30,10 @@ namespace pt = boost::property_tree;
 class XWorldParser {
   public:
     XWorldParser(bool print_xworld_config,
-                 const std::string& world_config, int curriculum_learning = 0);
+                 const std::string& world_config,
+                 int curriculum_learning = 0);
 
-    void reset_config(bool print = false) {
-        reset_config(world_conf_, print);
-    }
+    void reset_config(bool print = false) { reset_config(world_conf_, print); }
 
     // this enables the teacher to change the env during training
     void reset_config(const std::string& world_config, bool print = false);
@@ -49,7 +49,10 @@ class XWorldParser {
     ItemInfo get_next_agent();
 
     // generate a number between low and high according to the curriculum
-    int curriculum_number(int low, int high, int num_games, int curriculum_games);
+    int curriculum_number(int low,
+                          int high,
+                          int num_games,
+                          int curriculum_games);
 
   private:
     int curriculum_learning_;
@@ -65,38 +68,43 @@ class XWorldParser {
     std::vector<ItemInfo> all_objects_;
     int height_;
     int width_;
-    size_t levels_;         // how many levels the map has
-                            // suppose the map is n x n, then the first level has
-                            // an empty ground of (n-levels_+1) x (n-levels_+1)
-                            // the empty ground is surrouned by blocks
+    size_t levels_;  // how many levels the map has
+                     // suppose the map is n x n, then the first level has
+                     // an empty ground of (n-levels_+1) x (n-levels_+1)
+                     // the empty ground is surrouned by blocks
     std::string world_conf_;
     std::unique_ptr<pt::ptree> conf_root_;
 
     std::vector<int> read_json_vector(const pt::ptree::value_type& node);
 
-    std::vector<std::vector<int>> read_json_matrix(const pt::ptree::value_type& node);
+    std::vector<std::vector<int>> read_json_matrix(
+        const pt::ptree::value_type& node);
 
     int select_number_from_range(int low, int high, bool curriculum_learning);
 
     int get_total_num_of_items(const pt::ptree::value_type& item);
 
-    void record_all_possible_objects(const std::vector<std::string>& all_valid_classes);
+    void record_all_possible_objects(
+        const std::vector<std::string>& all_valid_classes);
 
-    // lower level has more surrounding blocks so that the agent's movement is constrained
+    // lower level has more surrounding blocks so that the agent's movement is
+    // constrained
     // for curriculum learning
     void set_map_level();
 
     std::string sample_schedule(const pt::ptree::value_type& item);
 
-    void select_item_classes(std::string type, const std::vector<std::string>& categories,
+    void select_item_classes(std::string type,
+                             const std::vector<std::string>& categories,
                              std::vector<std::string>& all_classes);
 
-    void instantiate_items(
-        size_t total, const pt::ptree::value_type& item, bool print = false);
+    void instantiate_items(size_t total,
+                           const pt::ptree::value_type& item,
+                           bool print = false);
 
     // For a small chance we put all the items in a row
     // This will only change the locations of the items
     void put_items_in_a_row(double prob, ItemType t);
 };
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

@@ -5,9 +5,11 @@ from random import randint
 import os
 
 if __name__ == "__main__":
-    options = {"runfiles_path" : os.environ["DEEPMIND_RUNFILES"],
-               "level_script" : "./test_map.lua",
-               "context" : 1}
+    options = {
+        "runfiles_path": os.environ["DEEPMIND_RUNFILES"],
+        "level_script": "./test_map.lua",
+        "context": 1
+    }
     dm = Simulator.create("deepmind_lab", options)
 
     num_actions = dm.get_num_actions()

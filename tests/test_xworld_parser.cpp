@@ -14,11 +14,11 @@
 
 #include <gtest/gtest.h>
 #include <algorithm>
-#include "games/xworld/xworld/xworld.h"
-#include <vector>
 #include <cmath>
-#include "simulator_entity.h"
+#include <vector>
 #include "dirent.h"
+#include "games/xworld/xworld/xworld.h"
+#include "simulator_entity.h"
 
 using namespace simulator;
 using namespace simulator::xwd;
@@ -40,12 +40,9 @@ TEST(XWorldParser, location1) {
     EXPECT_EQ(H, 7);
     EXPECT_EQ(W, 7);
     EXPECT_EQ(ul.size(), 2);
-    EXPECT_EQ(ul[0].type == GOAL
-              && !ul[0].location.defined(), true);
-    EXPECT_EQ(ul[1].type == GOAL
-              && !ul[1].location.defined(), true);
+    EXPECT_EQ(ul[0].type == GOAL && !ul[0].location.defined(), true);
+    EXPECT_EQ(ul[1].type == GOAL && !ul[1].location.defined(), true);
 }
-
 
 TEST(XWorldParser, location2) {
     XWorldParser xp(false, get_json_dir() + "/partially_init.json");
@@ -57,24 +54,20 @@ TEST(XWorldParser, location2) {
     EXPECT_EQ(W, 3);
     EXPECT_EQ(ul.size(), 7);
 
-    EXPECT_EQ(ul[0].type == GOAL
-              && ul[0].name == "apple_0"
-              && ul[0].location.x == 1
-              && ul[0].location.y == 2, true);
-    EXPECT_EQ(ul[1].type == GOAL
-              && !ul[1].location.defined(), true);
-    EXPECT_EQ(ul[5].type == DUMMY
-              && ul[5].name == "dummy_5"
-              && ul[5].location.x == 0
-              && ul[5].location.y == 1, true);
-    EXPECT_EQ(ul[6].type == DUMMY
-              && !ul[6].location.defined(), true);
+    EXPECT_EQ(ul[0].type == GOAL && ul[0].name == "apple_0" &&
+                  ul[0].location.x == 1 && ul[0].location.y == 2,
+              true);
+    EXPECT_EQ(ul[1].type == GOAL && !ul[1].location.defined(), true);
+    EXPECT_EQ(ul[5].type == DUMMY && ul[5].name == "dummy_5" &&
+                  ul[5].location.x == 0 && ul[5].location.y == 1,
+              true);
+    EXPECT_EQ(ul[6].type == DUMMY && !ul[6].location.defined(), true);
 }
 
 TEST(XWorldParser, partiallyInit) {
     bool verify = true;
     std::vector<Entity> entities;
-    for (int i = 0; i < RANDOM_RESTARTS; i ++) {
+    for (int i = 0; i < RANDOM_RESTARTS; i++) {
         XWorld xw(false, get_json_dir() + "/partially_init.json", 0);
         xw.get_all_items(entities);
         EXPECT_EQ(entities.size(), 5);  // not including agents
@@ -111,15 +104,11 @@ TEST(XWorldParser, unreachableGoal) {
     std::vector<Entity> temp;
     int n_blocks = 0;
     for (auto& e : entities) {
-        if (e.type == "block")
-            n_blocks ++;
-        if (e.type == "goal")
-            verify = verify && e.location == Vec3(3,1,0);
-        if (e.type == "agent")
-            verify = verify && e.location == Vec3(0,0,0);
-        if (e.location == Vec3(1,0,0)
-            || e.location == Vec3(1,1,0)
-            || e.location == Vec3(1,2,0)) {
+        if (e.type == "block") n_blocks++;
+        if (e.type == "goal") verify = verify && e.location == Vec3(3, 1, 0);
+        if (e.type == "agent") verify = verify && e.location == Vec3(0, 0, 0);
+        if (e.location == Vec3(1, 0, 0) || e.location == Vec3(1, 1, 0) ||
+            e.location == Vec3(1, 2, 0)) {
             temp.push_back(e);
         }
     }
@@ -133,18 +122,17 @@ TEST(XWorldParser, unreachableGoal) {
 TEST(XWorldParser, reachableGoal) {
     bool verify = true;
     std::vector<Entity> entities;
-    for (int i = 0; i < RANDOM_RESTARTS; i ++) {
+    for (int i = 0; i < RANDOM_RESTARTS; i++) {
         XWorld xw(false, get_json_dir() + "/reachable_goal.json", 0);
         xw.add_agent("robot_11");
         xw.get_all_items(entities);
         int n_blocks = 0;
         for (auto& e : entities) {
-            if (e.type == "block")
-                n_blocks ++;
+            if (e.type == "block") n_blocks++;
             if (e.type == "goal")
-                verify = verify && e.location == Vec3(3,1,0);
+                verify = verify && e.location == Vec3(3, 1, 0);
             if (e.type == "agent")
-                verify = verify && e.location == Vec3(0,0,0);
+                verify = verify && e.location == Vec3(0, 0, 0);
         }
         verify = verify && n_blocks <= 7;
     }
@@ -154,17 +142,14 @@ TEST(XWorldParser, reachableGoal) {
 TEST(XWorldParser, category) {
     bool verify = true;
     std::vector<Entity> entities;
-    for (int i = 0; i < RANDOM_RESTARTS; i ++) {
+    for (int i = 0; i < RANDOM_RESTARTS; i++) {
         XWorld xw(false, get_json_dir() + "/category.json", 0);
         xw.get_all_items(entities);
         for (auto& e : entities) {
             if (e.type == "goal") {
                 std::string name = e.property("name");
-                verify = verify
-                        && (name == "blue"
-                            || name == "green"
-                            || name == "red"
-                            || name == "yellow");
+                verify = verify && (name == "blue" || name == "green" ||
+                                    name == "red" || name == "yellow");
             }
         }
     }
@@ -180,24 +165,26 @@ TEST(XWorldParser, randomClass) {
         counter[c] = 0;
     }
     int random_restarts = RANDOM_RESTARTS * 500;
-    for (int i = 0; i < random_restarts; i ++) {
+    for (int i = 0; i < random_restarts; i++) {
         XWorld xw(false, get_json_dir() + "/random_class.json", 0);
         xw.get_all_items(entities);
         for (auto& e : entities) {
             if (e.type == "goal") {
                 std::string name = e.property("name");
-                counter[name] ++;
-                verify = verify & (e.location == Vec3(1,1,0));
+                counter[name]++;
+                verify = verify & (e.location == Vec3(1, 1, 0));
             }
         }
     }
     EXPECT_EQ(verify, true);
     for (auto c : colors) {
-        EXPECT_LT(fabs(double(counter[c])/random_restarts - 1.0/colors.size()), 1e-2);
+        EXPECT_LT(
+            fabs(double(counter[c]) / random_restarts - 1.0 / colors.size()),
+            1e-2);
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

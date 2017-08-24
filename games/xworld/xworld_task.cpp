@@ -13,15 +13,17 @@
 // limitations under the License.
 
 #include "xworld_task.h"
-#include "teacher_sentence_generator.h"
 #include <gflags/gflags.h>
 #include <boost/algorithm/string.hpp>
 #include <queue>
+#include "teacher_sentence_generator.h"
 
-DEFINE_string(task_mode, "one_channel",
+DEFINE_string(task_mode,
+              "one_channel",
               "arxiv_lang_acquisition | arxiv_interactive | one_channel");
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 std::string XWorldTask::get_direction(Vec3 refer, Vec3 around) {
     std::string direction = "";
@@ -56,11 +58,10 @@ bool XWorldTask::destination_reachable_from_start(const Vec3& start,
         if (cur == dest2d) {
             return true;
         }
-        for (const auto& m: movements_) {
+        for (const auto& m : movements_) {
             Loc next = cur + m;
-            if (!scanner->outside_world(Vec3(next.x, next.y, 0))
-                && obstacles.count(next) == 0
-                && visited.count(next) == 0) {
+            if (!scanner->outside_world(Vec3(next.x, next.y, 0)) &&
+                obstacles.count(next) == 0 && visited.count(next) == 0) {
                 visited.insert(next);
                 q.push(next);
             }
@@ -75,15 +76,18 @@ std::vector<Vec3> XWorldTask::get_target_around_reachable(const Entity& target,
     std::vector<Vec3> locations;
     for (const auto& m : neighbors_) {
         Vec3 target_around = target.location + Vec3(m.x, m.y, 0);
-        if (destination_reachable_from_start(agent.location, target_around, scanner)) {
+        if (destination_reachable_from_start(
+                agent.location, target_around, scanner)) {
             locations.push_back(target_around);
         }
     }
     return locations;
 }
 
-bool XWorldTask::location_type(Entity& e, std::string type, ScannerPtr scanner) {
-    auto any_equal_location = [&] (const std::vector<Entity>& entities) {
+bool XWorldTask::location_type(Entity& e,
+                               std::string type,
+                               ScannerPtr scanner) {
+    auto any_equal_location = [&](const std::vector<Entity>& entities) {
         for (const auto& en : entities) {
             if (en.location == e.location) {
                 e = en;
@@ -101,23 +105,25 @@ bool XWorldTask::location_type(Entity& e, std::string type, ScannerPtr scanner) 
     } else if (type == "block") {
         return any_equal_location(scanner->blocks_);
     } else if (type == "empty") {
-        return !any_equal_location(scanner->goals_) \
-                && !any_equal_location(scanner->blocks_);
+        return !any_equal_location(scanner->goals_) &&
+               !any_equal_location(scanner->blocks_);
     } else {
         LOG(FATAL) << "Unsupported type";
     }
     return false;
 }
 
-std::vector<Entity> XWorldTask::surrounding_filter(
-    const Entity& e, std::string type, ScannerPtr scanner) {
+std::vector<Entity> XWorldTask::surrounding_filter(const Entity& e,
+                                                   std::string type,
+                                                   ScannerPtr scanner) {
     std::vector<Entity> surround;
     for (const auto& m : neighbors_) {
         Entity around;
         around.location = e.location - Vec3(m.x, m.y, 0);
         around.set_property("name", "nothing");
-        if (!scanner->outside_world(around.location) // within the boundary
-            && location_type(around, type, scanner)) {
+        if (!scanner->outside_world(around.location)  // within the boundary
+            &&
+            location_type(around, type, scanner)) {
             surround.push_back(around);
         }
     }
@@ -133,7 +139,7 @@ void XWorldTask::between_two_goals(std::vector<Entity>& middle,
     west_goals.clear();
     east_goals.clear();
 
-    for (const auto& wg : scanner->unique_goals_) { // enumerate west goal
+    for (const auto& wg : scanner->unique_goals_) {  // enumerate west goal
         Entity east_goal;
         Entity m;
         east_goal.location = wg.location + Vec3(2, 0, 0);
@@ -141,9 +147,12 @@ void XWorldTask::between_two_goals(std::vector<Entity>& middle,
         if (location_type(east_goal, "unique_goal", scanner)) {
             m.location = wg.location + Vec3(1, 0, 0);
             m.set_property("name", "nothing");
-            if (!is_goal && location_type(m, "empty", scanner)) { // middle should be empty
+            if (!is_goal &&
+                location_type(m, "empty", scanner)) {  // middle should be empty
                 flag = true;
-            } else if (is_goal && location_type(m, "goal", scanner)) { // middle should be goal, too
+            } else if (is_goal &&
+                       location_type(
+                           m, "goal", scanner)) {  // middle should be goal, too
                 flag = true;
             }
         }
@@ -165,7 +174,7 @@ std::string XWorldTask::find_goal_and_generate_sentence(
         generate_sentence(goal_sets, scanner, sen_temp, game);
         game->record_teacher_sent_answer_in_buffer(answer_);
         if (Task::teacher_speak(true, name_, sen_temp, game)) {
-            steps_in_cur_task_ = 0; // start counting steps
+            steps_in_cur_task_ = 0;  // start counting steps
             return next_stage_if_success;
         }
     }
@@ -187,7 +196,8 @@ std::string XWorldTask::simple_navigation_reward(ScannerPtr scanner,
         give_reward(failed_action_reward);
         game->record_event_in_buffer("hit_wall");
     }
-    if (scanner->agent_.location == target_) { // The agent succeeds; returns to idle
+    if (scanner->agent_.location ==
+        target_) {  // The agent succeeds; returns to idle
         record_success();
         give_reward(correct_reward);
         game->record_event_in_buffer("correct_goal");
@@ -197,15 +207,17 @@ std::string XWorldTask::simple_navigation_reward(ScannerPtr scanner,
         // No wrapup stage; the agent cannot learn the teacher's last sentence
         // if continuous_task=false
         return "idle";
-    } else if (location_type(scanner->agent_, "goal", scanner)) { // steps on the wrong goal
+    } else if (location_type(scanner->agent_,
+                             "goal",
+                             scanner)) {  // steps on the wrong goal
         record_failure();
         give_reward(wrong_reward);
         game->record_event_in_buffer("wrong_goal");
     }
 
-    steps_in_cur_task_ ++;
-    if (FLAGS_task_mode == "one_channel"
-        && steps_in_cur_task_ == scanner->world_size_ / 2) {
+    steps_in_cur_task_++;
+    if (FLAGS_task_mode == "one_channel" &&
+        steps_in_cur_task_ == scanner->world_size_ / 2) {
         record_failure();
         game->record_event_in_buffer("time_up");
         // say
@@ -216,7 +228,8 @@ std::string XWorldTask::simple_navigation_reward(ScannerPtr scanner,
     return "simple_navigation_reward";
 }
 
-std::string XWorldTask::simple_recognition_reward(ScannerPtr scanner, SentenceTemplatePtr sen_temp,
+std::string XWorldTask::simple_recognition_reward(ScannerPtr scanner,
+                                                  SentenceTemplatePtr sen_temp,
                                                   TeachingEnvPtr game) {
     is_reply_correct_ = scanner->scan_agent_sent_from_env() == answer_;
     sen_temp->clear_rules();
@@ -232,8 +245,9 @@ std::string XWorldTask::simple_recognition_reward(ScannerPtr scanner, SentenceTe
     return "conversation_wrapup";
 }
 
-std::string XWorldTask::conversation_wrapup(
-    ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
+std::string XWorldTask::conversation_wrapup(ScannerPtr scanner,
+                                            SentenceTemplatePtr sen_temp,
+                                            TeachingEnvPtr game) {
     if (is_reply_correct_) {
         record_success();
         game->record_event_in_buffer("correct_reply");
@@ -251,7 +265,8 @@ void XWorldTask::define_sen_temp_rules(SentenceTemplatePtr sen_temp,
     get_unique_colors_and_objects(objects);
 }
 
-void XWorldTask::get_unique_colors_and_objects(const std::vector<Entity>& objects) {
+void XWorldTask::get_unique_colors_and_objects(
+    const std::vector<Entity>& objects) {
     std::unordered_set<std::string> unique_colors_set;
     std::unordered_set<std::string> unique_objects_set;
     std::unordered_set<std::string> unique_color_objects_set;
@@ -264,15 +279,15 @@ void XWorldTask::get_unique_colors_and_objects(const std::vector<Entity>& object
         }
         unique_objects_set.insert(object);
     }
-    uni_objects_ = std::vector<std::string>(
-        unique_objects_set.begin(), unique_objects_set.end());
-    uni_colors_ = std::vector<std::string>(
-        unique_colors_set.begin(), unique_colors_set.end());
+    uni_objects_ = std::vector<std::string>(unique_objects_set.begin(),
+                                            unique_objects_set.end());
+    uni_colors_ = std::vector<std::string>(unique_colors_set.begin(),
+                                           unique_colors_set.end());
     uni_colored_objects_ = std::vector<std::string>(
         unique_color_objects_set.begin(), unique_color_objects_set.end());
     CHECK_GT(uni_objects_.size(), 0);
     CHECK_GT(uni_colors_.size(), 0);
     CHECK_GT(uni_colored_objects_.size(), 0);
 }
-
-}}  // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

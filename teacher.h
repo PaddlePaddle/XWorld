@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
-#include <boost/algorithm/string.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include "teaching_task.h"
+#include <vector>
 #include "simulator.h"
+#include "teaching_task.h"
 
 namespace simulator {
 
@@ -30,16 +30,19 @@ namespace pt = boost::property_tree;
 
 /**
    A teacher is able to get the true, unambiguous state of the world.
-   A teacher will not learn anything but only communicate with agents according to a
+   A teacher will not learn anything but only communicate with agents according
+to a
    predefined set of rules,
-   It can raise questions, give instructions, teach concepts, make statements, etc.
+   It can raise questions, give instructions, teach concepts, make statements,
+etc.
    A teacher maintains a list of task groups.
-   Each task group contains a collection of tasks that are exclusive to each other but
+   Each task group contains a collection of tasks that are exclusive to each
+other but
    of the same type
    The task groups are parallel to each other.
 **/
 class Teacher {
- public:
+  public:
     Teacher(const std::string& teacher_conf,
             TeachingEnvPtr game,
             bool print_teacher_config = false);
@@ -88,8 +91,8 @@ class Teacher {
     bool is_idle();
 
   protected:
-    void before_teach();   // pre-processing before teaching
-    void after_teach();    // post-processing after teaching
+    void before_teach();  // pre-processing before teaching
+    void after_teach();   // post-processing after teaching
 
   private:
     void add_task_group(const pt::ptree::value_type& node);
@@ -107,4 +110,4 @@ class Teacher {
 
 typedef std::shared_ptr<Teacher> TeacherPtr;
 
-} // namespace simulator
+}  // namespace simulator

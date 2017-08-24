@@ -13,14 +13,15 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <vector>
 
 #include "xitem.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 struct AgentColors {
     uint8_t b;
@@ -28,9 +29,13 @@ struct AgentColors {
     uint8_t r;
 };
 
-static const std::vector<AgentColors>
-agent_colors({{0,0,255}, {255,0,0}, {0,255,0},
-              {255,255,0}, {0,255,255}, {255,0,255}, {0,0,0}});
+static const std::vector<AgentColors> agent_colors({{0, 0, 255},
+                                                    {255, 0, 0},
+                                                    {0, 255, 0},
+                                                    {255, 255, 0},
+                                                    {0, 255, 255},
+                                                    {255, 0, 255},
+                                                    {0, 0, 0}});
 
 /**
 *  class for organizing all the items in XWorld
@@ -38,9 +43,7 @@ agent_colors({{0,0,255}, {255,0,0}, {0,255,0},
 */
 
 class XMap {
-
-public:
-
+  public:
     // constructor
     XMap();
     XMap(int height, int width);
@@ -50,32 +53,50 @@ public:
 
     /**
     *  Function to get an image representation of all the items in map.
-    *  @param goal_names: a set of goal names to be highlighted for visualization
-    *  @param flag_item_centric: flag for item centric view or not (item specified by item_name)
-    *  @param item_name:  the name of the item for centering the view if flag_item_centric is true
+    *  @param goal_names: a set of goal names to be highlighted for
+    * visualization
+    *  @param flag_item_centric: flag for item centric view or not (item
+    * specified
+    * by item_name)
+    *  @param item_name:  the name of the item for centering the view if
+    * flag_item_centric is true
     *  @param flag_grid_lines: flag for drawing the grid lines in xworld
-    *  @param success: draw a success sign if positive and failure sign otherwise
-    *  @param visible_radius_unit: radius of the visible range for the agent in terms of xworld unit;
+    *  @param success: draw a success sign if positive and failure sign
+    * otherwise
+    *  @param visible_radius_unit: radius of the visible range for the agent in
+    * terms of xworld unit;
     *                      zero for full observation
-    *  @param flag_crop_receiptive_field: flag for whether to crop only the visible region (for learning)
-    *                             or keep the full image uncropped but masked (for visualization)
+    *  @param flag_crop_receiptive_field: flag for whether to crop only the
+    * visible region (for learning)
+    *                             or keep the full image uncropped but masked
+    * (for
+    * visualization)
     */
     cv::Mat to_image(const std::vector<std::vector<std::string>>& goal_names,
-                     bool flag_item_centric, std::string item_name,
-                     bool flag_illustration, int success,
-                     int visible_radius_unit, bool flag_crop_receiptive_field);
+                     bool flag_item_centric,
+                     std::string item_name,
+                     bool flag_illustration,
+                     int success,
+                     int visible_radius_unit,
+                     bool flag_crop_receiptive_field);
 
     /**
     *  Function to generate a partially observed view for an input image
     *  @param img_in: input image representing the full view
-    *  @param item_name: the name of the item that specifies the center of the mask
+    *  @param item_name: the name of the item that specifies the center of the
+    * mask
     *  @param visible_radius_unit: radius of the visible range for the agent
     *  @param mask_value: value to be filled for the invisible region
-    *  @param flag_crop_receipt_field: flag for whether to crop only the visible region (for learning)
-    *                          or keep the full image uncropped but masked (for visualization)
+    *  @param flag_crop_receipt_field: flag for whether to crop only the visible
+    * region (for learning)
+    *                          or keep the full image uncropped but masked (for
+    * visualization)
     */
-    cv::Mat image_masking(cv::Mat img_in, std::string item_name, int visible_radius_unit,
-                          int mask_value, bool flag_crop_receiptive_filed = false);
+    cv::Mat image_masking(cv::Mat img_in,
+                          std::string item_name,
+                          int visible_radius_unit,
+                          int mask_value,
+                          bool flag_crop_receiptive_filed = false);
 
     // add an item to the map
     void add_item(XItem* item_ptr);
@@ -84,10 +105,10 @@ public:
     void remove_item(XItem* item_ptr);
 
     // add a list of items for the map
-    void add_items(const std::vector<XItem*> & item_list);
+    void add_items(const std::vector<XItem*>& item_list);
 
     // remove a list of items from the map
-    void remove_items(const std::vector<XItem*> & item_list);
+    void remove_items(const std::vector<XItem*>& item_list);
 
     // get the location for the item
     Loc get_item_location(std::string item_name);
@@ -98,17 +119,17 @@ public:
     // check if the specified location is empty (no item)
     bool is_empty(int x, int y);
 
-
-private:
+  private:
     // size of the world
     int height_;
     int width_;
 
     // 3d matrix containing all the items in the 2D world
     // Haonan: could be improved with a sparse representation
-    std::vector<std::vector<std::vector<XItem*> > > item_ptr_cube_;
+    std::vector<std::vector<std::vector<XItem*>>> item_ptr_cube_;
 
-    // length of the grid in terms of pixels (same for both horizontal and vertical directions)
+    // length of the grid in terms of pixels (same for both horizontal and
+    // vertical directions)
     int grid_size_;
 
     void init(int height, int width);
@@ -123,5 +144,5 @@ private:
     // center image with respect to the item specified by item_name
     cv::Mat image_centering(cv::Mat img_in, std::string item_name);
 };
-
-}} //namespace xworld
+}
+}  // namespace xworld

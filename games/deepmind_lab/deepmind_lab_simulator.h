@@ -15,12 +15,13 @@
 #pragma once
 #include "simulator.h"
 
-namespace simulator { namespace deepmind_lab_game {
+namespace simulator {
+namespace deepmind_lab_game {
 // This class is used to hide ale_interface.hpp dependency from game_player,
 // so that cmake of game_player does not need to include xitari path
 class DeepmindLabSimulatorBase : public GameSimulator {
   public:
     static DeepmindLabSimulatorBase* create();
 };
-
-}} // namespace simulator::deepmind_lab_game
+}
+}  // namespace simulator::deepmind_lab_game

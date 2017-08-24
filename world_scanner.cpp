@@ -129,4 +129,4 @@ PropMap WorldScanner::get_property_mapping(std::string k1, std::string k2) {
     return property_mappings_[key];
 }
 
-} // namespace simulator
+}  // namespace simulator

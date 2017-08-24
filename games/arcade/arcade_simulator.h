@@ -15,7 +15,8 @@
 #pragma once
 #include "simulator.h"
 
-namespace simulator { namespace arcade_game {
+namespace simulator {
+namespace arcade_game {
 
 // This class is used to hide ale_interface.hpp dependency from game_player,
 // so that cmake of game_player does not need to include xitari path
@@ -23,5 +24,5 @@ class ArcadeGame : public GameSimulator {
   public:
     static ArcadeGame* create(const std::string& ale_rom);
 };
-
-}} // namespace simulator::arcade_game
+}
+}  // namespace simulator::arcade_game

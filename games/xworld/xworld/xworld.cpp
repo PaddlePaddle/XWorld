@@ -13,15 +13,16 @@
 // limitations under the License.
 
 #include "xworld.h"
-#include <limits>
-#include <boost/algorithm/string.hpp>
 #include <gflags/gflags.h>
-#include <utility>
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
+#include <limits>
+#include <utility>
 
 DECLARE_bool(perturb_goal);
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 XWorld::~XWorld() {
     for (auto i : item_list_) {
@@ -29,17 +30,18 @@ XWorld::~XWorld() {
     }
 }
 
-std::vector<std::string> XWorld::get_target_goal_names(std::vector<int> goal_inds) {
+std::vector<std::string> XWorld::get_target_goal_names(
+    std::vector<int> goal_inds) {
     int item_num = item_list_.size();
     int goal_cnt = 0;
     size_t cnt = 0;
     std::vector<std::string> goal_names;
     std::sort(goal_inds.begin(), goal_inds.end());
-    for (int i = 0; i < item_num && cnt<goal_inds.size(); i++) {
+    for (int i = 0; i < item_num && cnt < goal_inds.size(); i++) {
         if (item_list_[i]->get_item_type() == GOAL) {
-            if (goal_cnt == goal_inds[cnt]) { // found the specified goal
+            if (goal_cnt == goal_inds[cnt]) {  // found the specified goal
                 goal_names.push_back(item_list_[i]->get_item_name());
-                cnt ++;
+                cnt++;
             }
             goal_cnt++;
         }
@@ -48,7 +50,7 @@ std::vector<std::string> XWorld::get_target_goal_names(std::vector<int> goal_ind
 }
 
 void XWorld::get_all_items(std::vector<Entity>& entities) {
-    auto convert_item_type = [] (ItemType t) {
+    auto convert_item_type = [](ItemType t) {
         if (t == GOAL) {
             return "goal";
         } else if (t == AGENT) {
@@ -79,9 +81,7 @@ void XWorld::get_all_possible_objects(std::vector<Entity>& objects) {
     xwp_.get_all_possible_objects(objects);
 }
 
-unsigned int XWorld::get_number_of_goals() {
-    return total_goal_num_;
-}
+unsigned int XWorld::get_number_of_goals() { return total_goal_num_; }
 
 std::vector<Loc> XWorld::get_goal_locations() {
     int item_num = item_list_.size();
@@ -97,17 +97,17 @@ std::vector<Loc> XWorld::get_goal_locations() {
 }
 
 int XWorld::get_num_actions() {
-    if(agent_list_.size() > 0) {
+    if (agent_list_.size() > 0) {
         return agent_list_[0]->get_num_of_actions();
     } else {
-        XAgent* agent_ptr = new XAgent("", Loc(0,0), &(map_), "");
+        XAgent* agent_ptr = new XAgent("", Loc(0, 0), &(map_), "");
         return agent_ptr->get_num_of_actions();
     }
 }
 
 XAgent* XWorld::add_agent(std::string agent_name) {
     ItemInfo a = get_next_agent();
-    //the agent get a snap shot of the map with all the existing items
+    // the agent get a snap shot of the map with all the existing items
     XAgent* agent_ptr = new XAgent(agent_name, a.location, &(map_), a.img_path);
     agent_list_.push_back(agent_ptr);
     agent_remaining_steps_.push_back(max_steps_);
@@ -121,7 +121,8 @@ ItemInfo XWorld::get_next_agent() {
     if (!a.location.defined()) {
         a.location = agent_units_[util::get_rand_ind(agent_units_.size())];
     }
-    // agents can start with the same location, so no need to update agent_units_
+    // agents can start with the same location, so no need to update
+    // agent_units_
     return a;
 }
 
@@ -132,7 +133,9 @@ void XWorld::reset() {
             delete i;
         }
     }
-    std::fill(agent_remaining_steps_.begin(), agent_remaining_steps_.end(), max_steps_);
+    std::fill(agent_remaining_steps_.begin(),
+              agent_remaining_steps_.end(),
+              max_steps_);
 
     init();
 
@@ -145,9 +148,12 @@ void XWorld::reset() {
     }
 }
 
-XWorld::XWorld(bool print_xworld_config, const std::string& conf, int curriculum_learning)
-        : max_steps_(0), xwp_(print_xworld_config, conf, curriculum_learning),
-          success_action_flag_(true) {
+XWorld::XWorld(bool print_xworld_config,
+               const std::string& conf,
+               int curriculum_learning)
+    : max_steps_(0),
+      xwp_(print_xworld_config, conf, curriculum_learning),
+      success_action_flag_(true) {
     init();
 }
 
@@ -158,7 +164,7 @@ bool XWorld::test_valid_map(const std::vector<Loc>& blocks_candidates,
     for (const auto& b : blocks_candidates) {
         impassable[b] = 1 << 0;
     }
-    for (size_t r = 1; r <= reachable_candidates.size(); r ++) {
+    for (size_t r = 1; r <= reachable_candidates.size(); r++) {
         const auto& l = reachable_candidates[r - 1];
         if (impassable.find(l) == impassable.end()) {
             impassable[l] = 1 << r;
@@ -166,13 +172,13 @@ bool XWorld::test_valid_map(const std::vector<Loc>& blocks_candidates,
             impassable[l] += 1 << r;
         }
     }
-    for (size_t a = 0; a < agent_candidates.size(); a ++) {
+    for (size_t a = 0; a < agent_candidates.size(); a++) {
         const auto& l = agent_candidates[a];
         // dfs to check reachable through *only* ground
-        for (size_t r = 1; r <= reachable_candidates.size(); r ++) {
+        for (size_t r = 1; r <= reachable_candidates.size(); r++) {
             auto tmp = impassable;
-            if (!check_reachable(1 << (reachable_candidates.size() + 1),
-                                 l, 1 << r, tmp)) {
+            if (!check_reachable(
+                    1 << (reachable_candidates.size() + 1), l, 1 << r, tmp)) {
                 return false;
             }
         }
@@ -183,8 +189,8 @@ bool XWorld::test_valid_map(const std::vector<Loc>& blocks_candidates,
 void XWorld::sample_excluded(const std::unordered_set<Loc>& exclude,
                              std::vector<Loc>& sampled_grids) {
     sampled_grids.clear();
-    for (int w = 0; w < width_; w ++) {
-        for (int h = 0; h < height_; h ++) {
+    for (int w = 0; w < width_; w++) {
+        for (int h = 0; h < height_; h++) {
             if (exclude.find(Loc(w, h)) == exclude.end()) {
                 sampled_grids.push_back(Loc(w, h));
             }
@@ -194,36 +200,42 @@ void XWorld::sample_excluded(const std::unordered_set<Loc>& exclude,
 }
 
 void XWorld::randomize_valid_navigation_conf(
-    int blocks_n, int reachable_n, int agents_n,
+    int blocks_n,
+    int reachable_n,
+    int agents_n,
     const std::unordered_set<Loc>& user_defined_block_locs,
     const std::unordered_set<Loc>& user_defined_reachable_locs,
     const std::unordered_set<Loc>& user_defined_agent_locs,
     std::vector<Loc>& blocks_candidates,
     std::vector<Loc>& reachable_candidates,
     std::vector<Loc>& agent_candidates) {
-
     // SIMULATOR_TIMER(randomize_valid_xworld_map);
 
     CHECK_LT(reachable_n, 32U) << "this function is no longer efficient";
 
-    auto assign_grids = [] (std::vector<Loc>& candidates, int& idx, int remaining,
-                            const std::unordered_set<Loc>& user_defined_locs,
-                            const std::vector<Loc>& sampled_grids) {
+    auto assign_grids = [](std::vector<Loc>& candidates,
+                           int& idx,
+                           int remaining,
+                           const std::unordered_set<Loc>& user_defined_locs,
+                           const std::vector<Loc>& sampled_grids) {
         CHECK_LE(idx + remaining, sampled_grids.size());
         candidates = std::vector<Loc>(user_defined_locs.begin(),
                                       user_defined_locs.end());
-        for (int i = 0; i < remaining; i ++) {
+        for (int i = 0; i < remaining; i++) {
             candidates.push_back(sampled_grids[idx++]);
         }
     };
 
-    size_t total = blocks_n - user_defined_block_locs.size()      \
-            + reachable_n - user_defined_reachable_locs.size()    \
-            + agents_n - user_defined_agent_locs.size();
+    size_t total = blocks_n - user_defined_block_locs.size() + reachable_n -
+                   user_defined_reachable_locs.size() + agents_n -
+                   user_defined_agent_locs.size();
     std::unordered_set<Loc> exclude;
-    exclude.insert(user_defined_block_locs.begin(), user_defined_block_locs.end());
-    exclude.insert(user_defined_reachable_locs.begin(), user_defined_reachable_locs.end());
-    exclude.insert(user_defined_agent_locs.begin(), user_defined_agent_locs.end());
+    exclude.insert(user_defined_block_locs.begin(),
+                   user_defined_block_locs.end());
+    exclude.insert(user_defined_reachable_locs.begin(),
+                   user_defined_reachable_locs.end());
+    exclude.insert(user_defined_agent_locs.begin(),
+                   user_defined_agent_locs.end());
 
     const int maximal_trials = 1000;
     int trials = 0;
@@ -237,38 +249,45 @@ void XWorld::randomize_valid_navigation_conf(
         CHECK_GE(sampled_grids.size(), total);
         int idx = 0;
         // assign sampled_grids to blocks, reachable, and agents
-        assign_grids(blocks_candidates, idx,
+        assign_grids(blocks_candidates,
+                     idx,
                      blocks_n - user_defined_block_locs.size(),
-                     user_defined_block_locs, sampled_grids);
-        assign_grids(reachable_candidates, idx,
+                     user_defined_block_locs,
+                     sampled_grids);
+        assign_grids(reachable_candidates,
+                     idx,
                      reachable_n - user_defined_reachable_locs.size(),
-                     user_defined_reachable_locs, sampled_grids);
-        assign_grids(agent_candidates, idx,
+                     user_defined_reachable_locs,
+                     sampled_grids);
+        assign_grids(agent_candidates,
+                     idx,
                      agents_n - user_defined_agent_locs.size(),
-                     user_defined_agent_locs, sampled_grids);
+                     user_defined_agent_locs,
+                     sampled_grids);
         // test valid
-        if (test_valid_map(blocks_candidates,
-                           reachable_candidates,
-                           agent_candidates)) {
+        if (test_valid_map(
+                blocks_candidates, reachable_candidates, agent_candidates)) {
             break;
         }
     }
 }
 
-bool XWorld::check_reachable(size_t visited, const Loc& s, size_t r,
+bool XWorld::check_reachable(size_t visited,
+                             const Loc& s,
+                             size_t r,
                              std::unordered_map<Loc, size_t>& impassable) {
     if (impassable.find(s) != impassable.end()) {
         bool ret = (impassable[s] == r);
         impassable[s] += visited;  // mark visited
         return ret;
-    } else {  // empty grid
-        impassable[s] = visited;   // mark visited
+    } else {                      // empty grid
+        impassable[s] = visited;  // mark visited
         std::vector<Loc> around = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         for (const auto& d : around) {
             Loc s_ = s + d;
             if (s_.in_boundary(width_, height_)) {
-                if (impassable.find(s_) == impassable.end()
-                    || (impassable[s_] & visited) == 0) {
+                if (impassable.find(s_) == impassable.end() ||
+                    (impassable[s_] & visited) == 0) {
                     if (check_reachable(visited, s_, r, impassable)) {
                         return true;
                     }
@@ -295,26 +314,26 @@ void XWorld::init() {
     int n_agents = 0;
     for (const auto& u : ul) {
         if (u.type == BLOCK) {
-            n_blocks ++;
+            n_blocks++;
             if (u.location.defined()) {
                 user_defined_block_locs.insert(u.location);
             }
         } else if (u.type == AGENT) {
-            n_agents ++;
+            n_agents++;
             if (u.location.defined()) {
                 user_defined_agent_locs.insert(u.location);
             }
-        } else { // anything except block and agent should be reachable
-            n_reachable ++;
+        } else {  // anything except block and agent should be reachable
+            n_reachable++;
             if (u.location.defined()) {
                 user_defined_reachable_locs.insert(u.location);
             }
         }
     }
     CHECK_LE(n_blocks + n_reachable + n_agents, height_ * width_)
-            << "n_blocks=" << n_blocks << " n_reachable=" << n_reachable
-            << "n_agents=" << n_agents
-            << ": too many units for the map; check your conf";
+        << "n_blocks=" << n_blocks << " n_reachable=" << n_reachable
+        << "n_agents=" << n_agents
+        << ": too many units for the map; check your conf";
 
     std::vector<Loc> blocks_candidates;
     std::vector<Loc> reachable_candidates;
@@ -332,7 +351,7 @@ void XWorld::init() {
     std::unordered_set<std::string> existing_names;
     int idx_reachable = 0;
     int idx_blocked = 0;
-    int *idx = NULL;
+    int* idx = NULL;
     std::vector<Loc>* lst = nullptr;
     std::unordered_set<Loc>* defined_locs;
     for (const auto& u : ul) {
@@ -378,17 +397,19 @@ void XWorld::init() {
     agent_units_ = agent_candidates;
 }
 
-void XWorld::add_item_to_world(ItemType type, const std::string& name,
-                               const std::string& img_path, Loc loc, bool active) {
+void XWorld::add_item_to_world(ItemType type,
+                               const std::string& name,
+                               const std::string& img_path,
+                               Loc loc,
+                               bool active) {
     switch (type) {
         case BLOCK:
         case DUMMY:
-            item_list_.push_back(
-                new XItem(type, name, loc, img_path, active));
+            item_list_.push_back(new XItem(type, name, loc, img_path, active));
             break;
         case GOAL:
-            item_list_.push_back(
-                new XItem(type, name, loc, img_path, active, FLAGS_perturb_goal));
+            item_list_.push_back(new XItem(
+                type, name, loc, img_path, active, FLAGS_perturb_goal));
             break;
         case AGENT:
             break;
@@ -405,11 +426,21 @@ cv::Mat XWorld::to_image(bool flag_item_centric /* false */,
                          int visible_radius_unit /*0*/,
                          bool flag_crop_receiptive_field /*false*/) {
     std::vector<std::vector<std::string>> goal_names;
-    cv::Mat img = map_.to_image(goal_names, flag_item_centric,
-                                item_name, flag_illustration, success,
-                                visible_radius_unit, flag_crop_receiptive_field);
-    copyMakeBorder(img, img, pad_size, pad_size, pad_size, pad_size,
-                   cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+    cv::Mat img = map_.to_image(goal_names,
+                                flag_item_centric,
+                                item_name,
+                                flag_illustration,
+                                success,
+                                visible_radius_unit,
+                                flag_crop_receiptive_field);
+    copyMakeBorder(img,
+                   img,
+                   pad_size,
+                   pad_size,
+                   pad_size,
+                   pad_size,
+                   cv::BORDER_CONSTANT,
+                   cv::Scalar(0, 0, 0));
     return img;
 }
 
@@ -420,8 +451,8 @@ void XWorld::act(XAgent* agent_ptr, int action_id) {
 }
 
 void XWorld::act_random(XAgent* agent_ptr, std::vector<int> action_list) {
-	//sample a random action from the action list for the current agent
-	agent_ptr->act(util::get_rand_ind(agent_ptr->get_num_of_actions()));
+    // sample a random action from the action list for the current agent
+    agent_ptr->act(util::get_rand_ind(agent_ptr->get_num_of_actions()));
 }
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

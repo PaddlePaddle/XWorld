@@ -13,29 +13,27 @@
 // limitations under the License.
 
 #pragma once
-#include "xworld/xworld.h"
 #include "xworld/xagent.h"
+#include "xworld/xworld.h"
 
+#include <deque>
 #include "simulator.h"
 #include "teacher.h"
-#include <deque>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 /**
 *  class that acts as the interface for interacting with XWorld
 *  using the same interface as GameSimulatorMulti
 */
 
-class XWorldSimulator :
-            public GameSimulatorMulti,
-            public TeachingEnvironment {
-
-public:
+class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
+  public:
     XWorldSimulator(bool print_xworld_config,
                     const std::string& world_config,
                     int curriculum_learning,
@@ -65,7 +63,8 @@ public:
     void define_state_specs(StatePacket& state);
 
     // called by AgentSpecificsimulator
-    virtual void get_extra_info(std::unordered_map<std::string, std::string>& info) override;
+    virtual void get_extra_info(
+        std::unordered_map<std::string, std::string>& info) override;
 
     // add an agent to the XWorld with name as agent_name (should be unique)
     virtual int add_agent(std::string agent_name) override;
@@ -88,26 +87,31 @@ public:
     void get_all_possible_objects(std::vector<Entity>& objects) override;
 
     // these are the dimensions that are used by the CNN
-    void get_screen_out_dimensions(size_t& img_height_out, size_t& img_width_out, size_t& channels);
+    void get_screen_out_dimensions(size_t& img_height_out,
+                                   size_t& img_width_out,
+                                   size_t& channels);
 
     void get_world_dimensions(size_t& height, size_t& width);
 
-    static const int block_size_ = 12;          // how many pixels each block has
+    static const int block_size_ = 12;  // how many pixels each block has
 
-private:
+  private:
     void init();
 
     std::string get_teacher_sentence_for_agent();
 
     void get_screen_rgb(GameFrame& rgbs);  // get the current screenshot (color)
 
-    void update_message_box_on_screen(); // reward msg box on the screen with updated msgs
+    void update_message_box_on_screen();  // reward msg box on the screen with
+                                          // updated msgs
 
-    cv::Mat get_reward_image(float reward); // get the sub-image for reward
+    cv::Mat get_reward_image(float reward);  // get the sub-image for reward
 
-    cv::Mat get_message_image(std::deque<std::string>& messages); // get history msg images
+    cv::Mat get_message_image(
+        std::deque<std::string>& messages);  // get history msg images
 
-    // concatenate two images vertically if is_vertical is true and horizontally otherwise
+    // concatenate two images vertically if is_vertical is true and horizontally
+    // otherwise
     cv::Mat concat_images(cv::Mat img1, cv::Mat img2, bool is_vertical);
 
     // downsample and convert to grays
@@ -116,30 +120,32 @@ private:
                            GameFrame& screen_out,
                            bool color = false);
 
-    xwd::XWorld xworld_;                       // the environment for all the agents
-    std::vector<xwd::XAgent*> agent_list_;     // list of agents
+    xwd::XWorld xworld_;  // the environment for all the agents
+    std::vector<xwd::XAgent*> agent_list_;  // list of agents
     std::vector<std::string> agent_received_sentences_;
 
-    std::string task_mode_; // Three modes:
-                            // 1. arxiv_lang_acquisition
-                            // 2. arxiv_interative
-                            // 3. one_channel
+    std::string task_mode_;  // Three modes:
+                             // 1. arxiv_lang_acquisition
+                             // 2. arxiv_interative
+                             // 3. one_channel
 
-    int height_;           // size of the world (in terms of building blocks)
+    int height_;  // size of the world (in terms of building blocks)
     int width_;
-    int img_height_;       // original image size
-    int img_width_;        // original image size
-    int img_height_out_;   // resized image size
-    int img_width_out_;    // resized image size
+    int img_height_;      // original image size
+    int img_width_;       // original image size
+    int img_height_out_;  // resized image size
+    int img_width_out_;   // resized image size
 
-    static const int n_history_ = 25;  // how many history messages to display in the message box
-                                       // that is next to the xworld map screen
-                                       // this variable won't affect the game and the training
+    static const int n_history_ =
+        25;  // how many history messages to display in the message box
+             // that is next to the xworld map screen
+             // this variable won't affect the game and the training
 
-    std::deque<std::string> history_messages_;   // history message buffer for showing in the GUI
+    std::deque<std::string>
+        history_messages_;  // history message buffer for showing in the GUI
 
-    cv::Mat prev_screen_; // previous screen for display
+    cv::Mat prev_screen_;  // previous screen for display
     cv::Mat screen_;
 };
-
-}} /* namespace simulator::xwd */
+}
+} /* namespace simulator::xwd */

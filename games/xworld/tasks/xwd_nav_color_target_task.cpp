@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "teaching_task.h"
 #include "../xworld_task.h"
+#include "teaching_task.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 class XWorldNavColorTargetTask : public XWorldTask {
   public:
     XWorldNavColorTargetTask(const std::string& name,
                              TeachingEnvPtr game,
                              const std::vector<std::string>& held_out)
-            : XWorldTask(name, game, held_out) {}
+        : XWorldTask(name, game, held_out) {}
+
   private:
     void register_stages() override;
 
-    std::string idle(ScannerPtr scanner, SentenceTemplatePtr sen_temp,
+    std::string idle(ScannerPtr scanner,
+                     SentenceTemplatePtr sen_temp,
                      TeachingEnvPtr game) override;
 
     void define_sen_temp_rules(SentenceTemplatePtr sen_temp,
@@ -34,9 +37,10 @@ class XWorldNavColorTargetTask : public XWorldTask {
 
     std::vector<std::vector<Entity>> find_goal(ScannerPtr scanner) override;
 
-    void generate_sentence(
-        const std::vector<std::vector<Entity>>& goal_sets,
-        ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) override;
+    void generate_sentence(const std::vector<std::vector<Entity>>& goal_sets,
+                           ScannerPtr scanner,
+                           SentenceTemplatePtr sen_temp,
+                           TeachingEnvPtr game) override;
 };
 
 REGISTER_TASK(XWorldNavColorTargetTask);
@@ -46,37 +50,37 @@ void XWorldNavColorTargetTask::register_stages() {
     REGISTER_STAGE(simple_navigation_reward);
 }
 
-std::string XWorldNavColorTargetTask::idle(ScannerPtr scanner, SentenceTemplatePtr sen_temp,
+std::string XWorldNavColorTargetTask::idle(ScannerPtr scanner,
+                                           SentenceTemplatePtr sen_temp,
                                            TeachingEnvPtr game) {
-    return find_goal_and_generate_sentence(scanner, sen_temp, game, "simple_navigation_reward");
+    return find_goal_and_generate_sentence(
+        scanner, sen_temp, game, "simple_navigation_reward");
 }
 
-void XWorldNavColorTargetTask::define_sen_temp_rules(SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
+void XWorldNavColorTargetTask::define_sen_temp_rules(
+    SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
     XWorldTask::define_sen_temp_rules(sen_temp, game);
     sen_temp->add_rule(sen_temp->start_symbol(),
-                       {"$INSTRUCT", "$TIMEUP", "$END"}, true/*must_bound*/);
+                       {"$INSTRUCT", "$TIMEUP", "$END"},
+                       true /*must_bound*/);
     sen_temp->add_rule("$END", {"Well done ."});
     sen_temp->add_rule("$TIMEUP", {"Time up ."});
-    sen_temp->add_rule("$INSTRUCT", {"$G .",
-                    "$A $G please .",
-                    "Please $A $G .",
-                    "$A $G .",
-                    "$G is your $D .",
-                    "$G is the $D .",
-                    "$Y $A $G ?"});
-    sen_temp->add_rule("$G", uni_colored_objects_, true/*must_bound*/);
-    sen_temp->add_rule("$A", {"go to",
-                              "navigate to",
-                              "reach",
-                              "move to"});
-    sen_temp->add_rule("$Y", {"Could you please",
-                              "Can you",
-                              "Will you"});
+    sen_temp->add_rule("$INSTRUCT",
+                       {"$G .",
+                        "$A $G please .",
+                        "Please $A $G .",
+                        "$A $G .",
+                        "$G is your $D .",
+                        "$G is the $D .",
+                        "$Y $A $G ?"});
+    sen_temp->add_rule("$G", uni_colored_objects_, true /*must_bound*/);
+    sen_temp->add_rule("$A", {"go to", "navigate to", "reach", "move to"});
+    sen_temp->add_rule("$Y", {"Could you please", "Can you", "Will you"});
     sen_temp->add_rule("$D", {"destination", "target", "goal"});
 }
 
-std::vector<std::vector<Entity>> XWorldNavColorTargetTask::find_goal(ScannerPtr scanner) {
-
+std::vector<std::vector<Entity>> XWorldNavColorTargetTask::find_goal(
+    ScannerPtr scanner) {
     std::vector<std::vector<Entity>> goal_sets;
     auto object_to_color = scanner->get_property_mapping("name", "color");
     auto color_to_object = scanner->get_property_mapping("color", "name");
@@ -87,8 +91,8 @@ std::vector<std::vector<Entity>> XWorldNavColorTargetTask::find_goal(ScannerPtr 
         }
         auto color = g.property("color");
         auto object = g.property("name");
-        if (util::check_unique_and_different(object_to_color[object], color)
-            || util::check_unique_and_different(color_to_object[color], object)) {
+        if (util::check_unique_and_different(object_to_color[object], color) ||
+            util::check_unique_and_different(color_to_object[color], object)) {
             goal_sets.push_back(std::vector<Entity>({g}));
         }
     }
@@ -97,12 +101,15 @@ std::vector<std::vector<Entity>> XWorldNavColorTargetTask::find_goal(ScannerPtr 
 
 void XWorldNavColorTargetTask::generate_sentence(
     const std::vector<std::vector<Entity>>& goal_sets,
-    ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
-
+    ScannerPtr scanner,
+    SentenceTemplatePtr sen_temp,
+    TeachingEnvPtr game) {
     auto goal_set = util::sample_set<std::vector<Entity>>(goal_sets);
     sen_temp->bind(sen_temp->start_symbol(), "$INSTRUCT");
-    sen_temp->bind("$G", goal_set[0].property("color") + " " + goal_set[0].property("name"));
+    sen_temp->bind(
+        "$G",
+        goal_set[0].property("color") + " " + goal_set[0].property("name"));
     target_ = goal_set[0].location;
 }
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

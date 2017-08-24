@@ -14,18 +14,19 @@
 
 #pragma once
 
-#include <iostream>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <glog/logging.h>
-#include <vector>
-#include <random>
-#include <memory>
 #include <math.h>
+#include <iostream>
+#include <memory>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <random>
+#include <vector>
 #include "simulator.h"
 
-namespace simulator { namespace simple_race {
+namespace simulator {
+namespace simple_race {
 
 #define PI 3.1415926
 
@@ -33,13 +34,13 @@ void draw_circle(cv::Mat img, cv::Point2f c, float r);
 
 void draw_line(cv::Mat img, cv::Point2f p1, cv::Point2f p2);
 
-template<typename T>
-std::ostream& operator<<(std::ostream &os, const std::vector<T> vec);
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> vec);
 
 // -------------------------------- Track --------------------------------
 class Track {
-public:
-    virtual ~Track() {};
+  public:
+    virtual ~Track(){};
 
     virtual void draw(cv::Mat img) = 0;
 
@@ -62,23 +63,24 @@ public:
     virtual cv::Point2f get_pos() = 0;
     virtual float get_pos_x() = 0;
     virtual float get_pos_y() = 0;
-    //setters
+    // setters
     virtual void set_pos(cv::Point2f c) = 0;
     virtual void set_pos(float x, float y) = 0;
     virtual void set_pos_x(float x) = 0;
     virtual void set_pos_y(float y) = 0;
 
     float get_width() { return _width; }
-protected:
+
+  protected:
     float _width;
 };
 
 class CircleTrack : public Track {
-public:
+  public:
     CircleTrack();
     CircleTrack(float cx, float cy, float inner_radius, float width);
     CircleTrack(const CircleTrack &ct);
-    virtual ~CircleTrack() {};
+    virtual ~CircleTrack(){};
 
     void draw(cv::Mat img);
 
@@ -116,17 +118,17 @@ public:
         _outer_radius = _inner_radius + _width;
     }
 
-private:
+  private:
     cv::Point2f _center;
     float _inner_radius, _outer_radius;
 };
 
 class StraightTrack : public Track {
-public:
+  public:
     StraightTrack();
     StraightTrack(float x, float y, float length, float width);
     StraightTrack(const StraightTrack &st);
-    virtual ~StraightTrack() {};
+    virtual ~StraightTrack(){};
 
     void draw(cv::Mat img);
 
@@ -147,7 +149,7 @@ public:
     cv::Point2f get_pos() { return _mid_pos; }
     float get_pos_x() { return _mid_pos.x; }
     float get_pos_y() { return _mid_pos.y; }
-    //setters
+    // setters
     void set_pos(cv::Point2f p) { _mid_pos = p; };
     void set_pos(float x, float y) {
         _mid_pos.x = x;
@@ -156,18 +158,17 @@ public:
     void set_pos_x(float x) { _mid_pos.x = x; }
     void set_pos_y(float y) { _mid_pos.y = y; }
 
-private:
+  private:
     cv::Point2f _mid_pos, _start_pos, _end_pos;
     float _length;
-
 };
 
 // -------------------------------- Car --------------------------------
 class BaseCar {
-public:
+  public:
     BaseCar();
-    BaseCar(float x, float y, float angle = PI/2);
-    virtual ~BaseCar() {};
+    BaseCar(float x, float y, float angle = PI / 2);
+    virtual ~BaseCar(){};
 
     virtual void move(float d, float da = 0.0f);
 
@@ -179,7 +180,10 @@ public:
 
     float get_angle() { return _angle; }
 
-    void set_pos(float x, float y) { _pos.x = x; _pos.y = y; }
+    void set_pos(float x, float y) {
+        _pos.x = x;
+        _pos.y = y;
+    }
 
     void set_pos(cv::Point2f pos) { _pos = pos; }
 
@@ -187,27 +191,27 @@ public:
 
     void set_angle(bool random);
 
-protected:
+  protected:
     cv::Point2f _pos;
     float _angle;
 };
 
 class CircleCar : public BaseCar {
-public:
+  public:
     CircleCar();
     CircleCar(float x, float y, float angle, float _radius);
 
-    virtual ~CircleCar() {};
+    virtual ~CircleCar(){};
 
     void draw(cv::Mat img);
 
-private:
+  private:
     float _radius;
 };
 
 // -------------------------------- Race Engine --------------------------------
 class RaceEngine {
-public:
+  public:
     typedef int Action;
     typedef std::vector<Action> ActionVect;
 
@@ -228,11 +232,10 @@ public:
 
     ActionVect get_action_set();
 
-private:
+  private:
     bool out_of_bound();
 
     float get_reward(float forward, float angle);
-
 
     std::vector<std::shared_ptr<Track>> _track_pools;
     CircleCar _car;
@@ -247,8 +250,8 @@ private:
 };
 
 // simple race interface.
-class SimpleRaceGame: public GameSimulator {
-public:
+class SimpleRaceGame : public GameSimulator {
+  public:
     SimpleRaceGame(float width, float height);
 
     virtual void reset_game() override;
@@ -263,18 +266,20 @@ public:
 
     void add_track(std::shared_ptr<Track> track);
 
-    float take_action(const StatePacket& actions) override;
+    float take_action(const StatePacket &actions) override;
 
     void get_screen(StatePacket &screen) override;
 
-    void define_state_specs(StatePacket& state);
+    void define_state_specs(StatePacket &state);
 
-    void get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) override;
+    void get_screen_out_dimensions(size_t &height,
+                                   size_t &width,
+                                   size_t &channels) override;
 
-private:
+  private:
     RaceEngine _race;
     RaceEngine::ActionVect _legal_actions;
     std::vector<float> _screen;
 };
-
-}}
+}
+}

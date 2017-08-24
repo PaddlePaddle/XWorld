@@ -13,19 +13,20 @@
 // limitations under the License.
 
 #pragma once
-#include <string>
-#include <vector>
+#include <glog/logging.h>
 #include <iostream>
-#include <sstream>
-#include <unordered_map>
 #include <memory>
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <glog/logging.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "simulator_util.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 struct Loc {
     int x;
@@ -37,8 +38,7 @@ struct Loc {
         if (!loc.empty()) {
             x = loc[0];
             y = loc[1];
-        }
-        else {
+        } else {
             init();
         }
     }
@@ -50,8 +50,8 @@ struct Loc {
         return "(" + std::to_string(x) + "," + std::to_string(y) + ")";
     }
     bool defined() const {
-        return x != std::numeric_limits<int>::min()
-                && y != std::numeric_limits<int>::min();
+        return x != std::numeric_limits<int>::min() &&
+               y != std::numeric_limits<int>::min();
     }
     void random_loc(int w, int h) {
         x = int(w * util::get_rand_range_val(1.0));
@@ -60,30 +60,20 @@ struct Loc {
     bool in_boundary(int w, int h) const {
         return x >= 0 && x < w && y >= 0 && y < h;
     }
-    bool operator>=(const Loc& l) const {
-        return x>=l.x && y>=l.y;
-    }
-    bool operator==(const Loc& l) const {
-        return x==l.x && y==l.y;
-    }
-    bool operator!=(const Loc& l) const {
-        return x != l.x || y != l.y;
-    }
-    Loc operator-(const Loc& l) const {
-        return {x-l.x, y-l.y};
-    }
-    Loc operator+(const Loc& l) const {
-        return {x+l.x, y+l.y};
-    }
+    bool operator>=(const Loc& l) const { return x >= l.x && y >= l.y; }
+    bool operator==(const Loc& l) const { return x == l.x && y == l.y; }
+    bool operator!=(const Loc& l) const { return x != l.x || y != l.y; }
+    Loc operator-(const Loc& l) const { return {x - l.x, y - l.y}; }
+    Loc operator+(const Loc& l) const { return {x + l.x, y + l.y}; }
     double square_distance(const Loc& l) const {
-        return (x-l.x)*(x-l.x) + (y-l.y)*(y-l.y);
+        return (x - l.x) * (x - l.x) + (y - l.y) * (y - l.y);
     }
 };
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd
 
 namespace std {
-template<>
+template <>
 struct hash<simulator::xwd::Loc> {
     size_t operator()(const simulator::xwd::Loc& l) const {
         return hash<int>()(l.x) ^ hash<int>()(l.y);
@@ -91,25 +81,20 @@ struct hash<simulator::xwd::Loc> {
 };
 }
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
-enum ItemType
-{
-    GOAL,
-    AGENT,
-    BLOCK,
-    DUMMY
-};
+enum ItemType { GOAL, AGENT, BLOCK, DUMMY };
 
 typedef struct {
-    ItemType type;       // item type
-    std::string name;    // item name (unique id)
-    std::string img_path;// item image path on the disk
-    Loc location;        // item location
-    std::string color;   // item color:
-                         // "green"|"red"|"yellow"|"blue"|""
-    bool active;         // for a BOX, active == true means whether it can be pushed
-                         // ...
+    ItemType type;         // item type
+    std::string name;      // item name (unique id)
+    std::string img_path;  // item image path on the disk
+    Loc location;          // item location
+    std::string color;     // item color:
+                           // "green"|"red"|"yellow"|"blue"|""
+    bool active;  // for a BOX, active == true means whether it can be pushed
+                  // ...
 } ItemInfo;
 
 typedef std::vector<ItemInfo> WorldUnitList;
@@ -121,13 +106,15 @@ class ItemRepository;
 *
 */
 class XItem {
-
-public:
-
+  public:
     // active: set the active information for a particular item
     // this int is obtained from xworld_parser
-    XItem(ItemType type, std::string name, Loc loc, std::string img_path="",
-          bool active=true, bool perturb=false);
+    XItem(ItemType type,
+          std::string name,
+          Loc loc,
+          std::string img_path = "",
+          bool active = true,
+          bool perturb = false);
 
     // destructor
     virtual ~XItem();
@@ -167,7 +154,7 @@ public:
     // return true if action is successfully performed
     // return false if action is not successfully performed, for example,
     // because of obstacle.
-    virtual bool act(int action_id) {return true;};
+    virtual bool act(int action_id) { return true; };
 
     // The original size of the item image stored on disk
     // This is also the shown grid size of xworld in OpenCV if no
@@ -176,44 +163,53 @@ public:
 
     static ItemRepository item_rep_;
 
-private:
-
-    ItemType type_;         // item type: e.g., agent, block, goal,...
-    std::string name_;      // item name: e.g., agent1, block2, goal5...
-    std::string color_;     // item color: "green"|"red"|"yellow"|"blue"|""
-    Loc loc_;               // item location: [x , y]
-    bool perturb_;          // whether apply random perturbation on the item
+  private:
+    ItemType type_;      // item type: e.g., agent, block, goal,...
+    std::string name_;   // item name: e.g., agent1, block2, goal5...
+    std::string color_;  // item color: "green"|"red"|"yellow"|"blue"|""
+    Loc loc_;            // item location: [x , y]
+    bool perturb_;       // whether apply random perturbation on the item
     struct {
-        double angle;       // item rotation angle: value between 0 and 360
-        double scale;       // item scale: value between 0 and 1
-        double x;           // item horizontal shift: loc.x + transform.x * width
-        double y;           // item vertical shift: loc.y + transform.y * height
+        double angle;  // item rotation angle: value between 0 and 360
+        double scale;  // item scale: value between 0 and 1
+        double x;      // item horizontal shift: loc.x + transform.x * width
+        double y;      // item vertical shift: loc.y + transform.y * height
     } perturb_transform_;
     std::string img_name_;  // item image file: path and name for the image file
                             // corresponding to the specific item (e.g., goal5)
     cv::Mat img_;           // item image: image for the item loaded
                             // from the above specified image path
     static int size_;       // item size: in terms of pixels
-                            // (same for both horizontal and vertical directions)
+    // (same for both horizontal and vertical directions)
 
-    void init(ItemType type, std::string name, Loc loc, std::string img_name, bool active, bool perturb);
+    void init(ItemType type,
+              std::string name,
+              Loc loc,
+              std::string img_name,
+              bool active,
+              bool perturb);
 
-    bool active_;           // the same meaning with the "active" field of ItemInfo
+    bool active_;  // the same meaning with the "active" field of ItemInfo
 };
 
 /**
-   A class that reads and stores the hierarchy of the directory that contains all
+   A class that reads and stores the hierarchy of the directory that contains
+   all
    the item files of the game.
-   It enables the configuration of specific classes of goals in the json file, e.g., "fruit", "animal" ...
+   It enables the configuration of specific classes of goals in the json file,
+   e.g., "fruit", "animal" ...
  */
 class ItemNameTree {
   public:
-    std::unordered_map<std::string, std::shared_ptr<ItemNameTree>> nodes_;  // subdir names
-    std::unordered_map<std::string, std::vector<std::string>> leaves_;      // icon names
-                                                                            // class -> instance abs path
+    std::unordered_map<std::string, std::shared_ptr<ItemNameTree>>
+        nodes_;  // subdir names
+    std::unordered_map<std::string, std::vector<std::string>>
+        leaves_;  // icon names
+                  // class -> instance abs path
     void insert_item(std::string item_name);
     std::shared_ptr<ItemNameTree>& insert_node(std::string node_name);
-    void retrieve_item_classes(std::string node, std::vector<std::string>& classes);
+    void retrieve_item_classes(std::string node,
+                               std::vector<std::string>& classes);
     std::string retrieve_item_path(const std::string& class_name);
     std::vector<std::string> retrieve_item_paths(const std::string& class_name);
 };
@@ -243,5 +239,5 @@ class ItemRepository {
     void preload_all_item_images(std::shared_ptr<ItemNameTree> root);
     void preload_all_item_properties();
 };
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

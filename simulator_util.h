@@ -13,25 +13,24 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
-#include <random>
-#include <ctime>
+#include <glog/logging.h>
 #include <algorithm>
+#include <condition_variable>
+#include <ctime>
+#include <memory>
 #include <mutex>
 #include <queue>
-#include <memory>
-#include <condition_variable>
-#include <glog/logging.h>
+#include <random>
+#include <vector>
 
-namespace simulator { namespace util {
+namespace simulator {
+namespace util {
 
 // Used for executing global statements
 // e.g., static InitFunction(__lambda);
 class InitFunction {
   public:
-    InitFunction(std::function<void()> init_f) {
-        init_f();
-    }
+    InitFunction(std::function<void()> init_f) { init_f(); }
 };
 
 // A timer that calculates running time for a code block
@@ -53,7 +52,8 @@ class Timer {
     std::clock_t start_;
 };
 
-#define SIMULATOR_TIMER(name) auto __simulator_timer_##name__ = util::Timer(#name)
+#define SIMULATOR_TIMER(name) \
+    auto __simulator_timer_##name__ = util::Timer(#name)
 
 std::default_random_engine& thread_local_reng();
 
@@ -69,7 +69,7 @@ int simple_importance_sampling(const std::vector<double>& acc_weights);
 // this function should be used as a callback function in OpenCV's
 // cv::setMouseCallback() function
 // It will save the current screen on double clicks
-void save_screen(int e, int x, int y, int d, void *ptr);
+void save_screen(int e, int x, int y, int d, void* ptr);
 
 // generate a random string of length len
 std::string generate_random_str(int len);
@@ -81,7 +81,8 @@ std::string remove_instance_id(const std::string& word);
 std::string remove_instance_ids(const std::string& sentence);
 
 // compare the matching rate of one sentence (pred_sent) with a set of sentences
-// by counting the ratio between number of matched words and total number of words
+// by counting the ratio between number of matched words and total number of
+// words
 // and return the highest matching rate
 double compare_sentences_multi(const std::vector<std::string>& sent_set,
                                const std::string& pred_sent);
@@ -90,7 +91,7 @@ double compare_sentences_multi(const std::vector<std::string>& sent_set,
 bool check_unique_and_different(const std::vector<std::string>& lst,
                                 const std::string& value);
 
-template<typename T>
+template <typename T>
 void random_shuffle(std::vector<T>& array) {
     auto& reng = thread_local_reng();
     std::shuffle(array.begin(), array.end(), reng);
@@ -106,9 +107,9 @@ T sample_set(const std::vector<T>& vec) {
 std::string read_file(const std::string& fileName);
 
 // copied from dl/util
-template<typename T, typename... Args>
-        std::unique_ptr<T> make_unique(Args&&... args) {
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args) {
     return std::unique_ptr<T>(new T(args...));
 }
-
-} } // namespace simulator::util
+}
+}  // namespace simulator::util

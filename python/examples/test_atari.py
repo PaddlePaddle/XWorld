@@ -4,9 +4,11 @@ from py_simulator import Simulator
 from random import randint
 
 if __name__ == "__main__":
-    options = {"ale_rom" : "/tmp/breakout.bin",
-               "pause_screen" : True,
-               "context" : 4}
+    options = {
+        "ale_rom": "/tmp/breakout.bin",
+        "pause_screen": True,
+        "context": 4
+    }
     atari = Simulator.create("atari", options)
 
     num_actions = atari.get_num_actions()

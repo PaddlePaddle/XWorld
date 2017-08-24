@@ -28,10 +28,12 @@ class WorldScanner {
 
     void scan_agent();
 
-    std::vector<Entity> goals_;        // all goals existing in the env
-    std::vector<Entity> blocks_;       // all blocks existing in the env
-    std::vector<Entity> unique_goals_; // goals in the env that have a unique name
-    std::vector<Entity> color_goals_;  // goals that have properly defined colors
+    std::vector<Entity> goals_;   // all goals existing in the env
+    std::vector<Entity> blocks_;  // all blocks existing in the env
+    std::vector<Entity>
+        unique_goals_;  // goals in the env that have a unique name
+    std::vector<Entity>
+        color_goals_;  // goals that have properly defined colors
     Entity agent_;
     size_t world_size_;
 
@@ -76,4 +78,4 @@ class WorldScanner {
 
 typedef std::shared_ptr<WorldScanner> ScannerPtr;
 
-} // namespace simulator
+}  // namespace simulator

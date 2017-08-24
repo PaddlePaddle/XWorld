@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "teaching_task.h"
 #include "../xworld_task.h"
+#include "teaching_task.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 class XWorldRecObjectToDirectionTask : public XWorldTask {
   public:
     XWorldRecObjectToDirectionTask(const std::string& name,
                                    TeachingEnvPtr game,
                                    const std::vector<std::string>& held_out)
-            : XWorldTask(name, game, held_out) {}
+        : XWorldTask(name, game, held_out) {}
+
   private:
     void register_stages() override;
 
-    std::string idle(ScannerPtr scanner, SentenceTemplatePtr sen_temp,
+    std::string idle(ScannerPtr scanner,
+                     SentenceTemplatePtr sen_temp,
                      TeachingEnvPtr game) override;
 
     void define_sen_temp_rules(SentenceTemplatePtr sen_temp,
@@ -34,9 +37,10 @@ class XWorldRecObjectToDirectionTask : public XWorldTask {
 
     std::vector<std::vector<Entity>> find_goal(ScannerPtr scanner) override;
 
-    void generate_sentence(
-        const std::vector<std::vector<Entity>>& goal_sets,
-        ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) override;
+    void generate_sentence(const std::vector<std::vector<Entity>>& goal_sets,
+                           ScannerPtr scanner,
+                           SentenceTemplatePtr sen_temp,
+                           TeachingEnvPtr game) override;
 };
 
 REGISTER_TASK(XWorldRecObjectToDirectionTask);
@@ -47,33 +51,40 @@ void XWorldRecObjectToDirectionTask::register_stages() {
     REGISTER_STAGE(conversation_wrapup);
 }
 
-std::string XWorldRecObjectToDirectionTask::idle(
-    ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
+std::string XWorldRecObjectToDirectionTask::idle(ScannerPtr scanner,
+                                                 SentenceTemplatePtr sen_temp,
+                                                 TeachingEnvPtr game) {
     return find_goal_and_generate_sentence(
-        scanner, sen_temp, game,
-        FLAGS_task_mode == "arxiv_lang_acquisition"? "idle": "simple_recognition_reward");
+        scanner,
+        sen_temp,
+        game,
+        FLAGS_task_mode == "arxiv_lang_acquisition"
+            ? "idle"
+            : "simple_recognition_reward");
 }
 
-void XWorldRecObjectToDirectionTask::define_sen_temp_rules(SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
+void XWorldRecObjectToDirectionTask::define_sen_temp_rules(
+    SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
     XWorldTask::define_sen_temp_rules(sen_temp, game);
-    sen_temp->add_rule(sen_temp->start_symbol(), {"$G location ?",
-                    "$G where ?",
-                    "Where is the $G ?",
-                    "What is the location of $G ?",
-                    "Where is $G located .",
-                    "Which direction is the $G ?",
-                    "Which side is the $G on you ?",
-                    "Please locate $G .",
-                    "Find $G .",
-                    "The location of the $G is .",
-                    "Say the location of the $G .",
-                    "Identify the direction of the $G .",
-                    "Tell the location of the $G ."});
-    sen_temp->add_rule("$G", uni_objects_, true/*must_bound*/);
+    sen_temp->add_rule(sen_temp->start_symbol(),
+                       {"$G location ?",
+                        "$G where ?",
+                        "Where is the $G ?",
+                        "What is the location of $G ?",
+                        "Where is $G located .",
+                        "Which direction is the $G ?",
+                        "Which side is the $G on you ?",
+                        "Please locate $G .",
+                        "Find $G .",
+                        "The location of the $G is .",
+                        "Say the location of the $G .",
+                        "Identify the direction of the $G .",
+                        "Tell the location of the $G ."});
+    sen_temp->add_rule("$G", uni_objects_, true /*must_bound*/);
 }
 
-std::vector<std::vector<Entity>> XWorldRecObjectToDirectionTask::find_goal(ScannerPtr scanner) {
-
+std::vector<std::vector<Entity>> XWorldRecObjectToDirectionTask::find_goal(
+    ScannerPtr scanner) {
     std::vector<std::vector<Entity>> goal_sets;
     auto around = surrounding_filter(scanner->agent_, "unique_goal", scanner);
     for (const auto& a : around) {
@@ -84,11 +95,12 @@ std::vector<std::vector<Entity>> XWorldRecObjectToDirectionTask::find_goal(Scann
 
 void XWorldRecObjectToDirectionTask::generate_sentence(
     const std::vector<std::vector<Entity>>& goal_sets,
-    ScannerPtr scanner, SentenceTemplatePtr sen_temp, TeachingEnvPtr game) {
-
+    ScannerPtr scanner,
+    SentenceTemplatePtr sen_temp,
+    TeachingEnvPtr game) {
     auto goal_set = util::sample_set<std::vector<Entity>>(goal_sets);
     sen_temp->bind("$G", goal_set[0].property("name"));
     answer_ = get_direction(scanner->agent_.location, goal_set[0].location);
 }
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

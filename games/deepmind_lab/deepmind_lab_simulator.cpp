@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "deepmind_lab_game.h"
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <glog/logging.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <thread>
+#include "deepmind_lab_game.h"
 
 DEFINE_string(runfiles_path, "", "Path of run files.");
 DEFINE_string(level_script, "tests/demo_map", "DeepMind Lab level script.");
 
-namespace simulator { namespace deepmind_lab_game {
+namespace simulator {
+namespace deepmind_lab_game {
 
 std::mutex DeepmindLabGame::s_dmlab_mutex_;
 
@@ -31,9 +32,7 @@ DeepmindLabSimulatorBase* DeepmindLabSimulatorBase::create() {
 }
 
 DeepmindLabGame::DeepmindLabGame()
-    : uniform_int_dist_(INT_MIN, INT_MAX),
-      context_(NULL),
-      episode_(0) {
+    : uniform_int_dist_(INT_MIN, INT_MAX), context_(NULL), episode_(0) {
     init();
 }
 
@@ -45,22 +44,31 @@ void DeepmindLabGame::init() {
     DeepMindLabLaunchParams params;
     params.runfiles_path = FLAGS_runfiles_path.c_str();
     CHECK_EQ(dmlab_connect(&params, &env_c_api_, &context_), 0)
-            << "Failed to connect RL API";
-    CHECK_EQ(env_c_api_.setting(context_, "width", std::to_string(IMG_WIDTH).c_str()), 0)
-            << "Failed to apply default 'width' setting.";
-    CHECK_EQ(env_c_api_.setting(context_, "height", std::to_string(IMG_HEIGHT).c_str()), 0)
-            << "Failed to apply default 'height' setting.";
+        << "Failed to connect RL API";
+    CHECK_EQ(env_c_api_.setting(
+                 context_, "width", std::to_string(IMG_WIDTH).c_str()),
+             0)
+        << "Failed to apply default 'width' setting.";
+    CHECK_EQ(env_c_api_.setting(
+                 context_, "height", std::to_string(IMG_HEIGHT).c_str()),
+             0)
+        << "Failed to apply default 'height' setting.";
     CHECK_EQ(env_c_api_.setting(context_, "controls", "external"), 0)
-            << "Failed to apply 'controls' setting.";
-    CHECK_EQ(env_c_api_.setting(context_, "appendCommand", " +set com_maxfps \"250\"") , 0)
-            << "Failed to apply 'appendCommand' setting.";
-    CHECK_EQ(env_c_api_.setting(context_, "levelName", FLAGS_level_script.c_str()),
-             0) << "Invalid levelName flag " << FLAGS_level_script;
+        << "Failed to apply 'controls' setting.";
+    CHECK_EQ(env_c_api_.setting(
+                 context_, "appendCommand", " +set com_maxfps \"250\""),
+             0)
+        << "Failed to apply 'appendCommand' setting.";
+    CHECK_EQ(
+        env_c_api_.setting(context_, "levelName", FLAGS_level_script.c_str()),
+        0)
+        << "Invalid levelName flag " << FLAGS_level_script;
 
     CHECK_EQ(env_c_api_.init(context_), 0) << "Failed to init RL API";
 
     // Check spec
-    CHECK_EQ(strcmp(env_c_api_.observation_name(context_, 0), "RGB_INTERLACED"), 0);
+    CHECK_EQ(strcmp(env_c_api_.observation_name(context_, 0), "RGB_INTERLACED"),
+             0);
     CHECK_EQ(env_c_api_.action_discrete_count(context_), N_ORIGINAL_ACTIONS);
 
     EnvCApi_ObservationSpec spec;
@@ -72,9 +80,8 @@ void DeepmindLabGame::init() {
 }
 
 DeepmindLabGame::~DeepmindLabGame() {
-    if (context_)
-        env_c_api_.release_context(context_);
-        context_ = nullptr;
+    if (context_) env_c_api_.release_context(context_);
+    context_ = nullptr;
 }
 
 void DeepmindLabGame::reset_game() {
@@ -84,8 +91,8 @@ void DeepmindLabGame::reset_game() {
     env_status_ = EnvCApi_EnvironmentStatus_Running;
 
     auto& reng = util::thread_local_reng();
-    CHECK_EQ(env_c_api_.start(context_, episode_, uniform_int_dist_(reng)),
-             0) << "Failed to start environment.";
+    CHECK_EQ(env_c_api_.start(context_, episode_, uniform_int_dist_(reng)), 0)
+        << "Failed to start environment.";
 
     LOG(INFO) << "Episode: " << episode_;
     ++episode_;
@@ -122,7 +129,7 @@ void DeepmindLabGame::show_screen(float reward) {
         }
     }
 
-    const cv::Mat imgLarge(IMG_HEIGHT * 4 , IMG_WIDTH * 4, CV_8UC3);
+    const cv::Mat imgLarge(IMG_HEIGHT * 4, IMG_WIDTH * 4, CV_8UC3);
     cv::resize(img, imgLarge, imgLarge.size());
 
     std::lock_guard<std::mutex> guard(GameSimulator::s_display_mutex_);
@@ -144,7 +151,7 @@ float DeepmindLabGame::take_action(const StatePacket& actions) {
     // TODO: do we need actrep here? GameSimulator::take_actions
     // has already hanlded the action repetition.
     double reward = 0.0;
-    env_status_ = env_c_api_.advance(context_, /*FLAGS_actrep*/1, &reward);
+    env_status_ = env_c_api_.advance(context_, /*FLAGS_actrep*/ 1, &reward);
     return reward;
 }
 
@@ -178,28 +185,31 @@ void DeepmindLabGame::define_state_specs(StatePacket& state) {
     state.add_key("screen");
 }
 
-void DeepmindLabGame::get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) {
+void DeepmindLabGame::get_screen_out_dimensions(size_t& height,
+                                                size_t& width,
+                                                size_t& channels) {
     height = IMG_HEIGHT;
     width = IMG_WIDTH;
     channels = IMG_DEPTH;
 }
 
-void DeepmindLabGame::set_discrete_actions(std::vector<std::unique_ptr<int[]>>* actions_discrete) {
-
+void DeepmindLabGame::set_discrete_actions(
+    std::vector<std::unique_ptr<int[]>>* actions_discrete) {
     const int N_DISCRETE_ACTIONS = 11;
-    const int actions_discrete_definition[N_DISCRETE_ACTIONS][N_ORIGINAL_ACTIONS] = {
-        { -20, 0, 0, 0, 0, 0, 0}, // look_left
-        {20, 0, 0, 0, 0, 0, 0},   // look_right
-        {0, -10, 0, 0, 0, 0, 0},   // look_up
-        {0, 10, 0, 0, 0, 0, 0},  // look_down
-        {0, 0, -1, 0, 0, 0, 0},   // strafe_left
-        {0, 0, 1, 0, 0, 0, 0},    // strafe_right
-        {0, 0, 0, 1, 0, 0, 0},    // forward
-        {0, 0, 0, -1, 0, 0, 0},   // backward
-        {0, 0, 0, 0, 1, 0, 0},    // fire
-        {0, 0, 0, 0, 0, 1, 0},    // jump
-        {0, 0, 0, 0, 0, 0, 1}     // crouch
-    };
+    const int
+        actions_discrete_definition[N_DISCRETE_ACTIONS][N_ORIGINAL_ACTIONS] = {
+            {-20, 0, 0, 0, 0, 0, 0},  // look_left
+            {20, 0, 0, 0, 0, 0, 0},   // look_right
+            {0, -10, 0, 0, 0, 0, 0},  // look_up
+            {0, 10, 0, 0, 0, 0, 0},   // look_down
+            {0, 0, -1, 0, 0, 0, 0},   // strafe_left
+            {0, 0, 1, 0, 0, 0, 0},    // strafe_right
+            {0, 0, 0, 1, 0, 0, 0},    // forward
+            {0, 0, 0, -1, 0, 0, 0},   // backward
+            {0, 0, 0, 0, 1, 0, 0},    // fire
+            {0, 0, 0, 0, 0, 1, 0},    // jump
+            {0, 0, 0, 0, 0, 0, 1}     // crouch
+        };
 
     actions_discrete->resize(N_DISCRETE_ACTIONS);
 
@@ -211,5 +221,5 @@ void DeepmindLabGame::set_discrete_actions(std::vector<std::unique_ptr<int[]>>* 
         }
     }
 }
-
-}} //  namespace simulator::deepmind_lab_game
+}
+}  //  namespace simulator::deepmind_lab_game

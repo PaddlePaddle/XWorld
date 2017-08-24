@@ -60,9 +60,8 @@ class SenTempRHS {
     SenTempRHS() {}
 
     // If must_bound=true, then during instantiation bound() must be true
-    SenTempRHS(const std::vector<std::string>& rhs,
-               bool must_bound = false)
-            : rand_(0,1), must_bound_(must_bound), rhs_(rhs) {
+    SenTempRHS(const std::vector<std::string>& rhs, bool must_bound = false)
+        : rand_(0, 1), must_bound_(must_bound), rhs_(rhs) {
         sort_by_num_words();
         rhs_backup_ = rhs_;
     }
@@ -85,7 +84,10 @@ class SenTempRHS {
     void unbind();
 
   private:
-    int curriculum_number(int low, int high, int num_games, int curriculum_games);
+    int curriculum_number(int low,
+                          int high,
+                          int num_games,
+                          int curriculum_games);
 
     void sort_by_num_words();
 
@@ -104,16 +106,18 @@ class TeacherSentenceTemplate {
   public:
     // "held_out" contains sentence patterns that are banned for the teacher
     // Different task groups have different "held_out"
-    TeacherSentenceTemplate(std::vector<std::string> held_out = std::vector<std::string>(),
-                            std::string start_symbol = "$S")
-            : start_symbol_(start_symbol), held_out_(held_out) {
-    }
+    TeacherSentenceTemplate(
+        std::vector<std::string> held_out = std::vector<std::string>(),
+        std::string start_symbol = "$S")
+        : start_symbol_(start_symbol), held_out_(held_out) {}
 
     void bind(const std::string& lhs, const std::string& rhs);
 
     void unbind_all();
 
-    void add_rule(const std::string& lhs, const std::vector<std::string>& rhs, bool bound = false);
+    void add_rule(const std::string& lhs,
+                  const std::vector<std::string>& rhs,
+                  bool bound = false);
 
     void check_rules();
 
@@ -123,9 +127,12 @@ class TeacherSentenceTemplate {
 
     // the beginning of instantiation
     // generate a sentence by instantiation from the start_symbol_
-    // An instantiation is a process of applying rules to a template string repetitively
+    // An instantiation is a process of applying rules to a template string
+    // repetitively
     // until all terminals (plain sentence)
-    std::string instantiate(bool held_out = false, int num_games = 0, int curriculum_games = 0);
+    std::string instantiate(bool held_out = false,
+                            int num_games = 0,
+                            int curriculum_games = 0);
 
     void instantiate_all_sentences(std::vector<std::string>& all_sent);
 
@@ -139,11 +146,14 @@ class TeacherSentenceTemplate {
 
   private:
     // symbol -> string
-    // This function generates a sentence from the template given a set of bindings
-    // If a symbol is not bound, then it will sample a string, either randomly or
+    // This function generates a sentence from the template given a set of
+    // bindings
+    // If a symbol is not bound, then it will sample a string, either randomly
+    // or
     // according to the curriculum
     std::string instantiate(const std::string& current_template,
-                            int num_games, int curriculum_games);
+                            int num_games,
+                            int curriculum_games);
     // detects if there is any loop in the grammar
     void check_infinite_recursion();
 
@@ -155,7 +165,10 @@ class TeacherSentenceTemplate {
         return str[0] == '$' && str.find(' ') == std::string::npos;
     }
 
-    int curriculum_number(int low, int high, int num_games, int curriculum_games);
+    int curriculum_number(int low,
+                          int high,
+                          int num_games,
+                          int curriculum_games);
 
     // each mapping is a template rule
     // symbol -> sentences
@@ -165,4 +178,4 @@ class TeacherSentenceTemplate {
 
 typedef std::shared_ptr<TeacherSentenceTemplate> SentenceTemplatePtr;
 
-} // namespace simulator
+}  // namespace simulator

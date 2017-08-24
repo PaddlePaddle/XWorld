@@ -39,11 +39,12 @@ void SenTempRHS::bind(const std::string& r) {
     rhs_ = std::vector<std::string>({r});
 }
 
-void SenTempRHS::unbind() {
-    rhs_ = rhs_backup_;
-}
+void SenTempRHS::unbind() { rhs_ = rhs_backup_; }
 
-int SenTempRHS::curriculum_number(int low, int high, int num_games, int curriculum_games) {
+int SenTempRHS::curriculum_number(int low,
+                                  int high,
+                                  int num_games,
+                                  int curriculum_games) {
     CHECK_GT(curriculum_games, 0);
     // gradually increase the difficulty
     // we assume the bigger the number, the more difficulty there is
@@ -52,8 +53,9 @@ int SenTempRHS::curriculum_number(int low, int high, int num_games, int curricul
 }
 
 void SenTempRHS::sort_by_num_words() {
-    std::sort(rhs_.begin(), rhs_.end(),
-              [] (const std::string& str1, const std::string& str2) {
+    std::sort(rhs_.begin(),
+              rhs_.end(),
+              [](const std::string& str1, const std::string& str2) {
                   std::vector<std::string> words1, words2;
                   boost::split(words1, str1, boost::is_any_of(" "));
                   boost::split(words2, str2, boost::is_any_of(" "));
@@ -78,13 +80,13 @@ void TeacherSentenceTemplate::check_rules() {
 }
 
 void TeacherSentenceTemplate::check_infinite_recursion() {
-    // Each node i has three status: not in visited, visited[i]=false, visited[i]=true
+    // Each node i has three status: not in visited, visited[i]=false,
+    // visited[i]=true
     // The first means that the node has not been visited;
     // The second means that the node is a parent of the current node
     // The third means that the node is a brother of the current node
     std::unordered_map<std::string, bool> visited;
-    std::function<void(const std::string&)> dfs
-            = [&] (const std::string& cur) {
+    std::function<void(const std::string&)> dfs = [&](const std::string& cur) {
         visited[cur] = false;
         if (rules_.count(cur)) {
             // we enumerate every possible rhs of the current symbol
@@ -97,10 +99,11 @@ void TeacherSentenceTemplate::check_infinite_recursion() {
                     if (!visited.count(c)) {
                         dfs(c);
                     } else {
-                        CHECK(visited[c]) << "There is an infinite recursion in the grammar";
+                        CHECK(visited[c])
+                            << "There is an infinite recursion in the grammar";
                     }
                 }
-                visited = visited_backup; // backtracking
+                visited = visited_backup;  // backtracking
             }
         }
         visited[cur] = true;
@@ -108,14 +111,18 @@ void TeacherSentenceTemplate::check_infinite_recursion() {
     dfs(start_symbol_);
 }
 
-void TeacherSentenceTemplate::bind(const std::string& lhs, const std::string& rhs) {
+void TeacherSentenceTemplate::bind(const std::string& lhs,
+                                   const std::string& rhs) {
     CHECK(is_symbol(lhs)) << lhs << " must be a symbol";
     CHECK(rules_.count(lhs)) << "Invalid left hand side: " << lhs;
     rules_[lhs].bind(rhs);
 }
 
-std::string TeacherSentenceTemplate::instantiate(bool held_out, int num_games, int curriculum_games) {
-    std::string sentence = instantiate(start_symbol_, num_games, curriculum_games);
+std::string TeacherSentenceTemplate::instantiate(bool held_out,
+                                                 int num_games,
+                                                 int curriculum_games) {
+    std::string sentence =
+        instantiate(start_symbol_, num_games, curriculum_games);
     if (held_out && has_held_out_pattern(sentence)) {
         sentence = "";
     }
@@ -129,21 +136,23 @@ void TeacherSentenceTemplate::unbind_all() {
     }
 }
 
-std::string TeacherSentenceTemplate::instantiate(const std::string& current_template,
-                                                 int num_games, int curriculum_games) {
+std::string TeacherSentenceTemplate::instantiate(
+    const std::string& current_template, int num_games, int curriculum_games) {
     std::string ret_str = "";
     if (is_symbol(current_template)) {
         // first check that the symbol is in rules_
-        CHECK(rules_.count(current_template))
-                << "symbol missing: " << current_template;
+        CHECK(rules_.count(current_template)) << "symbol missing: "
+                                              << current_template;
         auto& rhs = rules_[current_template];
         // then check if the symbol is bound
         if (rhs.bound()) {
-            ret_str = instantiate(rhs.bound_value(), num_games, curriculum_games);
+            ret_str =
+                instantiate(rhs.bound_value(), num_games, curriculum_games);
         } else {  // sample a string
             // rhs is already sorted wrt word number
             ret_str = instantiate(rhs.sample(num_games, curriculum_games),
-                                  num_games, curriculum_games);
+                                  num_games,
+                                  curriculum_games);
         }
     } else {
         std::vector<std::string> words;
@@ -151,7 +160,7 @@ std::string TeacherSentenceTemplate::instantiate(const std::string& current_temp
         if (words.size() == 1U) {  // leaf node not being a symbol
             return words[0];
         }
-        for (size_t i = 0; i < words.size() - 1; i ++) {
+        for (size_t i = 0; i < words.size() - 1; i++) {
             ret_str += instantiate(words[i], num_games, curriculum_games) + " ";
         }
         ret_str += instantiate(words.back(), num_games, curriculum_games);
@@ -160,15 +169,19 @@ std::string TeacherSentenceTemplate::instantiate(const std::string& current_temp
     return ret_str;
 }
 
-void TeacherSentenceTemplate::instantiate_all_sentences(std::vector<std::string>& all_sent) {
-    // generate all possible sentences from start_symbol_ (currently support only bound case)
+void TeacherSentenceTemplate::instantiate_all_sentences(
+    std::vector<std::string>& all_sent) {
+    // generate all possible sentences from start_symbol_ (currently support
+    // only
+    // bound case)
     all_sent.push_back(start_symbol_);
     instantiate_all(all_sent);
 }
 
-void TeacherSentenceTemplate::instantiate_all(std::vector<std::string>& all_sent) {
+void TeacherSentenceTemplate::instantiate_all(
+    std::vector<std::string>& all_sent) {
     // generate all possible sentences (currently support only bound case)
-    bool any_symbol_flag = false; // is there any symbol across all templates
+    bool any_symbol_flag = false;  // is there any symbol across all templates
     std::vector<std::string> all_sent_new;
     for (auto it = all_sent.begin(); it < all_sent.end(); it++) {
         std::string current_template = *it;
@@ -176,9 +189,10 @@ void TeacherSentenceTemplate::instantiate_all(std::vector<std::string>& all_sent
         boost::split(words, current_template, boost::is_any_of(" "));
 
         std::string ret_str = "";
-        bool symbol_flag = false; // whether a symbol has been encountered already
+        bool symbol_flag =
+            false;  // whether a symbol has been encountered already
         for (size_t i = 0; i < words.size(); i++) {
-            if (!is_symbol(words[i]) || symbol_flag){
+            if (!is_symbol(words[i]) || symbol_flag) {
                 if (i == words.size() - 1) {
                     all_sent_new.push_back(ret_str + words[i]);
                 } else {
@@ -188,7 +202,7 @@ void TeacherSentenceTemplate::instantiate_all(std::vector<std::string>& all_sent
                 symbol_flag = true;
                 auto& rhs = rules_[words[i]];
                 if (rhs.bound()) {
-                    if (i == words.size() -1) {
+                    if (i == words.size() - 1) {
                         all_sent_new.push_back(ret_str + rhs.bound_value());
                     } else {
                         ret_str += rhs.bound_value() + " ";
@@ -223,17 +237,17 @@ void TeacherSentenceTemplate::instantiate_all(std::vector<std::string>& all_sent
     }
 }
 
-
 size_t TeacherSentenceTemplate::total_possible_sentences() {
     return total_possible_sentences(start_symbol_);
 }
 
-size_t TeacherSentenceTemplate::total_possible_sentences(const std::string& current_template) {
+size_t TeacherSentenceTemplate::total_possible_sentences(
+    const std::string& current_template) {
     size_t total = 0;
     if (is_symbol(current_template)) {
         // first check that the symbol is in rules_
-        CHECK(rules_.count(current_template))
-                << "invalid symbol: " << current_template;
+        CHECK(rules_.count(current_template)) << "invalid symbol: "
+                                              << current_template;
         auto& rhs = rules_[current_template];
         for (const auto& t : rhs.all_values()) {
             total += total_possible_sentences(t);
@@ -253,7 +267,8 @@ size_t TeacherSentenceTemplate::total_possible_sentences(const std::string& curr
     return total;
 }
 
-bool TeacherSentenceTemplate::has_held_out_pattern(const std::string& sentence) {
+bool TeacherSentenceTemplate::has_held_out_pattern(
+    const std::string& sentence) {
     std::vector<std::string> words;
     boost::split(words, sentence, boost::is_any_of(" "));
     for (const auto& h : held_out_) {
@@ -273,4 +288,4 @@ bool TeacherSentenceTemplate::has_held_out_pattern(const std::string& sentence) 
     return false;
 }
 
-} // namespace simulator
+}  // namespace simulator

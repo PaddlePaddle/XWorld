@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "games/xworld/xworld_task.h"
-#include "games/xworld/xworld_simulator.h"
+#include <gflags/gflags.h>
+#include <gtest/gtest.h>
+#include <cmath>
+#include <functional>
+#include <memory>
+#include <vector>
 #include "data_packet.h"
 #include "dirent.h"
-#include <gtest/gtest.h>
-#include <gflags/gflags.h>
-#include <memory>
-#include <cmath>
-#include <vector>
-#include <functional>
+#include "games/xworld/xworld_simulator.h"
+#include "games/xworld/xworld_task.h"
 
 DECLARE_bool(task_groups_exclusive);
 
@@ -29,7 +29,7 @@ using namespace std;
 using namespace simulator;
 using namespace simulator::xwd;
 
-typedef std::function<bool (const std::string& sentence)> TestFunc;
+typedef std::function<bool(const std::string& sentence)> TestFunc;
 
 enum ACTION { UP, DOWN, LEFT, RIGHT };
 
@@ -54,7 +54,8 @@ std::string get_teacher_sentence(shared_ptr<XWorldSimulator> game) {
 }
 
 void test_xworld_task(const std::string& xworld_json, TestFunc test_function) {
-    auto game = make_shared<XWorldSimulator>(true, xworld_json, 0, "one_channel");
+    auto game =
+        make_shared<XWorldSimulator>(true, xworld_json, 0, "one_channel");
     game->add_agent("robot_0");
 
     TeacherPtr teacher = std::make_shared<Teacher>(xworld_json, game, false);
@@ -103,22 +104,25 @@ void go_one_way(shared_ptr<XWorldSimulator> game,
     for (auto a : actions) {
         game->take_action(wrap_action(a));
     }
-    teacher->teach(); // back to "idle" stage
-    EXPECT_LT(fabs(teacher->give_reward() - expected_reward), EPS); // correct_reward + time_penalty
-    teacher->teach(); // issue command
+    teacher->teach();  // back to "idle" stage
+    EXPECT_LT(fabs(teacher->give_reward() - expected_reward),
+              EPS);    // correct_reward + time_penalty
+    teacher->teach();  // issue command
     EXPECT_LT(fabs(teacher->give_reward()), EPS);
     EXPECT_EQ(contain_key_words(vector<string>({expected_word}),
-                                get_teacher_sentence(game)), true);
+                                get_teacher_sentence(game)),
+              true);
     // The agent hasn't moved, so the teacher thinks that it has a failed action
     teacher->teach();
-    EXPECT_LT(fabs(teacher->give_reward()
-                   - (failed_action_reward + time_penalty + wrong_reward)), EPS);
+    EXPECT_LT(fabs(teacher->give_reward() -
+                   (failed_action_reward + time_penalty + wrong_reward)),
+              EPS);
 };
 
 TEST(XWorldTask, RecDirectionToObject) {
-    auto test_function = [] (const std::string& sentence) {
-        bool test = contain_key_words(
-            std::vector<std::string>({"north"}), sentence);
+    auto test_function = [](const std::string& sentence) {
+        bool test =
+            contain_key_words(std::vector<std::string>({"north"}), sentence);
         if (sentence.find("nothing") == std::string::npos) {
             return test;
         } else {
@@ -130,29 +134,31 @@ TEST(XWorldTask, RecDirectionToObject) {
 }
 
 TEST(XWorldTask, RecObjectToColor) {
-    auto test_function = [] (const std::string& sentence) {
-        return contain_key_words(
-            std::vector<std::string>({"banana"}), sentence);
+    auto test_function = [](const std::string& sentence) {
+        return contain_key_words(std::vector<std::string>({"banana"}),
+                                 sentence);
     };
     test_xworld_task(get_json_dir() + "/rec_object_to_color.json",
                      test_function);
 }
 
 TEST(XWorldTask, RecBetweenToObject) {
-    auto test_function = [] (const std::string& sentence) {
+    auto test_function = [](const std::string& sentence) {
         return contain_key_words(
-            std::vector<std::string>(
-                {"between", "apple", "banana"}), sentence)
-        || sentence == EMPTY_STR;  // 0.5 prob of telling empty between objects but find no such pair
+                   std::vector<std::string>({"between", "apple", "banana"}),
+                   sentence) ||
+               sentence ==
+                   EMPTY_STR;  // 0.5 prob of telling empty between objects
+                               // but find no such pair
     };
     test_xworld_task(get_json_dir() + "/rec_between_to_object.json",
                      test_function);
 }
 
 TEST(XWorldTask, LanDirectionToObject) {
-    auto test_function = [] (const std::string& sentence) {
-        bool test = contain_key_words(
-            std::vector<std::string>({"north"}), sentence);
+    auto test_function = [](const std::string& sentence) {
+        bool test =
+            contain_key_words(std::vector<std::string>({"north"}), sentence);
         if (sentence.find("nothing") == std::string::npos) {
             return test;
         } else {
@@ -164,29 +170,24 @@ TEST(XWorldTask, LanDirectionToObject) {
 }
 
 TEST(XWorldTask, NavNear) {
-    auto test_function = [] (const std::string& sentence) {
-        return contain_key_words(
-            std::vector<std::string>({"east"}), sentence);
+    auto test_function = [](const std::string& sentence) {
+        return contain_key_words(std::vector<std::string>({"east"}), sentence);
     };
-    test_xworld_task(get_json_dir() + "/nav_near.json",
-                     test_function);
+    test_xworld_task(get_json_dir() + "/nav_near.json", test_function);
 }
 
 TEST(XWorldTask, NavColorTarget) {
-    auto test_function = [] (const std::string& sentence) {
-        return contain_key_words(
-            std::vector<std::string>({"red"}), sentence);
+    auto test_function = [](const std::string& sentence) {
+        return contain_key_words(std::vector<std::string>({"red"}), sentence);
     };
-    test_xworld_task(get_json_dir() + "/nav_color_target.json",
-                     test_function);
+    test_xworld_task(get_json_dir() + "/nav_color_target.json", test_function);
 }
 
 TEST(XWorldTask, NavHeldOut) {
-    auto test_function = [] (const std::string& sentence) {
-        return sentence == EMPTY_STR; // held out "apple"
+    auto test_function = [](const std::string& sentence) {
+        return sentence == EMPTY_STR;  // held out "apple"
     };
-    test_xworld_task(get_json_dir() + "/nav_heldout.json",
-                     test_function);
+    test_xworld_task(get_json_dir() + "/nav_heldout.json", test_function);
 }
 
 TEST(XWorldTask, ContinuousTask) {
@@ -196,27 +197,41 @@ TEST(XWorldTask, ContinuousTask) {
 
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
 
-    teacher->teach(); // issue a command
+    teacher->teach();  // issue a command
     auto sentence = get_teacher_sentence(game);
 
     teacher->teach();
     // the agent hasn't moved yet and thus has a failed action
-    EXPECT_LT(fabs(teacher->give_reward() - (failed_action_reward + time_penalty)), EPS);
+    EXPECT_LT(
+        fabs(teacher->give_reward() - (failed_action_reward + time_penalty)),
+        EPS);
 
     // go to "apple"
     if (sentence.find("apple") != string::npos) {
         // -> "apple"
-        go_one_way(game, teacher, vector<int>({UP, LEFT}), "banana",
+        go_one_way(game,
+                   teacher,
+                   vector<int>({UP, LEFT}),
+                   "banana",
                    correct_reward + time_penalty);
         // "apple" -> "banana"
-        go_one_way(game, teacher, vector<int>({DOWN, DOWN, RIGHT, RIGHT}), "apple",
+        go_one_way(game,
+                   teacher,
+                   vector<int>({DOWN, DOWN, RIGHT, RIGHT}),
+                   "apple",
                    correct_reward + time_penalty);
-    } else { // go to "banana"
+    } else {  // go to "banana"
         // -> "banana"
-        go_one_way(game, teacher, vector<int>({DOWN, RIGHT}), "apple",
+        go_one_way(game,
+                   teacher,
+                   vector<int>({DOWN, RIGHT}),
+                   "apple",
                    correct_reward + time_penalty);
         // "banana" -> "apple"
-        go_one_way(game, teacher, vector<int>({UP, UP, LEFT, LEFT}), "banana",
+        go_one_way(game,
+                   teacher,
+                   vector<int>({UP, UP, LEFT, LEFT}),
+                   "banana",
                    correct_reward + time_penalty);
     }
 
@@ -238,15 +253,19 @@ TEST(XWorldTask, MultiTask) {
     EXPECT_EQ(sentence.find("banana") != string::npos, true);
     EXPECT_EQ(sentence.find("yellow") == string::npos, true);
 
-    //// when the agent has not finished the task, the teacher will not issue new command
+    //// when the agent has not finished the task, the teacher will not issue
+    /// new
+    /// command
     game->take_action(wrap_action(UP));
-    // Thus the teacher will definitely ask rec questions using the language channel
+    // Thus the teacher will definitely ask rec questions using the language
+    // channel
     teacher->teach();
 
     sentence = get_teacher_sentence(game);
     EXPECT_EQ(contain_key_words(vector<string>({"yellow"}), sentence), true);
     // the navigation task is still on
-    EXPECT_LT(fabs(teacher->give_reward() - time_penalty), EPS); // time penalty
+    EXPECT_LT(fabs(teacher->give_reward() - time_penalty),
+              EPS);  // time penalty
 
     // agent finishes nav task
     game->take_action(wrap_action(LEFT));
@@ -257,7 +276,8 @@ TEST(XWorldTask, MultiTask) {
     // rec task back to "idle"
     teacher->teach();
 
-    // agent stands on goal, no nav command will be issued. Instead, question is asked
+    // agent stands on goal, no nav command will be issued. Instead, question is
+    // asked
     teacher->teach();
     sentence = get_teacher_sentence(game);
     EXPECT_EQ(contain_key_words(vector<string>({"yellow"}), sentence), true);
@@ -288,23 +308,23 @@ TEST(XWorldTask, TaskWeight) {
     int nav_color_target_count = 0;
     int rec_count = 0;
     int empty_count = 0;
-    for (int i = 0; i < total; i ++) {
+    for (int i = 0; i < total; i++) {
         teacher->teach();
         auto task = teach_game->get_teacher_sent_type_from_buffer();
         if (task == "XWorldNavTargetTask") {
-            nav_target_count ++;
+            nav_target_count++;
         } else if (task == "XWorldNavColorTargetTask") {
-            nav_color_target_count ++;
+            nav_color_target_count++;
         } else if (task == "XWorldRecDirectionToColorTask") {
-            rec_count ++;
+            rec_count++;
         } else {
-            empty_count ++;
+            empty_count++;
         }
         teacher->reset_after_game_reset();
     }
     EXPECT_LT(fabs(double(nav_target_count) / total - 0.4), EPS);
-    EXPECT_LT(fabs(double(nav_color_target_count) / total - 4.0/15), EPS);
-    EXPECT_LT(fabs(double(rec_count) / total - 1.0/3), EPS);
+    EXPECT_LT(fabs(double(nav_color_target_count) / total - 4.0 / 15), EPS);
+    EXPECT_LT(fabs(double(rec_count) / total - 1.0 / 3), EPS);
     EXPECT_EQ(empty_count, 0);
 
     teacher->stop();
@@ -318,7 +338,7 @@ TEST(XWorldTask, PressureTest) {
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
 
     const int total = 10000;
-    for (int i = 0; i < total; i ++) {
+    for (int i = 0; i < total; i++) {
         teacher->teach();
     }
 
@@ -327,7 +347,8 @@ TEST(XWorldTask, PressureTest) {
 
 TEST(XWorldTask, GameOver) {
     auto json = get_json_dir() + "/nav_near.json";
-    auto game = make_shared<XWorldSimulator>(true, json, 0, "arxiv_lang_acquisition");
+    auto game =
+        make_shared<XWorldSimulator>(true, json, 0, "arxiv_lang_acquisition");
     game->add_agent("robot_0");
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
     teacher->teach();
@@ -337,7 +358,7 @@ TEST(XWorldTask, GameOver) {
     teacher->stop();
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

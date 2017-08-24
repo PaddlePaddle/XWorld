@@ -13,19 +13,20 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
-#include <map>
-#include <boost/python.hpp>
 #include <Python.h>
+#include <boost/python.hpp>
+#include <map>
+#include <vector>
 #include "simulator.h"
 
-namespace simulator { namespace robo_simulator {
+namespace simulator {
+namespace robo_simulator {
 
 class RoboSimulator : public GameSimulator {
-public:
+  public:
     RoboSimulator(bool human_control = false);
 
-    virtual ~RoboSimulator() {Py_Finalize();}
+    virtual ~RoboSimulator() { Py_Finalize(); }
 
     virtual void reset_game() override;
 
@@ -41,12 +42,13 @@ public:
 
     virtual void get_screen(StatePacket& screen) override;
 
-    virtual void get_screen_out_dimensions(size_t& height, size_t& width,
-        size_t& channels) override;
+    virtual void get_screen_out_dimensions(size_t& height,
+                                           size_t& width,
+                                           size_t& channels) override;
 
     void define_state_specs(StatePacket& state);
 
-private:
+  private:
     std::vector<uint8_t> _screen_vec;
     int _img_height;
     int _img_width;
@@ -58,5 +60,5 @@ private:
     std::vector<char> _action_space;
     std::map<char, int> _action_to_id;
 };
-
-}} // namespace simulator::robo_simulator
+}
+}  // namespace simulator::robo_simulator

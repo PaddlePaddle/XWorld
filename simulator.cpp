@@ -16,7 +16,8 @@
 #include <sstream>
 #include <thread>
 
-// the total number of channels for one forward should be context * (color? 3: 1)
+// the total number of channels for one forward should be context * (color? 3:
+// 1)
 DEFINE_int32(context, 1, "Use so many frames as input");
 DEFINE_int32(max_steps, 0, "maxinum steps for the game");
 DEFINE_bool(lock_step, false, "step-by-step inspection");
@@ -27,10 +28,8 @@ namespace simulator {
 
 std::mutex GameSimulator::s_display_mutex_;
 
-GameSimulator::GameSimulator() : max_steps_(FLAGS_max_steps),
-                                 num_steps_(0),
-                                 last_action_("") {
-}
+GameSimulator::GameSimulator()
+    : max_steps_(FLAGS_max_steps), num_steps_(0), last_action_("") {}
 
 void GameSimulator::init_context_screens(bool is_uint8) {
     StatePacket screen;
@@ -53,8 +52,8 @@ void GameSimulator::shift_context(BufferPtr cur_buf,
                                   int n_contexts,
                                   size_t screen_sz) {
     auto data = context_buf->get_value<T>();
-    memmove(data, data + screen_sz, sizeof(T) * (n_contexts-1) * screen_sz);
-    data += (n_contexts-1) * screen_sz;
+    memmove(data, data + screen_sz, sizeof(T) * (n_contexts - 1) * screen_sz);
+    data += (n_contexts - 1) * screen_sz;
     cur_buf->copy_value(data, data + screen_sz);
 }
 
@@ -76,14 +75,15 @@ void GameSimulator::make_context_screens() {
 
     if (is_uint8) {
         shift_context<uint8_t>(
-                curr_screen_buffer, screens_buffer, FLAGS_context, sz);
+            curr_screen_buffer, screens_buffer, FLAGS_context, sz);
     } else {
         shift_context<float>(
-                curr_screen_buffer, screens_buffer, FLAGS_context, sz);
+            curr_screen_buffer, screens_buffer, FLAGS_context, sz);
     }
 }
 
-void GameSimulator::fill_in_reward_and_screen(float reward, StatePacket& state) {
+void GameSimulator::fill_in_reward_and_screen(float reward,
+                                              StatePacket& state) {
     // The state should have been allocated in the derived get_state_data()
     CHECK_GE(state.size(), GameSimulator::N_BUFFERS);
     // insert the cumulative reward
@@ -95,8 +95,8 @@ void GameSimulator::fill_in_reward_and_screen(float reward, StatePacket& state) 
 
 float GameSimulator::take_actions(const StatePacket& actions, int actrep) {
     float reward = 0;
-    num_steps_ ++;
-    for (int i = 0; i < actrep; i ++) {
+    num_steps_++;
+    for (int i = 0; i < actrep; i++) {
         reward += take_action(actions);
     }
     make_context_screens();
@@ -120,8 +120,9 @@ std::string GameSimulator::get_screen_name() {
 }
 
 // adaptor class: interface for agent-specific simulator
-AgentSpecificSimulator::AgentSpecificSimulator(SimulatorMultiPtr simulator_ptr, int agent_id /*= 0*/)
-                                             : simulator_ptr_(simulator_ptr), agent_id_(agent_id) {
+AgentSpecificSimulator::AgentSpecificSimulator(SimulatorMultiPtr simulator_ptr,
+                                               int agent_id /*= 0*/)
+    : simulator_ptr_(simulator_ptr), agent_id_(agent_id) {
     max_steps_ = simulator_ptr_->get_max_steps();
 }
 
@@ -133,8 +134,7 @@ void AgentSpecificSimulator::reset_game() {
 
 int AgentSpecificSimulator::game_over() {
     activate_my_agent();
-    return GameSimulator::game_over()
-           | simulator_ptr_->game_over();
+    return GameSimulator::game_over() | simulator_ptr_->game_over();
 }
 
 int AgentSpecificSimulator::get_num_actions() {
@@ -157,12 +157,15 @@ void AgentSpecificSimulator::define_state_specs(StatePacket& state) {
     simulator_ptr_->define_state_specs(state);
 }
 
-void AgentSpecificSimulator::get_extra_info(std::unordered_map<std::string, std::string>& info) {
+void AgentSpecificSimulator::get_extra_info(
+    std::unordered_map<std::string, std::string>& info) {
     activate_my_agent();
     simulator_ptr_->get_extra_info(info);
 }
 
-void AgentSpecificSimulator::get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) {
+void AgentSpecificSimulator::get_screen_out_dimensions(size_t& height,
+                                                       size_t& width,
+                                                       size_t& channels) {
     simulator_ptr_->get_screen_out_dimensions(height, width, channels);
 }
 
@@ -181,4 +184,4 @@ std::string AgentSpecificSimulator::last_action() {
     return simulator_ptr_->last_action();
 }
 
-} // namespace simulator
+}  // namespace simulator

@@ -13,12 +13,13 @@
 // limitations under the License.
 
 #pragma once
+#include <ale_interface.hpp>
 #include <memory>
 #include <vector>
-#include <ale_interface.hpp>
 #include "arcade_simulator.h"
 
-namespace simulator { namespace arcade_game {
+namespace simulator {
+namespace arcade_game {
 
 // The game that wraps the ALE (arcade learning enviroment) interface.
 // It plays Atari arcade games.
@@ -42,7 +43,9 @@ class Arcade : public ArcadeGame {
 
     virtual void get_screen(StatePacket& screen) override;
 
-    virtual void get_screen_out_dimensions(size_t& height, size_t& width, size_t& channels) override;
+    virtual void get_screen_out_dimensions(size_t& height,
+                                           size_t& width,
+                                           size_t& channels) override;
 
     void define_state_specs(StatePacket& state);
 
@@ -82,8 +85,7 @@ class Arcade : public ArcadeGame {
     }
 
     // downsample and convert to grays
-    void down_sample_image(const GameFrame& screen,
-                           GameFrame& screen_out);
+    void down_sample_image(const GameFrame& screen, GameFrame& screen_out);
 };
-
-}} // namespace simulator::arcade_name
+}
+}  // namespace simulator::arcade_name

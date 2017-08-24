@@ -14,19 +14,22 @@
 
 #include "xworld_parser.h"
 #include <algorithm>
-#include <fstream>
 #include <boost/algorithm/string.hpp>
 #include <boost/exception/all.hpp>
+#include <fstream>
 #include <unordered_set>
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 // called only ONCE across all the games
 XWorldParser::XWorldParser(bool print_xworld_config,
                            const std::string& world_config,
                            int curriculum_learning)
-        : curriculum_learning_(curriculum_learning), num_games_so_far_(0),
-          world_conf_(world_config), conf_root_(nullptr) {
+    : curriculum_learning_(curriculum_learning),
+      num_games_so_far_(0),
+      world_conf_(world_config),
+      conf_root_(nullptr) {
     item_types_["goal"] = GOAL;
     item_types_["agent"] = AGENT;
     item_types_["block"] = BLOCK;
@@ -34,7 +37,8 @@ XWorldParser::XWorldParser(bool print_xworld_config,
     reset_config(print_xworld_config);
 }
 
-std::vector<std::vector<int>> XWorldParser::read_json_matrix(const pt::ptree::value_type& node) {
+std::vector<std::vector<int>> XWorldParser::read_json_matrix(
+    const pt::ptree::value_type& node) {
     std::vector<std::vector<int>> matrix;
     for (const auto& r : node.second) {
         matrix.push_back(read_json_vector(r));
@@ -42,7 +46,8 @@ std::vector<std::vector<int>> XWorldParser::read_json_matrix(const pt::ptree::va
     return matrix;
 }
 
-std::vector<int> XWorldParser::read_json_vector(const pt::ptree::value_type& node) {
+std::vector<int> XWorldParser::read_json_vector(
+    const pt::ptree::value_type& node) {
     std::vector<int> vec;
     for (const auto& x : node.second) {
         vec.push_back(x.second.get_value<int>());
@@ -60,17 +65,20 @@ int XWorldParser::get_total_num_of_items(const pt::ptree::value_type& item) {
     if (num_range.size() == 1) {
         num_range.push_back(num_range[0]);
     }
-    return select_number_from_range(num_range[0], num_range[1],
-                                    curriculum_learning_);
+    return select_number_from_range(
+        num_range[0], num_range[1], curriculum_learning_);
 }
 
-int XWorldParser::select_number_from_range(int low, int high, bool curriculum_learning) {
+int XWorldParser::select_number_from_range(int low,
+                                           int high,
+                                           bool curriculum_learning) {
     CHECK_GE(high, low);
     int ret = low;
     if (curriculum_learning) {
-        ret = curriculum_number(low, high, num_games_so_far_, curriculum_learning_);
+        ret = curriculum_number(
+            low, high, num_games_so_far_, curriculum_learning_);
     } else {
-        ret = util::get_rand_ind(high - low + 1) + low; // [low, high]
+        ret = util::get_rand_ind(high - low + 1) + low;  // [low, high]
     }
     return ret;
 }
@@ -79,10 +87,11 @@ void XWorldParser::set_map_level() {
     std::vector<std::string> classes;
     select_item_classes("block", std::vector<std::string>(), classes);
 
-    auto get_block_unit = [&] (int x, int y) {
+    auto get_block_unit = [&](int x, int y) {
         ItemInfo i;
         i.type = item_types_["block"];
-        i.img_path = XItem::item_rep_.item_tree_->retrieve_item_path(classes[0]);
+        i.img_path =
+            XItem::item_rep_.item_tree_->retrieve_item_path(classes[0]);
         i.name = "brick_" + std::to_string(total_items_++);
         i.location = Loc(x, y);
         return i;
@@ -90,13 +99,13 @@ void XWorldParser::set_map_level() {
 
     std::unordered_set<Loc> visited;
 
-    auto put_block_unit = [&] (int x, int y) {
+    auto put_block_unit = [&](int x, int y) {
         // corners will be duplicate
-        if (visited.find(Loc{x,y}) == visited.end()) {
+        if (visited.find(Loc{x, y}) == visited.end()) {
             ItemInfo i = get_block_unit(x, y);
             ul_.push_back(i);
             ul_map_[i.name] = i;
-            visited.insert(Loc{x,y});
+            visited.insert(Loc{x, y});
         }
     };
 
@@ -111,44 +120,50 @@ void XWorldParser::set_map_level() {
         int wx = (location % 2) * (current_size - 1);
         int wy = (location / 2) * (current_size - 1);
         // put two walls starting (wx, wy)
-        for (int k = 0; k < current_size; k ++) {
+        for (int k = 0; k < current_size; k++) {
             std::vector<int> wxs = {wx, k};
             std::vector<int> wys = {k, wy};
-            for (int j = 0; j < 2; j ++) {
+            for (int j = 0; j < 2; j++) {
                 put_block_unit(wxs[j], wys[j]);
             }
         }
         if (wx == 0) {
-            x ++;
+            x++;
         }
         if (wy == 0) {
-            y ++;
+            y++;
         }
-        current_size --;
+        current_size--;
     }
 
     wall_thickness /= 2;
-    for (int i = 0; i < wall_thickness; i ++) {
-        std::vector<int> wxs = {x, x + current_size - 1, x + current_size - 1, x};
-        std::vector<int> wys = {y, y, y + current_size - 1, y + current_size - 1};
+    for (int i = 0; i < wall_thickness; i++) {
+        std::vector<int> wxs = {
+            x, x + current_size - 1, x + current_size - 1, x};
+        std::vector<int> wys = {
+            y, y, y + current_size - 1, y + current_size - 1};
         std::vector<int> dx = {1, 0, -1, 0};
         std::vector<int> dy = {0, 1, 0, -1};
-        for (int j = 0; j < 4; j ++) {
-            for (int k = 0; k < current_size; k ++) {
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < current_size; k++) {
                 put_block_unit(wxs[j] + dx[j] * k, wys[j] + dy[j] * k);
             }
         }
-        x ++;
-        y ++;
+        x++;
+        y++;
         current_size -= 2;
         CHECK_GE(current_size, 2) << "too many map levels";
     }
 }
 
-int XWorldParser::curriculum_number(int low, int high, int num_games, int curriculum_games) {
+int XWorldParser::curriculum_number(int low,
+                                    int high,
+                                    int num_games,
+                                    int curriculum_games) {
     CHECK_GT(curriculum_games, 0);
     // gradually increase the difficulty
-    // we assume the bigger the number, the more difficulty there is (goals, blocks)
+    // we assume the bigger the number, the more difficulty there is (goals,
+    // blocks)
     double progress = std::min(double(num_games) / curriculum_games, 1 - 1e-5);
     return low + int((high - low + 1) * progress);
 }
@@ -165,7 +180,7 @@ void XWorldParser::get_all_possible_objects(std::vector<Entity>& objects) {
 }
 
 std::string XWorldParser::sample_schedule(const pt::ptree::value_type& item) {
-    std::vector<std::pair<std::string,double>> schedules;
+    std::vector<std::pair<std::string, double>> schedules;
     double total_prob = 0;
     for (const auto& node : item.second.get_child("schedule")) {
         double p = node.second.get_value<double>();
@@ -174,8 +189,8 @@ std::string XWorldParser::sample_schedule(const pt::ptree::value_type& item) {
     }
 
     // sample a schedule according to the weights
-    for (size_t i = 1; i < schedules.size(); i ++) {
-        schedules[i].second += schedules[i-1].second;
+    for (size_t i = 1; i < schedules.size(); i++) {
+        schedules[i].second += schedules[i - 1].second;
     }
     double sample = util::get_rand_range_val(total_prob);
     std::string schedule = "";
@@ -193,13 +208,14 @@ std::string XWorldParser::sample_schedule(const pt::ptree::value_type& item) {
 
 ItemInfo XWorldParser::get_next_agent() {
     CHECK(agent_que_idx_ < agent_que_.size()) << "Agent number exceeds!";
-    return agent_que_[agent_que_idx_ ++];
+    return agent_que_[agent_que_idx_++];
 }
 
 // class: "goal/fruit/apple"
-void XWorldParser::select_item_classes(std::string type,
-                                       const std::vector<std::string>& categories,
-                                       std::vector<std::string>& all_classes) {
+void XWorldParser::select_item_classes(
+    std::string type,
+    const std::vector<std::string>& categories,
+    std::vector<std::string>& all_classes) {
     // get all the icon classes of the type
     std::string dir = type + "/";
     if (categories.empty()) {
@@ -207,8 +223,8 @@ void XWorldParser::select_item_classes(std::string type,
     } else {
         std::vector<std::string> tmp;
         for (const auto& c : categories) {
-            XItem::item_rep_.item_tree_->retrieve_item_classes(
-                dir + c + "/", tmp);
+            XItem::item_rep_.item_tree_->retrieve_item_classes(dir + c + "/",
+                                                               tmp);
             all_classes.insert(all_classes.end(), tmp.begin(), tmp.end());
         }
     }
@@ -216,11 +232,13 @@ void XWorldParser::select_item_classes(std::string type,
     CHECK_GT(all_classes.size(), 0);
 }
 
-void XWorldParser::record_all_possible_objects(const std::vector<std::string>& all_classes) {
+void XWorldParser::record_all_possible_objects(
+    const std::vector<std::string>& all_classes) {
     all_objects_.clear();
     for (const auto& c : all_classes) {
         std::string class_name = c.substr(c.find_last_of("/") + 1);
-        std::vector<std::string> item_paths = XItem::item_rep_.item_tree_->retrieve_item_paths(c);
+        std::vector<std::string> item_paths =
+            XItem::item_rep_.item_tree_->retrieve_item_paths(c);
         for (const auto& p : item_paths) {
             std::string color = XItem::item_rep_.retrieve_property(p, "color");
             ItemInfo item;
@@ -231,13 +249,15 @@ void XWorldParser::record_all_possible_objects(const std::vector<std::string>& a
     }
 }
 
-void XWorldParser::instantiate_items(
-    size_t total, const pt::ptree::value_type& item, bool print) {
+void XWorldParser::instantiate_items(size_t total,
+                                     const pt::ptree::value_type& item,
+                                     bool print) {
     if (total == 0) {
         return;
     }
     if (item_types_.find(item.first) == item_types_.end())
-        LOG(FATAL) << "JSON file contains unsupported item type: " << item.first;
+        LOG(FATAL) << "JSON file contains unsupported item type: "
+                   << item.first;
 
     ///////////////// get all the icon classes of the type ////////////////
     std::vector<std::string> categories;
@@ -256,24 +276,27 @@ void XWorldParser::instantiate_items(
     }
 
     /////////// gradually increase the number of items on the map //////////
-    //////// sorting makes the order of the items the same for the next game /////////
+    //////// sorting makes the order of the items the same for the next game
+    ////////////
     int size = all_classes.size();
-    if (//false &&                  // random class number
-        curriculum_learning_) {     // increasing class number
-        size = curriculum_number(std::max(1, int(all_classes.size()/10)),
+    if (  // false &&                  // random class number
+        curriculum_learning_) {  // increasing class number
+        size = curriculum_number(std::max(1, int(all_classes.size() / 10)),
                                  all_classes.size(),
-                                 num_games_so_far_, curriculum_learning_);
+                                 num_games_so_far_,
+                                 curriculum_learning_);
     }
-    std::vector<std::string> classes(all_classes.begin(), all_classes.begin() + size);
+    std::vector<std::string> classes(all_classes.begin(),
+                                     all_classes.begin() + size);
     util::random_shuffle(classes);
 
-    auto get_class_name = [] (const std::string& full_class) {
+    auto get_class_name = [](const std::string& full_class) {
         int idx = full_class.find_last_of("/") + 1;
         return full_class.substr(idx);
     };
 
-    auto classes_match = [get_class_name] (const std::string& full_class,
-                             const std::string& class_name) {
+    auto classes_match = [get_class_name](const std::string& full_class,
+                                          const std::string& class_name) {
         return get_class_name(full_class) == class_name;
     };
 
@@ -286,14 +309,19 @@ void XWorldParser::instantiate_items(
             ItemInfo i;
             i.type = item_types_[item.first];
 
-            // "x" represents a randomly sampled novel class with specified fixed location
+            // "x" represents a randomly sampled novel class with specified
+            // fixed
+            // location
             if (node.first == "x") {
                 CHECK_GT(classes.size(), 0);
                 size_t idx = util::get_rand_ind(classes.size());
                 std::string class_name = classes[idx];
-                classes.erase(classes.begin() + idx); // ensure unique objects are sampled
-                i.img_path = XItem::item_rep_.item_tree_->retrieve_item_path(class_name);
-                i.name = get_class_name(class_name) + "_" + std::to_string(total_items_);
+                classes.erase(classes.begin() +
+                              idx);  // ensure unique objects are sampled
+                i.img_path =
+                    XItem::item_rep_.item_tree_->retrieve_item_path(class_name);
+                i.name = get_class_name(class_name) + "_" +
+                         std::to_string(total_items_);
             } else {
                 std::string class_name = "";
                 for (auto n : classes) {
@@ -303,7 +331,8 @@ void XWorldParser::instantiate_items(
                     }
                 }
                 CHECK(!class_name.empty());
-                i.img_path = XItem::item_rep_.item_tree_->retrieve_item_path(class_name);
+                i.img_path =
+                    XItem::item_rep_.item_tree_->retrieve_item_path(class_name);
                 i.name = node.first + "_" + std::to_string(total_items_);
             }
             std::vector<int> loc = read_json_vector(node);
@@ -314,12 +343,12 @@ void XWorldParser::instantiate_items(
             ul_.push_back(i);
             ul_map_[i.name] = i;
             total_items_++;
-            cnt ++;
+            cnt++;
         }
     }
 
     ///////////////// then initialize some random items //////////////////
-    for (size_t k = 0; k < total - cnt; k ++) {
+    for (size_t k = 0; k < total - cnt; k++) {
         ItemInfo i;
         i.type = item_types_[item.first];
         int idx = util::get_rand_ind(classes.size());
@@ -368,7 +397,7 @@ void XWorldParser::put_items_in_a_row(double prob, ItemType t) {
 }
 
 void XWorldParser::reset_config(const std::string& world_config, bool print) {
-    num_games_so_far_ ++;
+    num_games_so_far_++;
     world_conf_ = world_config;
     total_items_ = 0;
     agent_que_idx_ = 0;
@@ -426,5 +455,5 @@ void XWorldParser::reset_config(const std::string& world_config, bool print) {
     }
     CHECK_GT(ul_map_.size(), 0);
 }
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

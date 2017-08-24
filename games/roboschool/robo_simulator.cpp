@@ -13,10 +13,10 @@
 // limitations under the License.
 
 #include "robo_simulator.h"
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <glog/logging.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "numpy/ndarrayobject.h"
 
 DEFINE_int32(robo_height, 64, "The height of the roboschool");
@@ -24,7 +24,8 @@ DEFINE_int32(robo_width, 64, "The width of the roboschool");
 
 namespace py = boost::python;
 
-namespace simulator { namespace robo_simulator {
+namespace simulator {
+namespace robo_simulator {
 
 std::string parse_python_exception();
 
@@ -44,7 +45,7 @@ void RoboSimulator::show_screen(float reward) {
     if (_human_control) {
         char user_input = cv::waitKey(40);
         std::vector<int> action_vec;
-        int action_id = 4; // 4: stay
+        int action_id = 4;  // 4: stay
         if (_action_to_id.count(user_input) > 0) {
             action_id = _action_to_id[user_input];
         }
@@ -59,7 +60,8 @@ void RoboSimulator::show_screen(float reward) {
 
 RoboSimulator::RoboSimulator(bool human_control) {
     LOG(INFO) << "robo simulator start";
-    _img_height = FLAGS_robo_height; _img_width = FLAGS_robo_width;
+    _img_height = FLAGS_robo_height;
+    _img_width = FLAGS_robo_width;
     _screen_vec.resize(_img_height * _img_width * 3);
     LOG(INFO) << "height: " << _img_height << " width: " << _img_width;
     _human_control = human_control;
@@ -68,20 +70,27 @@ RoboSimulator::RoboSimulator(bool human_control) {
     }
     int action_id = 0;
     // move forward
-    _action_space.push_back('w'); _action_to_id['w'] = action_id++;
+    _action_space.push_back('w');
+    _action_to_id['w'] = action_id++;
     // turn left
-    _action_space.push_back('a'); _action_to_id['a'] = action_id++;
+    _action_space.push_back('a');
+    _action_to_id['a'] = action_id++;
     // turn right
-    _action_space.push_back('d'); _action_to_id['d'] = action_id++;
+    _action_space.push_back('d');
+    _action_to_id['d'] = action_id++;
     // collect
-    _action_space.push_back('c'); _action_to_id['c'] = action_id++;
+    _action_space.push_back('c');
+    _action_to_id['c'] = action_id++;
     // stay
-    _action_space.push_back('s'); _action_to_id['s'] = action_id++;
+    _action_space.push_back('s');
+    _action_to_id['s'] = action_id++;
     // jump (if allowed in the env config script)
-    _action_space.push_back('j'); _action_to_id['j'] = action_id++;
+    _action_space.push_back('j');
+    _action_to_id['j'] = action_id++;
     if (_human_control) {
         // change the viewpoint
-        _action_space.push_back('z'); _action_to_id['z'] = action_id;
+        _action_space.push_back('z');
+        _action_to_id['z'] = action_id;
     }
 }
 
@@ -99,7 +108,7 @@ void RoboSimulator::reset_game() {
             py::exec("obs = env.reset(); a = np.array(['s', ])", py_space);
             py::exec("obs, r, done, _ = env.step(a)", py_space);
             py::exec("rgb = env.render('rgb_array')", py_space);
-        } catch (py::error_already_set const &) {
+        } catch (py::error_already_set const&) {
             LOG(ERROR) << parse_python_exception();
             exit(1);
         }
@@ -108,7 +117,7 @@ void RoboSimulator::reset_game() {
     try {
         py::exec("obs = env.reset(); a = np.array(['s', ])", py_space);
         py::exec("obs, r, done, _ = env.step(a)", py_space);
-    } catch (py::error_already_set const &) {
+    } catch (py::error_already_set const&) {
         LOG(ERROR) << parse_python_exception();
         exit(1);
     }
@@ -122,11 +131,9 @@ int RoboSimulator::game_over() {
     if (done == 2) {
         LOG(INFO) << "found the goal";
         return SUCCESS;
-    }
-    else if (done == 1) {
+    } else if (done == 1) {
         return ALIVE;
-    }
-    else {
+    } else {
         return DEAD;
     }
 }
@@ -144,7 +151,7 @@ float RoboSimulator::take_action(const StatePacket& actions) {
             LOG(ERROR) << "Unknown action_id" << action_id;
         }
         py::exec("obs, r, done, _ = env.step(a)", py_space);
-    } catch (py::error_already_set const &) {
+    } catch (py::error_already_set const&) {
         LOG(ERROR) << parse_python_exception();
         exit(1);
     }
@@ -167,7 +174,7 @@ void RoboSimulator::get_screen(StatePacket& screen) {
     // get data from roboschool
     try {
         py::exec("rgb = env.render('rgb_array')", py_space);
-    } catch (py::error_already_set const &) {
+    } catch (py::error_already_set const&) {
         LOG(ERROR) << parse_python_exception();
         exit(1);
     }
@@ -179,7 +186,7 @@ void RoboSimulator::get_screen(StatePacket& screen) {
     const npy_intp* _sizes = PyArray_DIMS(rgb_array);
     CHECK_EQ(_img_height, _sizes[0]);
     CHECK_EQ(_img_width, _sizes[1]);
-    uint8_t* rgb_data = (uint8_t*) PyArray_DATA(rgb_array);
+    uint8_t* rgb_data = (uint8_t*)PyArray_DATA(rgb_array);
     for (int i = 0; i < 3 * _img_height * _img_width; ++i) {
         _screen_vec[i] = rgb_data[i];
     }
@@ -195,8 +202,9 @@ void RoboSimulator::define_state_specs(StatePacket& state) {
     // do something here
 }
 
-void RoboSimulator::get_screen_out_dimensions(size_t& height, size_t& width,
-        size_t& channels) {
+void RoboSimulator::get_screen_out_dimensions(size_t& height,
+                                              size_t& width,
+                                              size_t& channels) {
     height = _img_height;
     width = _img_width;
     channels = 3;
@@ -206,16 +214,16 @@ void RoboSimulator::get_screen_out_dimensions(size_t& height, size_t& width,
 // NOTE SHOULD NOT BE CALLED IF NO EXCEPTION
 // https://github.com/josephturnerjr/boost-python-tutorial/
 std::string parse_python_exception() {
-    PyObject *type_ptr = NULL;
-    PyObject *value_ptr = NULL;
-    PyObject *traceback_ptr = NULL;
+    PyObject* type_ptr = NULL;
+    PyObject* value_ptr = NULL;
+    PyObject* traceback_ptr = NULL;
     // Fetch the exception info from the Python C API
     PyErr_Fetch(&type_ptr, &value_ptr, &traceback_ptr);
 
     // Fallback error
     std::string ret("Unfetchable Python error");
     // If the fetch got a type pointer, parse the type into the exception string
-    if (type_ptr != NULL){
+    if (type_ptr != NULL) {
         py::handle<> h_type(type_ptr);
         py::str type_pstr(h_type);
         // Extract the string from the boost::python object
@@ -228,17 +236,17 @@ std::string parse_python_exception() {
             ret = "Unknown exception type";
     }
     // Do the same for the exception value the stringification of the exception
-    if (value_ptr != NULL){
+    if (value_ptr != NULL) {
         py::handle<> h_val(value_ptr);
         py::str a(h_val);
         py::extract<std::string> returned(a);
         if (returned.check())
-            ret +=  ": " + returned();
+            ret += ": " + returned();
         else
             ret += std::string(": Unparseable Python error: ");
     }
     // Parse lines from the traceback using the Python traceback module
-    if (traceback_ptr != NULL){
+    if (traceback_ptr != NULL) {
         py::handle<> h_tb(traceback_ptr);
         // Load the traceback module and the format_tb function
         py::object tb(py::import("traceback"));
@@ -256,5 +264,5 @@ std::string parse_python_exception() {
     }
     return ret;
 }
-
-}} // namespace simulator::robo_simulator
+}
+}  // namespace simulator::robo_simulator

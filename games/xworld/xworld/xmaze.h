@@ -13,13 +13,14 @@
 // limitations under the License.
 
 #pragma once
-#include <vector>
 #include <list>
-#include <utility>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include "xitem.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 class XMaze {
   public:
@@ -44,7 +45,9 @@ class XMaze {
                        const std::unordered_set<Loc>& defined_block_locs,
                        const std::unordered_set<Loc>& defined_reachable_locs);
 
-    void modify_reachable(int x, int y, const std::unordered_set<Loc>& defined_blocks);
+    void modify_reachable(int x,
+                          int y,
+                          const std::unordered_set<Loc>& defined_blocks);
 
     void print();
 
@@ -66,7 +69,9 @@ class XMaze {
 
     int dfs(int id, int y, int x, std::vector<std::vector<int>>& visited) const;
 
-    void bfs(int y, int x, std::vector<Loc>& trace,
+    void bfs(int y,
+             int x,
+             std::vector<Loc>& trace,
              const std::unordered_set<Loc>& defined_blocks) const;
 
     const int height_;
@@ -74,5 +79,5 @@ class XMaze {
     std::vector<std::vector<bool>> maze_;
     std::vector<std::vector<bool>> largest_comp_;
 };
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

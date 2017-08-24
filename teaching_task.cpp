@@ -17,9 +17,10 @@
 
 namespace simulator {
 
-std::unordered_map<std::string,
-                   std::function<TaskPtr(TeachingEnvPtr, const std::vector<std::string>&)>> \
-        TaskGroup::create_tasks_;
+std::unordered_map<
+    std::string,
+    std::function<TaskPtr(TeachingEnvPtr, const std::vector<std::string>&)>>
+    TaskGroup::create_tasks_;
 
 bool Task::teacher_speak(bool held_out,
                          const std::string& task_name,
@@ -27,10 +28,10 @@ bool Task::teacher_speak(bool held_out,
                          TeachingEnvPtr game) {
     // Generate
     CHECK(sen_temp);
-    std::string sentence = sen_temp->instantiate(
-        held_out,
-        game->num_games_since_simulation(),
-        game->curriculum_learning());
+    std::string sentence =
+        sen_temp->instantiate(held_out,
+                              game->num_games_since_simulation(),
+                              game->curriculum_learning());
     bool success_speak = (sentence != "");
     // The teacher might have held_out sentence patterns
     if (!held_out) {
@@ -45,17 +46,18 @@ bool Task::teacher_speak(bool held_out,
 }
 
 void Task::run_stage() {
-    CHECK_GT(stages_.count(current_stage_), 0)
-            << "Unrecognized stage name: " << current_stage_;
+    CHECK_GT(stages_.count(current_stage_), 0) << "Unrecognized stage name: "
+                                               << current_stage_;
     current_stage_ = stages_[current_stage_]();
 }
 
 void TaskGroup::add_task(const std::string& task, double weight) {
     CHECK_GT(weight, 0) << "A task must have a positive weight";
-    CHECK_EQ(task.find(name_), 0) << "Task group name must be a prefix of the task name:"
-                                  << name_ << " " << task;
-    CHECK_GT(create_tasks_.count(task), 0)
-            << "Unrecognized task name: " << task;
+    CHECK_EQ(task.find(name_), 0)
+        << "Task group name must be a prefix of the task name:" << name_ << " "
+        << task;
+    CHECK_GT(create_tasks_.count(task), 0) << "Unrecognized task name: "
+                                           << task;
     auto task_ptr = create_tasks_[task](game_, held_out_);
     task_ptr->init();
     task_list_.push_back(task_ptr);
@@ -111,11 +113,11 @@ std::string TaskGroup::current_stage() {
 }
 
 void TaskGroup::run_stage() {
-    auto sample_task = [&] () {
+    auto sample_task = [&]() {
         int idx = -1;
         if (schedule_ == "weighted") {
             idx = util::simple_importance_sampling(task_weights_);
-        } else { // random
+        } else {  // random
             idx = util::get_rand_ind(task_list_.size());
         }
         return idx;
@@ -138,4 +140,4 @@ size_t TaskGroup::total_possible_sentences() {
     return total;
 }
 
-} // namespace simulator
+}  // namespace simulator

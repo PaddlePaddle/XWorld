@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <data_packet.h>
+#include <gflags/gflags.h>
 #include <simulator.h>
 #include <teacher.h>
-#include <data_packet.h>
 #include <boost/python.hpp>
 #include <boost/python/exception_translator.hpp>
 #include <exception>
+#include <iostream>
+#include "games/arcade/arcade_simulator.h"
 #include "games/simple_game/simple_game_simulator.h"
 #include "games/xworld/xworld_simulator.h"
-#include "games/arcade/arcade_simulator.h"
-#include <iostream>
-#include <gflags/gflags.h>
 
 #ifdef PY_MALMO
 #include "games/minecraft/minecraft_simulator.h"
@@ -40,13 +40,13 @@ using namespace simulator::xwd;
 using namespace simulator::arcade_game;
 namespace py = boost::python;
 
-DECLARE_bool(color);    // default false
-DECLARE_int32(context); // default 1
-DECLARE_bool(pause_screen); // default false
+DECLARE_bool(color);         // default false
+DECLARE_int32(context);      // default 1
+DECLARE_bool(pause_screen);  // default false
 
 //// xworld
-DECLARE_bool(task_groups_exclusive); // default true
-DECLARE_string(task_mode); // default "one_channel"
+DECLARE_bool(task_groups_exclusive);  // default true
+DECLARE_string(task_mode);            // default "one_channel"
 
 #ifdef PY_MALMO
 DECLARE_string(minecraft_client_ip);
@@ -61,9 +61,7 @@ DECLARE_string(level_script);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
-    std::string error() const throw() {
-        return msg_;
-    }
+    std::string error() const throw() { return msg_; }
     std::string msg_;
 };
 
@@ -72,16 +70,20 @@ void error_translate(PyException const& e) {
 }
 
 /** Extract a value by key from a boost::python dict
- *  If required is true, then this key must be contained in the dict provided by user
+ *  If required is true, then this key must be contained in the dict provided by
+ *user
  *  Otherwise when the key is missing, it returns default_val
  **/
 template <typename T>
-T extract_py_dict_val(
-    const py::dict& args, const std::string& key, bool required, T default_val) {
+T extract_py_dict_val(const py::dict& args,
+                      const std::string& key,
+                      bool required,
+                      T default_val) {
     T ret = default_val;
     if (required) {
         if (!args.has_key(key)) {
-            throw PyException("Key '" + key + "' is required but not provided.");
+            throw PyException("Key '" + key +
+                              "' is required but not provided.");
         }
     }
     if (args.has_key(key)) {
@@ -103,9 +105,8 @@ class SimulatorInterface {
     // The complete list of args:
     // SimpleGame      -- "array_size" -> int
     // XWorldSimulator -- ""
-    static SimulatorInterface* create_simulator(
-        const std::string& name,
-        const py::dict& args);
+    static SimulatorInterface* create_simulator(const std::string& name,
+                                                const py::dict& args);
 
     // print help info, showing all the games
     static void help();
@@ -144,24 +145,28 @@ class SimulatorInterface {
 };
 
 SimulatorInterface::SimulatorInterface(SimulatorPtr game, TeacherPtr teacher)
-        : game_(game), teacher_(teacher) {
-}
+    : game_(game), teacher_(teacher) {}
 
-SimulatorInterface* SimulatorInterface::create_simulator(const std::string& name,
-                                                         const py::dict& args) {
+SimulatorInterface* SimulatorInterface::create_simulator(
+    const std::string& name, const py::dict& args) {
     TeacherPtr teacher = nullptr;
     SimulatorPtr game = nullptr;
-    FLAGS_pause_screen = extract_py_dict_val(args, "pause_screen", false, false);
+    FLAGS_pause_screen =
+        extract_py_dict_val(args, "pause_screen", false, false);
     if (name == "simple_game") {
         auto size = extract_py_dict_val(args, "array_size", true, 0);
         game = std::make_shared<SimpleGame>(size);
     } else if (name == "xworld") {
         FLAGS_color = true;
-        std::string conf_path = extract_py_dict_val(args, "conf_path", true, "");
-        auto curriculum_learning = extract_py_dict_val(args, "curriculum", false, 0);
-        std::string task_mode = extract_py_dict_val(args, "task_mode", false, "one_channel");
+        std::string conf_path =
+            extract_py_dict_val(args, "conf_path", true, "");
+        auto curriculum_learning =
+            extract_py_dict_val(args, "curriculum", false, 0);
+        std::string task_mode =
+            extract_py_dict_val(args, "task_mode", false, "one_channel");
         FLAGS_task_mode = task_mode;
-        FLAGS_task_groups_exclusive = extract_py_dict_val(args, "tg_exclusive", false, true);
+        FLAGS_task_groups_exclusive =
+            extract_py_dict_val(args, "tg_exclusive", false, true);
         FLAGS_context = extract_py_dict_val(args, "context", false, 1);
 
         if (task_mode == "arxiv_lang_acquisition") {
@@ -169,40 +174,45 @@ SimulatorInterface* SimulatorInterface::create_simulator(const std::string& name
         }
 
         auto xwd = std::make_shared<XWorldSimulator>(
-            true/*print*/, conf_path, curriculum_learning, task_mode);
+            true /*print*/, conf_path, curriculum_learning, task_mode);
 
         int agent_id = xwd->add_agent("robot0");
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-        teacher = std::make_shared<Teacher>(conf_path, xwd, false/*print*/);
+        teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
     } else if (name == "atari") {
         std::string ale_rom = extract_py_dict_val(args, "ale_rom", true, "");
         FLAGS_context = extract_py_dict_val(args, "context", false, 4);
         game.reset(ArcadeGame::create(ale_rom));
     }
-    #ifdef PY_MALMO
+#ifdef PY_MALMO
     else if (name == "minecraft") {
         FLAGS_color = true;
         FLAGS_context = extract_py_dict_val(args, "context", false, 1);
         std::string mission = extract_py_dict_val(args, "mission", true, "");
-        std::string conf_file = extract_py_dict_val(args, "conf_path", true, "");
-        FLAGS_minecraft_client_ip = extract_py_dict_val(args, "client_ip", false, "127.0.0.1");
-        FLAGS_minecraft_client_port = extract_py_dict_val(args, "client_port", false, 10000);
+        std::string conf_file =
+            extract_py_dict_val(args, "conf_path", true, "");
+        FLAGS_minecraft_client_ip =
+            extract_py_dict_val(args, "client_ip", false, "127.0.0.1");
+        FLAGS_minecraft_client_port =
+            extract_py_dict_val(args, "client_port", false, 10000);
         FLAGS_ms_per_tick = extract_py_dict_val(args, "ms_per_tick", false, 10);
         auto mcw = std::shared_ptr<MinecraftSimulator>(
             MinecraftSimulator::create(mission, conf_file));
         int agent_id = mcw->add_agent("robot0");
         game = std::make_shared<AgentSpecificSimulator>(mcw, agent_id);
     }
-    #endif
-    #ifdef PY_DEEPMIND_LAB
+#endif
+#ifdef PY_DEEPMIND_LAB
     else if (name == "deepmind_lab") {
         FLAGS_color = true;
         FLAGS_context = extract_py_dict_val(args, "context", false, 1);
-        FLAGS_runfiles_path = extract_py_dict_val(args, "runfiles_path", true, "");
-        FLAGS_level_script = extract_py_dict_val(args, "level_script", true, "");
+        FLAGS_runfiles_path =
+            extract_py_dict_val(args, "runfiles_path", true, "");
+        FLAGS_level_script =
+            extract_py_dict_val(args, "level_script", true, "");
         game.reset(DeepmindLabSimulatorBase::create());
     }
-    #endif
+#endif
     else {
         throw PyException("Unrecognized game type: " + name);
     }
@@ -212,13 +222,24 @@ SimulatorInterface* SimulatorInterface::create_simulator(const std::string& name
 }
 
 void SimulatorInterface::help() {
-    std::cout <<
-            "             actions                    state                       create args\n"
-            "simple_game: {action:int}               {screen:list}               {array_size:int:0}\n"
-            "xworld     : {action:int, pred_sentence:str} {screen:list, sentence:str, event:str, task:str} {conf_path:str:'', curriculum:int:0, task_mode:str:'one_channel', tg_exclusive:bool:True}\n"
-            "atari      : {action:int}               {screen:list}               {context:int:4, ale_rom:str:''}"
-            "minecraft  : {action:int}               {screen:list}               {mission:str:'', conf_path:str:'', client_ip:str:'127.0.0.1', client_port:int:10000, ms_per_tick:int:10, context:int:1}"
-            "deepmind_lab: {action:int}              {screen:list}               {context:int:1, runfiles_path:str:'', level_script:str:''}";
+    std::cout
+        << "             actions                    state                  "
+           "     create args\n"
+           "simple_game: {action:int}               {screen:list}          "
+           "     {array_size:int:0}\n"
+           "xworld     : {action:int, pred_sentence:str} {screen:list, "
+           "sentence:str, event:str, task:str} {conf_path:str:'', "
+           "curriculum:int:0, task_mode:str:'one_channel', "
+           "tg_exclusive:bool:True}\n"
+           "atari      : {action:int}               {screen:list}          "
+           "     {context:int:4, ale_rom:str:''}"
+           "minecraft  : {action:int}               {screen:list}          "
+           "     {mission:str:'', conf_path:str:'', "
+           "client_ip:str:'127.0.0.1', client_port:int:10000, "
+           "ms_per_tick:int:10, context:int:1}"
+           "deepmind_lab: {action:int}              {screen:list}          "
+           "     {context:int:1, runfiles_path:str:'', "
+           "level_script:str:''}";
 }
 
 void SimulatorInterface::reset_game() {
@@ -252,22 +273,15 @@ std::string SimulatorInterface::game_over() {
     return code_str.substr(0, code_str.length() - 1);
 }
 
-int SimulatorInterface::get_num_actions() {
-    return game_->get_num_actions();
-}
+int SimulatorInterface::get_num_actions() { return game_->get_num_actions(); }
 
-int SimulatorInterface::get_lives() {
-    return game_->get_lives();
-}
+int SimulatorInterface::get_lives() { return game_->get_lives(); }
 
-void SimulatorInterface::show_screen() {
-    game_->show_screen(reward_);
-}
+void SimulatorInterface::show_screen() { game_->show_screen(reward_); }
 
 // Convert a Python dict of actions to StatePacket so that
 // game_ can take an action
-void convert_py_act_to_state_packet(const py::dict& actions,
-                                    StatePacket& act) {
+void convert_py_act_to_state_packet(const py::dict& actions, StatePacket& act) {
     // A default action id is filled in
     // When there is "sentence" key in actions, this will be ignored
     std::vector<int> action(1, 0);
@@ -275,7 +289,7 @@ void convert_py_act_to_state_packet(const py::dict& actions,
     // convert py::dict to StatePacket
     py::list keys = actions.keys();
     CHECK_GT(py::len(keys), 0) << "You can't take an empty action";
-    for (int i = 0; i < py::len(keys); i ++) {
+    for (int i = 0; i < py::len(keys); i++) {
         std::string k = py::extract<std::string>(keys[i]);
         if (k == "action") {
             action[0] = py::extract<int>(actions[keys[i]]);
@@ -284,7 +298,7 @@ void convert_py_act_to_state_packet(const py::dict& actions,
             act.add_buffer_str("pred_sentence",
                                py::extract<std::string>(actions[keys[i]]));
         } else {
-            throw PyException("Unrecognized key '"  + k + "' for the actions");
+            throw PyException("Unrecognized key '" + k + "' for the actions");
         }
     }
 }
@@ -295,10 +309,11 @@ float SimulatorInterface::take_actions(const py::dict& actions, int act_rep) {
     float r = 0;
     r += game_->take_actions(act, act_rep);
     if (teacher_) {
-        teacher_->teach(); // teacher reacts to agent's action and evaluate the reward
+        teacher_->teach();  // teacher reacts to agent's action and evaluate the
+                            // reward
         r += teacher_->give_reward();
     }
-    reward_ += r; // accumulate for record
+    reward_ += r;  // accumulate for record
     return r;
 }
 
@@ -319,7 +334,7 @@ py::dict SimulatorInterface::get_state() {
         if (k == "sentence") {
             auto sent = *(state.get_buffer(k)->get_str());
             d[k] = sent;
-        } else { // all the rest are vectors of floats
+        } else {  // all the rest are vectors of floats
             auto buffer = state.get_buffer(k);
             std::vector<float> vec(buffer->get_value_size());
             state.get_buffer(k)->copy_value(vec.begin(), vec.end());
@@ -339,9 +354,7 @@ py::dict SimulatorInterface::get_state() {
     return d;
 }
 
-int SimulatorInterface::get_num_steps() {
-    return game_->get_num_steps();
-}
+int SimulatorInterface::get_num_steps() { return game_->get_num_steps(); }
 
 py::list SimulatorInterface::get_screen_out_dimensions() {
     size_t height;
@@ -372,36 +385,39 @@ void SimulatorInterface::teacher_report_task_performance() {
 }
 
 void help() {
-    std::cout <<
-            "Games are created by calling Simulator.create()\n"
-            "Example:\n"
-            "  from py_simulator import Simulator\n"
-            "  simple_game = Simulator.create(\"simple_game\", {\"array_size\":6})\n"
-            "  simple_game.show_screen()\n"
-            "For more help on how to create games, call Simulator.help()\n";
+    std::cout
+        << "Games are created by calling Simulator.create()\n"
+           "Example:\n"
+           "  from py_simulator import Simulator\n"
+           "  simple_game = Simulator.create(\"simple_game\", "
+           "{\"array_size\":6})\n"
+           "  simple_game.show_screen()\n"
+           "For more help on how to create games, call Simulator.help()\n";
 }
 
 BOOST_PYTHON_MODULE(py_simulator) {
     py::register_exception_translator<PyException>(&error_translate);
     py::def("help", help);
     py::class_<SimulatorInterface, boost::noncopyable>("Simulator", py::no_init)
-            .def("create", &SimulatorInterface::create_simulator,
-                 py::return_value_policy<py::manage_new_object>())
-            .staticmethod("create")
-            .def("help", &SimulatorInterface::help)
-            .staticmethod("help")
-            .def("reset_game", &SimulatorInterface::reset_game)
-            .def("game_over", &SimulatorInterface::game_over)
-            .def("get_num_actions", &SimulatorInterface::get_num_actions)
-            .def("get_lives", &SimulatorInterface::get_lives)
-            .def("show_screen", &SimulatorInterface::show_screen)
-            // intentionally bind take_actions to two functions so that it has optional args
-            .def("take_actions", &SimulatorInterface::take_actions)
-            .def("take_actions", &SimulatorInterface::take_action)
-            .def("get_state", &SimulatorInterface::get_state)
-            .def("get_num_steps", &SimulatorInterface::get_num_steps)
-            .def("print_total_possible_sentences",
-                 &SimulatorInterface::print_teacher_total_possible_sentences)
-            .def("teacher_report_task_performance",
-                 &SimulatorInterface::teacher_report_task_performance);
+        .def("create",
+             &SimulatorInterface::create_simulator,
+             py::return_value_policy<py::manage_new_object>())
+        .staticmethod("create")
+        .def("help", &SimulatorInterface::help)
+        .staticmethod("help")
+        .def("reset_game", &SimulatorInterface::reset_game)
+        .def("game_over", &SimulatorInterface::game_over)
+        .def("get_num_actions", &SimulatorInterface::get_num_actions)
+        .def("get_lives", &SimulatorInterface::get_lives)
+        .def("show_screen", &SimulatorInterface::show_screen)
+        // intentionally bind take_actions to two functions so that it has
+        // optional args
+        .def("take_actions", &SimulatorInterface::take_actions)
+        .def("take_actions", &SimulatorInterface::take_action)
+        .def("get_state", &SimulatorInterface::get_state)
+        .def("get_num_steps", &SimulatorInterface::get_num_steps)
+        .def("print_total_possible_sentences",
+             &SimulatorInterface::print_teacher_total_possible_sentences)
+        .def("teacher_report_task_performance",
+             &SimulatorInterface::teacher_report_task_performance);
 }

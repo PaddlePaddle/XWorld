@@ -16,7 +16,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/exception/all.hpp>
 
-DEFINE_bool(task_groups_exclusive, true, "whether task groups can happen simultaneously");
+DEFINE_bool(task_groups_exclusive,
+            true,
+            "whether task groups can happen simultaneously");
 
 namespace simulator {
 
@@ -25,12 +27,12 @@ using std::vector;
 Teacher::Teacher(const std::string& teacher_conf,
                  TeachingEnvPtr game,
                  bool print_teacher_config)
-        : teaching_(true),
-          task_groups_exclusive_(FLAGS_task_groups_exclusive),
-          teacher_conf_(teacher_conf),
-          conf_root_(nullptr),
-          num_games_so_far_(0),
-          game_(game) {
+    : teaching_(true),
+      task_groups_exclusive_(FLAGS_task_groups_exclusive),
+      teacher_conf_(teacher_conf),
+      conf_root_(nullptr),
+      num_games_so_far_(0),
+      game_(game) {
     reset_config(print_teacher_config);
 }
 
@@ -53,7 +55,8 @@ void Teacher::add_task_group(const pt::ptree::value_type& node) {
         weight = node.second.get<double>("weight");
     }
 
-    auto group = std::make_shared<TaskGroup>(node.first, schedule, game_, held_out);
+    auto group =
+        std::make_shared<TaskGroup>(node.first, schedule, game_, held_out);
     task_groups_.push_back(group);
     task_group_weights_.push_back(weight);
 
@@ -75,7 +78,7 @@ bool Teacher::is_idle() {
 }
 
 void Teacher::reset_config(const std::string& teacher_conf, bool print) {
-    num_games_so_far_ ++;
+    num_games_so_far_++;
     teacher_conf_ = teacher_conf;
     task_groups_.clear();
     task_group_weights_.clear();
@@ -116,12 +119,12 @@ void Teacher::nondeterministic_sort_task_groups() {
     // 3. this goes on until the groups are sorted
     // So for a specific group k, it has the prob of w_k/W to be the first group
     // the prob of (1-w_k/W)*(w_k/(W-w_i)) to be the second group ...
-    for (size_t i = 0; i < task_groups_.size(); i ++) {
-        std::vector<double> remain_weights(
-            task_group_weights_.begin() + i, task_group_weights_.end());
+    for (size_t i = 0; i < task_groups_.size(); i++) {
+        std::vector<double> remain_weights(task_group_weights_.begin() + i,
+                                           task_group_weights_.end());
         // compute accumulated weights
-        for (size_t j = 1; j < remain_weights.size(); j ++) {
-            remain_weights[j] += remain_weights[j-1];
+        for (size_t j = 1; j < remain_weights.size(); j++) {
+            remain_weights[j] += remain_weights[j - 1];
         }
         int idx = util::simple_importance_sampling(remain_weights);
         std::swap(task_groups_[i], task_groups_[idx + i]);
@@ -151,7 +154,7 @@ void Teacher::report_task_performance() {
         LOG(INFO) << "=== " << task.first << " ===";
         size_t success = task.second.first;
         size_t failure = task.second.second;
-        if (success + failure == 0) { // skip task that did not occur
+        if (success + failure == 0) {  // skip task that did not occur
             continue;
         }
         LOG(INFO) << "=== " << success << "(S)/" << failure << "(F) -> "
@@ -213,4 +216,4 @@ void Teacher::reset_after_game_reset() {
     game_->clear_agent_env_buffer();
 }
 
-} // namespace simulator
+}  // namespace simulator

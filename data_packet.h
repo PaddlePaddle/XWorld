@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #pragma once
+#include <glog/logging.h>
 #include <memory>
+#include <typeindex>
 #include <unordered_map>
 #include <vector>
-#include <glog/logging.h>
-#include <typeindex>
 
 namespace simulator {
 
@@ -52,12 +52,10 @@ struct Value {
             c_val_[i] = v;
         }
     }
-    bool is_uint8() {
-        return c_val_;
-    }
-    double *d_val_;
-    float *f_val_;
-    uint8_t *c_val_;
+    bool is_uint8() { return c_val_; }
+    double* d_val_;
+    float* f_val_;
+    uint8_t* c_val_;
 };
 
 typedef std::shared_ptr<Value> ValuePtr;
@@ -68,33 +66,34 @@ class DataBuffer {
     DataBuffer() : v_(std::make_shared<Value>()) {}
     virtual ~DataBuffer() {}
 
-    virtual void copy_from(std::shared_ptr<DataBuffer> buffer) = 0;  // deep copy
-    virtual size_t get_value_height() = 0;    // height of value
-    virtual size_t get_value_width() = 0;     // width of value
-    virtual size_t get_id_size() = 0;         // size of id
-    virtual int* get_id() = 0;                // pointer to id
-    virtual std::string* get_str() = 0;       // pointer to string
+    virtual void copy_from(
+        std::shared_ptr<DataBuffer> buffer) = 0;  // deep copy
+    virtual size_t get_value_height() = 0;        // height of value
+    virtual size_t get_value_width() = 0;         // width of value
+    virtual size_t get_id_size() = 0;             // size of id
+    virtual int* get_id() = 0;                    // pointer to id
+    virtual std::string* get_str() = 0;           // pointer to string
 
-    ValuePtr get_value();                // pointer to value buffer
+    ValuePtr get_value();  // pointer to value buffer
 
-    size_t get_value_size() {
-        return get_value_height() * get_value_width();
-    }
+    size_t get_value_size() { return get_value_height() * get_value_width(); }
 
     // Get the value for a buffer
     // Because the buffer might have float, double, or uint8_t value,
-    // the return type needs to be correctly specified when calling this function
-    template <typename T> T* get_value() {
-        sync_value_ptr(); // set v_
+    // the return type needs to be correctly specified when calling this
+    // function
+    template <typename T>
+    T* get_value() {
+        sync_value_ptr();  // set v_
         if (std::is_same<T, double>::value) {
             CHECK(v_->d_val_) << "wrong return type double";
-            return (T *)v_->d_val_;
+            return (T*)v_->d_val_;
         } else if (std::is_same<T, float>::value) {
             CHECK(v_->f_val_) << "wrong return type float";
-            return (T *)v_->f_val_;
+            return (T*)v_->f_val_;
         } else if (std::is_same<T, uint8_t>::value) {
             CHECK(v_->c_val_) << "wrong return type uint8_t";
-            return (T *)v_->c_val_;
+            return (T*)v_->c_val_;
         }
         LOG(FATAL) << "incorrect return type";
         return nullptr;
@@ -126,8 +125,10 @@ class DataBuffer {
     template <typename RandomIt>
     void set_value(RandomIt first, RandomIt last, int height = 1) {
         CHECK_EQ((last - first) % height, 0);
-        init_value((last - first) / height, height,
-                   std::type_index(typeid(*first)) == std::type_index(typeid(uint8_t)));
+        init_value((last - first) / height,
+                   height,
+                   std::type_index(typeid(*first)) ==
+                       std::type_index(typeid(uint8_t)));
         auto data = get_value();
         int i = 0;
         while (first != last) {
@@ -155,7 +156,7 @@ class DataBuffer {
     // if pixels=true, the value buffer will be init as uint8_t type
     // otherwise it will be float type
     virtual void init_value(size_t w, size_t h, bool pixels) = 0;
-    virtual void init_id(size_t sz) = 0;    // init id to 0
+    virtual void init_id(size_t sz) = 0;  // init id to 0
     virtual void init_str() = 0;
     ValuePtr v_;
 };
@@ -181,9 +182,7 @@ class DataPacket {
     }
 
     // shallow copy for the same class
-    DataPacket(const DataPacket& src) {
-        data_ = src.data_;
-    }
+    DataPacket(const DataPacket& src) { data_ = src.data_; }
 
     /**
      * initialize by a list of data keys
@@ -200,7 +199,7 @@ class DataPacket {
     DataPacket(const std::vector<std::string>& keys,
                const std::vector<BufferPtr>& buffers) {
         CHECK_EQ(keys.size(), buffers.size());
-        for (size_t i = 0; i < keys.size(); i ++) {
+        for (size_t i = 0; i < keys.size(); i++) {
             auto buffer = std::make_shared<T>();
             buffer->copy_from(buffers[i]);
             add_buffer(keys[i], buffer);
@@ -237,7 +236,9 @@ class DataPacket {
     }
 
     template <typename Y>
-    void add_buffer_value(std::string k, const std::vector<Y>& buf, int height = 1) {
+    void add_buffer_value(std::string k,
+                          const std::vector<Y>& buf,
+                          int height = 1) {
         auto buffer = std::make_shared<T>();
         buffer->set_value(buf.begin(), buf.end(), height);
         add_buffer(k, buffer);
@@ -292,7 +293,7 @@ class DataPacket {
      * Copy from another data (deep)
      */
     template <class Y>
-    void copy_from(const DataPacket<Y> &src) {
+    void copy_from(const DataPacket<Y>& src) {
         data_.clear();
         for (const auto& k : src.get_keys()) {
             add_buffer(k, src.get_buffer(k));
@@ -313,8 +314,9 @@ class DataPacket {
  **/
 class StateBuffer : public DataBuffer {
   public:
-    StateBuffer() : reals_(nullptr), pixels_(nullptr), id_(nullptr), str_(nullptr) {}
-    void copy_from(std::shared_ptr<DataBuffer> buffer) override; // deep copy
+    StateBuffer()
+        : reals_(nullptr), pixels_(nullptr), id_(nullptr), str_(nullptr) {}
+    void copy_from(std::shared_ptr<DataBuffer> buffer) override;  // deep copy
     void init_value(size_t w, size_t h, bool pixels) override;
     void init_id(size_t sz) override;
     void init_str() override;
@@ -335,4 +337,4 @@ class StateBuffer : public DataBuffer {
 
 typedef DataPacket<StateBuffer> StatePacket;
 
-} // namespace simulator
+}  // namespace simulator

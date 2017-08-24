@@ -14,16 +14,17 @@
 
 #pragma once
 #include <functional>
-#include <string>
-#include <vector>
 #include <iostream>
 #include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <string>
+#include <vector>
 #include "xitem.h"
 #include "xmap.h"
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 /**
 *  class implements an agent interface
@@ -31,11 +32,12 @@ namespace simulator { namespace xwd {
 */
 
 class XAgent : public XItem {
-
-public:
-
+  public:
     // constructor
-    XAgent(std::string name, Loc loc, const XMap* map, std::string img_name = "");
+    XAgent(std::string name,
+           Loc loc,
+           const XMap* map,
+           std::string img_name = "");
 
     // destructor
     virtual ~XAgent() {}
@@ -50,13 +52,13 @@ public:
     void update_location(int x, int y);
 
     // speak something (sentence)
-    virtual std::string speak(const std::string& command); //communication channel
+    virtual std::string speak(
+        const std::string& command);  // communication channel
 
     // listen
     virtual std::string listen(const std::string& command);
 
-private:
-
+  private:
     // register agent's actions
     void register_actions();
 
@@ -74,7 +76,7 @@ private:
     const XMap* map_;
 
     // action callback list
-    std::vector< std::function<bool()> > action_callbacks_;
+    std::vector<std::function<bool()>> action_callbacks_;
 };
-
-}} // namespace simulator::xwd
+}
+}  // namespace simulator::xwd

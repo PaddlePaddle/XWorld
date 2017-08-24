@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "dirent.h"
 #include "xitem.h"
-#include <fstream>
-#include <sstream>
 #include <gflags/gflags.h>
 #include <boost/algorithm/string.hpp>
+#include <fstream>
+#include <sstream>
+#include "dirent.h"
 
-DEFINE_bool(perturb_goal, false, "whether the goal image is perturbed with randomness");
+DEFINE_bool(perturb_goal,
+            false,
+            "whether the goal image is perturbed with randomness");
 
-namespace simulator { namespace xwd {
+namespace simulator {
+namespace xwd {
 
 std::string get_item_repo_path() {
     std::string path = __FILE__;
@@ -34,7 +37,8 @@ const std::string ItemRepository::img_path_ = get_item_repo_path();
 
 ItemRepository XItem::item_rep_;
 
-std::shared_ptr<ItemNameTree>& ItemNameTree::insert_node(std::string node_name) {
+std::shared_ptr<ItemNameTree>& ItemNameTree::insert_node(
+    std::string node_name) {
     CHECK_EQ(nodes_.count(node_name), 0);
     nodes_[node_name] = std::make_shared<ItemNameTree>();
     return nodes_[node_name];
@@ -52,7 +56,8 @@ void ItemNameTree::insert_item(std::string item_name) {
 }
 
 // node: "a/b/c/"
-void ItemNameTree::retrieve_item_classes(std::string node, std::vector<std::string>& classes) {
+void ItemNameTree::retrieve_item_classes(std::string node,
+                                         std::vector<std::string>& classes) {
     if (node == "") {
         classes.clear();
         // the images in current directory
@@ -74,7 +79,8 @@ void ItemNameTree::retrieve_item_classes(std::string node, std::vector<std::stri
     }
 }
 
-std::vector<std::string> ItemNameTree::retrieve_item_paths(const std::string& class_name) {
+std::vector<std::string> ItemNameTree::retrieve_item_paths(
+    const std::string& class_name) {
     size_t idx = 0;
     std::string cur_name = class_name;
     ItemNameTree* ptr = this;
@@ -103,14 +109,14 @@ ItemRepository::ItemRepository() {
 
 void ItemRepository::get_all_item_names(std::shared_ptr<ItemNameTree>& root,
                                         std::string dir) {
-    struct dirent *ent = nullptr;
-    DIR *dir_ptr = opendir(dir.c_str());
+    struct dirent* ent = nullptr;
+    DIR* dir_ptr = opendir(dir.c_str());
     CHECK(dir_ptr);
 
     /* get all the item files and directories within directory */
     while ((ent = readdir(dir_ptr))) {
         std::string name = ent->d_name;
-        if (ent->d_type == DT_DIR) { // sub-directory
+        if (ent->d_type == DT_DIR) {  // sub-directory
             // skip the current and the upper directory
             if (name == "." || name == "..") {
                 continue;
@@ -118,10 +124,10 @@ void ItemRepository::get_all_item_names(std::shared_ptr<ItemNameTree>& root,
             std::string subdir = dir + "/" + name;
             auto& subroot = root->insert_node(name);
             get_all_item_names(subroot, subdir);
-        } else { // file
+        } else {  // file
             // name format: instance_id.jpg
-            if (std::count(name.begin(), name.end(), '_') == 0
-                || name.find(".jpg") == std::string::npos)
+            if (std::count(name.begin(), name.end(), '_') == 0 ||
+                name.find(".jpg") == std::string::npos)
                 continue;
             root->insert_item(dir + "/" + name);
         }
@@ -129,12 +135,14 @@ void ItemRepository::get_all_item_names(std::shared_ptr<ItemNameTree>& root,
     closedir(dir_ptr);
 }
 
-void ItemRepository::preload_all_item_images(std::shared_ptr<ItemNameTree> root) {
+void ItemRepository::preload_all_item_images(
+    std::shared_ptr<ItemNameTree> root) {
     for (const auto& leaf : root->leaves_) {
         for (const auto& path : leaf.second) {
             cv::Mat img = cv::imread(path, 1);
             CHECK(!img.empty()) << "could not open or find the image: " + path;
-            cv::resize(img, img,
+            cv::resize(img,
+                       img,
                        cv::Size(XItem::item_size_, XItem::item_size_),
                        cv::INTER_LINEAR);
             CHECK(item_imgs_.find(path) == item_imgs_.end());
@@ -153,7 +161,7 @@ void ItemRepository::preload_all_item_properties() {
     std::vector<std::string> keys;
     while (std::getline(infile, line)) {
         boost::trim(line);
-        if (line == "") { // skip empty line
+        if (line == "") {  // skip empty line
             continue;
         }
         CHECK_GT(line.length(), 2) << "invalid line";
@@ -171,7 +179,7 @@ void ItemRepository::preload_all_item_properties() {
             }
         } else if (line.substr(0, 2) == "//") {
             continue;
-        } else { // parse property values
+        } else {  // parse property values
             CHECK_GT(keys.size(), 0);
             std::istringstream iss(line);
             std::string name;
@@ -191,10 +199,11 @@ void ItemRepository::preload_all_item_properties() {
     infile.close();
 }
 
-std::string ItemRepository::retrieve_property(std::string name, std::string key) {
+std::string ItemRepository::retrieve_property(std::string name,
+                                              std::string key) {
     CHECK_GT(item_properties_.count(name), 0);
     ItemProperty ip = item_properties_[name];
-    for (size_t i = 0; i < ip.keys.size(); i ++) {
+    for (size_t i = 0; i < ip.keys.size(); i++) {
         if (ip.keys[i] == key) {
             return ip.values[i];
         }
@@ -203,18 +212,25 @@ std::string ItemRepository::retrieve_property(std::string name, std::string key)
     return "";
 }
 
-XItem::XItem(ItemType type, std::string name, Loc loc, std::string img_path, bool active, bool perturb) {
+XItem::XItem(ItemType type,
+             std::string name,
+             Loc loc,
+             std::string img_path,
+             bool active,
+             bool perturb) {
     this->init(type, name, loc, img_path, active, perturb);
 }
 
-XItem::~XItem() {
-}
+XItem::~XItem() {}
 
-int XItem::get_item_size() {
-    return XItem::item_size_;
-}
+int XItem::get_item_size() { return XItem::item_size_; }
 
-void XItem::init(ItemType type, std::string name, Loc loc, std::string img_name, bool active, bool perturb) {
+void XItem::init(ItemType type,
+                 std::string name,
+                 Loc loc,
+                 std::string img_name,
+                 bool active,
+                 bool perturb) {
     this->type_ = type;
     this->name_ = name;
     this->color_ = "";
@@ -235,13 +251,9 @@ void XItem::init(ItemType type, std::string name, Loc loc, std::string img_name,
     this->get_item_color();
 }
 
-ItemType XItem::get_item_type() {
-    return this->type_;
-}
+ItemType XItem::get_item_type() { return this->type_; }
 
-std::string XItem::get_item_name() {
-    return this->name_;
-}
+std::string XItem::get_item_name() { return this->name_; }
 
 std::string XItem::get_item_color() {
     if (this->img_.empty()) {
@@ -259,24 +271,37 @@ bool XItem::item_color_defined(std::string color) {
 }
 
 cv::Mat XItem::get_item_image() {
-    if (this->img_.empty()) { //load the image once
+    if (this->img_.empty()) {  // load the image once
         if (!this->img_name_.empty()) {
-            CHECK(item_rep_.item_imgs_.find(this->img_name_)
-                  != item_rep_.item_imgs_.end()) << this->img_name_;
+            CHECK(item_rep_.item_imgs_.find(this->img_name_) !=
+                  item_rep_.item_imgs_.end())
+                << this->img_name_;
             cv::Mat img = item_rep_.item_imgs_[this->img_name_].clone();
 
             if (this->perturb_) {
                 cv::Point2f src_center(img.cols / 2.0F, img.rows / 2.0F);
                 double angle = this->perturb_transform_.angle;
                 double scale = this->perturb_transform_.scale;
-                cv::Mat rot_mat = cv::getRotationMatrix2D(src_center, angle, scale);
-                cv::warpAffine(img, img, rot_mat, img.size(),
-                               cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(255, 255, 255));
+                cv::Mat rot_mat =
+                    cv::getRotationMatrix2D(src_center, angle, scale);
+                cv::warpAffine(img,
+                               img,
+                               rot_mat,
+                               img.size(),
+                               cv::INTER_LINEAR,
+                               cv::BORDER_CONSTANT,
+                               cv::Scalar(255, 255, 255));
                 double shift_x = this->perturb_transform_.x * img.cols;
                 double shift_y = this->perturb_transform_.y * img.rows;
-                cv::Mat shift_mat = (cv::Mat_<double>(2, 3) << 1, 0, shift_x, 0, 1, shift_y);
-                cv::warpAffine(img, img, shift_mat, img.size(),
-                               cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(255, 255, 255));
+                cv::Mat shift_mat =
+                    (cv::Mat_<double>(2, 3) << 1, 0, shift_x, 0, 1, shift_y);
+                cv::warpAffine(img,
+                               img,
+                               shift_mat,
+                               img.size(),
+                               cv::INTER_LINEAR,
+                               cv::BORDER_CONSTANT,
+                               cv::Scalar(255, 255, 255));
             }
             this->img_ = img;
         }
@@ -284,22 +309,18 @@ cv::Mat XItem::get_item_image() {
     return this->img_;
 }
 
-Loc XItem::get_item_location() {
-    return this->loc_;
-}
+Loc XItem::get_item_location() { return this->loc_; }
 
 void XItem::set_item_location(int x, int y) {
     this->loc_.x = x;
     this->loc_.y = y;
 }
 
-void XItem::set_item_type(ItemType item_type){
-    this->type_ = item_type;
-}
+void XItem::set_item_type(ItemType item_type) { this->type_ = item_type; }
 
 bool XItem::is_reachable() {
     bool is_reachable_flag = this->get_item_type() != BLOCK;
     return is_reachable_flag;
 }
-
-}} //namespace simulator::xwd
+}
+}  // namespace simulator::xwd
