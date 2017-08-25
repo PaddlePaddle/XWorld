@@ -7,8 +7,8 @@ This repository currently contains a collection of simulators for Reinforcement 
 |**SimpleRace**|A simple synthetic car racing game.|Yes|No|Yes|
 |**XWorld2D**|A 2D environment for an agent to learn vision and language abilities.|Yes|No|Yes|
 |**Atari**|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|No|Yes|
-|**Malmo**|Wrappers for Microsoft [Malmo](https://github.com/Microsoft/malmo) Project.|*TBD*|Yes|No, has to be installed manually first.|
-|**DeepMind Lab**|Wrappers for DeepMind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|Yes|
+|**Malmo**|Wrappers for Microsoft [Malmo](https://github.com/Microsoft/malmo) Project.|*TBD*|Yes|No, Malmo has to be installed manually first.|
+|**DeepMind Lab**|Wrappers for DeepMind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|No, external dependencies of DeepMind Lab have to be manually installed first|
 
 *If each thread has a different environment instance, then they don't interfere with each other. But if all threads share the same instance, then there is interference.
 
