@@ -38,9 +38,8 @@ if __name__ == "__main__":
     options = {
         "conf_path": "./demo_conf.xml",
         "mission": "demo",
-        "client_ip": "127.0.0.1",
-        "client_port": client_port,
-        "ms_per_tick": 10,
+        "minecraft_client_ip": "127.0.0.1",
+        "minecraft_client_port": client_port,
         "context": 1,
         "pause_screen": False
     }

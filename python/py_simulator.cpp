@@ -20,8 +20,9 @@
 #include <boost/python/exception_translator.hpp>
 #include <exception>
 #include <iostream>
-#include "games/arcade/arcade_simulator.h"
 #include "games/simple_game/simple_game_simulator.h"
+#include "games/simple_race/simple_race_simulator.h"
+#include "games/arcade/arcade_simulator.h"
 #include "games/xworld/xworld_simulator.h"
 
 #ifdef PY_MALMO
@@ -36,6 +37,7 @@ using namespace simulator::deepmind_lab_game;
 
 using namespace simulator;
 using namespace simulator::simple_game;
+using namespace simulator::simple_race;
 using namespace simulator::xwd;
 using namespace simulator::arcade_game;
 namespace py = boost::python;
@@ -47,6 +49,15 @@ DECLARE_bool(pause_screen);  // default false
 //// xworld
 DECLARE_bool(task_groups_exclusive);  // default true
 DECLARE_string(task_mode);            // default "one_channel"
+
+//// simple race
+DECLARE_string(track_type);
+DECLARE_double(track_width);
+DECLARE_double(track_length);
+DECLARE_double(track_radius);
+DECLARE_bool(race_full_manouver);
+DECLARE_bool(random);
+DECLARE_string(difficulty);
 
 #ifdef PY_MALMO
 DECLARE_string(minecraft_client_ip);
@@ -154,19 +165,33 @@ SimulatorInterface* SimulatorInterface::create_simulator(
     FLAGS_pause_screen =
         extract_py_dict_val(args, "pause_screen", false, false);
     if (name == "simple_game") {
-        auto size = extract_py_dict_val(args, "array_size", true, 0);
-        game = std::make_shared<SimpleGame>(size);
+        auto array_size = extract_py_dict_val(args, "array_size", true, 0);
+        game = std::make_shared<SimpleGame>(array_size);
+    } else if (name == "simple_race") {
+        auto window_width = extract_py_dict_val(args, "window_width", true, 0);
+        auto window_height = extract_py_dict_val(args, "window_height", true, 0);
+        std::string track_type = extract_py_dict_val(args, "track_type", false, "straight");
+        FLAGS_track_type = track_type;
+        FLAGS_track_width = extract_py_dict_val(args, "track_width", true, 20.0f);
+        FLAGS_track_length = extract_py_dict_val(args, "track_length", true, 100.0f);
+        FLAGS_track_radius = extract_py_dict_val(args, "track_radius", true, 30.0f);
+        FLAGS_race_full_manouver = extract_py_dict_val(
+            args, "race_full_manouver", false, false);
+        FLAGS_random = extract_py_dict_val(args, "random", false, false);
+        std::string difficulty = extract_py_dict_val(args, "difficulty", false, "easy");
+        FLAGS_difficulty = difficulty;
+        game = std::make_shared<SimpleRaceGame>(window_width, window_height);
     } else if (name == "xworld") {
         FLAGS_color = true;
         std::string conf_path =
             extract_py_dict_val(args, "conf_path", true, "");
-        auto curriculum_learning =
+        auto curriculum =
             extract_py_dict_val(args, "curriculum", false, 0);
         std::string task_mode =
             extract_py_dict_val(args, "task_mode", false, "one_channel");
         FLAGS_task_mode = task_mode;
         FLAGS_task_groups_exclusive =
-            extract_py_dict_val(args, "tg_exclusive", false, true);
+            extract_py_dict_val(args, "task_groups_exclusive", false, true);
         FLAGS_context = extract_py_dict_val(args, "context", false, 1);
 
         if (task_mode == "arxiv_lang_acquisition") {
@@ -174,7 +199,7 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         }
 
         auto xwd = std::make_shared<XWorldSimulator>(
-            true /*print*/, conf_path, curriculum_learning, task_mode);
+            true /*print*/, conf_path, curriculum, task_mode);
 
         int agent_id = xwd->add_agent("robot0");
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
@@ -189,15 +214,15 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         FLAGS_color = true;
         FLAGS_context = extract_py_dict_val(args, "context", false, 1);
         std::string mission = extract_py_dict_val(args, "mission", true, "");
-        std::string conf_file =
+        std::string conf_path =
             extract_py_dict_val(args, "conf_path", true, "");
         FLAGS_minecraft_client_ip =
-            extract_py_dict_val(args, "client_ip", false, "127.0.0.1");
+            extract_py_dict_val(args, "minecraft_client_ip", false, "127.0.0.1");
         FLAGS_minecraft_client_port =
-            extract_py_dict_val(args, "client_port", false, 10000);
-        FLAGS_ms_per_tick = extract_py_dict_val(args, "ms_per_tick", false, 10);
+            extract_py_dict_val(args, "minecraft_client_port", false, 10000);
+        FLAGS_ms_per_tick = 10;
         auto mcw = std::shared_ptr<MinecraftSimulator>(
-            MinecraftSimulator::create(mission, conf_file));
+            MinecraftSimulator::create(mission, conf_path));
         int agent_id = mcw->add_agent("robot0");
         game = std::make_shared<AgentSpecificSimulator>(mcw, agent_id);
     }
@@ -230,7 +255,7 @@ void SimulatorInterface::help() {
            "xworld     : {action:int, pred_sentence:str} {screen:list, "
            "sentence:str, event:str, task:str} {conf_path:str:'', "
            "curriculum:int:0, task_mode:str:'one_channel', "
-           "tg_exclusive:bool:True}\n"
+           "task_groups_exclusive:bool:True}\n"
            "atari      : {action:int}               {screen:list}          "
            "     {context:int:4, ale_rom:str:''}\n"
            "minecraft  : {action:int}               {screen:list}          "

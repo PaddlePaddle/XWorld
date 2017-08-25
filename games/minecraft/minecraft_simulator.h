@@ -22,7 +22,7 @@ namespace mcw {
 class MinecraftSimulator : public GameSimulatorMulti {
   public:
     static MinecraftSimulator* create(const std::string& mission,
-                                      const std::string& conf_file);
+                                      const std::string& conf_path);
 };
 }
 }  // namespace simulator::mcw

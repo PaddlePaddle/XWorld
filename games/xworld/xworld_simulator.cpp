@@ -20,9 +20,6 @@
 #include "xworld/xagent.h"
 #include "xworld_simulator.h"
 
-DEFINE_string(xwd_conf_path,
-              "./xworld/confs/empty_ground.json",
-              "the map configure file");
 DEFINE_int32(
     visible_radius_unit,
     0,
@@ -34,11 +31,11 @@ namespace simulator {
 namespace xwd {
 
 XWorldSimulator::XWorldSimulator(bool print_xworld_config,
-                                 const std::string& conf,
-                                 int curriculum_learning,
+                                 const std::string& conf_path,
+                                 int curriculum,
                                  const std::string& task_mode)
-    : TeachingEnvironment(curriculum_learning),
-      xworld_(print_xworld_config, conf, curriculum_learning),
+    : TeachingEnvironment(curriculum),
+      xworld_(print_xworld_config, conf_path, curriculum),
       task_mode_(task_mode) {
     init();
 }
