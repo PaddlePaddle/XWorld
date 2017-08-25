@@ -1,4 +1,4 @@
-# XWorld: a simulator package for Reinforcement Learning
+# <img src="doc/xworld_logo.png" alt="XWorld">
 This repository currently contains a collection of simulators for Reinforcement Learning research.
 
 |**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Build-on-the-fly?**|
