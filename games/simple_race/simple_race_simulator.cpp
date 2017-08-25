@@ -14,12 +14,17 @@
 
 #include "simple_race_simulator.h"
 
+DEFINE_string(track_type, "straight", "track type");
+DEFINE_double(track_width, 20.0f, "width of the track");
+DEFINE_double(track_length, 100.0f, "length of the track [straight]");
+DEFINE_double(track_radius, 30.0f, "radius of the track [circle]");
 DEFINE_bool(race_full_manouver,
             false,
             "whether enable full manouver or only turns");
 DEFINE_bool(random, false, "randomly set up race");
 DEFINE_string(difficulty, "easy", "difficulty level [easy | hard]");
 DEFINE_double(reward_scale, 1.0, "actual_reward = reward * reward_scale");
+DECLARE_bool(pause_screen);
 
 namespace simulator {
 namespace simple_race {
@@ -370,9 +375,20 @@ RaceEngine::ActionVect RaceEngine::get_action_set() {
 
 bool RaceEngine::out_of_bound() { return _track->out_of_bound(_car.get_pos()); }
 
-SimpleRaceGame::SimpleRaceGame(float width, float height)
-    : _race(width, height) {
+SimpleRaceGame::SimpleRaceGame(float window_width, float window_height)
+    : _race(window_width, window_height) {
     _legal_actions = _race.get_action_set();
+    float cx = window_width / 2, cy = window_height / 2;
+    std::shared_ptr<Track> track;
+    if (FLAGS_track_type == "circle") {
+        float r_in = FLAGS_track_radius, width = FLAGS_track_width;
+        track.reset(new CircleTrack(cx, cy, r_in, width));
+    } else if (FLAGS_track_type == "straight") {
+        float length = FLAGS_track_length, width = FLAGS_track_width;
+        track.reset(new StraightTrack(cx, cy, length, width));
+    }
+    _race.add_track(track);
+    reset_game();
 }
 
 void SimpleRaceGame::reset_game() {
@@ -421,12 +437,16 @@ int SimpleRaceGame::get_lives() { return 1; }
 
 void SimpleRaceGame::show_screen(float reward) {
     cv::Mat img = _race.draw();
+
+    // imshow is not thread safe, so we use lock here.
+    std::lock_guard<std::mutex> guard(GameSimulator::s_display_mutex_);
     cv::imshow("Simple Race", img);
-    cv::waitKey(1);
+    if (FLAGS_pause_screen) {
+        cv::waitKey(-1);
+    } else {
+        cv::waitKey(20);
+    }
 }
 
-void SimpleRaceGame::add_track(std::shared_ptr<simple_race::Track> track) {
-    _race.add_track(track);
-}
 }
 }  // namespace simulator::simple_race

@@ -36,21 +36,21 @@ using std::string;
 using std::unique_ptr;
 
 MinecraftSimulator* MinecraftSimulator::create(const std::string& mission,
-                                               const std::string& conf_file) {
-    return MinecraftSimulatorBase::create(mission, conf_file);
+                                               const std::string& conf_path) {
+    return MinecraftSimulatorBase::create(mission, conf_path);
 }
 
 MinecraftSimulatorBase* MinecraftSimulatorBase::create(
-    const std::string& mission, const string& conf_file) {
+    const std::string& mission, const string& conf_path) {
     if (mission == "demo") {
-        return new MinecraftSimulatorDemo(conf_file);
+        return new MinecraftSimulatorDemo(conf_path);
     }
     LOG(FATAL) << "Unrecognized mission!";
     return nullptr;
 }
 
-MinecraftSimulatorBase::MinecraftSimulatorBase(const std::string& conf_file) {
-    string xml = util::read_file(conf_file);
+MinecraftSimulatorBase::MinecraftSimulatorBase(const std::string& conf_path) {
+    string xml = util::read_file(conf_path);
 
     try {
         // TODO: handle commandline args for Malmo

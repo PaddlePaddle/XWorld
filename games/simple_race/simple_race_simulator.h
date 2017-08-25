@@ -252,7 +252,7 @@ class RaceEngine {
 // simple race interface.
 class SimpleRaceGame : public GameSimulator {
   public:
-    SimpleRaceGame(float width, float height);
+    SimpleRaceGame(float window_width, float window_height);
 
     virtual void reset_game() override;
 
@@ -263,8 +263,6 @@ class SimpleRaceGame : public GameSimulator {
     virtual void show_screen(float reward) override;
 
     virtual int get_lives() override;
-
-    void add_track(std::shared_ptr<Track> track);
 
     float take_action(const StatePacket &actions) override;
 

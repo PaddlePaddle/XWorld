@@ -35,8 +35,8 @@ namespace xwd {
 class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
   public:
     XWorldSimulator(bool print_xworld_config,
-                    const std::string& world_config,
-                    int curriculum_learning,
+                    const std::string& conf_path,
+                    int curriculum,
                     const std::string& task_mode);
     ~XWorldSimulator() {}
     virtual void reset_game() override;
