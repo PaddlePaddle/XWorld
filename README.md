@@ -8,7 +8,7 @@ This repository currently contains a collection of simulators for Reinforcement 
 |**XWorld2D**|A 2D environment for an agent to learn vision and language abilities.|Yes|No|Yes|
 |**Atari**|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|No|Yes|
 |**Malmo**|Wrappers for Microsoft [Malmo](https://github.com/Microsoft/malmo) Project.|*TBD*|Yes|No, Malmo has to be installed manually first.|
-|**DeepMind Lab**|Wrappers for DeepMind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|No, external dependencies of DeepMind Lab have to be manually installed first|
+|**DeepMind Lab**|Wrappers for DeepMind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|Yes, but external dependencies of DeepMind Lab have to be manually installed first|
 
 *If each thread has a different environment instance, then they don't interfere with each other. But if all threads share the same instance, then there is interference.
 
@@ -87,11 +87,11 @@ Below we explain the flags that the user can set for each game. If you use Pytho
 |**ID**|**Python Keyword**|**C++ Class Name**|**Flags**|
 |---|---|-----|-----------|
 |**a**|```simple_game```|```SimpleGame```|```pause_screen```,```array_size```|
-|**b**|```simple_race```|```SimpleRace```|```pause_screen```,```window_width```,```window_height```,```track_type```,```track_width```,```track_length```,```track_radius```,```race_full_manouver```,```random```,```difficulty```|
-|**c**|```xworld```|```XWorldSimulator```|```pause_screen```,```conf_path```,```curriculum```,```task_mode```,```task_groups_exclusive```,```context```|
+|**b**|```simple_race```|```SimpleRace```|```pause_screen```,```window_width```,```window_height```,<br>```track_type```,```track_width```,```track_length```,<br>```track_radius```,```race_full_manouver```,```random```,<br>```difficulty```|
+|**c**|```xworld```|```XWorldSimulator```|```pause_screen```,```conf_path```,```curriculum```,<br>```task_mode```,```task_groups_exclusive```,```context```|
 |**d**|```atari```|```ArcadeGame```|```pause_screen```,```ale_rom```,```context```|
-|**e**|```minecraft```|```MinecraftSimulator```|```pause_screen```,```context```,```mission```,```conf_path```,```minecraft_client_ip```,```minecraft_client_port```|
-|**f**|```deepmind_lab```|```DeepmindLabSimulatorBase```|```pause_screen```,```context```,```runfiles_path```,```level_script```|
+|**e**|```minecraft```|```MinecraftSimulator```|```pause_screen```,```context```,```mission```,<br>```conf_path```,```minecraft_client_ip```,```minecraft_client_port```|
+|**f**|```deepmind_lab```|```DeepmindLabSimulatorBase```|```pause_screen```,```context```,```runfiles_path```,<br>```level_script```|
 
 The meanings of the above flags are listed below. Each flag applies to certain games indicated by the IDs.
 * ```pause_screen``` (**a-f**)
