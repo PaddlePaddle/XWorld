@@ -176,11 +176,11 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
 * ```minecraft_client_ip``` (**e**)
     
-    IP address of Minecraft mod. (Default: "127.0.0.1")
+    Specify the IP address of Minecraft mod. (Default: "127.0.0.1")
 
 * ```minecraft_client_port``` (**e**)
     
-    pport number of Minecraft mod. (Default: 10000)
+    Specify the port number of Minecraft mod. (Default: 10000)
 
 * ```runfiles_path``` (**f**)
     
