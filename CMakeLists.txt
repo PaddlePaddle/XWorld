@@ -19,6 +19,11 @@ option(WITH_DEEPMIND_LAB "Include Deepmind Lab environment" OFF)
 option(WITH_ROBO_SCHOOL "Include RoboSchool environment" OFF)
 option(WITH_TESTING "Enable test cases" ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC")
 
@@ -26,6 +31,7 @@ include(ExternalProject)
 include(atari)
 include(simulator_util)
 
+find_package(PythonLibs 2.7 EXACT REQUIRED)
 find_package(Boost REQUIRED python)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
@@ -46,6 +52,7 @@ else()
 endif()
 
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${GFLAGS_INCLUDE_DIRS})
 include_directories(${GLOG_INCLUDE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
@@ -63,6 +70,7 @@ set(SIMULATOR_SOURCES
 
 set(EXTERNAL_LIBS
   ${Boost_LIBRARIES}
+  ${PYTHON_LIBRARIES}
   ${GFLAGS_LIBRARIES}
   ${GLOG_LIBRARIES}
   ${OPENCV_LIBS})

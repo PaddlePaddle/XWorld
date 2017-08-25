@@ -27,7 +27,7 @@ The following softwares must be installed before building XWorld.
 
 In Ubuntu 14.04 and 16.04, you can do
 ```
-sudo apt-get install libboost-all-dev libgflags-dev libgoogle-glog-dev libgtest-dev
+sudo apt-get install libboost-all-dev libgflags-dev libgoogle-glog-dev libgtest-dev python-dev
 ```
 
 # Build
