@@ -168,7 +168,7 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
 * ```ale_rom``` (**d**)
     
-    The Atari ROM file path. (Default: "")
+    The Atari ROM file path. You need to download the ROMs (.bin files) yourself. (Default: "")
 
 * ```mission``` (**e**)
     
