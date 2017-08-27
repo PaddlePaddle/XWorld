@@ -24,6 +24,7 @@
 #include "games/xworld/xworld_task.h"
 
 DECLARE_bool(task_groups_exclusive);
+DECLARE_string(task_mode);
 
 using namespace std;
 using namespace simulator;
@@ -54,8 +55,9 @@ std::string get_teacher_sentence(shared_ptr<XWorldSimulator> game) {
 }
 
 void test_xworld_task(const std::string& xworld_json, TestFunc test_function) {
+    FLAGS_task_mode = "one_channel";
     auto game =
-        make_shared<XWorldSimulator>(true, xworld_json, 0, "one_channel");
+        make_shared<XWorldSimulator>(true, xworld_json, 0);
     game->add_agent("robot_0");
 
     TeacherPtr teacher = std::make_shared<Teacher>(xworld_json, game, false);
@@ -191,8 +193,9 @@ TEST(XWorldTask, NavHeldOut) {
 }
 
 TEST(XWorldTask, ContinuousTask) {
+    FLAGS_task_mode = "one_channel";
     auto json = get_json_dir() + "/nav_continuous.json";
-    auto game = make_shared<XWorldSimulator>(true, json, 0, "one_channel");
+    auto game = make_shared<XWorldSimulator>(true, json, 0);
     game->add_agent("robot_0");
 
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
@@ -240,8 +243,9 @@ TEST(XWorldTask, ContinuousTask) {
 
 TEST(XWorldTask, MultiTask) {
     FLAGS_task_groups_exclusive = false;
+    FLAGS_task_mode = "one_channel";
     auto json = get_json_dir() + "/nav_multitask.json";
-    auto game = make_shared<XWorldSimulator>(true, json, 0, "one_channel");
+    auto game = make_shared<XWorldSimulator>(true, json, 0);
     game->add_agent("robot_0");
 
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
@@ -296,8 +300,9 @@ TEST(XWorldTask, MultiTask) {
 }
 
 TEST(XWorldTask, TaskWeight) {
+    FLAGS_task_mode = "one_channel";
     auto json = get_json_dir() + "/task_weight.json";
-    auto game = make_shared<XWorldSimulator>(true, json, 0, "one_channel");
+    auto game = make_shared<XWorldSimulator>(true, json, 0);
     TeachingEnvPtr teach_game = game;
     game->add_agent("robot_0");
 
@@ -331,8 +336,9 @@ TEST(XWorldTask, TaskWeight) {
 }
 
 TEST(XWorldTask, PressureTest) {
+    FLAGS_task_mode = "one_channel";
     auto json = get_json_dir() + "/pressure_test.json";
-    auto game = make_shared<XWorldSimulator>(true, json, 0, "one_channel");
+    auto game = make_shared<XWorldSimulator>(true, json, 0);
     game->add_agent("robot_0");
 
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
@@ -346,9 +352,10 @@ TEST(XWorldTask, PressureTest) {
 }
 
 TEST(XWorldTask, GameOver) {
+    FLAGS_task_mode = "arxiv_lang_acquisition";
     auto json = get_json_dir() + "/nav_near.json";
     auto game =
-        make_shared<XWorldSimulator>(true, json, 0, "arxiv_lang_acquisition");
+        make_shared<XWorldSimulator>(true, json, 0);
     game->add_agent("robot_0");
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
     teacher->teach();

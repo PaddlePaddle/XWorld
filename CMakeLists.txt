@@ -110,6 +110,7 @@ endif()
 
 add_subdirectory(tests)
 add_subdirectory(python)
+add_subdirectory(examples)
 
 ## propagate the dependencies to the upper level (if any)
 target_link_libraries(simulator PUBLIC

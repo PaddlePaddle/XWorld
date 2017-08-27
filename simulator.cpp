@@ -119,6 +119,27 @@ std::string GameSimulator::get_screen_name() {
     return ss.str();
 }
 
+std::string GameSimulator::decode_game_over_code(int code) {
+    if (code == 0) {
+        return "alive";
+    }
+    std::string code_str = "";
+    if (code & MAX_STEP) {
+        code_str += "max_step|";
+    }
+    if (code & DEAD) {
+        code_str += "dead|";
+    }
+    if (code & SUCCESS) {
+        code_str += "success|";
+    }
+    if (code & LOST_LIFE) {
+        code_str += "lost_life|";
+    }
+    CHECK(!code_str.empty());
+    return code_str.substr(0, code_str.length() - 1);
+}
+
 // adaptor class: interface for agent-specific simulator
 AgentSpecificSimulator::AgentSpecificSimulator(SimulatorMultiPtr simulator_ptr,
                                                int agent_id /*= 0*/)

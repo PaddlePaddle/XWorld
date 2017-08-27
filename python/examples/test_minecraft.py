@@ -36,7 +36,7 @@ if __name__ == "__main__":
     client = launch_client()
 
     options = {
-        "conf_path": "./demo_conf.xml",
+        "conf_path": "../../confs/demo_conf.xml",
         "mission": "demo",
         "minecraft_client_ip": "127.0.0.1",
         "minecraft_client_port": client_port,

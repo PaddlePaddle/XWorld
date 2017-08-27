@@ -154,6 +154,8 @@ class GameSimulator {
                                            size_t& width,
                                            size_t& channels) = 0;
 
+    static std::string decode_game_over_code(int code);
+
   protected:
     int64_t max_steps_;
     int64_t num_steps_;  // number of steps since the beginning of the game
