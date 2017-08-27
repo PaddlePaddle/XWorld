@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
         states = xworld.get_state()
         action = compute_action(states, num_actions)
-        r = xworld.take_actions({"action": action, "pred_sentence": "-"})
+        r = xworld.take_actions({"action": action})
         print r
         reward += r
 
