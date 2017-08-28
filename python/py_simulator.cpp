@@ -119,9 +119,6 @@ class SimulatorInterface {
     static SimulatorInterface* create_simulator(const std::string& name,
                                                 const py::dict& args);
 
-    // print help info, showing all the games
-    static void help();
-
     void reset_game();
 
     std::string game_over();
@@ -199,7 +196,7 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         }
 
         auto xwd = std::make_shared<XWorldSimulator>(
-            true /*print*/, conf_path, curriculum, task_mode);
+            true /*print*/, conf_path, curriculum);
 
         int agent_id = xwd->add_agent("robot0");
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
@@ -246,27 +243,6 @@ SimulatorInterface* SimulatorInterface::create_simulator(
     return g;
 }
 
-void SimulatorInterface::help() {
-    std::cout
-        << "             actions                    state                  "
-           "     create args\n"
-           "simple_game: {action:int}               {screen:list}          "
-           "     {array_size:int:0}\n"
-           "xworld     : {action:int, pred_sentence:str} {screen:list, "
-           "sentence:str, event:str, task:str} {conf_path:str:'', "
-           "curriculum:int:0, task_mode:str:'one_channel', "
-           "task_groups_exclusive:bool:True}\n"
-           "atari      : {action:int}               {screen:list}          "
-           "     {context:int:4, ale_rom:str:''}\n"
-           "minecraft  : {action:int}               {screen:list}          "
-           "     {mission:str:'', conf_path:str:'', "
-           "client_ip:str:'127.0.0.1', client_port:int:10000, "
-           "ms_per_tick:int:10, context:int:1}\n"
-           "deepmind_lab: {action:int}              {screen:list}          "
-           "     {context:int:1, runfiles_path:str:'', "
-           "level_script:str:''}\n";
-}
-
 void SimulatorInterface::reset_game() {
     reward_ = 0;
     game_->reset_game();
@@ -277,25 +253,7 @@ void SimulatorInterface::reset_game() {
 }
 
 std::string SimulatorInterface::game_over() {
-    int code = game_->game_over();
-    if (code == 0) {
-        return "alive";
-    }
-    std::string code_str = "";
-    if (code & simulator::MAX_STEP) {
-        code_str += "max_step|";
-    }
-    if (code & simulator::DEAD) {
-        code_str += "dead|";
-    }
-    if (code & simulator::SUCCESS) {
-        code_str += "success|";
-    }
-    if (code & simulator::LOST_LIFE) {
-        code_str += "lost_life|";
-    }
-    CHECK(!code_str.empty());
-    return code_str.substr(0, code_str.length() - 1);
+    return GameSimulator::decode_game_over_code(game_->game_over());
 }
 
 int SimulatorInterface::get_num_actions() { return game_->get_num_actions(); }
@@ -307,8 +265,6 @@ void SimulatorInterface::show_screen() { game_->show_screen(reward_); }
 // Convert a Python dict of actions to StatePacket so that
 // game_ can take an action
 void convert_py_act_to_state_packet(const py::dict& actions, StatePacket& act) {
-    // A default action id is filled in
-    // When there is "sentence" key in actions, this will be ignored
     std::vector<int> action(1, 0);
     act.add_buffer_id("action", action);
     // convert py::dict to StatePacket
@@ -428,8 +384,6 @@ BOOST_PYTHON_MODULE(py_simulator) {
              &SimulatorInterface::create_simulator,
              py::return_value_policy<py::manage_new_object>())
         .staticmethod("create")
-        .def("help", &SimulatorInterface::help)
-        .staticmethod("help")
         .def("reset_game", &SimulatorInterface::reset_game)
         .def("game_over", &SimulatorInterface::game_over)
         .def("get_num_actions", &SimulatorInterface::get_num_actions)

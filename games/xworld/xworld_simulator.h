@@ -36,8 +36,7 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
   public:
     XWorldSimulator(bool print_xworld_config,
                     const std::string& conf_path,
-                    int curriculum,
-                    const std::string& task_mode);
+                    int curriculum);
     ~XWorldSimulator() {}
     virtual void reset_game() override;
 
@@ -123,11 +122,6 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
     xwd::XWorld xworld_;  // the environment for all the agents
     std::vector<xwd::XAgent*> agent_list_;  // list of agents
     std::vector<std::string> agent_received_sentences_;
-
-    std::string task_mode_;  // Three modes:
-                             // 1. arxiv_lang_acquisition
-                             // 2. arxiv_interative
-                             // 3. one_channel
 
     int height_;  // size of the world (in terms of building blocks)
     int width_;

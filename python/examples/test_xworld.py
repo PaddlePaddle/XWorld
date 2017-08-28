@@ -15,7 +15,7 @@ def compute_action(states, num_actions):
 
 if __name__ == "__main__":
     options = {
-        "conf_path": "./empty_ground.json",
+        "conf_path": "../../confs/empty_ground.json",
         "curriculum": 0,
         "task_mode": "arxiv_lang_acquisition",
         "context": 1,

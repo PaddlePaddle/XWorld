@@ -7,7 +7,7 @@ import os
 if __name__ == "__main__":
     options = {
         "runfiles_path": os.environ["DEEPMIND_RUNFILES"],
-        "level_script": "./test_map.lua",
+        "level_script": "../../confs/test_map.lua",
         "context": 1
     }
     dm = Simulator.create("deepmind_lab", options)

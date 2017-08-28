@@ -26,17 +26,16 @@ DEFINE_int32(
     "the radius of visible range in terms of unit (0 for fully observe)");
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
+DECLARE_string(task_mode);
 
 namespace simulator {
 namespace xwd {
 
 XWorldSimulator::XWorldSimulator(bool print_xworld_config,
                                  const std::string& conf_path,
-                                 int curriculum,
-                                 const std::string& task_mode)
+                                 int curriculum)
     : TeachingEnvironment(curriculum),
-      xworld_(print_xworld_config, conf_path, curriculum),
-      task_mode_(task_mode) {
+      xworld_(print_xworld_config, conf_path, curriculum) {
     init();
 }
 
@@ -82,7 +81,7 @@ void XWorldSimulator::apply_teacher_actions() {
     if (sentence.empty()) {
         sentence = "-";
         type = "Silence";
-    } else if (task_mode_ == "arxiv_lang_acquisition" &&
+    } else if (FLAGS_task_mode == "arxiv_lang_acquisition" &&
                type.find("XWorldRec") == 0) {
         // supervised QA: answer is the last word
         sentence += " " + get_teacher_sent_answer_from_buffer();
@@ -127,7 +126,7 @@ void XWorldSimulator::reset_game() {
 }
 
 int XWorldSimulator::game_over() {
-    if (task_mode_ == "arxiv_lang_acquisition") {
+    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
         // Each session has a navigation task, during which some questions are
         // asked
         // The answer is appended after each question
@@ -135,7 +134,7 @@ int XWorldSimulator::game_over() {
         if (event == "correct_goal") {
             return SUCCESS;
         }
-    } else if (task_mode_ == "arxiv_interactive") {
+    } else if (FLAGS_task_mode == "arxiv_interactive") {
         // Each session has a language task; there is no navigation
         auto event = get_event_from_buffer();
         if (event == "correct_reply") {
@@ -143,10 +142,10 @@ int XWorldSimulator::game_over() {
         } else if (event == "wrong_reply") {
             return DEAD;
         }
-    } else if (task_mode_ == "one_channel") {
+    } else if (FLAGS_task_mode == "one_channel") {
         // Each session has all tasks until the max steps
     } else {
-        LOG(FATAL) << "unsupported task mode: " << task_mode_;
+        LOG(FATAL) << "unsupported task mode: " << FLAGS_task_mode;
     }
     return ALIVE;
 }
@@ -155,8 +154,8 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action(actions);
     last_action_ = "";
 
-    if (task_mode_ == "arxiv_interactive"
-        || task_mode_ == "arxiv_one_channel") {
+    if (FLAGS_task_mode == "arxiv_interactive"
+        || FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("pred_sentence"))
                 << "The agent has to take the speak action.";
         std::string agent_sent = *(actions.get_buffer("pred_sentence")->get_str());
@@ -167,8 +166,8 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
         update_message_box_on_screen();
     }
 
-    if (task_mode_ == "arxiv_lang_acquisition"
-        || task_mode_ == "arxiv_one_channel") {
+    if (FLAGS_task_mode == "arxiv_lang_acquisition"
+        || FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("action"))
                 << "The agent has to take the move action.";
         int action_idx = *(actions.get_buffer("action")->get_id());
