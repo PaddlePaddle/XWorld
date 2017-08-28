@@ -7,14 +7,14 @@ if __name__ == "__main__":
     options = {
         "pause_screen": False,
         "window_width": 480,
-        "window_height" : 480,
-        "track_type" : "straight",
-        "track_width" : 20.0,
-        "track_length" : 100.0,
-        "track_radius" : 30.0,
-        "race_full_manouver" : False,
-        "random" : False,
-        "difficulty" : "easy",
+        "window_height": 480,
+        "track_type": "straight",
+        "track_width": 20.0,
+        "track_length": 100.0,
+        "track_radius": 30.0,
+        "race_full_manouver": False,
+        "random": False,
+        "difficulty": "easy",
         "context": 1
     }
     sr = Simulator.create("simple_race", options)

@@ -32,9 +32,9 @@ int main(int argc, char** argv) {
     double reward = 0;
     double reward_per_game = 0;
     double r = 0;
-    for (int i = 0; i < 100; i ++) {
+    for (int i = 0; i < 100; i++) {
         auto game_over_str =
-                GameSimulator::decode_game_over_code(race->game_over());
+            GameSimulator::decode_game_over_code(race->game_over());
         if (game_over_str != "alive") {
             LOG(INFO) << "game over because of " + game_over_str;
             race->reset_game();

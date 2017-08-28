@@ -447,6 +447,5 @@ void SimpleRaceGame::show_screen(float reward) {
         cv::waitKey(20);
     }
 }
-
 }
 }  // namespace simulator::simple_race
