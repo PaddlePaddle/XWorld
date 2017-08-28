@@ -1,0 +1,45 @@
+{
+    "xworld" : {
+        "dimensions" : {
+            "height" : 5,
+            "width" : 5
+        },
+
+        "items" : {
+            "goal" : {
+                "number" : [4],
+                "instances" : {
+                    "x" : [3, 2],
+                    "x" : [1, 2],
+                    "x" : [2, 1],
+                    "x" : [2, 3]
+                }
+            },
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                    // add predefined agent locations here
+                    "robot" : [2, 2]
+                }
+            },
+            "block" : {
+                "number" : [0],
+                "instances" : {
+                }
+            }
+        }
+    },
+
+    "teacher" : {
+        "task_groups" : {
+            "XWorldLan" : {
+                "schedule" : "weighted",
+                "weight" : 1,
+                "tasks" : {
+                    "XWorldLanDirectionToObjectTask" : 1,
+                    "XWorldLanObjectToDirectionTask" : 1
+                }
+            }
+        }
+    }
+}
