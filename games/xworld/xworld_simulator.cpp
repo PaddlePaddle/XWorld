@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "xworld/xworld.h"
+#include "xworld_simulator.h"
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <algorithm>
 #include <functional>
 #include "xworld/xagent.h"
-#include "xworld_simulator.h"
+#include "xworld/xworld.h"
 
 DEFINE_int32(
     visible_radius_unit,
@@ -154,22 +154,24 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action(actions);
     last_action_ = "";
 
-    if (FLAGS_task_mode == "arxiv_interactive"
-        || FLAGS_task_mode == "one_channel") {
+    if (FLAGS_task_mode == "arxiv_interactive" ||
+        FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("pred_sentence"))
-                << "The agent has to take the speak action.";
-        std::string agent_sent = *(actions.get_buffer("pred_sentence")->get_str());
+            << "The agent has to take the speak action.";
+        std::string agent_sent =
+            *(actions.get_buffer("pred_sentence")->get_str());
         record_agent_sent_in_buffer(agent_sent);
         last_action_ += "speak(" + agent_sent + ")";
         // update message box
-        history_messages_.push_back("[Reply] Learner: " + agent_sent);  // add token
+        history_messages_.push_back("[Reply] Learner: " +
+                                    agent_sent);  // add token
         update_message_box_on_screen();
     }
 
-    if (FLAGS_task_mode == "arxiv_lang_acquisition"
-        || FLAGS_task_mode == "one_channel") {
+    if (FLAGS_task_mode == "arxiv_lang_acquisition" ||
+        FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("action"))
-                << "The agent has to take the move action.";
+            << "The agent has to take the move action.";
         int action_idx = *(actions.get_buffer("action")->get_id());
         CHECK_LT(action_idx, get_num_actions());
         // take one step in the game

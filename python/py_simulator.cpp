@@ -20,9 +20,9 @@
 #include <boost/python/exception_translator.hpp>
 #include <exception>
 #include <iostream>
+#include "games/arcade/arcade_simulator.h"
 #include "games/simple_game/simple_game_simulator.h"
 #include "games/simple_race/simple_race_simulator.h"
-#include "games/arcade/arcade_simulator.h"
 #include "games/xworld/xworld_simulator.h"
 
 #ifdef PY_MALMO
@@ -166,24 +166,29 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         game = std::make_shared<SimpleGame>(array_size);
     } else if (name == "simple_race") {
         auto window_width = extract_py_dict_val(args, "window_width", true, 0);
-        auto window_height = extract_py_dict_val(args, "window_height", true, 0);
-        std::string track_type = extract_py_dict_val(args, "track_type", false, "straight");
+        auto window_height =
+            extract_py_dict_val(args, "window_height", true, 0);
+        std::string track_type =
+            extract_py_dict_val(args, "track_type", false, "straight");
         FLAGS_track_type = track_type;
-        FLAGS_track_width = extract_py_dict_val(args, "track_width", true, 20.0f);
-        FLAGS_track_length = extract_py_dict_val(args, "track_length", true, 100.0f);
-        FLAGS_track_radius = extract_py_dict_val(args, "track_radius", true, 30.0f);
-        FLAGS_race_full_manouver = extract_py_dict_val(
-            args, "race_full_manouver", false, false);
+        FLAGS_track_width =
+            extract_py_dict_val(args, "track_width", true, 20.0f);
+        FLAGS_track_length =
+            extract_py_dict_val(args, "track_length", true, 100.0f);
+        FLAGS_track_radius =
+            extract_py_dict_val(args, "track_radius", true, 30.0f);
+        FLAGS_race_full_manouver =
+            extract_py_dict_val(args, "race_full_manouver", false, false);
         FLAGS_random = extract_py_dict_val(args, "random", false, false);
-        std::string difficulty = extract_py_dict_val(args, "difficulty", false, "easy");
+        std::string difficulty =
+            extract_py_dict_val(args, "difficulty", false, "easy");
         FLAGS_difficulty = difficulty;
         game = std::make_shared<SimpleRaceGame>(window_width, window_height);
     } else if (name == "xworld") {
         FLAGS_color = true;
         std::string conf_path =
             extract_py_dict_val(args, "conf_path", true, "");
-        auto curriculum =
-            extract_py_dict_val(args, "curriculum", false, 0);
+        auto curriculum = extract_py_dict_val(args, "curriculum", false, 0);
         std::string task_mode =
             extract_py_dict_val(args, "task_mode", false, "one_channel");
         FLAGS_task_mode = task_mode;
@@ -213,8 +218,8 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         std::string mission = extract_py_dict_val(args, "mission", true, "");
         std::string conf_path =
             extract_py_dict_val(args, "conf_path", true, "");
-        FLAGS_minecraft_client_ip =
-            extract_py_dict_val(args, "minecraft_client_ip", false, "127.0.0.1");
+        FLAGS_minecraft_client_ip = extract_py_dict_val(
+            args, "minecraft_client_ip", false, "127.0.0.1");
         FLAGS_minecraft_client_port =
             extract_py_dict_val(args, "minecraft_client_port", false, 10000);
         FLAGS_ms_per_tick = 10;

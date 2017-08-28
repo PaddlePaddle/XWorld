@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "arcade.h"
 #include <glog/logging.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include "arcade.h"
 
 DECLARE_bool(pause_screen);
 DEFINE_int32(ale_random_starts,

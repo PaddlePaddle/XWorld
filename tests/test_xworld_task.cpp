@@ -56,8 +56,7 @@ std::string get_teacher_sentence(shared_ptr<XWorldSimulator> game) {
 
 void test_xworld_task(const std::string& xworld_json, TestFunc test_function) {
     FLAGS_task_mode = "one_channel";
-    auto game =
-        make_shared<XWorldSimulator>(true, xworld_json, 0);
+    auto game = make_shared<XWorldSimulator>(true, xworld_json, 0);
     game->add_agent("robot_0");
 
     TeacherPtr teacher = std::make_shared<Teacher>(xworld_json, game, false);
@@ -354,8 +353,7 @@ TEST(XWorldTask, PressureTest) {
 TEST(XWorldTask, GameOver) {
     FLAGS_task_mode = "arxiv_lang_acquisition";
     auto json = get_json_dir() + "/nav_near.json";
-    auto game =
-        make_shared<XWorldSimulator>(true, json, 0);
+    auto game = make_shared<XWorldSimulator>(true, json, 0);
     game->add_agent("robot_0");
     TeacherPtr teacher = std::make_shared<Teacher>(json, game, false);
     teacher->teach();
