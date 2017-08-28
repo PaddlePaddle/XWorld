@@ -323,10 +323,15 @@ py::dict SimulatorInterface::get_state() {
         } else {  // all the rest are vectors of floats
             auto buffer = state.get_buffer(k);
             std::vector<float> vec(buffer->get_value_size());
-            state.get_buffer(k)->copy_value(vec.begin(), vec.end());
+            float scale = 1.0;
+            // we need to scale uint8 pixel values to [0,1]
+            if (buffer->get_value()->is_uint8()) {
+                scale = 1 / 255.0;
+            }
+            buffer->copy_value(vec.begin(), vec.end());
             py::list l;
             for (auto x : vec) {
-                l.append(x);
+                l.append(x * scale);
             }
             d[k] = l;
         }
