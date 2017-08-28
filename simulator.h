@@ -22,6 +22,10 @@
 #include "data_packet.h"
 #include "simulator_util.h"
 
+#ifndef GFLAGS_GFLAGS_H_
+namespace gflags = google;
+#endif
+
 DECLARE_bool(lock_step);
 
 namespace simulator {
