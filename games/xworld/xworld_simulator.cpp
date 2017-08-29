@@ -48,7 +48,11 @@ void XWorldSimulator::init() {
     img_width_out_ = (width_ * 2 - 1) * block_size_;
     // default
     if (max_steps_ == 0) {
-        max_steps_ = world_size() * 2;
+        if (FLAGS_task_mode == "arxiv_lang_acquisition") {
+            max_steps_ = (height_ + width_ ) * 2;
+        } else {
+            max_steps_ = world_size() * 2;
+        }
     }
     // pass the max_steps information to xworld
     xworld_.set_max_steps(max_steps_);
