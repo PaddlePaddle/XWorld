@@ -155,11 +155,11 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     This flag has three possible values.
 
-    "arxiv_lang_acquisition": replicate the environment used in arXiv:1703.09831;
+    "arxiv_lang_acquisition": replicate the environment used in arXiv:1703.09831 (used with conf file ```<xworld_path>/games/xworld/confs/navigation.json``` and dictionary ```<xworld_path>/games/xworld/dicts/nav_dict.txt```);
 
-    "arxiv_interactive": replicate the environment used in arXiv:1705.09906;
+    "arxiv_interactive": replicate the environment used in arXiv:1705.09906 (used with conf file ```<xworld_path>/games/xworld/confs/lang.json``` and dictionary ```<xworld_path>/games/xworld/dicts/lang_dict.txt```);
 
-    "one_channel": incoporate the above two environments into a single one.
+    "one_channel": integrate the above two environments into a single one.
 
     (Default: "one_channel")
 
@@ -195,11 +195,14 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     The Lua level script for DeepMind Lab. (Default: "")
 
+# Code for training XWorld2D
+Currently there is a PyTorch [reimplementation](https://github.com/zihangdai/pytorch_xworld) (by [@zihangdai](https://github.com/zihangdai)) of the framework used in arXiv:1703.09831. The code runs on the whole vocabulary and does not include the zero-shot experiments, but you can choose to do so according to the zero-shot setups discussed in the paper.
+
 # Citations
 If you use the XWorld2D environment for your research, please consider citing
 
-* Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/abs/1703.09831), arXiv 1703.09831, 2017.
-* Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), arXiv 1705.09906, 2017.
+* Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/abs/1703.09831), arXiv:1703.09831, 2017.
+* Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), arXiv:1705.09906, 2017.
 
 If you use our wrappers for the third-party simulators, please follow their original guide for citation.
 
