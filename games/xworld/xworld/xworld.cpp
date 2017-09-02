@@ -152,8 +152,7 @@ XWorld::XWorld(bool print_xworld_config,
                const std::string& conf,
                int curriculum_learning)
     : max_steps_(0),
-      xwp_(print_xworld_config, conf, curriculum_learning),
-      success_action_flag_(true) {
+      xwp_(print_xworld_config, conf, curriculum_learning) {
     init();
 }
 
@@ -444,10 +443,11 @@ cv::Mat XWorld::to_image(bool flag_item_centric /* false */,
     return img;
 }
 
-void XWorld::act(XAgent* agent_ptr, int action_id) {
+bool XWorld::act(XAgent* agent_ptr, int action_id) {
     map_.remove_item(agent_ptr);
-    success_action_flag_ = agent_ptr->act(action_id);
+    auto success_action_flag = agent_ptr->act(action_id);
     map_.add_item(agent_ptr);
+    return success_action_flag;
 }
 
 void XWorld::act_random(XAgent* agent_ptr, std::vector<int> action_list) {

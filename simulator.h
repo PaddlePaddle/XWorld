@@ -148,6 +148,8 @@ class GameSimulator {
 
     virtual std::string last_action() { return last_action_; }
 
+    bool last_action_success() { return last_action_success_; }
+
     static const int N_BUFFERS =
         2;  // "reward" and "screen" are two basic buffers
 
@@ -165,6 +167,7 @@ class GameSimulator {
     int64_t num_steps_;  // number of steps since the beginning of the game
 
     std::string last_action_;  // store the last action for the agent
+    bool last_action_success_; // whether the last action was successful or not
 
     StatePacket screens_;  // maintain the most recent FLAGS_context screens
 

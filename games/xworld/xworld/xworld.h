@@ -81,7 +81,8 @@ class XWorld {
     XAgent* add_agent(std::string agent_name);
 
     // agent specified by agent_ptr takes action action_id
-    void act(XAgent* agent_ptr, int action_id);
+    // return whether the action is successful or not
+    bool act(XAgent* agent_ptr, int action_id);
 
     // agent specified by agent_ptr take random action
     void act_random(XAgent* agent_ptr, std::vector<int> action_list);
@@ -123,9 +124,6 @@ class XWorld {
     std::vector<Loc> agent_units_;  // keep the remaining of the reachable slots
                                     // after the map
     // is generated; the agents will be placed on these slots
-
-    bool success_action_flag_;  // whether the action is successfully
-                                // accomplished
 
     std::vector<XItem*> item_list_;    // list of all items, including agents
     std::vector<XAgent*> agent_list_;  // list of all agents,

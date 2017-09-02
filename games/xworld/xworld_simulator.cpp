@@ -179,7 +179,7 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
         int action_idx = *(actions.get_buffer("action")->get_id());
         CHECK_LT(action_idx, get_num_actions());
         // take one step in the game
-        xworld_.act(agent_list_[active_agent_id_], action_idx);
+        last_action_success_ = xworld_.act(agent_list_[active_agent_id_], action_idx);
         last_action_ += std::to_string(action_idx);
     }
     return 0;  // xworld rewards are given by the teacher
