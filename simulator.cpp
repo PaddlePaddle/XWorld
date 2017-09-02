@@ -29,7 +29,7 @@ namespace simulator {
 std::mutex GameSimulator::s_display_mutex_;
 
 GameSimulator::GameSimulator()
-    : max_steps_(FLAGS_max_steps), num_steps_(0), last_action_("") {}
+        : max_steps_(FLAGS_max_steps), num_steps_(0), last_action_(""), last_action_success_(true) {}
 
 void GameSimulator::init_context_screens(bool is_uint8) {
     StatePacket screen;
