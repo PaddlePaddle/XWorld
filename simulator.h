@@ -148,7 +148,7 @@ class GameSimulator {
 
     virtual std::string last_action() { return last_action_; }
 
-    bool last_action_success() { return last_action_success_; }
+    virtual bool last_action_success() { return last_action_success_; }
 
     static const int N_BUFFERS =
         2;  // "reward" and "screen" are two basic buffers
@@ -426,6 +426,8 @@ class AgentSpecificSimulator : public GameSimulator {
     std::string last_action() override;
 
     float take_action(const StatePacket& actions) override;
+
+    bool last_action_success() override { return simulator_ptr_->last_action_success(); }
 
     void get_screen(StatePacket& screen) override;
 
