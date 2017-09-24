@@ -189,5 +189,16 @@ std::string read_file(const std::string& fileName) {
     CHECK(is.read(&str[0], length)) << "Fail to read file: " << fileName;
     return str;
 }
+
+std::string path_join(std::initializer_list<std::string> list) {
+    std::string ret = "";
+    if (list.size() > 0) {
+        ret = *list.begin();
+        for (auto it = list.begin() + 1; it != list.end(); ++it) {
+            ret += "/" + *it;
+        }
+    }
+    return ret;
 }
-}  // namespace simulator::util
+
+}}  // namespace simulator::util
