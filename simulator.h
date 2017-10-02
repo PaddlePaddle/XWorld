@@ -367,7 +367,10 @@ class TeachingEnvironment {
     // The linking node between the teacher and the agent
     virtual void apply_teacher_actions() = 0;
 
-    // get the world size
+    // get the world
+    virtual void get_world_dimensions(double& X, double& Y, double& Z) = 0;
+
+    // get the world size = X * Y
     virtual size_t world_size() = 0;
 
     virtual void reset_game() {

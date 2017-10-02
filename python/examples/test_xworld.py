@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 from py_simulator import Simulator
+import sys
+sys.path.append("../../games/xworld/tasks")
 
 
 def compute_action(states, num_actions):
@@ -86,4 +88,3 @@ if __name__ == "__main__":
         reward += r
 
     print "total reward ", reward
-

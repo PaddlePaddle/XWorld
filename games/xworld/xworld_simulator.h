@@ -73,7 +73,9 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
     // determine if an entity is valid or not
     bool entity_valid(const Entity& e) override;
 
-    // get world size
+    void get_world_dimensions(double& X, double& Y, double& Z) override;
+
+    // get world size = X * Y
     size_t world_size() override;
 
     // determine if a color is defined
@@ -89,8 +91,6 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
     void get_screen_out_dimensions(size_t& img_height_out,
                                    size_t& img_width_out,
                                    size_t& channels);
-
-    void get_world_dimensions(size_t& height, size_t& width);
 
     static const int block_size_ = 12;  // how many pixels each block has
 

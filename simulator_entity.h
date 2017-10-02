@@ -87,16 +87,16 @@ class Vec3 {
 class Entity {
   public:
     Entity() : id(""), type(""), location(Vec3()) {}
-    std::string property(std::string key) const {
+    std::string property(const std::string& key) const {
         CHECK(properties_.find(key) != properties_.end())
             << "unrecognized key!";
         return properties_.at(key);
     }
-    void set_property(std::string key, std::string value) {
+    void set_property(const std::string& key, const std::string& value) {
         properties_[key] = value;
     }
     // get the keys of all properties
-    std::vector<std::string> all_properties() {
+    std::vector<std::string> all_properties() const {
         std::vector<std::string> keys;
         for (const auto& p : properties_) {
             keys.push_back(p.first);

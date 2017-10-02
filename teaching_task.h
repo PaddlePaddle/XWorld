@@ -15,6 +15,7 @@
 #pragma once
 #include <functional>
 #include <unordered_map>
+#include <boost/python.hpp>
 #include "simulator.h"
 #include "teacher_sentence_generator.h"
 #include "world_scanner.h"
@@ -156,6 +157,58 @@ class Task {
 };
 
 typedef std::shared_ptr<Task> TaskPtr;
+
+class PyTask : public Task {
+  public:
+    PyTask(const std::string& name,
+           TeachingEnvPtr game,
+           const std::vector<std::string>& held_out)
+            : Task(name, game, held_out) {
+        if (!Py_IsInitialized()) {
+            Py_Initialize();
+        }
+        try {
+            // check if there is a python file with this name
+            auto mod = boost::python::import(name.c_str());
+            py_task_ = mod.attr(name.c_str())();
+        } catch (...) {
+            LOG(FATAL) << "Unrecognized task name: " << name;
+        }
+    }
+
+    ~PyTask() {
+        if (Py_IsInitialized()) {
+            Py_Finalize();
+        }
+    }
+
+  protected:
+    virtual std::string idle(ScannerPtr scanner,
+                             SentenceTemplatePtr sen_temp,
+                             TeachingEnvPtr game) override {
+        return py_stage(sen_temp, game, "idle");
+    }
+
+    // not used in this class
+    virtual void define_sen_temp_rules(SentenceTemplatePtr sen_temp,
+                                       TeachingEnvPtr game) override {
+        sen_temp->add_rule(sen_temp->start_symbol(), {""});
+    }
+
+    // The python users are responsible for implementing
+    // 1. all the stage functions
+    // 2. the grammar for generating the sentences
+    // 3. the reward of each stage
+    virtual void register_stages() override;
+
+  private:
+    std::string py_stage(SentenceTemplatePtr sen_temp, TeachingEnvPtr game,
+                         const std::string& stage_name);
+
+    boost::python::dict convert_entity_to_py_entity(const Entity& e);
+
+    boost::python::object py_task_;
+};
 
 /**
    A task group is a collection of tasks that have the same group id.
