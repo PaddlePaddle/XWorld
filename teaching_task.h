@@ -158,12 +158,20 @@ class Task {
 
 typedef std::shared_ptr<Task> TaskPtr;
 
+/**
+   A wrapper class that use the embedded Python class for defining tasks
+   The python users are responsible for implementing
+   1. all the stage functions
+   2. the grammar for generating the sentences
+   3. the reward of each stage
+ **/
 class PyTask : public Task {
   public:
     PyTask(const std::string& name,
            TeachingEnvPtr game,
            const std::vector<std::string>& held_out)
             : Task(name, game, held_out) {
+        // initialize the python interpreter
         if (!Py_IsInitialized()) {
             Py_Initialize();
         }
@@ -176,11 +184,13 @@ class PyTask : public Task {
         }
     }
 
-    ~PyTask() {
-        if (Py_IsInitialized()) {
-            Py_Finalize();
-        }
-    }
+    //// Currently boost python does not support Py_Finalize
+    //// http://www.boost.org/doc/libs/1_64_0/libs/python/doc/html/tutorial/tutorial/embedding.html
+    // ~PyTask() {
+    //     if (Py_IsInitialized()) {
+    //         Py_Finalize();
+    //     }
+    // }
 
   protected:
     virtual std::string idle(ScannerPtr scanner,
@@ -189,24 +199,23 @@ class PyTask : public Task {
         return py_stage(sen_temp, game, "idle");
     }
 
-    // not used in this class
+    // Not used here; We will directly use the sentence returned by Python
     virtual void define_sen_temp_rules(SentenceTemplatePtr sen_temp,
                                        TeachingEnvPtr game) override {
         sen_temp->add_rule(sen_temp->start_symbol(), {""});
     }
 
-    // The python users are responsible for implementing
-    // 1. all the stage functions
-    // 2. the grammar for generating the sentences
-    // 3. the reward of each stage
     virtual void register_stages() override;
 
   private:
+    // Call a python stage function and process its outputs
     std::string py_stage(SentenceTemplatePtr sen_temp, TeachingEnvPtr game,
                          const std::string& stage_name);
 
+    // Convert a simulator_entity to a dictionary in Python
     boost::python::dict convert_entity_to_py_entity(const Entity& e);
 
+    // This object holds the Python task class
     boost::python::object py_task_;
 };
 
