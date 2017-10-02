@@ -63,6 +63,7 @@ set(SIMULATOR_SOURCES
   teacher.cpp
   teacher_sentence_generator.cpp
   teaching_task.cpp
+  py_task.cpp
   simulator.cpp
   simulator_util.cpp
   world_scanner.cpp

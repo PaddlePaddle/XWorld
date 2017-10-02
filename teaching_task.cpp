@@ -33,10 +33,6 @@ bool Task::teacher_speak(bool held_out,
                               game->num_games_since_simulation(),
                               game->curriculum_learning());
     bool success_speak = (sentence != "");
-    // The teacher might have held_out sentence patterns
-    if (!held_out) {
-        CHECK(success_speak);
-    }
     success_speak &= game->can_record_teacher_sent_in_buffer();
     if (success_speak) {
         game->record_teacher_sent_in_buffer(sentence);
@@ -56,9 +52,13 @@ void TaskGroup::add_task(const std::string& task, double weight) {
     CHECK_EQ(task.find(name_), 0)
         << "Task group name must be a prefix of the task name:" << name_ << " "
         << task;
-    CHECK_GT(create_tasks_.count(task), 0) << "Unrecognized task name: "
-                                           << task;
-    auto task_ptr = create_tasks_[task](game_, held_out_);
+
+    TaskPtr task_ptr = nullptr;
+    if (create_tasks_.count(task) > 0) {
+        task_ptr = create_tasks_[task](game_, held_out_);
+    } else {
+        task_ptr = std::make_shared<PyTask>(task, game_, held_out_);
+    }
     task_ptr->init();
     task_list_.push_back(task_ptr);
     if (task_weights_.empty()) {

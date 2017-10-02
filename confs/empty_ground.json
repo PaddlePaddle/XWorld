@@ -34,7 +34,8 @@
                     "XWorldNavTargetTask" : 1,
                     "XWorldNavNearTask" : 1,
                     "XWorldNavColorTargetTask" : 1,
-                    "XWorldNavBetweenTask" : 1
+                    "XWorldNavBetweenTask" : 1,
+                    "XWorldNavTargetPy" : 1
                 }
             },
             "XWorldRec" : {

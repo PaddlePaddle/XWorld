@@ -98,9 +98,10 @@ void XWorldSimulator::apply_teacher_actions() {
     }
 }
 
-void XWorldSimulator::get_world_dimensions(size_t& height, size_t& width) {
-    height = height_;
-    width = width_;
+void XWorldSimulator::get_world_dimensions(double& X, double& Y, double& Z) {
+    X = width_;
+    Y = height_;
+    Z = 0;
 }
 
 void XWorldSimulator::get_screen_out_dimensions(size_t& img_height_out,

@@ -165,7 +165,6 @@ std::string TeacherSentenceTemplate::instantiate(
         }
         ret_str += instantiate(words.back(), num_games, curriculum_games);
     }
-    CHECK(ret_str != "");
     return ret_str;
 }
 

@@ -140,10 +140,6 @@ class SimulatorInterface {
 
     int get_num_steps();
 
-    void print_teacher_total_possible_sentences();
-
-    void teacher_report_task_performance();
-
   private:
     // user cannot create SimulatorInterface
     SimulatorInterface(SimulatorPtr game, TeacherPtr teacher);
@@ -359,22 +355,6 @@ py::list SimulatorInterface::get_screen_out_dimensions() {
     return dims;
 }
 
-void SimulatorInterface::print_teacher_total_possible_sentences() {
-    if (teacher_) {
-        teacher_->print_total_possible_sentences();
-    } else {
-        std::cout << "This game does not have a teacher." << std::endl;
-    }
-}
-
-void SimulatorInterface::teacher_report_task_performance() {
-    if (teacher_) {
-        teacher_->report_task_performance();
-    } else {
-        std::cout << "This game does not have a teacher." << std::endl;
-    }
-}
-
 void help() {
     std::cout
         << "Games are created by calling Simulator.create()\n"
@@ -404,9 +384,5 @@ BOOST_PYTHON_MODULE(py_simulator) {
         .def("take_actions", &SimulatorInterface::take_actions)
         .def("take_actions", &SimulatorInterface::take_action)
         .def("get_state", &SimulatorInterface::get_state)
-        .def("get_num_steps", &SimulatorInterface::get_num_steps)
-        .def("print_total_possible_sentences",
-             &SimulatorInterface::print_teacher_total_possible_sentences)
-        .def("teacher_report_task_performance",
-             &SimulatorInterface::teacher_report_task_performance);
+        .def("get_num_steps", &SimulatorInterface::get_num_steps);
 }
