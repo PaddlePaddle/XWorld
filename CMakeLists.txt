@@ -116,6 +116,7 @@ add_subdirectory(examples)
 ## propagate the dependencies to the upper level (if any)
 target_link_libraries(simulator PUBLIC
   ${DEP_LIBS}
+  ${Boost_LIBRARIES}
   )
 
 set_target_properties(simulator
