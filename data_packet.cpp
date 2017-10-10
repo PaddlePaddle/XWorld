@@ -60,7 +60,9 @@ void StateBuffer::init_id(size_t sz) {
     id_ = std::make_shared<std::vector<int>>(sz, 0);
 }
 
-void StateBuffer::init_str() { str_ = std::make_shared<std::string>(); }
+void StateBuffer::init_str() {
+    str_ = std::make_shared<std::string>();
+}
 
 void StateBuffer::sync_value_ptr() {
     if (reals_) {
@@ -118,4 +120,65 @@ size_t StateBuffer::get_id_size() {
         return 0;
     }
 }
+
+bool StateBuffer::operator==(const StateBuffer& other) {
+    if (reals_ && !other.reals_ || !reals_ && other.reals_ ||
+        reals_ && other.reals_ && *reals_ != *other.reals_) {
+        return false;
+    }
+    if (pixels_ && !other.pixels_ || !pixels_ && other.pixels_ ||
+        pixels_ && other.pixels_ && *pixels_ != *other.pixels_) {
+        return false;
+    }
+    if (id_ && !other.id_ || !id_ && other.id_ ||
+        id_ && other.id_ && *id_ != *other.id_) {
+        return false;
+    }
+    if (str_ && !other.str_ || !str_ && other.str_ ||
+        str_ && other.str_ && *str_ != *other.str_) {
+        return false;
+    }
+
+    return true;
 }
+
+void StateBuffer::encode(util::BinaryBuffer& buf) {
+    uint8_t flags = (reals_ ? 1 : 0) | (pixels_ ? 2 : 0) |
+                    (id_ ? 4 : 0) | (str_ ? 8 : 0);
+    buf.append(flags);
+    if (reals_) {
+        buf.append(*reals_);
+    }
+    if (pixels_) {
+        buf.append(*pixels_);
+    }
+    if (id_) {
+        buf.append(*id_);
+    }
+    if (str_) {
+        buf.append(*str_);
+    }
+}
+
+void StateBuffer::decode(util::BinaryBuffer& buf) {
+    uint8_t flags = 0;
+    buf.read(flags);
+    if (flags & 1) {
+        reals_ = std::make_shared<std::vector<float>>();
+        buf.read(*reals_);
+    }
+    if (flags & 2) {
+        pixels_ = std::make_shared<std::vector<uint8_t>>();
+        buf.read(*pixels_);
+    }
+    if (flags & 4) {
+        id_ = std::make_shared<std::vector<int>>();
+        buf.read(*id_);
+    }
+    if (flags & 8) {
+        str_ = std::make_shared<std::string>();
+        buf.read(*str_);
+    }
+}
+
+} // namespace simulator

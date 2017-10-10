@@ -17,3 +17,4 @@ build
 examples/test_atari
 examples/test_xworld
 examples/test_simple_race
+examples/test_xworld3d
