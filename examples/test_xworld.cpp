@@ -35,12 +35,11 @@ int main(int argc, char** argv) {
         FLAGS_task_groups_exclusive = false;
     }
 
-    std::string conf_path = "../confs/empty_ground.json";
-    int curriculum = 0;
+    std::string conf_path = "../confs/walls.json";
     auto xwd = std::make_shared<XWorldSimulator>(
-        true /*print*/, conf_path, curriculum);
+        true /*print*/, conf_path);
 
-    int agent_id = xwd->add_agent("robot0");
+    int agent_id = xwd->add_agent();
     auto game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
     auto teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
     game_reset_with_teacher(game, teacher);
@@ -71,6 +70,7 @@ int main(int argc, char** argv) {
 
         StatePacket actions;
         actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});
+        actions.add_buffer_str("pred_sentence", "");
         r = game->take_actions(actions, act_rep);
         teacher->teach();
         r += teacher->give_reward();

@@ -8,24 +8,6 @@ add_executable(test_simulator_seed
 link_simulator_test(test_simulator_seed)
 add_test(simulator_test_simulator_seed test_simulator_seed)
 
-add_executable(test_teacher_sentence_generator
-  test_teacher_sentence_generator.cpp
-  )
-link_simulator_test(test_teacher_sentence_generator)
-add_test(simulator_test_teacher_sentence_generator test_teacher_sentence_generator)
-
-add_executable(test_xworld_parser
-  test_xworld_parser.cpp
-  )
-link_simulator_test(test_xworld_parser)
-add_test(simulator_test_xworld_parser test_xworld_parser)
-
-add_executable(test_xworld_task
-  test_xworld_task.cpp
-  )
-link_simulator_test(test_xworld_task)
-add_test(simulator_test_xworld_task test_xworld_task)
-
 if(WITH_DEEPMIND_LAB)
   add_executable(test_deepmind_lab_simulator
       test_deepmind_lab_simulator.cpp

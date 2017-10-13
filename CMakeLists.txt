@@ -61,12 +61,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(SIMULATOR_SOURCES
   data_packet.cpp
   teacher.cpp
-  teacher_sentence_generator.cpp
   teaching_task.cpp
-  py_task.cpp
   simulator.cpp
   simulator_util.cpp
-  world_scanner.cpp
   )
 
 set(EXTERNAL_LIBS

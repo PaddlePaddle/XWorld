@@ -14,7 +14,8 @@
 
 #pragma once
 #include <cmath>
-#include "simulator.h"
+#include <boost/python.hpp>
+#include <boost/tuple/tuple.hpp>
 
 namespace simulator {
 
@@ -84,36 +85,35 @@ class Vec3 {
   An entity might be an agent, an object, a landmark, etc.
   This is the general data structure for representing a thing in different games
  */
-class Entity {
-  public:
-    Entity() : id(""), type(""), location(Vec3()) {}
-    std::string property(const std::string& key) const {
-        CHECK(properties_.find(key) != properties_.end())
-            << "unrecognized key!";
-        return properties_.at(key);
+struct Entity {
+    Entity() {}
+    Entity(boost::python::dict e) {
+        const boost::python::tuple& l = boost::python::extract<boost::python::tuple>(e["loc"]);
+        type = boost::python::extract<std::string>(e["type"]);
+        id = boost::python::extract<std::string>(e["id"]);
+        loc = Vec3(boost::python::extract<double>(l[0]),
+                   boost::python::extract<double>(l[1]),
+                   boost::python::extract<double>(l[2]));
+        name = boost::python::extract<std::string>(e["name"]);
+        asset_path = boost::python::extract<std::string>(e["asset_path"]);
+        color = boost::python::extract<std::string>(e["color"]);
     }
-    void set_property(const std::string& key, const std::string& value) {
-        properties_[key] = value;
+    boost::python::dict to_py_dict() const {
+        boost::python::dict d;
+        d["type"] = type;
+        d["id"] = id;
+        d["loc"] = boost::python::make_tuple(loc.x, loc.y, loc.z);
+        d["name"] = name;
+        d["asset_path"] = asset_path;
+        d["color"] = color;
+        return d;
     }
-    // get the keys of all properties
-    std::vector<std::string> all_properties() const {
-        std::vector<std::string> keys;
-        for (const auto& p : properties_) {
-            keys.push_back(p.first);
-        }
-        return keys;
-    }
-    std::string id;    // name + id
-    std::string type;  // "agent", "goal", "block", "dummy", "world"
-    Vec3 location;
-
-  protected:
-    // e.g., "color" -> "red"
-    //       "name" -> "apple"
-    //       "shape" -> "rectangle"
-    std::unordered_map<std::string, std::string> properties_;
+    std::string type;
+    std::string id;
+    Vec3 loc;
+    std::string name;
+    std::string asset_path;
+    std::string color;
 };
-
-typedef std::shared_ptr<Entity> EntityPtr;
 
 }  // namespace simulator

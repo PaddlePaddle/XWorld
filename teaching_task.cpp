@@ -17,28 +17,85 @@
 
 namespace simulator {
 
-std::unordered_map<
-    std::string,
-    std::function<TaskPtr(TeachingEnvPtr, const std::vector<std::string>&)>>
-    TaskGroup::create_tasks_;
+namespace py = boost::python;
 
-bool Task::teacher_speak(bool held_out,
-                         const std::string& task_name,
-                         SentenceTemplatePtr sen_temp,
-                         TeachingEnvPtr game) {
-    // Generate
-    CHECK(sen_temp);
-    std::string sentence =
-        sen_temp->instantiate(held_out,
-                              game->num_games_since_simulation(),
-                              game->curriculum_learning());
-    bool success_speak = (sentence != "");
-    success_speak &= game->can_record_teacher_sent_in_buffer();
-    if (success_speak) {
-        game->record_teacher_sent_in_buffer(sentence);
-        game->record_teacher_sent_type_in_buffer(task_name);
+void Task::init_py_task() {
+    try {
+        // check if there is a python file with this name
+        auto mod = py::import(name_.c_str());
+        py_task_ = mod.attr(name_.c_str())(game_->get_py_env());
+    } catch (...) {
+        PyErr_Print();
     }
-    return success_speak;
+}
+
+void Task::register_stages() {
+    CHECK(PyObject_HasAttrString(py_task_.ptr(), "get_stage_names"))
+            << "Python function get_stage_names() is undefined!";
+    py::list py_stage_names = py::extract<py::list>(py_task_.attr("get_stage_names")());
+
+    std::vector<std::string> stage_names;
+    for (int i = 0; i < py::len(py_stage_names); i ++) {
+        stage_names.push_back(py::extract<std::string>(py_stage_names[i]));
+    }
+
+    for (const auto& name : stage_names) {
+        stages_[name] = [this, name]() {
+            return py_stage(name);
+        };
+    }
+}
+
+size_t Task::total_possible_sentences() {
+    return py::extract<int>(py_task_.attr("total_possible_sentences")());
+}
+
+std::string Task::py_stage(const std::string& stage_name) {
+    CHECK(PyObject_HasAttrString(py_task_.ptr(), stage_name.c_str()))
+            << "Python task stage is undefined: " << stage_name;
+
+    // pre-stage: update the python env with simulator changes
+    std::vector<Entity> entities;
+    game_->get_all_entities(entities);
+    py::list py_entities;  // a list of py::dict
+    for (const auto& e : entities) {
+        py_entities.append(e.to_py_dict());
+    }
+    py::object env = game_->get_py_env();
+    env.attr("update_entities_from_cpp")(py_entities);
+
+    auto agent_sent = game_->get_agent_sent_from_buffer();
+    env.attr("update_agent_sentence_from_cpp")(agent_sent.c_str());
+
+    auto action_success = game_->get_agent_action_successful_from_buffer();
+    env.attr("update_agent_action_success_from_cpp")(action_success);
+
+    // during the stage
+    py::list ret = py::extract<py::list>(py_task_.attr(stage_name.c_str())());
+
+    // post-stage: the teacher might have changed the environment
+    if (env.attr("env_changed")()) {
+        game_->update_environment();
+    }
+
+    CHECK_EQ(py::len(ret), 3) << "Incorrect length of stage returns";
+    std::string next_stage = py::extract<std::string>(ret[0]);
+    double reward = py::extract<double>(ret[1]);
+    std::string sentence = py::extract<std::string>(ret[2]);
+    give_reward(reward);
+    teacher_speak(sentence);
+    return next_stage;
+}
+
+void Task::teacher_speak(const std::string& sentence) {
+    if (game_->can_record_teacher_sent_in_buffer()) {
+        game_->record_teacher_sent_in_buffer(sentence);
+        game_->record_teacher_sent_type_in_buffer(name_);
+    } else {
+        // (task_groups_exclusive = false)
+        // TODO: if sentence is not spoken, then the task
+        // perhaps should not proceed to the next stage.
+    }
 }
 
 void Task::run_stage() {
@@ -47,19 +104,19 @@ void Task::run_stage() {
     current_stage_ = stages_[current_stage_]();
 }
 
+void Task::obtain_performance(size_t& num_successes_since_simulation,
+                              size_t& num_failures_since_simulation) {
+    py::tuple perf = py::extract<py::tuple>(py_task_.attr("obtain_performance")());
+    num_successes_since_simulation = py::extract<int>(perf[0]);
+    num_failures_since_simulation = py::extract<int>(perf[1]);
+}
+
 void TaskGroup::add_task(const std::string& task, double weight) {
     CHECK_GT(weight, 0) << "A task must have a positive weight";
     CHECK_EQ(task.find(name_), 0)
         << "Task group name must be a prefix of the task name:" << name_ << " "
         << task;
-
-    TaskPtr task_ptr = nullptr;
-    if (create_tasks_.count(task) > 0) {
-        task_ptr = create_tasks_[task](game_, held_out_);
-    } else {
-        task_ptr = std::make_shared<PyTask>(task, game_, held_out_);
-    }
-    task_ptr->init();
+    TaskPtr task_ptr = std::make_shared<Task>(task, game_);
     task_list_.push_back(task_ptr);
     if (task_weights_.empty()) {
         task_weights_.push_back(weight);
@@ -72,8 +129,9 @@ void TaskGroup::report_task_performance(
     std::unordered_map<std::string, std::pair<size_t, size_t>>& benchmark) {
     for (auto task : task_list_) {
         auto task_name = task->name();
-        auto success = task->num_successes();
-        auto failure = task->num_failures();
+        size_t success = 0;
+        size_t failure = 0;
+        task->obtain_performance(success, failure);
         auto& p = benchmark[task_name];
         if (benchmark.count(task_name) == 0) {
             p = std::make_pair(success, failure);

@@ -45,6 +45,7 @@ namespace py = boost::python;
 DECLARE_bool(color);         // default false
 DECLARE_int32(context);      // default 1
 DECLARE_bool(pause_screen);  // default false
+DECLARE_int32(curriculum);   // default 0
 
 //// xworld
 DECLARE_bool(task_groups_exclusive);  // default true
@@ -184,7 +185,7 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         FLAGS_color = true;
         std::string conf_path =
             extract_py_dict_val(args, "conf_path", true, "");
-        auto curriculum = extract_py_dict_val(args, "curriculum", false, 0);
+        FLAGS_curriculum = extract_py_dict_val(args, "curriculum", false, 0);
         std::string task_mode =
             extract_py_dict_val(args, "task_mode", false, "one_channel");
         FLAGS_task_mode = task_mode;
@@ -197,9 +198,9 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         }
 
         auto xwd = std::make_shared<XWorldSimulator>(
-            true /*print*/, conf_path, curriculum);
+            true /*print*/, conf_path);
 
-        int agent_id = xwd->add_agent("robot0");
+        int agent_id = xwd->add_agent();
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
         teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
     } else if (name == "atari") {
@@ -221,7 +222,7 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         FLAGS_ms_per_tick = 10;
         auto mcw = std::shared_ptr<MinecraftSimulator>(
             MinecraftSimulator::create(mission, conf_path));
-        int agent_id = mcw->add_agent("robot0");
+        int agent_id = mcw->add_agent();
         game = std::make_shared<AgentSpecificSimulator>(mcw, agent_id);
     }
 #endif
