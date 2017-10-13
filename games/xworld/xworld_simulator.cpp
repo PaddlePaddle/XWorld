@@ -17,7 +17,6 @@
 #include <glog/logging.h>
 #include <algorithm>
 #include <functional>
-#include "xworld/xagent.h"
 #include "xworld/xworld.h"
 
 DEFINE_int32(
@@ -26,16 +25,14 @@ DEFINE_int32(
     "the radius of visible range in terms of unit (0 for fully observe)");
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
-DECLARE_string(task_mode);
+DEFINE_string(task_mode, "one_channel", "arxiv_lang_acquisition|arxiv_interactive|one_channel");
 
 namespace simulator {
 namespace xwd {
 
 XWorldSimulator::XWorldSimulator(bool print_xworld_config,
-                                 const std::string& conf_path,
-                                 int curriculum)
-    : TeachingEnvironment(curriculum),
-      xworld_(print_xworld_config, conf_path, curriculum) {
+                                 const std::string& conf_path)
+    : xworld_(conf_path, print_xworld_config) {
     init();
 }
 
@@ -51,31 +48,14 @@ void XWorldSimulator::init() {
         if (FLAGS_task_mode == "arxiv_lang_acquisition") {
             max_steps_ = (height_ + width_ ) * 2;
         } else {
-            max_steps_ = world_size() * 2;
+            max_steps_ = height_ * width_ * 2;
         }
     }
-    // pass the max_steps information to xworld
-    xworld_.set_max_steps(max_steps_);
 }
 
-int XWorldSimulator::add_agent(std::string agent_name) {
-    // record the agent_name to agent_id mapping
-    GameSimulatorMulti::add_agent(agent_name);
-    XAgent* agent_ptr = xworld_.add_agent(agent_name);
-    agent_list_.push_back(agent_ptr);
+int XWorldSimulator::add_agent() {
     agent_received_sentences_.push_back("");
-    return agent_list_.size() - 1;
-}
-
-bool XWorldSimulator::entity_valid(const Entity& e) {
-    auto vec = e.location;
-    return vec.x >= 0 && vec.x < width_ && vec.y >= 0 && vec.y < height_;
-}
-
-size_t XWorldSimulator::world_size() { return height_ * width_; }
-
-bool XWorldSimulator::color_defined(std::string c) {
-    return XItem::item_color_defined(c);
+    return GameSimulatorMulti::add_agent();
 }
 
 void XWorldSimulator::apply_teacher_actions() {
@@ -85,10 +65,6 @@ void XWorldSimulator::apply_teacher_actions() {
     if (sentence.empty()) {
         sentence = "-";
         type = "Silence";
-    } else if (FLAGS_task_mode == "arxiv_lang_acquisition" &&
-               type.find("XWorldRec") == 0) {
-        // supervised QA: answer is the last word
-        sentence += " " + get_teacher_sent_answer_from_buffer();
     }
     agent_received_sentences_[active_agent_id_] = sentence;
     auto message = "[" + type + "] Teacher: " + sentence;
@@ -113,11 +89,11 @@ void XWorldSimulator::get_screen_out_dimensions(size_t& img_height_out,
 }
 
 void XWorldSimulator::get_all_entities(std::vector<Entity>& entities) {
-    xworld_.get_all_items(entities);
+    xworld_.get_entities(entities);
 }
 
-void XWorldSimulator::get_all_possible_objects(std::vector<Entity>& objects) {
-    xworld_.get_all_possible_objects(objects);
+boost::python::object XWorldSimulator::get_py_env() {
+    return xworld_.get_py_env();
 }
 
 void XWorldSimulator::reset_game() {
@@ -128,6 +104,12 @@ void XWorldSimulator::reset_game() {
     if (history_messages_.size() > n_history_) {
         history_messages_.pop_front();
     }
+}
+
+void XWorldSimulator::update_environment() {
+    // do not reset the map, only do a minor update
+    // according to the teacher
+    xworld_.reset(false);
 }
 
 int XWorldSimulator::game_over() {
@@ -159,6 +141,7 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action(actions);
     last_action_ = "";
 
+    //// speak
     if (FLAGS_task_mode == "arxiv_interactive" ||
         FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("pred_sentence"))
@@ -173,6 +156,7 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
         update_message_box_on_screen();
     }
 
+    //// move
     if (FLAGS_task_mode == "arxiv_lang_acquisition" ||
         FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("action"))
@@ -180,8 +164,9 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
         int action_idx = *(actions.get_buffer("action")->get_id());
         CHECK_LT(action_idx, get_num_actions());
         // take one step in the game
-        last_action_success_ = xworld_.act(agent_list_[active_agent_id_], action_idx);
+        last_action_success_ = xworld_.act(active_agent_id_, action_idx);
         last_action_ += std::to_string(action_idx);
+        record_agent_action_successful_in_buffer(last_action_success_);
     }
     return 0;  // xworld rewards are given by the teacher
 }
@@ -207,7 +192,7 @@ void XWorldSimulator::get_screen_rgb(GameFrame& rgbs) {
     // ego-centric view
     cv::Mat screen = xworld_.to_image(
         /* flag_item_centric= */ true,
-        agent_list_[active_agent_id_]->get_item_name(),
+        active_agent_id_,
         pad_size,
         /* flag_illustration= */ false,
         /* success= */ 0,
@@ -287,16 +272,16 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
             return black;
         } else if (type.find("XWorldNav") == 0) {
             return green;
-        } else if (type == "XWorldRecColorToObjectTask" ||
-                   type == "XWorldRecObjectToColorTask") {
+        } else if (type == "XWorldRecColorToObject" ||
+                   type == "XWorldRecObjectToColor") {
             return red;
-        } else if (type == "XWorldRecDirectionToObjectTask" ||
-                   type == "XWorldRecObjectToDirectionTask") {
+        } else if (type == "XWorldRecDirectionToObject" ||
+                   type == "XWorldRecObjectToDirection") {
             return yellow;
-        } else if (type == "XWorldRecDirectionToColorTask" ||
-                   type == "XWorldRecColorToDirectionTask") {
+        } else if (type == "XWorldRecDirectionToColor" ||
+                   type == "XWorldRecColorToDirection") {
             return blue;
-        } else if (type == "XWorldRecColorAndObjectTask") {
+        } else if (type == "XWorldRecColorAndObject") {
             return magenta;
         } else if (type.find("XWorldRecDirectionAndObject") == 0) {
             return cyan;
@@ -364,7 +349,7 @@ void XWorldSimulator::show_screen(float reward) {
     // non-ego centric
     cv::Mat img =
         xworld_.to_image(false,
-                         agent_list_[active_agent_id_]->get_item_name(),
+                         active_agent_id_,
                          pad_size,
                          true,
                          success,
@@ -373,7 +358,7 @@ void XWorldSimulator::show_screen(float reward) {
     if (FLAGS_visible_radius_unit > 0) {
         cv::Mat img_partial =
             xworld_.to_image(false,
-                             agent_list_[active_agent_id_]->get_item_name(),
+                             active_agent_id_,
                              pad_size,
                              true,
                              success,
@@ -387,7 +372,7 @@ void XWorldSimulator::show_screen(float reward) {
     // ego-centric
     const cv::Mat img_ego =
         xworld_.to_image(true,
-                         agent_list_[active_agent_id_]->get_item_name(),
+                         active_agent_id_,
                          pad_size,
                          true,
                          success,

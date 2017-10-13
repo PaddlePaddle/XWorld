@@ -20,7 +20,11 @@ DEFINE_bool(task_groups_exclusive,
             true,
             "whether task groups can happen simultaneously");
 
+DEFINE_int32(curriculum, 0, "number of games for curriculum learning");
+
 namespace simulator {
+
+namespace py = boost::python;
 
 using std::vector;
 
@@ -33,7 +37,31 @@ Teacher::Teacher(const std::string& teacher_conf,
       conf_root_(nullptr),
       num_games_so_far_(0),
       game_(game) {
+    set_py_task_paths();
     reset_config(print_teacher_config);
+}
+
+void Teacher::set_py_task_paths() {
+    //// list all the relative paths of the python tasks here
+    std::vector<std::string> relative_python_paths = {
+        "./games/xworld/tasks",
+    };
+
+    // initialize the python interpreter
+    if (!Py_IsInitialized()) {
+        Py_Initialize();
+    }
+
+    std::string f = __FILE__;
+    std::string path = f.substr(0, f.find_last_of("/") + 1);
+    auto main_mod = py::import("__main__");
+    auto main_namespace = main_mod.attr("__dict__");
+    py::exec("import sys", main_namespace);
+
+    for (const auto& rp : relative_python_paths) {
+        std::string cmd = "sys.path.append(\"" + path + rp + "\")";
+        py::exec(cmd.c_str(), main_namespace);
+    }
 }
 
 void Teacher::add_task_group(const pt::ptree::value_type& node) {
@@ -55,8 +83,7 @@ void Teacher::add_task_group(const pt::ptree::value_type& node) {
         weight = node.second.get<double>("weight");
     }
 
-    auto group =
-        std::make_shared<TaskGroup>(node.first, schedule, game_, held_out);
+    auto group = std::make_shared<TaskGroup>(node.first, schedule, game_);
     task_groups_.push_back(group);
     task_group_weights_.push_back(weight);
 
@@ -101,11 +128,11 @@ void Teacher::reset_config(const std::string& teacher_conf, bool print) {
         }
     }
 
-    CHECK_GT(conf_root_->count("teacher"), 0);
+    CHECK_GT(conf_root_->count("task_groups"), 0);
     // Get all the groups
     // The groups have priorties according to their order in json
     // From high to low
-    for (const auto& node : conf_root_->get_child("teacher.task_groups")) {
+    for (const auto& node : conf_root_->get_child("task_groups")) {
         add_task_group(node);
     }
 }
@@ -172,8 +199,8 @@ bool Teacher::teach() {
         return false;
     }
     before_teach();
-    nondeterministic_sort_task_groups();
     if (task_groups_exclusive_) {
+        nondeterministic_sort_task_groups();
         TaskGroupPtr any_busy_group = nullptr;
         for (auto g : task_groups_) {
             if (!g->is_idle()) {

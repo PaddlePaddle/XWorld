@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
 from py_simulator import Simulator
-import sys
-sys.path.append("../../games/xworld/tasks")
 
 
 def compute_action(states, num_actions):
@@ -29,7 +27,7 @@ if __name__ == "__main__":
 
     print "Example 1: Navigation with language instruction"
     options = {
-        "conf_path": "../../confs/empty_ground.json",
+        "conf_path": "../../confs/walls.json",
         "curriculum": 0,
         "task_mode": "arxiv_lang_acquisition",
         "context": 1,
@@ -52,7 +50,7 @@ if __name__ == "__main__":
 
         states = xworld.get_state()
         action = compute_action(states, num_actions)
-        r = xworld.take_actions({"action": action})
+        r = xworld.take_actions({"action": action, "pred_sentence" : ""})
         print r
         reward += r
 

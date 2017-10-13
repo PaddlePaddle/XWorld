@@ -1,89 +1,15 @@
 {
-    "xworld" : {
-        "dimensions" : {
-            "height" : 7,
-            "width" : 7
-        },
+    "item_path" : "images",
 
-        "items" : {
-            "goal" : {
-                "number" :[4],
-    //            "category" : [
-    //                "fruit"
-    //                "test"
-    //            ],
-                "category" : [
-    //                  "test"
-    //                "animal",
-                    "fruit"
-    //                "unknown"
-    //                "shape"
-    //                "color"
-                ],
-                "nav_train_inactive" : [
-//                     "banana",
-//                      "apple",
-//                    "avocado"
-    //                "panda",
-    //                "snake"
-                ],
-                "instances" : {
-                    "x" : [4,3],
-                    "x" : [2,3],
-                    "x" : [3,2],
-                    "x" : [3,4]
-    //                "banana" : [-1,-1]
-                }
-            },
-            "agent" : {
-                "number" : [1],
-                "instances" : {
-                    "robot" : [3, 3]
-                    // add predefined agent locations here
-                }
-            },
-            "block" : {
-                "number" : [0],
-                "instances" : {
-                    // add predefined block locations here
-                }
-            },
-            "dummy" : {
-                "number" : [0],
-                "instances" : {
-                    // add predefined dummy locations here
-                }
-            }
-        }
-    },
+    "map" : "XWorldLanguage",
 
-    "teacher" : {
-        "task_groups" : {
-            /*
-            "XWorldNav" : {
-                "held_out" : [
-                ],
-                "weight" : 1,
-                "schedule" : "random",  // optional, default "random"
-                "tasks" : {
-                    "XWorldNavTargetTask" : 1
-                }
-            }*/
-            /*
-            "XWorldRec" : {
-                "schedule" : "weighted",
-                "weight" : 1,
-                "tasks" : {
-                    "XWorldRecDirectionToObjectTask" : 1
-                }
-            },*/
-            "XWorldLan" : {
-                "schedule" : "weighted",
-                "weight" : 1,
-                "tasks" : {
-                    "XWorldLanObjectToDirectionTask" : 1,
-                    "XWorldLanDirectionToObjectTask" : 1
-                }
+    "task_groups" : {
+        "XWorldLan" : {
+            "schedule" : "weighted",
+            "weight" : 1,
+            "tasks" : {
+                "XWorldLanDirectionToObject" : 1,
+                "XWorldLanObjectToDirection" : 1
             }
         }
     }

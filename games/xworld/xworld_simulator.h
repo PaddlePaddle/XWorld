@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #pragma once
-#include "xworld/xagent.h"
 #include "xworld/xworld.h"
 
 #include <deque>
@@ -35,8 +34,7 @@ namespace xwd {
 class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
   public:
     XWorldSimulator(bool print_xworld_config,
-                    const std::string& conf_path,
-                    int curriculum);
+                    const std::string& conf_path);
     ~XWorldSimulator() {}
     virtual void reset_game() override;
 
@@ -66,26 +64,18 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
         std::unordered_map<std::string, std::string>& info) override;
 
     // add an agent to the XWorld with name as agent_name (should be unique)
-    virtual int add_agent(std::string agent_name) override;
+    virtual int add_agent() override;
 
     void apply_teacher_actions() override;
 
-    // determine if an entity is valid or not
-    bool entity_valid(const Entity& e) override;
-
     void get_world_dimensions(double& X, double& Y, double& Z) override;
-
-    // get world size = X * Y
-    size_t world_size() override;
-
-    // determine if a color is defined
-    bool color_defined(std::string c) override;
 
     // get the information for all the entities
     void get_all_entities(std::vector<Entity>& entities) override;
 
-    // get all possible objects that can appear in xworld
-    void get_all_possible_objects(std::vector<Entity>& objects) override;
+    boost::python::object get_py_env() override;
+
+    void update_environment() override;
 
     // these are the dimensions that are used by the CNN
     void get_screen_out_dimensions(size_t& img_height_out,
@@ -120,7 +110,6 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
                            bool color = false);
 
     xwd::XWorld xworld_;  // the environment for all the agents
-    std::vector<xwd::XAgent*> agent_list_;  // list of agents
     std::vector<std::string> agent_received_sentences_;
 
     int height_;  // size of the world (in terms of building blocks)

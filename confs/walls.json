@@ -1,12 +1,12 @@
 {
     "item_path" : "images",
-    "map" : "XWorldNav",
+    "map" : "XWorldWalls",
     "task_groups" : {
         "XWorldNav" : {
             "held_out" : [
             ],
             "weight" : 0.5,
-            "schedule" : "random",  // optional, default "random"
+            "schedule" : "random",
             "tasks" : {
                 "XWorldNavTarget" : 1,
                 "XWorldNavNear" : 1,
@@ -24,8 +24,8 @@
                 "XWorldRecObjectToColor" : 1,
                 "XWorldRecDirectionToColor" : 1,
                 "XWorldRecColorToDirection" : 1,
-                "XWorldRecDirectionAndObjectToObject" : 1,
-                "XWorldRecDirectionAndObjectToColor" : 1,
+                "XWorldRecDirectionAndObjectToObject" : 2,
+                "XWorldRecDirectionAndObjectToColor" : 2,
                 "XWorldRecColorAndObject" : 1,
                 "XWorldRecBetweenToObject" : 1,
                 "XWorldRecBetweenToDirection" : 1,

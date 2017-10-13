@@ -19,8 +19,10 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <boost/python.hpp>
 #include "data_packet.h"
 #include "simulator_util.h"
+#include "simulator_entity.h"
 
 #ifndef GFLAGS_GFLAGS_H_
 namespace gflags = google;
@@ -233,30 +235,28 @@ typedef std::shared_ptr<GameSimulator> SimulatorPtr;
 
 class GameSimulatorMulti : public GameSimulator {
   public:
-    GameSimulatorMulti() : active_agent_id_(0) {}
+    GameSimulatorMulti() : num_agents_(0), active_agent_id_(0) {}
 
     virtual ~GameSimulatorMulti() {}
 
-    virtual int add_agent(std::string name) {
-        agents_[name] = agents_.size() - 1;
-        return agents_.size() - 1;
-    }
-
     virtual void set_active_agent_id(int agent_id) {
         active_agent_id_ = agent_id;
+    }
+
+    // return the newly added agent id
+    virtual int add_agent() {
+        return num_agents_ ++;
     }
 
     // this function is called to return max_steps to AgentSpecificSimulator
     int64_t get_max_steps() { return max_steps_; }
 
   protected:
+    int num_agents_;
     int active_agent_id_;
-    std::unordered_map<std::string, int> agents_;
 };
 
 typedef std::shared_ptr<GameSimulatorMulti> SimulatorMultiPtr;
-
-class Entity;
 
 // A buffer that stores the communication between agent and teacher,
 // coordinated by the teaching environment
@@ -265,7 +265,6 @@ struct TeachingEnvBuffer {
     ///////// teacher's buffer /////////
     std::string teacher_sent;
     std::string teacher_sent_type;    // for display only; not for agent
-    std::string teacher_sent_answer;  // only useful for supervised task
     double reward;
     std::string event;  // stores an event's name during the session
                         // e.g., "correct_goal", "wrong_goal", "hit_wall"
@@ -273,27 +272,27 @@ struct TeachingEnvBuffer {
     ///////// agent's buffer ////////
     std::string agent_sent;
     int agent_action;
+    bool agent_action_successful;
 
     void clear_teacher_env_buffer() {
         teacher_sent = "";
         teacher_sent_type = "";
-        teacher_sent_answer = "";
         reward = 0;
         event = "";
     }
     void clear_agent_env_buffer() {
         agent_sent = "";
         agent_action = -1;
+        agent_action_successful = false;
     }
 };
 
 // TeachingEnvironment only supports single sentence
 class TeachingEnvironment {
   public:
-    TeachingEnvironment(int curriculum_learning = 0)
+    TeachingEnvironment()
         : beginning_(true),
-          num_games_since_simulation_(0),
-          curriculum_learning_(curriculum_learning) {}
+          num_games_since_simulation_(0) {}
 
     virtual ~TeachingEnvironment() {}
 
@@ -317,14 +316,6 @@ class TeachingEnvironment {
         return buffer_.teacher_sent_type;
     }
 
-    void record_teacher_sent_answer_in_buffer(const std::string& answer) {
-        buffer_.teacher_sent_answer = answer;
-    }
-
-    const std::string& get_teacher_sent_answer_from_buffer() const {
-        return buffer_.teacher_sent_answer;
-    }
-
     void add_teacher_reward(double reward) { buffer_.reward += reward; }
 
     double get_teacher_reward() const { return buffer_.reward; }
@@ -343,35 +334,34 @@ class TeachingEnvironment {
         return buffer_.agent_sent;
     }
 
+    void record_agent_action_successful_in_buffer(bool successful) {
+        buffer_.agent_action_successful = successful;
+    }
+
+    bool get_agent_action_successful_from_buffer() const {
+        return buffer_.agent_action_successful;
+    }
+
     void record_agent_action_in_buffer(int action) {
         buffer_.agent_action = action;
     }
 
     int get_agent_action_from_buffer() const { return buffer_.agent_action; }
 
-    // This function can be used to decide wheter some property of
-    // an entity is valid for the game
-    virtual bool entity_valid(const Entity& e) = 0;
-
-    // If the entity's color is defined in the game
-    virtual bool color_defined(std::string c) = 0;
-
     // get all the entities in the current game
     virtual void get_all_entities(std::vector<Entity>& entities) = 0;
 
-    // get all possible objects that can appear in the game
-    // this function is used for computing the total number of sentences by
-    // teacher
-    virtual void get_all_possible_objects(std::vector<Entity>& objects) = 0;
+    // get the python environment
+    virtual boost::python::object get_py_env() = 0;
+
+    // update the environment by the teacher's changes
+    virtual void update_environment() = 0;
 
     // The linking node between the teacher and the agent
     virtual void apply_teacher_actions() = 0;
 
     // get the world
     virtual void get_world_dimensions(double& X, double& Y, double& Z) = 0;
-
-    // get the world size = X * Y
-    virtual size_t world_size() = 0;
 
     virtual void reset_game() {
         beginning_ = true;
@@ -393,13 +383,9 @@ class TeachingEnvironment {
 
     int num_games_since_simulation() { return num_games_since_simulation_; }
 
-    int curriculum_learning() { return curriculum_learning_; }
-
   protected:
-    bool
-        beginning_;  // whether any agent has taken action since the game starts
+    bool beginning_;  // whether any agent has taken action since the game starts
     int num_games_since_simulation_;  // how many games have been played
-    int curriculum_learning_;         // how many games for curriculum learning
     TeachingEnvBuffer
         buffer_;  // a buffer to store exchanging information between
                   // the teacher and the agent

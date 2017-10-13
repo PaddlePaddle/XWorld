@@ -23,20 +23,6 @@
 namespace simulator {
 namespace xwd {
 
-struct AgentColors {
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-};
-
-static const std::vector<AgentColors> agent_colors({{0, 0, 255},
-                                                    {255, 0, 0},
-                                                    {0, 255, 0},
-                                                    {255, 255, 0},
-                                                    {0, 255, 255},
-                                                    {255, 0, 255},
-                                                    {0, 0, 0}});
-
 /**
 *  class for organizing all the items in XWorld
 *
@@ -48,17 +34,12 @@ class XMap {
     XMap();
     XMap(int height, int width);
 
-    // destructor
-    virtual ~XMap();
-
     /**
     *  Function to get an image representation of all the items in map.
-    *  @param goal_names: a set of goal names to be highlighted for
-    * visualization
     *  @param flag_item_centric: flag for item centric view or not (item
     * specified
-    * by item_name)
-    *  @param item_name:  the name of the item for centering the view if
+    * by item_id)
+    *  @param item_loc:  the location of the item for centering the view if
     * flag_item_centric is true
     *  @param flag_grid_lines: flag for drawing the grid lines in xworld
     *  @param success: draw a success sign if positive and failure sign
@@ -72,9 +53,8 @@ class XMap {
     * (for
     * visualization)
     */
-    cv::Mat to_image(const std::vector<std::vector<std::string>>& goal_names,
-                     bool flag_item_centric,
-                     std::string item_name,
+    cv::Mat to_image(bool flag_item_centric,
+                     const Loc& item_loc,
                      bool flag_illustration,
                      int success,
                      int visible_radius_unit,
@@ -83,7 +63,7 @@ class XMap {
     /**
     *  Function to generate a partially observed view for an input image
     *  @param img_in: input image representing the full view
-    *  @param item_name: the name of the item that specifies the center of the
+    *  @param item_loc: the location of the item that specifies the center of the
     * mask
     *  @param visible_radius_unit: radius of the visible range for the agent
     *  @param mask_value: value to be filled for the invisible region
@@ -93,25 +73,28 @@ class XMap {
     * visualization)
     */
     cv::Mat image_masking(cv::Mat img_in,
-                          std::string item_name,
+                          const Loc& item_loc,
                           int visible_radius_unit,
                           int mask_value,
                           bool flag_crop_receiptive_filed = false);
 
     // add an item to the map
-    void add_item(XItem* item_ptr);
+    void add_item(XItemPtr item_ptr);
 
     // remove an item from the map
-    void remove_item(XItem* item_ptr);
+    void remove_item(XItemPtr item_ptr);
 
     // add a list of items for the map
-    void add_items(const std::vector<XItem*>& item_list);
+    void add_items(const std::vector<XItemPtr>& item_list);
 
     // remove a list of items from the map
-    void remove_items(const std::vector<XItem*>& item_list);
+    void remove_items(const std::vector<XItemPtr>& item_list);
+
+    // move an item to a target location
+    bool move_item(XItemPtr item, const Loc& target);
 
     // get the location for the item
-    Loc get_item_location(std::string item_name);
+    Loc get_item_location(std::string item_id);
 
     // check if the specified location is reachable
     bool is_reachable(int x, int y) const;
@@ -126,7 +109,7 @@ class XMap {
 
     // 3d matrix containing all the items in the 2D world
     // Haonan: could be improved with a sparse representation
-    std::vector<std::vector<std::vector<XItem*>>> item_ptr_cube_;
+    std::vector<std::vector<std::vector<XItemPtr>>> item_ptr_cube_;
 
     // length of the grid in terms of pixels (same for both horizontal and
     // vertical directions)
@@ -141,8 +124,8 @@ class XMap {
 
     void dashed_line(cv::Mat& img, int every, cv::Point p1, cv::Point p2);
 
-    // center image with respect to the item specified by item_name
-    cv::Mat image_centering(cv::Mat img_in, std::string item_name);
+    // center image with respect to the item specified by item_loc
+    cv::Mat image_centering(cv::Mat img_in, const Loc& item_loc);
 };
 }
 }  // namespace xworld
