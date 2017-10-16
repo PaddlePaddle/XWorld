@@ -1,8 +1,21 @@
+// Copyright (c) 2017 Baidu Inc. All Rights Reserved.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #pragma once
 
-#include <cassert>
 #include <cstring>
-#include <stdexcept>
+#include <glog/logging.h>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -10,23 +23,22 @@
 namespace simulator {
 namespace util {
 
-typedef std::size_t size_type;
 typedef unsigned char uchar;
 
 class BinaryBuffer {
 public:
     ~BinaryBuffer();
 
-    explicit BinaryBuffer(size_type size = 0);
-    BinaryBuffer(size_type size, size_type capacity);
-    BinaryBuffer(const void* data, size_type size);
+    explicit BinaryBuffer(size_t size = 0);
+    BinaryBuffer(size_t size, size_t capacity);
+    BinaryBuffer(const void* data, size_t size);
     BinaryBuffer(const BinaryBuffer&);
 
     BinaryBuffer& operator=(const BinaryBuffer&);
 
-    void assign(const void* data, size_type size);
+    void assign(const void* data, size_t size);
 
-    void take_over(void* data, size_type size);
+    void take_over(void* data, size_t size);
 
     void append(const BinaryBuffer&);
 
@@ -54,15 +66,15 @@ public:
     template<typename T>
     void read(T* t, int num_elements);
 
-    size_type size () const;
+    size_t size () const;
 
-    bool resize (size_type);
+    bool resize (size_t);
 
-    size_type capacity () const;
+    size_t capacity () const;
 
-    bool reserve (size_type);
+    bool reserve (size_t);
 
-    size_type offset() const;
+    size_t offset() const;
 
     bool empty () const;
 
@@ -82,8 +94,8 @@ private:
     }
 
     uchar* data_;
-    size_type size_;
-    size_type capacity_;
+    size_t size_;
+    size_t capacity_;
     bool own_;
     uchar* read_ptr_;
 };
@@ -92,13 +104,13 @@ inline BinaryBuffer::~BinaryBuffer() {
     delete_if_own();
 }
 
-inline BinaryBuffer::BinaryBuffer(size_type size) {
+inline BinaryBuffer::BinaryBuffer(size_t size) {
     data_ = (size != 0 ? new uchar[size] : NULL);
     size_ = capacity_ = size;
     own_ = true;
 }
 
-inline BinaryBuffer::BinaryBuffer(size_type size, size_type capacity) {
+inline BinaryBuffer::BinaryBuffer(size_t size, size_t capacity) {
     if (size > capacity) {
         size = capacity;
     }
@@ -109,7 +121,7 @@ inline BinaryBuffer::BinaryBuffer(size_type size, size_type capacity) {
     own_ = true;
 }
 
-inline BinaryBuffer::BinaryBuffer(const void* data, size_type size) {
+inline BinaryBuffer::BinaryBuffer(const void* data, size_t size) {
     if (size != 0) {
         data_ = new uchar[size];
         std::memcpy(data_, data, size);
@@ -140,6 +152,7 @@ inline BinaryBuffer& BinaryBuffer::operator=(const BinaryBuffer& other) {
             delete_if_own();
             data_ = new uchar[other.capacity_];
             capacity_ = other.capacity_;
+            own_ = true;
         }
         std::memcpy(data_, other.data_, other.size_);
         size_ = other.size_;
@@ -147,7 +160,7 @@ inline BinaryBuffer& BinaryBuffer::operator=(const BinaryBuffer& other) {
     return *this;
 }
 
-inline void BinaryBuffer::assign(const void* data, size_type size) {
+inline void BinaryBuffer::assign(const void* data, size_t size) {
     if (size > capacity_) {
         delete_if_own();
         data_ = new uchar[size];
@@ -158,7 +171,7 @@ inline void BinaryBuffer::assign(const void* data, size_type size) {
     size_ = size;
 }
 
-inline void BinaryBuffer::take_over(void* data, size_type size) {
+inline void BinaryBuffer::take_over(void* data, size_t size) {
     delete_if_own();
     data_ = static_cast<uchar*>(data);
     size_ = capacity_ = size;
@@ -191,7 +204,7 @@ inline void BinaryBuffer::append(const T* data, int num_elements) {
         return;
     }
 
-    size_type total_size = sizeof(T) * num_elements;
+    size_t total_size = sizeof(T) * num_elements;
     reserve(total_size + size_);
     std::memcpy(data_ + size_, (uchar*)data, total_size);
     size_ = size_ + total_size;
@@ -209,10 +222,9 @@ inline void BinaryBuffer::read(T& t) {
 inline void BinaryBuffer::read(std::string& str) {
     std::size_t len;
     read(len);
-    char* tmp = new char[len+1];
+    char tmp[len+1];
     read(tmp, len+1);
     str.assign(tmp);
-    delete [] tmp;
 }
 
 template <typename T>
@@ -229,28 +241,28 @@ inline void BinaryBuffer::read(T* t, int num_elements) {
         return;
     }
 
-    size_type total_size = sizeof(T) * num_elements;
-    assert(read_ptr_ - data_ + total_size <= size_);
+    size_t total_size = sizeof(T) * num_elements;
+    CHECK_LE(read_ptr_ - data_ + total_size, size_);
     std::memcpy(t, read_ptr_, total_size);
     read_ptr_ += total_size;
 }
 
-inline size_type BinaryBuffer::size() const {
+inline size_t BinaryBuffer::size() const {
     return size_;
 }
 
-inline bool BinaryBuffer::resize(size_type size) {
+inline bool BinaryBuffer::resize(size_t size) {
     bool capacity_changed = reserve(size);
     size_ = size;
 
     return capacity_changed;
 }
 
-inline size_type BinaryBuffer::capacity() const {
+inline size_t BinaryBuffer::capacity() const {
     return capacity_;
 }
 
-inline bool BinaryBuffer::reserve(size_type capacity) {
+inline bool BinaryBuffer::reserve(size_t capacity) {
     if (capacity <= capacity_) {
         return false;
     }
@@ -283,7 +295,7 @@ inline void BinaryBuffer::clear() {
     size_ = 0;
 }
 
-inline size_type BinaryBuffer::offset() const {
+inline size_t BinaryBuffer::offset() const {
     return read_ptr_ - data_;
 }
 

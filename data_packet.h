@@ -340,8 +340,9 @@ private:
  **/
 class StateBuffer : public DataBuffer {
 public:
-    StateBuffer()
-        : reals_(nullptr), pixels_(nullptr), id_(nullptr), str_(nullptr) {}
+    StateBuffer() :
+            reals_(nullptr), pixels_(nullptr), id_(nullptr), str_(nullptr),
+            BIT_REALS(1), BIT_PIXELS(2), BIT_ID(4), BIT_STR(8) {}
     void copy_from(std::shared_ptr<DataBuffer> buffer) override;  // deep copy
     void init_value(size_t w, size_t h, bool pixels) override;
     void init_id(size_t sz) override;
@@ -357,11 +358,18 @@ public:
 
 private:
     void sync_value_ptr() override;
+    template <typename T>
+    bool pointer_compare(const std::shared_ptr<T>& a,
+                         const std::shared_ptr<T>& b);
     // shallow copies by default
     std::shared_ptr<std::vector<float>> reals_;
     std::shared_ptr<std::vector<uint8_t>> pixels_;
     std::shared_ptr<std::vector<int>> id_;
     std::shared_ptr<std::string> str_;
+    const uint8_t BIT_REALS;
+    const uint8_t BIT_PIXELS;
+    const uint8_t BIT_ID;
+    const uint8_t BIT_STR;
 };
 
 typedef DataPacket<StateBuffer> StatePacket;

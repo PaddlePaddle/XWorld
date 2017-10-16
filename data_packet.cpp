@@ -122,29 +122,18 @@ size_t StateBuffer::get_id_size() {
 }
 
 bool StateBuffer::operator==(const StateBuffer& other) {
-    if (reals_ && !other.reals_ || !reals_ && other.reals_ ||
-        reals_ && other.reals_ && *reals_ != *other.reals_) {
+    if (!pointer_compare(reals_, other.reals_) ||
+        !pointer_compare(pixels_, other.pixels_) ||
+        !pointer_compare(id_, other.id_) ||
+        !pointer_compare(str_, other.str_)) {
         return false;
     }
-    if (pixels_ && !other.pixels_ || !pixels_ && other.pixels_ ||
-        pixels_ && other.pixels_ && *pixels_ != *other.pixels_) {
-        return false;
-    }
-    if (id_ && !other.id_ || !id_ && other.id_ ||
-        id_ && other.id_ && *id_ != *other.id_) {
-        return false;
-    }
-    if (str_ && !other.str_ || !str_ && other.str_ ||
-        str_ && other.str_ && *str_ != *other.str_) {
-        return false;
-    }
-
     return true;
 }
 
 void StateBuffer::encode(util::BinaryBuffer& buf) {
-    uint8_t flags = (reals_ ? 1 : 0) | (pixels_ ? 2 : 0) |
-                    (id_ ? 4 : 0) | (str_ ? 8 : 0);
+    uint8_t flags = (reals_ ? BIT_REALS : 0) | (pixels_ ? BIT_PIXELS : 0) |
+                    (id_ ? BIT_ID : 0) | (str_ ? BIT_STR : 0);
     buf.append(flags);
     if (reals_) {
         buf.append(*reals_);
@@ -163,22 +152,30 @@ void StateBuffer::encode(util::BinaryBuffer& buf) {
 void StateBuffer::decode(util::BinaryBuffer& buf) {
     uint8_t flags = 0;
     buf.read(flags);
-    if (flags & 1) {
+    if (flags & BIT_REALS) {
         reals_ = std::make_shared<std::vector<float>>();
         buf.read(*reals_);
     }
-    if (flags & 2) {
+    if (flags & BIT_PIXELS) {
         pixels_ = std::make_shared<std::vector<uint8_t>>();
         buf.read(*pixels_);
     }
-    if (flags & 4) {
+    if (flags & BIT_ID) {
         id_ = std::make_shared<std::vector<int>>();
         buf.read(*id_);
     }
-    if (flags & 8) {
+    if (flags & BIT_STR) {
         str_ = std::make_shared<std::string>();
         buf.read(*str_);
     }
 }
 
+template <typename T>
+bool StateBuffer::pointer_compare(const std::shared_ptr<T>& a,
+                                  const std::shared_ptr<T>& b) {
+    if (a && !b || !a && b || a && b && (*a != *b)) {
+        return false;
+    }
+    return true;
+}
 } // namespace simulator
