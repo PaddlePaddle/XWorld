@@ -53,6 +53,8 @@ int main(int argc, char** argv) {
     double reward_per_game = 0;
     double r = 0;
     for (int i = 0; i < 100; i++) {
+        game->show_screen(reward_per_game);
+
         auto game_over_str =
             GameSimulator::decode_game_over_code(game->game_over());
         if (game_over_str != "alive") {
@@ -61,7 +63,6 @@ int main(int argc, char** argv) {
             reward_per_game = 0;
             continue;
         }
-        game->show_screen(reward_per_game);
 
         StatePacket state;
         // You can choose to store the immediate reward r in the state

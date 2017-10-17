@@ -1,16 +1,14 @@
 # <img src="doc/xworld_logo.png" alt="XWorld">
 This repository currently contains a collection of simulators for Reinforcement Learning research.
 
-|**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Build-on-the-fly?**|
-|:--------------|---------------|:---------------:|:---------------:|:---------------:|
-|**SimpleGame**|A simple 1D array-walking game.|Yes|No|Yes|
-|**SimpleRace**|A simple synthetic car racing game.|Yes|No|Yes|
-|**XWorld2D**|A 2D environment for an agent to learn vision and language abilities.|Yes|No|Yes|
-|**Atari**|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|No|Yes|
-|**Malmo**|Wrappers for Microsoft [Malmo](https://github.com/Microsoft/malmo) Project.|*TBD*|Yes|No, Malmo has to be installed manually first.|
-|**DeepMind Lab**|Wrappers for DeepMind [Lab](https://github.com/deepmind/lab). We use a fork version of the original repository to address a [compiling issue](https://github.com/deepmind/lab/pull/71).|Yes|Yes|Yes, but external dependencies of DeepMind Lab have to be manually installed first|
+|**Name**|**Description**|**Thread-compatible?***|**Optional?**|
+|:--------------|---------------|:---------------:|:---------------:|
+|**SimpleGame**|A simple 1D array-walking game.|Yes|No|
+|**SimpleRace**|A simple synthetic car racing game.|Yes|No|
+|**XWorld2D**|A 2D environment for an agent to learn vision and language abilities.|No|No|
+|**Atari**|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|
 
-*If each thread has a different environment instance, then they don't interfere with each other. But if all threads share the same instance, then there is interference.
+*If yes, then multithreading can be used; otherwise multiprocessing is needed.
 
 # Requirements
 * Compiler: GCC 4.8 or above
@@ -55,18 +53,12 @@ make
 make test
 ```
 
-By default, XWorld only builds the first four games: SimpleGame, SimpleRace, Atari, and XWorld2D. Optionally, you can install [DeepMind Lab](https://deepmind.com/blog/open-sourcing-deepmind-lab) and [Project Malmo](https://www.microsoft.com/en-us/research/project/project-malmo).
+By default, XWorld only builds the first three games: SimpleGame, SimpleRace, and XWorld2D. Optionally, you can install [Atari](http://www.arcadelearningenvironment.org/) by:
 
-To use DeepMind Lab, please install the external dependencies by following the instructions included in this [DeepMind Lab build documentation](https://github.com/deepmind/lab/blob/master/docs/build.md#how-to-build-deepmind-lab) and run the cmake command
 ```
-cmake -DWITH_DEEPMIND_LAB=ON ..
+cmake -DWITH_ATARI=ON ..
 ```
-which will automatically download and build DeepMind Lab.
-
-To use Malmo, please first follow the instructions on [https://github.com/Microsoft/malmo](https://github.com/Microsoft/malmo) to install Malmo, and then run the cmake command
-```
-cmake -DMALMO_ROOT=/path/to/MALMO ..
-```
+which will automatically download and build Atari.
 
 # Use
 You can compile a C++ project with XWorld. The C++ simulator APIs are located in simulator.h ```GameSimulator```.
@@ -95,11 +87,9 @@ Below we explain the flags that the user can set for each game. If you use Pytho
 |**b**|```simple_race```|```SimpleRaceGame```|```pause_screen```,```window_width```,```window_height```,<br>```track_type```,```track_width```,```track_length```,<br>```track_radius```,```race_full_manouver```,```random```,<br>```difficulty```|
 |**c**|```xworld```|```XWorldSimulator```|```pause_screen```,```conf_path```,```curriculum```,<br>```task_mode```,```task_groups_exclusive```,```context```|
 |**d**|```atari```|```ArcadeGame```|```pause_screen```,```ale_rom```,```context```|
-|**e**|```minecraft```|```MinecraftSimulator```|```pause_screen```,```context```,```mission```,<br>```conf_path```,```minecraft_client_ip```,```minecraft_client_port```|
-|**f**|```deepmind_lab```|```DeepmindLabSimulatorBase```|```pause_screen```,```context```,```runfiles_path```,<br>```level_script```|
 
 The meanings of the above flags are listed below. Each flag applies to certain games indicated by the IDs.
-* ```pause_screen``` (**a-f**)
+* ```pause_screen``` (**a-d**)
 
     Pause the shown screen when show_screen() is called, until any key is pressed. (Default: false)
 
@@ -143,7 +133,7 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     Difficulty level: "easy" level provides negative rewards when moving away from the center line of the track, and "hard" level only provides rewards when out-of-boundary or reaching finish line. (Default: "easy")
 
-* ```conf_path``` (**c**,**e**)
+* ```conf_path``` (**c**)
 
     The conf JSON file for XWorld2D, or the conf XML file for MALMO. (Default: "")
 
@@ -167,7 +157,7 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     In XWorld2D, whether the agent handles multiple tasks simultaneously (false) or not (true). (Default: true)
 
-* ```context``` (**c-f**)
+* ```context``` (**c-d**)
 
     How many consecutive frames are used to represent the current state. (Default: 1)
 
@@ -175,28 +165,32 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     The Atari ROM file path. You need to download the ROMs (.bin files) yourself. (Default: "")
 
-* ```mission``` (**e**)
-
-    MALMO mission name, currently only support "demo". (Default: "demo")
-
-* ```minecraft_client_ip``` (**e**)
-
-    Specify the IP address of Minecraft mod. (Default: "127.0.0.1")
-
-* ```minecraft_client_port``` (**e**)
-
-    Specify the port number of Minecraft mod. (Default: 10000)
-
-* ```runfiles_path``` (**f**)
-
-    Path of DeepMind Lab run files. (Default: "")
-
-* ```level_script``` (**f**)
-
-    The Lua level script for DeepMind Lab. (Default: "")
-
 # Code for training XWorld2D
 Currently there is a PyTorch [reimplementation](https://github.com/zihangdai/pytorch_xworld) (by [@zihangdai](https://github.com/zihangdai)) of the framework used in arXiv:1703.09831. The code runs on the whole vocabulary and does not include the zero-shot experiments, but you can choose to do so according to the zero-shot setups discussed in the paper.
+
+# Write your own XWorld2D tasks
+You can customize XWorld2D tasks in a flexible way. To define a new task, you need three things:
+1. A Python class that defines the map
+  * This class must be defined in a file with the same name and put in
+  ```
+  <xworld_path>/games/xworld/maps/
+  ```
+  The class has to inherit from the base class ```XWorldEnv``` (defined in ```xworld_env.py```) and overwrite the member function ```_configure``` to specify how the map is configured. For an example, please take a look at ```XWorldNav.py```.
+
+2. A Python class that defines the task
+  * This class must be defined in a file with the same name and put in
+  ```
+  <xworld_path>/games/xworld/tasks/
+  ```
+  The class has to inherit from the base class ```XWorldTask``` (defined in ```xworld_task.py```). For an example, please take a look at ```XWorldNavTarget.py```.
+
+3. A JSON conf file. This file specifies three aspects of the world:
+  * ```item_path```: where the icon images are stored. Change this variable if you have new icons.
+  * ```map``` : the name of the Python class that defines the map. It should be one of the Python defined maps.
+  * ```task_groups``` : how the teacher assigns multiple tasks to the agent. Each task should be one of the Python defined tasks.
+  For an example, please take a look at ```<xworld_path>/confs/walls.json```.
+
+Generally, the teacher can dynamically change the environment at every time step, potentially according to the agent's performance and/or behaviors, which is important if you want to implement curriculum learning. The teacher's sentences can be generated by a context-free grammar (```<xworld_path>/python/context_free_grammar.py```) at each time step of each task. You have to define the grammar and decide when to generate what sentence when writing a task.
 
 # Citations
 If you use the XWorld2D environment for your research, please consider citing
@@ -207,4 +201,4 @@ If you use the XWorld2D environment for your research, please consider citing
 If you use our wrappers for the third-party simulators, please follow their original guide for citation.
 
 # License
-This repository has the Apache2.0 license, except that all the third-party simulators (i.e., ALE, Malmo, DeepMind Lab) have their own licenses.
+This repository has the Apache2.0 license, except that the third-party simulator ALE has its own license.

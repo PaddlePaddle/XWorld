@@ -20,26 +20,19 @@
 #include <boost/python/exception_translator.hpp>
 #include <exception>
 #include <iostream>
-#include "games/arcade/arcade_simulator.h"
 #include "games/simple_game/simple_game_simulator.h"
 #include "games/simple_race/simple_race_simulator.h"
 #include "games/xworld/xworld_simulator.h"
 
-#ifdef PY_MALMO
-#include "games/minecraft/minecraft_simulator.h"
-using namespace simulator::mcw;
-#endif
-
-#ifdef PY_DEEPMIND_LAB
-#include "games/deepmind_lab/deepmind_lab_simulator.h"
-using namespace simulator::deepmind_lab_game;
+#ifdef PY_ATARI
+#include "games/arcade/arcade_simulator.h"
+using namespace simulator::arcade_game;
 #endif
 
 using namespace simulator;
 using namespace simulator::simple_game;
 using namespace simulator::simple_race;
 using namespace simulator::xwd;
-using namespace simulator::arcade_game;
 namespace py = boost::python;
 
 DECLARE_bool(color);         // default false
@@ -59,17 +52,6 @@ DECLARE_double(track_radius);
 DECLARE_bool(race_full_manouver);
 DECLARE_bool(random);
 DECLARE_string(difficulty);
-
-#ifdef PY_MALMO
-DECLARE_string(minecraft_client_ip);
-DECLARE_int32(minecraft_client_port);
-DECLARE_int32(ms_per_tick);
-#endif
-
-#ifdef PY_DEEPMIND_LAB
-DECLARE_string(runfiles_path);
-DECLARE_string(level_script);
-#endif
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -203,38 +185,12 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         int agent_id = xwd->add_agent();
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
         teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
-    } else if (name == "atari") {
+    }
+#ifdef PY_ATARI
+    else if (name == "atari") {
         std::string ale_rom = extract_py_dict_val(args, "ale_rom", true, "");
         FLAGS_context = extract_py_dict_val(args, "context", false, 4);
         game.reset(ArcadeGame::create(ale_rom));
-    }
-#ifdef PY_MALMO
-    else if (name == "minecraft") {
-        FLAGS_color = true;
-        FLAGS_context = extract_py_dict_val(args, "context", false, 1);
-        std::string mission = extract_py_dict_val(args, "mission", true, "");
-        std::string conf_path =
-            extract_py_dict_val(args, "conf_path", true, "");
-        FLAGS_minecraft_client_ip = extract_py_dict_val(
-            args, "minecraft_client_ip", false, "127.0.0.1");
-        FLAGS_minecraft_client_port =
-            extract_py_dict_val(args, "minecraft_client_port", false, 10000);
-        FLAGS_ms_per_tick = 10;
-        auto mcw = std::shared_ptr<MinecraftSimulator>(
-            MinecraftSimulator::create(mission, conf_path));
-        int agent_id = mcw->add_agent();
-        game = std::make_shared<AgentSpecificSimulator>(mcw, agent_id);
-    }
-#endif
-#ifdef PY_DEEPMIND_LAB
-    else if (name == "deepmind_lab") {
-        FLAGS_color = true;
-        FLAGS_context = extract_py_dict_val(args, "context", false, 1);
-        FLAGS_runfiles_path =
-            extract_py_dict_val(args, "runfiles_path", true, "");
-        FLAGS_level_script =
-            extract_py_dict_val(args, "level_script", true, "");
-        game.reset(DeepmindLabSimulatorBase::create());
     }
 #endif
     else {
