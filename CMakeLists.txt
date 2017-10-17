@@ -3,20 +3,15 @@ cmake_minimum_required(VERSION 3.0)
 #
 # Need to set the following when doing cmake:
 # WITH_TESTING (optional, default ON)
-# MALMO_ROOT (optional, for running Minecraft tasks)
-# WITH_DEEPMIND_LAB (optional, default OFF, for running deepmind_lab)
+# WITH_ATARI (optional, default OFF)
 #
 # 1. mkdir build; cd build
-# 2. cmake -DMALMO_ROOT=[path/to/malmo] \
-#          -DWITH_DEEPMIND_LAB=ON \
-#          -DWITH_TESTING=ON \
-#          ..
+# 2. cmake -DWITH_TESTING=ON ..
 # 3. make -j4
 
 project(simulator CXX C)
 
-option(WITH_DEEPMIND_LAB "Include Deepmind Lab environment" OFF)
-option(WITH_ROBO_SCHOOL "Include RoboSchool environment" OFF)
+option(WITH_ATARI "Include ATARI" OFF)
 option(WITH_TESTING "Enable test cases" ON)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -28,7 +23,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC")
 
 include(ExternalProject)
-include(atari)
 include(simulator_util)
 
 find_package(PythonLibs 2.7 EXACT REQUIRED)
@@ -76,19 +70,16 @@ set(EXTERNAL_LIBS
 ## all subdirectories produce OBJECT libraries
 add_subdirectory(games/simple_game)
 add_subdirectory(games/simple_race)
-add_subdirectory(games/arcade)
 add_subdirectory(games/xworld)
 
 if(NOT OpenCV_DIR)
   add_dependencies(simple_race opencv)
-  add_dependencies(arcade opencv)
   add_dependencies(xworld opencv)
 endif()
 
 set(OBJECT_LIBS_LIST
   $<TARGET_OBJECTS:simple_game>
   $<TARGET_OBJECTS:simple_race>
-  $<TARGET_OBJECTS:arcade>
   $<TARGET_OBJECTS:xworld>
   )
 

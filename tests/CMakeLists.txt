@@ -7,23 +7,3 @@ add_executable(test_simulator_seed
   test_simulator_seed.cpp)
 link_simulator_test(test_simulator_seed)
 add_test(simulator_test_simulator_seed test_simulator_seed)
-
-if(WITH_DEEPMIND_LAB)
-  add_executable(test_deepmind_lab_simulator
-      test_deepmind_lab_simulator.cpp
-  )
-  link_simulator_test(test_deepmind_lab_simulator)
-  add_test(simulator_test_deepmind_lab test_deepmind_lab_simulator)
-endif()
-
-if(WITH_ROBO_SCHOOL)
-  find_package(PythonLibs REQUIRED)
-  add_executable(test_robo_simulator
-    test_robo_simulator.cpp
-    )
-  target_include_directories(test_robo_simulator
-    PUBLIC
-    ${PYTHON_INCLUDE_DIRS})
-  link_simulator_test(test_robo_simulator)
-  add_test(simulator_test_robo test_robo_simulator)
-endif()
