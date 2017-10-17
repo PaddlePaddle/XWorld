@@ -22,6 +22,7 @@ class XWorldTask(object):
             (-1, -1) : "northwest"
         }
         self.env = env
+        self.event = ""
         self.num_successes = 0
         self.num_failures = 0
         self.reset(True)
@@ -61,6 +62,19 @@ class XWorldTask(object):
     def _record_failure(self):
         self.num_failures += 1
 
+    def _record_answer(self, answer):
+        self.answer = answer
+
+    def _record_target(self, target):
+        self.target = target
+
+    def _record_event(self, event):
+        """
+        Record an event at every time step if necessary
+        Every event has a lifespan of only one time step
+        """
+        self.event = event
+
     ############# public APIs #############
     def reset(self, is_idle):
         self.steps_in_cur_task = 0
@@ -68,6 +82,15 @@ class XWorldTask(object):
         self.answer = ""
         if not is_idle:
             self._record_failure();
+
+    def get_event(self):
+        """
+        Return the triggered event at the current time step
+        Automatically reset the event to empty after getting
+        """
+        ret = self.event
+        self.event = ""
+        return ret
 
     def obtain_performance(self):
         return (self.num_successes, self.num_failures)
@@ -102,9 +125,11 @@ class XWorldTask(object):
         if agent_sent == self.answer:
             reward = XWorldTask.correct_reward / 2
             self._record_success()
+            self._record_event("correct_reply")
         else:
             reward = XWorldTask.wrong_reward / 2
             self._record_failure()
+            self._record_event("wrong_reply")
         return ["conversation_wrapup", reward, sentence]
 
     def simple_navigation_reward(self):
@@ -127,10 +152,10 @@ class XWorldTask(object):
             self._bind("S -> timeup")
             next_stage = "idle"
             sentence = self._generate()
-
-        if agent.loc == self.target:
+        elif agent.loc == self.target:
             self.steps_in_cur_task = 0
             self._record_success()
+            self._record_event("correct_goal")
             reward += XWorldTask.correct_reward
             self._bind("S -> finish")
             next_stage = "idle"
@@ -222,12 +247,6 @@ class XWorldTask(object):
                     visited.add(next)
                     que.append(next)
         return False
-
-    def _record_answer(self, answer):
-        self.answer = answer
-
-    def _record_target(self, target):
-        self.target = target
 
     def _bind(self, binding_str):
         self.cfg.bind(binding_str)

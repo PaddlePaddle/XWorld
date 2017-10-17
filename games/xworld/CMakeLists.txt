@@ -4,5 +4,4 @@ add_library(xworld
   ./xworld/xworld.cpp
   ./xworld/xmap.cpp
   ./xworld/xitem.cpp
-  ${TASKS_SRC}
   )

@@ -78,6 +78,11 @@ std::string Task::py_stage(const std::string& stage_name) {
         game_->update_environment();
     }
 
+    std::string event = py::extract<std::string>(py_task_.attr("get_event")());
+    if (!event.empty()) {
+        game_->record_event_in_buffer(event);
+    }
+
     CHECK_EQ(py::len(ret), 3) << "Incorrect length of stage returns";
     std::string next_stage = py::extract<std::string>(ret[0]);
     double reward = py::extract<double>(ret[1]);

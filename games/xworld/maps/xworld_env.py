@@ -34,7 +34,7 @@ class XWorldEnv(object):
         self.max_height = max_height
         self.max_width = max_width
         self.all_icon_paths = []
-        for dirpath, dirs, files in os.walk(item_path):
+        for dirpath, _, files in os.walk(item_path):
             for f in files:
                 if f.endswith(".jpg") or f.endswith(".png"):
                     self.all_icon_paths.append(os.path.join(dirpath, f))
@@ -86,7 +86,8 @@ class XWorldEnv(object):
         self.offset_h = (self.max_height - h) / 2
         self.offset_w = (self.max_width - w) / 2
         self.pad_blocks = self.__padding_walls()
-        self.available_grids = list(set(itertools.product(range(w), range(h))) & set(self.available_grids))
+        existing_entities = [e.loc for e in self.entities]
+        self.available_grids = list(set(itertools.product(range(w), range(h))) - set(existing_entities))
         random.shuffle(self.available_grids)
         self.changed = True
 
@@ -94,12 +95,12 @@ class XWorldEnv(object):
         """
         Add an entity of type to loc which must be empty
         """
-        self.entity_nums[type] += 1
-        self.entities.append(Entity(type=type, loc=loc, name=name))
         if not loc is None:
             assert loc in self.available_grids, \
                 "set_dims correctly before setting a location"
             self.available_grids.remove(loc)
+        self.entity_nums[type] += 1
+        self.entities.append(Entity(type=type, loc=loc, name=name))
         self.changed = True
 
     def delete_entity(self, loc=None, id=None):
@@ -145,7 +146,7 @@ class XWorldEnv(object):
 
     def get_n(self, type):
         """
-        Get the current entity number on the map for type
+        Get the current number of entities on the map for type
         """
         assert type in self.entity_nums
         return self.entity_nums[type]
@@ -192,6 +193,8 @@ class XWorldEnv(object):
     def cpp_get_entities(self):
         """
         C++ code gets entities information. Used by the underlying simulator.
+        C++ entity is in 3D so we need to add an additional 0.
+        A 3D entity is compatible with different games.
         """
         actual_entities = [e.__dict__ for e in self.entities]
         for e in actual_entities:
@@ -204,9 +207,10 @@ class XWorldEnv(object):
 
     def update_entities_from_cpp(self, entities):
         """
-        Update the environment from C++. The chagnes might be due to
+        Update the environment from C++. The changes might be due to
         the environment dynamics or the agent's actions.
         Entities is a list of python dicts.
+        We only keep the first two dimensions of a C++ entity.
         """
         self.entity_nums = {t : 0 for t in self.grid_types}
         for e in entities:

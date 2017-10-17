@@ -40,13 +40,13 @@ if __name__ == "__main__":
 
     reward = 0
     for i in range(100):
+        xworld.show_screen()
+
         game_over_str = xworld.game_over()
         if game_over_str != "alive":
             print "game over because of ", game_over_str
             xworld.reset_game()
             continue
-
-        xworld.show_screen()
 
         states = xworld.get_state()
         action = compute_action(states, num_actions)
@@ -71,13 +71,13 @@ if __name__ == "__main__":
 
     reward = 0
     for i in range(100):
+        xworld.show_screen()
+
         game_over_str = xworld.game_over()
         if game_over_str != "alive":
             print "game over because of ", game_over_str
             xworld.reset_game()
             continue
-
-        xworld.show_screen()
 
         states = xworld.get_state()
         action = compute_speak_action(states, num_actions)
