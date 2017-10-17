@@ -20,13 +20,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declarations")
 
 include(ExternalProject)
 include(simulator_util)
 
 find_package(PythonLibs 2.7 EXACT REQUIRED)
-find_package(Boost REQUIRED python)
+find_package(Boost REQUIRED COMPONENTS python)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(GTest REQUIRED)

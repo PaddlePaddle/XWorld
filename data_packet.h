@@ -13,11 +13,14 @@
 // limitations under the License.
 
 #pragma once
+
 #include <glog/logging.h>
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
+
+#include "memory_util.h"
 
 namespace simulator {
 
@@ -52,6 +55,7 @@ struct Value {
             c_val_[i] = v;
         }
     }
+
     bool is_uint8() { return c_val_; }
     double* d_val_;
     float* f_val_;
@@ -62,7 +66,7 @@ typedef std::shared_ptr<Value> ValuePtr;
 
 // Different databuffer might have different value types
 class DataBuffer {
-  public:
+public:
     DataBuffer() : v_(std::make_shared<Value>()) {}
     virtual ~DataBuffer() {}
 
@@ -73,6 +77,8 @@ class DataBuffer {
     virtual size_t get_id_size() = 0;             // size of id
     virtual int* get_id() = 0;                    // pointer to id
     virtual std::string* get_str() = 0;           // pointer to string
+    virtual void encode(util::BinaryBuffer& buf) = 0;
+    virtual void decode(util::BinaryBuffer& buf) = 0;
 
     ValuePtr get_value();  // pointer to value buffer
 
@@ -151,7 +157,7 @@ class DataBuffer {
         *str_ptr = str;
     }
 
-  protected:
+protected:
     // init value to 0
     // if pixels=true, the value buffer will be init as uint8_t type
     // otherwise it will be float type
@@ -172,7 +178,7 @@ typedef std::shared_ptr<DataBuffer> BufferPtr;
  */
 template <class T>
 class DataPacket {
-  public:
+public:
     DataPacket() {}
 
     // deep copy when T != Y
@@ -300,7 +306,27 @@ class DataPacket {
         }
     }
 
-  private:
+    void encode(util::BinaryBuffer& buf) {
+        buf.append((std::size_t)data_.size());
+        for (auto& kv : data_) {
+            buf.append(kv.first);
+            kv.second->encode(buf);
+        }
+    }
+
+    void decode(util::BinaryBuffer& buf) {
+        std::size_t sz;
+        buf.read(sz);
+        for (int i = 0; i < sz; ++i) {
+            std::string key;
+            BufferPtr t = std::make_shared<T>();
+            buf.read(key);
+            t->decode(buf);
+            data_[key] = t;
+        }
+    }
+
+private:
     std::unordered_map<std::string, BufferPtr> data_;
 };
 
@@ -313,9 +339,10 @@ class DataPacket {
  * 3. str_    -> storing string
  **/
 class StateBuffer : public DataBuffer {
-  public:
-    StateBuffer()
-        : reals_(nullptr), pixels_(nullptr), id_(nullptr), str_(nullptr) {}
+public:
+    StateBuffer() :
+            reals_(nullptr), pixels_(nullptr), id_(nullptr), str_(nullptr),
+            BIT_REALS(1), BIT_PIXELS(2), BIT_ID(4), BIT_STR(8) {}
     void copy_from(std::shared_ptr<DataBuffer> buffer) override;  // deep copy
     void init_value(size_t w, size_t h, bool pixels) override;
     void init_id(size_t sz) override;
@@ -325,14 +352,24 @@ class StateBuffer : public DataBuffer {
     size_t get_value_width() override;
     size_t get_value_height() override;
     size_t get_id_size() override;
+    bool operator==(const StateBuffer& other); // for ctest only
+    void encode(util::BinaryBuffer& buf) override;
+    void decode(util::BinaryBuffer& buf) override;
 
-  private:
+private:
     void sync_value_ptr() override;
+    template <typename T>
+    bool pointer_compare(const std::shared_ptr<T>& a,
+                         const std::shared_ptr<T>& b);
     // shallow copies by default
     std::shared_ptr<std::vector<float>> reals_;
     std::shared_ptr<std::vector<uint8_t>> pixels_;
     std::shared_ptr<std::vector<int>> id_;
     std::shared_ptr<std::string> str_;
+    const uint8_t BIT_REALS;
+    const uint8_t BIT_PIXELS;
+    const uint8_t BIT_ID;
+    const uint8_t BIT_STR;
 };
 
 typedef DataPacket<StateBuffer> StatePacket;

@@ -60,7 +60,9 @@ void StateBuffer::init_id(size_t sz) {
     id_ = std::make_shared<std::vector<int>>(sz, 0);
 }
 
-void StateBuffer::init_str() { str_ = std::make_shared<std::string>(); }
+void StateBuffer::init_str() {
+    str_ = std::make_shared<std::string>();
+}
 
 void StateBuffer::sync_value_ptr() {
     if (reals_) {
@@ -118,4 +120,62 @@ size_t StateBuffer::get_id_size() {
         return 0;
     }
 }
+
+bool StateBuffer::operator==(const StateBuffer& other) {
+    if (!pointer_compare(reals_, other.reals_) ||
+        !pointer_compare(pixels_, other.pixels_) ||
+        !pointer_compare(id_, other.id_) ||
+        !pointer_compare(str_, other.str_)) {
+        return false;
+    }
+    return true;
 }
+
+void StateBuffer::encode(util::BinaryBuffer& buf) {
+    uint8_t flags = (reals_ ? BIT_REALS : 0) | (pixels_ ? BIT_PIXELS : 0) |
+                    (id_ ? BIT_ID : 0) | (str_ ? BIT_STR : 0);
+    buf.append(flags);
+    if (reals_) {
+        buf.append(*reals_);
+    }
+    if (pixels_) {
+        buf.append(*pixels_);
+    }
+    if (id_) {
+        buf.append(*id_);
+    }
+    if (str_) {
+        buf.append(*str_);
+    }
+}
+
+void StateBuffer::decode(util::BinaryBuffer& buf) {
+    uint8_t flags = 0;
+    buf.read(flags);
+    if (flags & BIT_REALS) {
+        reals_ = std::make_shared<std::vector<float>>();
+        buf.read(*reals_);
+    }
+    if (flags & BIT_PIXELS) {
+        pixels_ = std::make_shared<std::vector<uint8_t>>();
+        buf.read(*pixels_);
+    }
+    if (flags & BIT_ID) {
+        id_ = std::make_shared<std::vector<int>>();
+        buf.read(*id_);
+    }
+    if (flags & BIT_STR) {
+        str_ = std::make_shared<std::string>();
+        buf.read(*str_);
+    }
+}
+
+template <typename T>
+bool StateBuffer::pointer_compare(const std::shared_ptr<T>& a,
+                                  const std::shared_ptr<T>& b) {
+    if (a && !b || !a && b || a && b && (*a != *b)) {
+        return false;
+    }
+    return true;
+}
+} // namespace simulator

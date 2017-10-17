@@ -1,3 +1,13 @@
+add_executable(test_statepacket
+  test_statepacket.cpp)
+link_simulator_test(test_statepacket)
+add_test(simulator_test_statepacket test_statepacket)
+
+add_executable(test_binary_buffer
+  test_binary_buffer.cpp)
+link_simulator_test(test_binary_buffer)
+add_test(simulator_test_binary_buffer test_binar_buffer)
+
 add_executable(test_simple_game_simulator
   test_simple_game_simulator.cpp)
 link_simulator_test(test_simple_game_simulator)

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "memory_util.h"
 #include "simulator_util.h"
 #include <gflags/gflags.h>
 #include <glog/logging.h>
