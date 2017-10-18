@@ -23,7 +23,7 @@ using namespace simulator::util;
 
 template <typename T>
 bool equal(BinaryBuffer& buf, const std::vector<T>& v) {
-    buf.start_reading();
+    buf.rewind();
     T i;
     for (auto& e : v) {
         if (buf.eof()) {
@@ -39,7 +39,7 @@ bool equal(BinaryBuffer& buf, const std::vector<T>& v) {
 
 template <typename T>
 bool equal(BinaryBuffer& buf, const T* v, int num) {
-    buf.start_reading();
+    buf.rewind();
     T x;
     for (int i = 0; i < num; ++i) {
         if (buf.eof()) {
@@ -54,8 +54,8 @@ bool equal(BinaryBuffer& buf, const T* v, int num) {
 }
 
 bool equal(BinaryBuffer& b1,  BinaryBuffer& b2) {
-    b1.start_reading();
-    b2.start_reading();
+    b1.rewind();
+    b2.rewind();
     int i, j;
     while (!b1.eof()) {
         if (b2.eof()) {
@@ -155,7 +155,7 @@ TEST(BinaryBuffer, read_write) {
     BinaryBuffer b1;
     b1.append(v);
     b1.append(std::vector<float>(0));
-    b1.start_reading();
+    b1.rewind();
     std::vector<int> v1, v2;
     b1.read(v1);
     b1.read(v2);
@@ -171,7 +171,7 @@ TEST(BinaryBuffer, read_write) {
     BinaryBuffer b2;
     b2.append(f, 3);
     b2.append(f, 3);
-    b2.start_reading();
+    b2.rewind();
     float ff[6];
     b2.read(ff, 6);
     EXPECT_EQ(b2.size(), 6 * sizeof(float));
@@ -188,7 +188,7 @@ TEST(BinaryBuffer, read_write) {
     b3.append(str);
     b3.append(std::string(""));
     std::string tmp;
-    b3.start_reading();
+    b3.rewind();
     b3.read(tmp);
     EXPECT_EQ(tmp.length(), 3);
     EXPECT_EQ(tmp, str);
@@ -200,7 +200,7 @@ TEST(BinaryBuffer, read_write) {
     BinaryBuffer b4;
     // b1.append(b4);
     b1.append(b2);
-    b1.start_reading();
+    b1.rewind();
     std::size_t sz;
     b1.read(sz);
     EXPECT_EQ(sz, v.size());

@@ -19,15 +19,15 @@ using simulator::simple_game::SimpleGame;
 using simulator::StatePacket;
 
 TEST(SimpleGame, state_action_reward) {
-    int array_size = 8;
-    auto game = std::make_shared<SimpleGame>(array_size);
+    FLAGS_array_size = 8;
+    auto game = std::make_shared<SimpleGame>();
     StatePacket screen;
-    int pos = array_size / 2;
-    for (int i = 0; i < (array_size - 1) / 2; ++i) {
+    int pos = FLAGS_array_size / 2;
+    for (int i = 0; i < (FLAGS_array_size - 1) / 2; ++i) {
         game->get_screen(screen);
         auto* data = screen.get_buffer("screen")->get_value<uint8_t>();
         // only the middle value is 1; all others should be 0s
-        for (int j = 0; j < array_size; j++) {
+        for (int j = 0; j < FLAGS_array_size; j++) {
             if (j != pos) {
                 EXPECT_EQ(int(data[j]), 0);
             } else {
@@ -38,7 +38,7 @@ TEST(SimpleGame, state_action_reward) {
         a.add_buffer_id("action", {1});
         float reward = game->take_action(a);
         pos++;
-        if (pos != array_size - 1) {
+        if (pos != FLAGS_array_size - 1) {
             EXPECT_NEAR(reward, -0.1, 1e-6);
         } else {
             EXPECT_NEAR(reward, 2.0, 1e-6);

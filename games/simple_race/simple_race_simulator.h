@@ -252,7 +252,7 @@ class RaceEngine {
 // simple race interface.
 class SimpleRaceGame : public GameSimulator {
   public:
-    SimpleRaceGame(float window_width, float window_height);
+    SimpleRaceGame();
 
     virtual void reset_game() override;
 

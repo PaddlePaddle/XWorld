@@ -23,6 +23,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+DECLARE_string(xwd_conf_path);
+DECLARE_int32(visible_radius_unit);
+DECLARE_string(task_mode);
+
 namespace simulator {
 namespace xwd {
 
@@ -33,8 +37,7 @@ namespace xwd {
 
 class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
   public:
-    XWorldSimulator(bool print_xworld_config,
-                    const std::string& conf_path);
+    XWorldSimulator(bool print_xworld_config);
     ~XWorldSimulator() {}
     virtual void reset_game() override;
 
@@ -81,6 +84,8 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
     void get_screen_out_dimensions(size_t& img_height_out,
                                    size_t& img_width_out,
                                    size_t& channels);
+
+    std::string conf_file() { return xworld_.conf_file(); }
 
     static const int block_size_ = 12;  // how many pixels each block has
 

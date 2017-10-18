@@ -19,21 +19,27 @@
 #include <functional>
 #include "xworld/xworld.h"
 
+DEFINE_string(
+    xwd_conf_path,
+    "./xworld/confs/empty_ground.json",
+    "the map configure file");
 DEFINE_int32(
     visible_radius_unit,
     0,
     "the radius of visible range in terms of unit (0 for fully observe)");
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
-DEFINE_string(task_mode, "one_channel", "arxiv_lang_acquisition|arxiv_interactive|one_channel");
 DEFINE_bool(ego_centric, true, "whether have ego-centric view");
+DEFINE_string(
+    task_mode,
+    "one_channel",
+    "arxiv_lang_acquisition|arxiv_interactive|one_channel");
 
 namespace simulator {
 namespace xwd {
 
-XWorldSimulator::XWorldSimulator(bool print_xworld_config,
-                                 const std::string& conf_path)
-    : xworld_(conf_path, print_xworld_config) {
+XWorldSimulator::XWorldSimulator(bool print_xworld_config) :
+        xworld_(FLAGS_xwd_conf_path, print_xworld_config) {
     init();
 }
 
@@ -418,7 +424,7 @@ void XWorldSimulator::define_state_specs(StatePacket& state) {
 }
 
 void XWorldSimulator::get_extra_info(
-    std::unordered_map<std::string, std::string>& info) {
+        std::unordered_map<std::string, std::string>& info) {
     info.clear();
     auto type =
         get_teacher_sent_type_from_buffer();  // task type related to a sentence

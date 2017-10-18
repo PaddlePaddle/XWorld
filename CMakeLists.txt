@@ -71,6 +71,8 @@ set(SIMULATOR_SOURCES
   simulator.cpp
   simulator_util.cpp
   python/py_init.cpp
+  simulator_communication.cpp
+  simulator_interface.cpp
   )
 
 set(EXTERNAL_LIBS

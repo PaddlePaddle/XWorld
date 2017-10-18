@@ -30,7 +30,11 @@
 namespace gflags = google;
 #endif
 
+DECLARE_int32(context);
+DECLARE_int32(max_steps);
 DECLARE_bool(lock_step);
+DECLARE_bool(color);
+DECLARE_bool(pause_screen);
 
 namespace simulator {
 

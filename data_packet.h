@@ -77,8 +77,14 @@ public:
     virtual size_t get_id_size() = 0;             // size of id
     virtual int* get_id() = 0;                    // pointer to id
     virtual std::string* get_str() = 0;           // pointer to string
-    virtual void encode(util::BinaryBuffer& buf) {};
-    virtual void decode(util::BinaryBuffer& buf) {};
+
+    virtual void encode(util::BinaryBuffer& buf) const {
+        LOG(FATAL) << "NOT IMPLEMENTED";
+    }
+
+    virtual void decode(util::BinaryBuffer& buf) {
+        LOG(FATAL) << "NOT IMPLEMENTED";
+    }
 
     ValuePtr get_value();  // pointer to value buffer
 
@@ -306,7 +312,7 @@ public:
         }
     }
 
-    void encode(util::BinaryBuffer& buf) {
+    void encode(util::BinaryBuffer& buf) const {
         buf.append((std::size_t)data_.size());
         for (auto& kv : data_) {
             buf.append(kv.first);
@@ -353,7 +359,7 @@ public:
     size_t get_value_height() override;
     size_t get_id_size() override;
     bool operator==(const StateBuffer& other); // for ctest only
-    void encode(util::BinaryBuffer& buf) override;
+    void encode(util::BinaryBuffer& buf) const override;
     void decode(util::BinaryBuffer& buf) override;
 
 private:

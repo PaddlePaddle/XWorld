@@ -35,13 +35,13 @@ int main(int argc, char** argv) {
         FLAGS_task_groups_exclusive = false;
     }
 
-    std::string conf_path = "../confs/walls.json";
-    auto xwd = std::make_shared<XWorldSimulator>(
-        true /*print*/, conf_path);
+    FLAGS_xwd_conf_path = "../confs/walls.json";
+    auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
 
     int agent_id = xwd->add_agent();
     auto game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-    auto teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
+    auto teacher = std::make_shared<Teacher>(
+            xwd->conf_file(), xwd, false /*print*/);
     game_reset_with_teacher(game, teacher);
 
     auto num_actions = game->get_num_actions();

@@ -22,8 +22,8 @@ DECLARE_int32(context);
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    std::string ale_rom = "/tmp/breakout.bin";
-    std::shared_ptr<ArcadeGame> atari(ArcadeGame::create(ale_rom));
+    FLAGS_ale_rom = "/tmp/breakout.bin";
+    std::shared_ptr<ArcadeGame> atari(ArcadeGame::create());
     atari->reset_game();
 
     auto num_actions = atari->get_num_actions();

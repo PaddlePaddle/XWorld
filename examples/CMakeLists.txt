@@ -6,6 +6,7 @@ function(add_test_executable TARGET_NAME)
 endfunction()
 
 add_test_executable(test_simple_race)
+add_test_executable(demo_interface)
 add_test_executable(test_xworld)
 if (WITH_ATARI)
   add_test_executable(test_atari)

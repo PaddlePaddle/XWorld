@@ -89,7 +89,7 @@ TEST(StatePacket, serialization) {
     util::BinaryBuffer buf;
     s1.encode(buf);
 
-    buf.start_reading();
+    buf.rewind();
     StatePacket s2;
     s2.decode(buf);
     EXPECT_TRUE(buf.eof());

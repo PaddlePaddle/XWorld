@@ -32,6 +32,9 @@ namespace simple_race {
 using cv::Mat;
 using cv::Point2f;
 
+const int WINDOW_WIDTH = 480;
+const int WINDOW_HEIGHT = 480;
+
 void draw_circle(Mat img, Point2f c, float r) {
     circle(img, c, r, cv::Scalar(255, 255, 255), 1, 8);
 }
@@ -375,10 +378,10 @@ RaceEngine::ActionVect RaceEngine::get_action_set() {
 
 bool RaceEngine::out_of_bound() { return _track->out_of_bound(_car.get_pos()); }
 
-SimpleRaceGame::SimpleRaceGame(float window_width, float window_height)
-    : _race(window_width, window_height) {
+SimpleRaceGame::SimpleRaceGame()
+    : _race(WINDOW_WIDTH, WINDOW_HEIGHT) {
     _legal_actions = _race.get_action_set();
-    float cx = window_width / 2, cy = window_height / 2;
+    float cx = WINDOW_WIDTH / 2, cy = WINDOW_HEIGHT / 2;
     std::shared_ptr<Track> track;
     if (FLAGS_track_type == "circle") {
         float r_in = FLAGS_track_radius, width = FLAGS_track_width;

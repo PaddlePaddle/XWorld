@@ -53,7 +53,7 @@ public:
     template <typename T>
     void append(const T* data, int num_elements);
 
-    void start_reading();
+    void rewind();
 
     template<typename T>
     void read(T& t);
@@ -66,27 +66,27 @@ public:
     template<typename T>
     void read(T* t, int num_elements);
 
-    size_t size () const;
+    size_t size() const;
 
-    bool resize (size_t);
+    bool resize(size_t);
 
-    size_t capacity () const;
+    size_t capacity() const;
 
-    bool reserve (size_t);
+    bool reserve(size_t);
 
     int offset() const;
 
     bool offset_eq(int d) const;
 
-    bool empty () const;
+    bool empty() const;
 
     bool eof() const;
 
-    void clear ();
+    void clear();
 
-    uchar* data_mutable ();
+    uchar* data_mutable();
 
-    const uchar* data () const;
+    const uchar* data() const;
 
 private:
     void delete_if_own() {
@@ -212,7 +212,7 @@ inline void BinaryBuffer::append(const T* data, int num_elements) {
     size_ = size_ + total_size;
 }
 
-inline void BinaryBuffer::start_reading() {
+inline void BinaryBuffer::rewind() {
     read_ptr_ = data_;
 }
 
@@ -270,7 +270,7 @@ inline bool BinaryBuffer::reserve(size_t capacity) {
     }
 
     if (capacity_ == 0) {
-        capacity_ = 1;
+        capacity_ = capacity;
     }
     while (capacity_ < capacity) {
         capacity_ = capacity_ << 1;
@@ -294,6 +294,7 @@ inline bool BinaryBuffer::eof() const {
 }
 
 inline void BinaryBuffer::clear() {
+    read_ptr_ = data_;
     size_ = 0;
 }
 
