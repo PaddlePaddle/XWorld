@@ -79,13 +79,13 @@ And several C++ examples (run the .sh scripts inside) can be found in
 Generally, C++ APIs are more flexible but expose more details than Python APIs.
 
 # Instructions for creating games
-Below we explain the flags that the user can set for each game. If you use Python APIs, these flags are passed in as a dictionary when creating the game (see <xworld_path>/python/examples for details). If you use C++ APIs, these flags are either set globally from command line with GFlags, or are passed as arguments of the class constructor (see <xworld_path>/examples for details).
+Below we explain the flags that the user can set for each game. If you use Python APIs, these flags are passed in as a dictionary when creating the game (see ```<xworld_path>/python/examples``` for details). If you use C++ APIs, these flags are either set globally from command line with GFlags, or are passed as arguments of the class constructor (see ```<xworld_path>/examples``` for details).
 
 |**ID**|**Python Keyword**|**C++ Class Name**|**Flags**|
 |---|---|-----|-----------|
 |**a**|```simple_game```|```SimpleGame```|```pause_screen```,```array_size```|
 |**b**|```simple_race```|```SimpleRaceGame```|```pause_screen```,```window_width```,```window_height```,<br>```track_type```,```track_width```,```track_length```,<br>```track_radius```,```race_full_manouver```,```random```,<br>```difficulty```|
-|**c**|```xworld```|```XWorldSimulator```|```pause_screen```,```conf_path```,```curriculum```,<br>```task_mode```,```task_groups_exclusive```,```context```|
+|**c**|```xworld```|```XWorldSimulator```|```pause_screen```,```conf_path```,```curriculum```,<br>```task_mode```,```task_groups_exclusive```,```context```,```ego_centric```|
 |**d**|```atari```|```ArcadeGame```|```pause_screen```,```ale_rom```,```context```|
 
 The meanings of the above flags are listed below. Each flag applies to certain games indicated by the IDs.
@@ -137,7 +137,7 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     The conf JSON file for XWorld2D, or the conf XML file for MALMO. (Default: "")
 
-* ```curriculum``` (**c**), can be extended to any of (**a-f**) that employs curriculum learning
+* ```curriculum``` (**c**), can be extended to any of (**a-d**) that employs curriculum learning
 
     This number indicates the maximum number of games that has curriculum learning. Given any difficulty range that can be quantized by two integers [*low*, *high*], if ```curriculum``` is 0, then the difficulty number is randomly selected from this range; otherwise, the difficulty is linearly increased from *low* to *high* until ```curriculum``` games have been played. (Default: 0)
 
@@ -153,13 +153,17 @@ The meanings of the above flags are listed below. Each flag applies to certain g
 
     (Default: "one_channel")
 
-* ```task_groups_exclusive``` (**c**), can be extended to any of (**a-f**) that incorporates a teacher
+* ```task_groups_exclusive``` (**c**), can be extended to any of (**a-d**) that incorporates a teacher
 
     In XWorld2D, whether the agent handles multiple tasks simultaneously (false) or not (true). (Default: true)
 
 * ```context``` (**c-d**)
 
     How many consecutive frames are used to represent the current state. (Default: 1)
+
+* ```ego_centric``` (**c**)
+
+    Whether the training image is ego-centric or not. When true, the actual world dimensions of the training image will be (2*h-1) x (2*w-1). (Default: true)
 
 * ```ale_rom``` (**d**)
 

@@ -26,6 +26,7 @@ DEFINE_int32(
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
 DEFINE_string(task_mode, "one_channel", "arxiv_lang_acquisition|arxiv_interactive|one_channel");
+DEFINE_bool(ego_centric, true, "whether have ego-centric view");
 
 namespace simulator {
 namespace xwd {
@@ -41,8 +42,13 @@ void XWorldSimulator::init() {
     width_ = xworld_.width();
     img_height_ = height_ * XItem::item_size_;
     img_width_ = width_ * XItem::item_size_;
-    img_height_out_ = (height_ * 2 - 1) * block_size_;
-    img_width_out_ = (width_ * 2 - 1) * block_size_;
+    if (FLAGS_ego_centric) {
+        img_height_out_ = (height_ * 2 - 1) * block_size_;
+        img_width_out_ = (width_ * 2 - 1) * block_size_;
+    } else {
+        img_height_out_ = height_ * block_size_;
+        img_width_out_ = width_ * block_size_;
+    }
     // default
     if (max_steps_ == 0) {
         if (FLAGS_task_mode == "arxiv_lang_acquisition") {
@@ -191,7 +197,7 @@ void XWorldSimulator::get_screen_rgb(GameFrame& rgbs) {
     int pad_size = 0;
     // ego-centric view
     cv::Mat screen = xworld_.to_image(
-        /* flag_item_centric= */ true,
+        FLAGS_ego_centric,
         active_agent_id_,
         pad_size,
         /* flag_illustration= */ false,
