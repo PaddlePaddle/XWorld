@@ -167,7 +167,12 @@ class XWorldTask(object):
 
     def simple_navigation_reward(self):
         """
-        A simple navigation reward stage.
+        A simple navigation reward stage. If the agent reaches the correct
+        goal, it gets a positive reward. If it steps on an incorrect goal,
+        it gets a negative reward. There will also be penalties if it has
+        a failed action. The task returns to 'idle' stage when the correct
+        goal is reached or the time is up for this task. The time-up setting
+        is only for "one_channel" mode.
         """
         reward = XWorldTask.time_penalty
 
@@ -302,8 +307,8 @@ class XWorldTask(object):
 
     def _get_between_pair_goals(self):
         """
-        Return all pairs of goals that are separated by exactly one grid that is
-        not a wall block
+        Return all pairs of goals that are separated horizontally by exactly
+        one grid that is not a wall block
         """
         goals = self._get_goals()
         blocks = [b.loc for b in self._get_blocks()]

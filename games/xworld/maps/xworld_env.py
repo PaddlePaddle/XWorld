@@ -142,7 +142,7 @@ class XWorldEnv(object):
         """
         Set goal directory substrees so that only goals in the selected subtrees
         will be sampled when generating the map. The user can use this function to
-        control the number of object classes.
+        control the number of goal classes.
         The change of goal subtrees will only be reflected for the next game, after
         reset() is called. The current game still uses old goal subtrees.
         """
@@ -200,19 +200,19 @@ class XWorldEnv(object):
 
     def get_goals(self):
         """
-        Return all the goals in the current environment
+        Return all the goals on the current map
         """
         return [e for e in self.entities if e.type == "goal"]
 
     def get_blocks(self):
         """
-        Return all the blocks in the current environment
+        Return all the blocks on the current map
         """
         return [e for e in self.entities if e.type == "block"]
 
     def get_entities(self):
         """
-        Return all the entities in the current environment
+        Return all the entities on the current map
         """
         return self.entities
 

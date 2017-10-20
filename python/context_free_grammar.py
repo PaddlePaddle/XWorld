@@ -85,6 +85,8 @@ class CFG:
         symbol (literal), or a mixture of the two.
         The user can use '-->' instead of '->' to require that the rhs must be
         bound before a sentence can be generated.
+
+        The output is a tuple (lhs, rhs, must_bound)
         """
         separator = "->"
         if "-->" in rule_str:   ## '-->' indicates a must_bound
