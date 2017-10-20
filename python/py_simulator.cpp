@@ -43,6 +43,7 @@ DECLARE_int32(curriculum);   // default 0
 //// xworld
 DECLARE_bool(task_groups_exclusive);  // default true
 DECLARE_string(task_mode);            // default "one_channel"
+DECLARE_bool(ego_centric);           // default true
 
 //// simple race
 DECLARE_string(track_type);
@@ -174,6 +175,7 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         FLAGS_task_groups_exclusive =
             extract_py_dict_val(args, "task_groups_exclusive", false, true);
         FLAGS_context = extract_py_dict_val(args, "context", false, 1);
+        FLAGS_ego_centric = extract_py_dict_val(args, "ego_centric", false, true);
 
         if (task_mode == "arxiv_lang_acquisition") {
             FLAGS_task_groups_exclusive = false;

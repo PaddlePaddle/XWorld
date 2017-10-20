@@ -1,3 +1,19 @@
+"""
+Copyright (c) 2017 Baidu Inc. All Rights Reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+"""
+
 from context_free_grammar import CFG
 from py_gflags import get_flag
 
@@ -32,16 +48,23 @@ class XWorldTask(object):
     def _define_grammar(self):
         """
         The derived class can override this function to define a grammar
-        for the teacher. To do so, the function should return a grammar
+        for the teacher. To do so, the function should return a tuple of a grammar
         string and a start symbol.
-        By default the grammar will be empty.
+        By default the grammar will be empty and the teacher generates
+        a empty sentence each time step.
         """
         return "", ""
 
     def _get_all_directions(self):
+        """
+        Return all the spatial-relation words in xworld.
+        """
         return self.directions.values()
 
     def _get_all_colors(self):
+        """
+        Return all colors defined in xworld.
+        """
         return self.env.get_all_colors()
 
     def _get_direction(self, l1, l2):
@@ -63,9 +86,15 @@ class XWorldTask(object):
         self.num_failures += 1
 
     def _record_answer(self, answer):
+        """
+        Record the answer for later evaluation and rewarding
+        """
         self.answer = answer
 
     def _record_target(self, target):
+        """
+        Record the target for later evaluation and rewarding
+        """
         self.target = target
 
     def _record_event(self, event):
@@ -103,6 +132,10 @@ class XWorldTask(object):
         self.cfg.show()
 
     def total_possible_sentences(self):
+        """
+        Return the number of total possible sentences *given* the current
+        bindings.
+        """
         return self.cfg.total_possible_sentences()
 
     def conversation_wrapup(self):
@@ -133,6 +166,14 @@ class XWorldTask(object):
         return ["conversation_wrapup", reward, sentence]
 
     def simple_navigation_reward(self):
+        """
+        A simple navigation reward stage. If the agent reaches the correct
+        goal, it gets a positive reward. If it steps on an incorrect goal,
+        it gets a negative reward. There will also be penalties if it has
+        a failed action. The task returns to 'idle' stage when the correct
+        goal is reached or the time is up for this task. The time-up setting
+        is only for "one_channel" mode.
+        """
         reward = XWorldTask.time_penalty
 
         agent, _, action_successful = self._get_agent()
@@ -167,41 +208,79 @@ class XWorldTask(object):
 
     ############ functions that wrap self.env and self.cfg #############
     def _list_of_strs_to_rhs(self, strs):
+        """
+        Converting a list of strings to a string as the right hand side of a
+        production rule. For example, if the list is ['foo', 'bar'], then the
+        conversion result is "'foo' | 'bar'"
+        """
         return "|".join(["'" + s + "'" for s in strs])
 
     def _get_all_goal_names_as_rhs(self):
+        """
+        Get all possible goal names in xworld and convert the list to a rhs string
+        """
         return self._list_of_strs_to_rhs(self.env.get_all_possible_names("goal"))
 
     def _get_all_directions_as_rhs(self):
+        """
+        Get all possible spatial-relation words in xworld and convert the list to a rhs string
+        """
         return self._list_of_strs_to_rhs(self._get_all_directions())
 
     def _get_all_colors_as_rhs(self):
+        """
+        Get all possible color words in xworld and convert the list to a rhs string
+        """
         return self._list_of_strs_to_rhs(self._get_all_colors())
 
     def _get_goals(self):
+        """
+        Get all the goals on the current map
+        """
         return self.env.get_goals()
 
     def _get_blocks(self):
+        """
+        Get all the blocks on the current map
+        """
         return self.env.get_blocks()
 
     def _get_entities(self):
+        """
+        Get all the entities on the current map
+        """
         return self.env.get_entities()
 
     def _color_defined(self, color):
+        """
+        Decide if a color is defined or not. An undefined color is "na"
+        """
         return color != "na"
 
     def _get_colored_goals(self):
+        """
+        Get all the goals on the current map that have defined colors
+        """
         return [g for g in self._get_goals() if self._color_defined(g.color)]
 
     def _get_agent(self):
+        """
+        Get the agent information; see XWorldEnv.get_agent()
+        """
         return self.env.get_agent()
 
     def __within_boundary(self, loc):
+        """
+        Determine if a location is out of boundary of the map
+        """
         h, w = self.env.get_dims()
         x, y = loc
         return y >= 0 and y < h and x >= 0 and x < w
 
     def _get_surrounding_goals(self, refer_loc=None):
+        """
+        Given a reference location, return all goals in its 3x3 neighborhood
+        """
         goals = self._get_goals()
         if refer_loc is None:
             agent, _, _ = self._get_agent()
@@ -214,6 +293,9 @@ class XWorldTask(object):
         return ret
 
     def _get_surrounding_empty_grids(self, refer_loc=None):
+        """
+        Given a reference location, return all empty grids in its 3x3 neighborhood
+        """
         if refer_loc is None:
             agent, _, _ = self._get_agent()
             refer_loc = agent.loc
@@ -224,6 +306,10 @@ class XWorldTask(object):
         return empty_grids
 
     def _get_between_pair_goals(self):
+        """
+        Return all pairs of goals that are separated horizontally by exactly
+        one grid that is not a wall block
+        """
         goals = self._get_goals()
         blocks = [b.loc for b in self._get_blocks()]
         return [(g1, g2) for g1 in goals for g2 in goals \
@@ -231,6 +317,10 @@ class XWorldTask(object):
                 and not (g1.loc[0] + 1, g1.loc[1]) in blocks]
 
     def _reachable(self, start, to):
+        """
+        Use BFS to determine that if location 'to' can be reached from location 'start'
+        The obstacles are the wall blocks on the current map.
+        """
         obstacles = set([b.loc for b in self._get_blocks()])
         visited = {start}
         ## TODO: use collections.deque if the map size is huge
@@ -249,13 +339,29 @@ class XWorldTask(object):
         return False
 
     def _bind(self, binding_str):
+        """
+        Bind a production rule; see CFG.bind() for details
+        """
         self.cfg.bind(binding_str)
 
     def _generate(self):
+        """
+        Generate a sentence according the grammar and current bindings;
+        see CFG.generate() for details
+        """
         return self.cfg.generate()
 
     def _generate_all(self):
+        """
+        Generate all possible sentences given current bindings; in this case,
+        the bindings are not necessary.
+        See CFG.generate_all() for details.
+        """
         return self.cfg.generate_all()
 
     def _set_production_rule(self, rule):
+        """
+        Set a new production rule or overwrite an existing one.
+        See CFG.set_production_rule() for details.
+        """
         self.cfg.set_production_rule(rule)

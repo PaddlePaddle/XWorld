@@ -32,7 +32,8 @@ if __name__ == "__main__":
         "task_mode": "arxiv_lang_acquisition",
         "context": 1,
         "pause_screen": True,
-        "task_groups_exclusive": True
+        "task_groups_exclusive": True,
+        "ego_centric" : True
     }
     xworld = Simulator.create("xworld", options)
 

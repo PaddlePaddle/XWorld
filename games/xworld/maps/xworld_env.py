@@ -1,3 +1,19 @@
+"""
+Copyright (c) 2017 Baidu Inc. All Rights Reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+"""
+
 import random
 import os
 import copy
@@ -60,9 +76,15 @@ class XWorldEnv(object):
         self.__instantiate_entities()
 
     def get_num_games(self):
+        """
+        How many sessions the agent has played
+        """
         return self.num_games
 
     def draw_map(self):
+        """
+        Print a symbolic version of the environment map
+        """
         map_ = [["." for j in range(self.max_width)] for i in range(self.max_height)]
         for e in self.pad_blocks:
             l = e.loc
@@ -93,7 +115,7 @@ class XWorldEnv(object):
 
     def set_entity(self, type, loc=None, name=None):
         """
-        Add an entity of type to loc which must be empty
+        Add an entity of type to loc which must be currently empty
         """
         if not loc is None:
             assert loc in self.available_grids, \
@@ -118,6 +140,9 @@ class XWorldEnv(object):
 
     def set_goal_subtrees(self, subtrees):
         """
+        Set goal directory substrees so that only goals in the selected subtrees
+        will be sampled when generating the map. The user can use this function to
+        control the number of goal classes.
         The change of goal subtrees will only be reflected for the next game, after
         reset() is called. The current game still uses old goal subtrees.
         """
@@ -167,16 +192,28 @@ class XWorldEnv(object):
         return list(set(self.color_table.values()))
 
     def get_agent(self):
+        """
+        Get the agent information: (entity, agent sentence, action success)
+        """
         agent = [e for e in self.entities if e.type == "agent"][0]
         return (agent, self.agent_sent, self.action_successful)
 
     def get_goals(self):
+        """
+        Return all the goals on the current map
+        """
         return [e for e in self.entities if e.type == "goal"]
 
     def get_blocks(self):
+        """
+        Return all the blocks on the current map
+        """
         return [e for e in self.entities if e.type == "block"]
 
     def get_entities(self):
+        """
+        Return all the entities on the current map
+        """
         return self.entities
 
     ######################## interface with C++ #############################
@@ -221,22 +258,30 @@ class XWorldEnv(object):
             self.entity_nums[e.type] += 1
 
     def update_agent_sentence_from_cpp(self, sent):
+        """
+        Update the agent sentence from the CPP simulator
+        """
         self.agent_sent = sent
 
     def update_agent_action_success_from_cpp(self, successful):
+        """
+        Update the agent action success from the CPP simulator
+        """
         self.action_successful = successful
 
     ######################## private or protected #########################
     def _configure(self):
         """
-        The user has to override this function
+        The user has to override this function to define how the map
+        will be generated after each session resetting
         """
         raise NotImplementedError()
 
     def __instantiate_entities(self):
         """
         For each entity, select an instance from the object class it belongs to,
-        after which its properties are set
+        after which its properties are set.
+        The entities should have been set in _configure()
         """
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
@@ -254,7 +299,8 @@ class XWorldEnv(object):
     def __padding_walls(self):
         """
         Given the max height and width of a map and (offset_w, offset_h),
-        return a list of padding wall blocks
+        return a list of padding wall blocks. The actual space for the agent is
+        (offset_w, offset_h, offset_w + self.width, offset_h + self.height)
         """
         wall_blocks = []
         def add_blocks(range1, range2, id):
@@ -281,7 +327,7 @@ class XWorldEnv(object):
 
     def __clean_env(self):
         """
-        Clean up some members
+        Reset members; preparing for the next session
         """
         self.num_games += 1
         self.agent_sent = ""

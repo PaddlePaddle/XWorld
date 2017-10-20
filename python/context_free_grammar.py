@@ -1,3 +1,19 @@
+"""
+Copyright (c) 2017 Baidu Inc. All Rights Reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+"""
+
 import copy
 import random
 import pprint
@@ -23,18 +39,32 @@ class RHS:
         return self.items
 
     def value(self):
+        """
+        Return a value.
+        If must_bound is True, them self.items must only contain one value;
+        otherwise a value is randomly sampled from the items list.
+        """
         assert not self.must_bound or len(self.items) == 1, \
             "RHS must be bound first"
         return random.choice(self.items)
 
     def unbind(self):
+        """
+        Restore the items list.
+        """
         self.items = copy.deepcopy(self.items_backup)
 
     def set_must_bound(self):
+        """
+        If called, then an RHS object with multiple values must be bound
+        before value() can be called.
+        """
         self.must_bound = True
 
     def bind(self, item):
-        #  assert self.must_bound, "RHS shouldn't be bound"
+        """
+        Narrow down the items list to only one element
+        """
         assert item in self.items, "Invalid RHS item: " + item
         self.items = [item]
 
@@ -48,6 +78,16 @@ class CFG:
             self.set_production_rule(r)
 
     def __parse_rule(self, rule_str):
+        """
+        A production rule must be in the form "X -> Y1 | Y2 | ...", where X
+        is a non-terminal lhs symbol and the rhs contains a list of choices.
+        Y could be a terminal symbol (indicated by single quotes around), a non-terminal
+        symbol (literal), or a mixture of the two.
+        The user can use '-->' instead of '->' to require that the rhs must be
+        bound before a sentence can be generated.
+
+        The output is a tuple (lhs, rhs, must_bound)
+        """
         separator = "->"
         if "-->" in rule_str:   ## '-->' indicates a must_bound
             separator = "-->"
@@ -59,26 +99,35 @@ class CFG:
         return lhs, rhs_items, separator=="-->"
 
     def show(self):
+        """
+        Print the grammar as a string
+        """
         pprint.pprint(self.grammar_str)
 
     def bind(self, binding_str):
+        """
+        Bind a production rule. The binding_str should be in the form "X -> Y".
+        This will bind Y to X.
+        """
         lhs, rhs_items, _ = self.__parse_rule(binding_str)
         assert lhs in self.productions, "No such production rule: " + lhs
         assert len(rhs_items) == 1, "ambiguous binding: " + binding_str
         self.productions[lhs].bind(rhs_items[0])
 
-    def set_must_bound(self, lhs_items):
-        for lhs in lhs_items:
-            assert lhs in self.productions
-            self.productions[lhs].set_must_bound()
-
     def __unbind_all(self):
+        """
+        Unbind the rhs of all production rules
+        """
         for lhs, rhs in self.productions.iteritems():
             rhs.unbind()
 
+    def set_start_symbol(self, start_symbol):
+        assert not is_terminal(start_symbol), "start_symbol cannot be a terminal!"
+        self.start_symbol = start_symbol
+
     def set_production_rule(self, string):
         """
-        Add a new rule or modify an existing rule. The start symbols will be updated.
+        Add a new rule or modify an existing rule.
         """
         lhs, rhs_items, must_bound = self.__parse_rule(string)
         self.productions[lhs] = RHS(rhs_items)
@@ -109,10 +158,18 @@ class CFG:
             visited[symbol] = True
         _dfs(self.start_symbol, {})
 
-    def clear_production_rules(self):
+    def clear_grammar(self):
         self.productions = {}
+        self.grammar_str = ""
+        self.start_symbol = ""
 
     def generate(self, start_symbol=None):
+        """
+        Generate a sentence given the grammar and bindings.
+        If for a production rule, the rhs has multiple unbound values, then a value is
+        randomly sampled. This will raise errors if a rhs is not bound but its must_bound
+        is True.
+        """
         if start_symbol == None:
             start_symbol = self.start_symbol
         assert not is_terminal(start_symbol), "start_symbol must be a nonterminal"
@@ -131,6 +188,10 @@ class CFG:
         return sentence
 
     def generate_all(self, start_symbol=None):
+        """
+        Generate all possible sentences given the grammar and the bindings.
+        This will use the existing bindings, but will ignore must_bound.
+        """
         if start_symbol == None:
             start_symbol = self.start_symbol
         assert not is_terminal(start_symbol), "start_symbol must be a nonterminal"
@@ -161,7 +222,8 @@ class CFG:
     def total_possible_sentences(self, start_symbol=None):
         """
         Count the total number of possible sentences for the grammar.
-        The production rules should be all unbound before doing this.
+        The total number will be affected by the existing bindings,
+        but will ignore must_bound.
         """
         if not self.productions:
             return 0
@@ -199,4 +261,8 @@ if __name__ == "__main__":
     cfg.bind("N -> 'us'")
     print(cfg.generate_all())   ## this will unbind
     cfg.bind("S -> N 'you'")
-    print(cfg.generate())   ## this will raise error because of must_bound
+    try:
+        print(cfg.generate())   ## this will raise error because of must_bound
+        assert False, "This shouldn't happen"
+    except:
+        pass

@@ -127,10 +127,13 @@ cv::Mat XMap::to_image(bool flag_item_centric,
     for (int i = 0; i < height_; i++) {
         for (int j = 0; j < width_; j++) {
             for (unsigned int k = 0; k < item_ptr_cube_[i][j].size(); k++) {
-                // when training, don't render the agent in the image
-                if (!flag_illustration &&
-                    item_ptr_cube_[i][j][k]->get_item_type() == "agent")
-                    continue;
+                if (flag_item_centric) {
+                    // when training, don't render the agent in the image
+                    if (!flag_illustration
+                        && item_ptr_cube_[i][j][k]->get_item_type() == "agent") {
+                        continue;
+                    }
+                }
 
                 cv::Mat item_image = item_ptr_cube_[i][j][k]->get_item_image();
 
