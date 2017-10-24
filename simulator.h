@@ -24,10 +24,6 @@
 #include "simulator_util.h"
 #include "simulator_entity.h"
 
-#ifndef GFLAGS_GFLAGS_H_
-namespace gflags = google;
-#endif
-
 DECLARE_bool(lock_step);
 
 namespace simulator {
