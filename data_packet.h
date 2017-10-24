@@ -77,8 +77,8 @@ public:
     virtual size_t get_id_size() = 0;             // size of id
     virtual int* get_id() = 0;                    // pointer to id
     virtual std::string* get_str() = 0;           // pointer to string
-    virtual void encode(util::BinaryBuffer& buf) = 0;
-    virtual void decode(util::BinaryBuffer& buf) = 0;
+    virtual void encode(util::BinaryBuffer& buf) {};
+    virtual void decode(util::BinaryBuffer& buf) {};
 
     ValuePtr get_value();  // pointer to value buffer
 

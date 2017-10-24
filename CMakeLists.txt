@@ -63,8 +63,8 @@ set(SIMULATOR_SOURCES
 set(EXTERNAL_LIBS
   ${Boost_LIBRARIES}
   ${PYTHON_LIBRARIES}
-  ${GFLAGS_LIBRARIES}
   ${GLOG_LIBRARIES}
+  ${GFLAGS_LIBRARIES}
   ${OPENCV_LIBS})
 
 ## all subdirectories produce OBJECT libraries
