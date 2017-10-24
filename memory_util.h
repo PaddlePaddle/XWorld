@@ -74,7 +74,9 @@ public:
 
     bool reserve (size_t);
 
-    size_t offset() const;
+    int offset() const;
+
+    bool offset_eq(int d) const;
 
     bool empty () const;
 
@@ -288,15 +290,19 @@ inline bool BinaryBuffer::empty() const {
 }
 
 inline bool BinaryBuffer::eof() const {
-    return (read_ptr_ - data_ == size_);
+    return offset_eq(size_);
 }
 
 inline void BinaryBuffer::clear() {
     size_ = 0;
 }
 
-inline size_t BinaryBuffer::offset() const {
+inline int BinaryBuffer::offset() const {
     return read_ptr_ - data_;
+}
+
+inline bool BinaryBuffer::offset_eq(int d) const {
+    return offset() == d;
 }
 
 inline uchar* BinaryBuffer::data_mutable() {
