@@ -17,6 +17,7 @@
 #include <tuple>
 
 #include "roboschool_API.h"
+#include "simulator_entity.h"
 #include "simulator_util.h"
 
 namespace simulator {
@@ -30,80 +31,80 @@ using roboschool::Object;
 using roboschool::World;
 using roboschool::Camera;
 
-struct Loc3 {
-    int x;
-    int y;
-    int z;
-
-    Loc3() { init(); }
-
-    Loc3(int _x, int _y, int _z) : x(_x), y(_y), z(_z) {}
-
-    Loc3(const Loc3& l) : x(l.x), y(l.y), z(l.z) {}
-
-    Loc3(const std::vector<int>& loc) {
-        CHECK(loc.empty() || loc.size() == 3);
-        if (!loc.empty()) {
-            x = loc[0];
-            y = loc[1];
-            z = loc[2];
-        } else {
-            init();
-        }
-    }
-
-    void init() {
-        x = std::numeric_limits<int>::min();
-        y = std::numeric_limits<int>::min();
-        z = std::numeric_limits<int>::min();
-    }
-
-    std::string to_string() const {
-        return "(" + std::to_string(x) +
-               "," + std::to_string(y) +
-               "," + std::to_string(z) + ")";
-    }
-
-    bool defined() const {
-        return x != std::numeric_limits<int>::min() &&
-               y != std::numeric_limits<int>::min() &&
-               z != std::numeric_limits<int>::min();
-    }
-
-    void random_loc(int w, int h) {
-        x = int(w * simulator::util::get_rand_range_val(1.0));
-        y = int(h * simulator::util::get_rand_range_val(1.0));
-        z = 0;
-    }
-
-    bool in_boundary(int w, int h) const {
-        return x >= 0 && x < w && y >= 0 && y < h;
-    }
-
-    bool operator>=(const Loc3& l) const {
-        return x >= l.x && y >= l.y && z >= l.z;
-    }
-
-    bool operator==(const Loc3& l) const {
-        return x == l.x && y == l.y && z == l.z;
-    }
-
-    bool operator!=(const Loc3& l) const {
-        return x != l.x || y != l.y || z != l.z;
-    }
-
-    Loc3 operator-(const Loc3& l) const {
-        return {x - l.x, y - l.y, z - l.z};
-    }
-
-    Loc3 operator+(const Loc3& l) const {
-        return {x + l.x, y + l.y, z + l.z};
-    }
-
-    double square_distance(const Loc3& l) const {
-        return (x-l.x) * (x-l.x) + (y-l.y) * (y-l.y) + (z-l.z) * (z-l.z);
-    }
-};
+//struct Loc3 {
+//    int x;
+//    int y;
+//    int z;
+//
+//    Loc3() { init(); }
+//
+//    Loc3(int _x, int _y, int _z) : x(_x), y(_y), z(_z) {}
+//
+//    Loc3(const Loc3& l) : x(l.x), y(l.y), z(l.z) {}
+//
+//    Loc3(const std::vector<int>& loc) {
+//        CHECK(loc.empty() || loc.size() == 3);
+//        if (!loc.empty()) {
+//            x = loc[0];
+//            y = loc[1];
+//            z = loc[2];
+//        } else {
+//            init();
+//        }
+//    }
+//
+//    void init() {
+//        x = std::numeric_limits<int>::min();
+//        y = std::numeric_limits<int>::min();
+//        z = std::numeric_limits<int>::min();
+//    }
+//
+//    std::string to_string() const {
+//        return "(" + std::to_string(x) +
+//               "," + std::to_string(y) +
+//               "," + std::to_string(z) + ")";
+//    }
+//
+//    bool defined() const {
+//        return x != std::numeric_limits<int>::min() &&
+//               y != std::numeric_limits<int>::min() &&
+//               z != std::numeric_limits<int>::min();
+//    }
+//
+//    void random_loc(int w, int h) {
+//        x = int(w * simulator::util::get_rand_range_val(1.0));
+//        y = int(h * simulator::util::get_rand_range_val(1.0));
+//        z = 0;
+//    }
+//
+//    bool in_boundary(int w, int h) const {
+//        return x >= 0 && x < w && y >= 0 && y < h;
+//    }
+//
+//    bool operator>=(const Loc3& l) const {
+//        return x >= l.x && y >= l.y && z >= l.z;
+//    }
+//
+//    bool operator==(const Loc3& l) const {
+//        return x == l.x && y == l.y && z == l.z;
+//    }
+//
+//    bool operator!=(const Loc3& l) const {
+//        return x != l.x || y != l.y || z != l.z;
+//    }
+//
+//    Loc3 operator-(const Loc3& l) const {
+//        return {x - l.x, y - l.y, z - l.z};
+//    }
+//
+//    Loc3 operator+(const Loc3& l) const {
+//        return {x + l.x, y + l.y, z + l.z};
+//    }
+//
+//    double square_distance(const Loc3& l) const {
+//        return (x-l.x) * (x-l.x) + (y-l.y) * (y-l.y) + (z-l.z) * (z-l.z);
+//    }
+//};
 
 enum X3EntityType { GOAL = 0, AGENT = 1, BLOCK = 2, DUMMY = 3 };
 
@@ -133,17 +134,17 @@ struct X3ItemInfo {
             name(n), type(t), model_file(f), loc(x, y, z) {}
 
     X3ItemInfo(std::string n, X3EntityType t, std::string f,
-               const Loc3& l) :
+               const Vec3& l) :
             name(n), type(t), model_file(f), loc(l) {}
 
     X3ItemInfo(std::string n, X3EntityType t, std::string f,
                const std::vector<int>& v) :
-            name(n), type(t), model_file(f), loc(v) {}
+            name(n), type(t), model_file(f), loc(v[0],v[1],v[2]) {}
 
     std::string name;
     X3EntityType type;
     std::string model_file;
-    Loc3 loc;
+    Vec3 loc;
 };
 
 class X3Item : public X3Entity {
@@ -239,14 +240,19 @@ public:
     X3Camera(World& world, int img_height, int img_width);
 
     Pose pose() { return camera_.pose(); }
-
+    
+    // Return the image seen by agent. 
+    // If debug is true, a bird view image is also returned.
     roboschool::RenderResult render(X3Agent* agent, bool debug = false);
+
+    // Camera can be attached to an agent so that the rendered image is centered
+    // at the agent
+    void attach_agent(X3Agent* agent);
 
     void detach() { agent_ = NULL; }
 
 private:
-    void attach_agent(X3Agent* agent);
-
+    // Update the pose of the camera.
     void update(bool is_debug);
 
     Camera camera_;
@@ -255,10 +261,11 @@ private:
 
 }} // simulator::xworld3d
 
+// TODO: need a better hash function
 namespace std {
 template <>
-struct hash<simulator::xworld3d::Loc3> {
-    size_t operator()(const simulator::xworld3d::Loc3& l) const {
+struct hash<simulator::Vec3> {
+    size_t operator()(const simulator::Vec3& l) const {
         return hash<int>()(l.x) ^ hash<int>()(l.y);
     }
 };

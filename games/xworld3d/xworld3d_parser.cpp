@@ -94,13 +94,13 @@ void X3Parser::build_world_boundaries(std::vector<X3ItemInfo>& list) {
             "block" + std::to_string(total_items_++),
             X3EntityType::BLOCK,
             item_repo_["block"],
-            Loc3(i, -1.0f, 0.0f)
+            Vec3(i, -1.0f, 0.0f)
         );
         list.emplace_back(
             "block" + std::to_string(total_items_++),
             X3EntityType::BLOCK,
             item_repo_["block"],
-            Loc3(i, height_, 0.0f)
+            Vec3(i, height_, 0.0f)
         );
     }
     for (int i = 0; i < height_; ++i) {
@@ -108,13 +108,13 @@ void X3Parser::build_world_boundaries(std::vector<X3ItemInfo>& list) {
             "block" + std::to_string(total_items_++),
             X3EntityType::BLOCK,
             item_repo_["block"],
-            Loc3(-1.0f, i, 0.0f)
+            Vec3(-1.0f, i, 0.0f)
         );
         list.emplace_back(
             "block" + std::to_string(total_items_++),
             X3EntityType::BLOCK,
             item_repo_["block"],
-            Loc3(width_, i, 0.0f)
+            Vec3(width_, i, 0.0f)
         );
     }
 }
@@ -123,7 +123,7 @@ void X3Parser::generate_map(std::vector<X3ItemInfo>& list) {
     reset_config();
     list = item_list_;
 
-    std::unordered_set<Loc3> occupied;
+    std::unordered_set<Vec3> occupied;
     for (auto const& it : list) {
         if (it.loc.defined()) {
             occupied.insert(it.loc);
@@ -131,7 +131,7 @@ void X3Parser::generate_map(std::vector<X3ItemInfo>& list) {
     }
     for (auto& it : list) {
         if (!it.loc.defined()) {
-            Loc3 l;
+            Vec3 l;
             l.random_loc(width_, height_);
             while (occupied.find(l) != occupied.end()) {
                 l.random_loc(width_, height_);
@@ -175,7 +175,8 @@ void X3Parser::instantiate_items(size_t total,
                 break;
             }
 
-            Loc3 loc(read_json_vector(node));
+            auto v = read_json_vector(node);
+            Vec3 loc(v[0], v[1], v[2]);
             if (!loc.in_boundary(width_, height_)) {
                 continue;
             }
