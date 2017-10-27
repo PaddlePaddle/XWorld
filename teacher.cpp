@@ -47,10 +47,7 @@ void Teacher::set_py_task_paths() {
         "./games/xworld/tasks",
     };
 
-    // initialize the python interpreter
-    if (!Py_IsInitialized()) {
-        Py_Initialize();
-    }
+    CHECK(Py_IsInitialized());
 
     std::string f = __FILE__;
     std::string path = f.substr(0, f.find_last_of("/") + 1);

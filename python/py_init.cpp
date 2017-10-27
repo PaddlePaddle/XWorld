@@ -12,17 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Python.h>
 #include <gflags/gflags.h>
-#include <boost/python.hpp>
-#include <boost/python/exception_translator.hpp>
 #include <exception>
+#include <functional>
 
-namespace py = boost::python;
-
-//// xworld
-DECLARE_bool(task_groups_exclusive);  // default true
 DECLARE_string(task_mode);            // default "one_channel"
-
 DECLARE_int32(curriculum);
 
 struct PyException : std::exception {
@@ -31,29 +26,41 @@ struct PyException : std::exception {
     std::string msg_;
 };
 
-void error_translate(PyException const& e) {
-    PyErr_SetString(PyExc_RuntimeError, e.error().c_str());
-}
-
-/* For C++ objects whose type has been exposed via boost::python::class_,
-   one can construct a Python object with an instance of a C++ object using
-   the following constructor:
-
-   template <class T>
-   explicit object(T const& x);
-*/
-py::object get_flag(const std::string& flag_name) {
+PyObject* get_gflag(PyObject* self, PyObject* args) {
+    const char* c_name;
+    if (!PyArg_ParseTuple(args, "s", &c_name)) {
+        throw PyException("get_gflag args incorrect");
+    }
+    std::string flag_name = c_name;
     if (flag_name == "task_mode") {
-        return py::object(FLAGS_task_mode);
+        return PyString_FromString(FLAGS_task_mode.c_str());
     } else if (flag_name == "curriculum") {
-        return py::object(FLAGS_curriculum);
+        return Py_BuildValue("i", FLAGS_curriculum);
     } else {
         throw PyException("GFlag '" + flag_name + "' is not recognized");
     }
-    return py::object();
+    return NULL;
 }
 
-BOOST_PYTHON_MODULE(py_gflags) {
-    py::register_exception_translator<PyException>(&error_translate);
-    py::def("get_flag", get_flag);
-}
+// Used for executing global statements
+// e.g., static InitFunction(__lambda);
+class InitFunction {
+  public:
+    InitFunction(std::function<void()> init_f) { init_f(); }
+};
+
+static InitFunction py_init_interpreter([](){
+    // initialize the python interpreter
+    if (!Py_IsInitialized()) {
+        Py_Initialize();
+    }
+});
+
+static PyMethodDef cpp_methods[] = {
+    {"get_flag", get_gflag, METH_VARARGS, "get gflags used by C++"},
+    {NULL, NULL, 0, NULL}
+};
+
+static InitFunction py_init_modules([]() {
+    Py_InitModule("py_gflags", cpp_methods);
+});
