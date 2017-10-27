@@ -47,14 +47,6 @@ class Teacher {
             TeachingEnvPtr game,
             bool print_teacher_config = false);
 
-    //// Currently boost python does not support Py_Finalize
-    //// http://www.boost.org/doc/libs/1_64_0/libs/python/doc/html/tutorial/tutorial/embedding.html
-    ~Teacher() {
-        //     if (Py_IsInitialized()) {
-        //         Py_Finalize();
-        //     }
-    }
-
     // reset the teacher's configure file
     // when print=true, print the content of the conf file
     void reset_config(const std::string& teacher_conf, bool print = false);

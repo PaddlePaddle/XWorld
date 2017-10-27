@@ -73,10 +73,7 @@ XWorld::XWorld(const std::string& conf, bool print_conf) {
     std::string item_path = tree->get<std::string>("item_path");
     std::string map = tree->get<std::string>("map");
 
-    // initialize the python interpreter
-    if (!Py_IsInitialized()) {
-        Py_Initialize();
-    }
+    CHECK(Py_IsInitialized());
 
     std::string f = __FILE__;
     std::string path = f.substr(0, f.find_last_of("/") + 1);

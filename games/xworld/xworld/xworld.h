@@ -31,14 +31,6 @@ class XWorld {
   public:
     XWorld(const std::string& conf, bool print_conf);
 
-    //// Currently boost python does not support Py_Finalize
-    //// http://www.boost.org/doc/libs/1_64_0/libs/python/doc/html/tutorial/tutorial/embedding.html
-    ~XWorld() {
-        //     if (Py_IsInitialized()) {
-        //         Py_Finalize();
-        //     }
-    }
-
     void reset(bool map_reset = true);
 
     // get an image representation of the world

@@ -24,6 +24,12 @@
 #include "simulator_util.h"
 #include "simulator_entity.h"
 
+// This is for compatibility with old version of glog which uses google::
+// Newer versions have resolved this issue
+#ifndef GFLAGS_GFLAGS_H_
+namespace gflags = google;
+#endif
+
 DECLARE_bool(lock_step);
 
 namespace simulator {

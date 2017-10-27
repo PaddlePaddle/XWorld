@@ -58,10 +58,10 @@ set(SIMULATOR_SOURCES
   teaching_task.cpp
   simulator.cpp
   simulator_util.cpp
+  python/py_init.cpp
   )
 
 set(EXTERNAL_LIBS
-  ${Boost_LIBRARIES}
   ${PYTHON_LIBRARIES}
   ${GLOG_LIBRARIES}
   ${GFLAGS_LIBRARIES}
@@ -101,7 +101,6 @@ add_subdirectory(tests)
 add_subdirectory(python)
 add_subdirectory(examples)
 
-## propagate the dependencies to the upper level (if any)
 target_link_libraries(simulator PUBLIC
   ${DEP_LIBS}
   ${Boost_LIBRARIES}

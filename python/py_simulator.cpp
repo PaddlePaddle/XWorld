@@ -183,7 +183,6 @@ SimulatorInterface* SimulatorInterface::create_simulator(
 
         auto xwd = std::make_shared<XWorldSimulator>(
             true /*print*/, conf_path);
-
         int agent_id = xwd->add_agent();
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
         teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
@@ -198,6 +197,7 @@ SimulatorInterface* SimulatorInterface::create_simulator(
     else {
         throw PyException("Unrecognized game type: " + name);
     }
+
     auto g = new SimulatorInterface(game, teacher);
     g->reset_game();
     return g;

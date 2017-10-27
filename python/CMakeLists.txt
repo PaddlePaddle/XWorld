@@ -7,14 +7,3 @@ link_simulator_exe(py_simulator) ## link libsimulator to py_simulator
 
 set_target_properties(py_simulator
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-
-add_library(py_gflags
-  SHARED
-  py_gflags.cpp)
-set_target_properties(py_gflags PROPERTIES PREFIX "")  ## remove 'lib' prefix
-
-link_simulator_exe(py_gflags)
-
-set_target_properties(py_gflags
-  PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
