@@ -15,16 +15,17 @@ class XWorldNav(XWorldEnv):
         self.set_goal_subtrees(["animal", "fruit", "shape"])
         self.set_entity(type="agent")
 
-        ## compute curriculum progress
         num_games = self.get_num_games()
-        progress = min(float(num_games) / self.curriculum, 1.0)
 
         ## compute world dims
         min_dim = 3
         max_h, max_w = self.get_dims()
+
         if self.curriculum == 0:
+            progress = 1.0
             delta_dim = max_h - min_dim
         else:
+            progress = min(float(num_games) / self.curriculum, 1.0)
             delta_dim = int(progress * (max_h - min_dim))
         self.set_dims(min_dim + delta_dim, min_dim + delta_dim)
 
