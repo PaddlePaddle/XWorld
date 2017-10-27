@@ -75,15 +75,16 @@ XWorld::XWorld(const std::string& conf, bool print_conf) {
 
     CHECK(Py_IsInitialized());
 
-    std::string f = __FILE__;
-    std::string path = f.substr(0, f.find_last_of("/") + 1);
-    auto main_mod = py::import("__main__");
-    auto main_namespace = main_mod.attr("__dict__");
-    py::exec("import sys", main_namespace);
-    std::string cmd = "sys.path.append(\"" + path + "../maps\")";
-    py::exec(cmd.c_str(), main_namespace);
 
     try {
+        std::string f = __FILE__;
+        std::string path = f.substr(0, f.find_last_of("/") + 1);
+        auto main_mod = py::import("__main__");
+        auto main_namespace = main_mod.attr("__dict__");
+        py::exec("import sys", main_namespace);
+        std::string cmd = "sys.path.append(\"" + path + "../maps\")";
+        py::exec(cmd.c_str(), main_namespace);
+
         auto mod = py::import(map.c_str());
         item_path = path + "../" + item_path;
         xwd_env_ = mod.attr(map.c_str())(item_path.c_str());
@@ -96,28 +97,33 @@ XWorld::XWorld(const std::string& conf, bool print_conf) {
 }
 
 void XWorld::reset(bool map_reset) {
-    if (map_reset) {
-        // regenerate a xwd map
-        xwd_env_.attr("reset")();
-    }
-    item_list_.clear();
-    agent_list_.clear();
-
-    py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
-    height_ = py::extract<int>(dims[0]);
-    width_ = py::extract<int>(dims[1]);
-    map_ = XMap(height_, width_);
-
-    py::list entities = py::extract<py::list>(xwd_env_.attr("cpp_get_entities")());
-    for (int i = 0; i < py::len(entities); i ++) {
-        py::dict e = py::extract<py::dict>(entities[i]);
-        auto item = XItem::create_item(Entity(e));
-        item_list_.push_back(item);
-        if (item->get_item_type() == "agent") {
-            agent_list_.push_back(item);
+    try {
+        if (map_reset) {
+            // regenerate a xwd map
+            xwd_env_.attr("reset")();
         }
+        item_list_.clear();
+        agent_list_.clear();
+
+        py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
+        height_ = py::extract<int>(dims[0]);
+        width_ = py::extract<int>(dims[1]);
+        map_ = XMap(height_, width_);
+
+        py::list entities = py::extract<py::list>(xwd_env_.attr("cpp_get_entities")());
+        for (int i = 0; i < py::len(entities); i ++) {
+            py::dict e = py::extract<py::dict>(entities[i]);
+            auto item = XItem::create_item(Entity(e));
+            item_list_.push_back(item);
+            if (item->get_item_type() == "agent") {
+                agent_list_.push_back(item);
+            }
+        }
+        map_.add_items(item_list_);
+    } catch (...) {
+        PyErr_Print();
+        LOG(FATAL) << "Error resetting map";
     }
-    map_.add_items(item_list_);
 }
 
 cv::Mat XWorld::to_image(bool flag_item_centric, /* false */

@@ -49,15 +49,20 @@ void Teacher::set_py_task_paths() {
 
     CHECK(Py_IsInitialized());
 
-    std::string f = __FILE__;
-    std::string path = f.substr(0, f.find_last_of("/") + 1);
-    auto main_mod = py::import("__main__");
-    auto main_namespace = main_mod.attr("__dict__");
-    py::exec("import sys", main_namespace);
+    try {
+        std::string f = __FILE__;
+        std::string path = f.substr(0, f.find_last_of("/") + 1);
+        auto main_mod = py::import("__main__");
+        auto main_namespace = main_mod.attr("__dict__");
+        py::exec("import sys", main_namespace);
 
-    for (const auto& rp : relative_python_paths) {
-        std::string cmd = "sys.path.append(\"" + path + rp + "\")";
-        py::exec(cmd.c_str(), main_namespace);
+        for (const auto& rp : relative_python_paths) {
+            std::string cmd = "sys.path.append(\"" + path + rp + "\")";
+            py::exec(cmd.c_str(), main_namespace);
+        }
+    } catch (...) {
+        PyErr_Print();
+        LOG(FATAL) << "Error setting py_task paths";
     }
 }
 

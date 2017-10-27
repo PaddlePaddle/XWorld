@@ -32,11 +32,16 @@ void Task::init_py_task() {
 void Task::register_stages() {
     CHECK(PyObject_HasAttrString(py_task_.ptr(), "get_stage_names"))
             << "Python function get_stage_names() is undefined!";
-    py::list py_stage_names = py::extract<py::list>(py_task_.attr("get_stage_names")());
 
     std::vector<std::string> stage_names;
-    for (int i = 0; i < py::len(py_stage_names); i ++) {
-        stage_names.push_back(py::extract<std::string>(py_stage_names[i]));
+    try {
+        py::list py_stage_names = py::extract<py::list>(py_task_.attr("get_stage_names")());
+        for (int i = 0; i < py::len(py_stage_names); i ++) {
+            stage_names.push_back(py::extract<std::string>(py_stage_names[i]));
+        }
+    } catch (...) {
+        PyErr_Print();
+        LOG(FATAL) << "Error get stage names";
     }
 
     for (const auto& name : stage_names) {
@@ -47,12 +52,22 @@ void Task::register_stages() {
 }
 
 size_t Task::total_possible_sentences() {
-    return py::extract<int>(py_task_.attr("total_possible_sentences")());
+    try {
+        return py::extract<int>(py_task_.attr("total_possible_sentences")());
+    } catch (...) {
+        PyErr_Print();
+        LOG(FATAL) << "Error total possible sentences";
+    }
+    return 0;
 }
 
 std::string Task::py_stage(const std::string& stage_name) {
     CHECK(PyObject_HasAttrString(py_task_.ptr(), stage_name.c_str()))
             << "Python task stage is undefined: " << stage_name;
+
+    std::string next_stage = "";
+    double reward = 0;
+    std::string sentence = "";
 
     // pre-stage: update the python env with simulator changes
     std::vector<Entity> entities;
@@ -61,32 +76,39 @@ std::string Task::py_stage(const std::string& stage_name) {
     for (const auto& e : entities) {
         py_entities.append(e.to_py_dict());
     }
-    py::object env = game_->get_py_env();
-    env.attr("update_entities_from_cpp")(py_entities);
 
-    auto agent_sent = game_->get_agent_sent_from_buffer();
-    env.attr("update_agent_sentence_from_cpp")(agent_sent.c_str());
+    try {
+        py::object env = game_->get_py_env();
+        env.attr("update_entities_from_cpp")(py_entities);
 
-    auto action_success = game_->get_agent_action_successful_from_buffer();
-    env.attr("update_agent_action_success_from_cpp")(action_success);
+        auto agent_sent = game_->get_agent_sent_from_buffer();
+        env.attr("update_agent_sentence_from_cpp")(agent_sent.c_str());
 
-    // during the stage
-    py::list ret = py::extract<py::list>(py_task_.attr(stage_name.c_str())());
+        auto action_success = game_->get_agent_action_successful_from_buffer();
+        env.attr("update_agent_action_success_from_cpp")(action_success);
 
-    // post-stage: the teacher might have changed the environment
-    if (env.attr("env_changed")()) {
-        game_->update_environment();
+        // during the stage
+        py::list ret = py::extract<py::list>(py_task_.attr(stage_name.c_str())());
+
+        // post-stage: the teacher might have changed the environment
+        if (env.attr("env_changed")()) {
+            game_->update_environment();
+        }
+
+        std::string event = py::extract<std::string>(py_task_.attr("get_event")());
+        if (!event.empty()) {
+            game_->record_event_in_buffer(event);
+        }
+
+        CHECK_EQ(py::len(ret), 3) << "Incorrect length of stage returns";
+        next_stage = py::extract<std::string>(ret[0]);
+        reward = py::extract<double>(ret[1]);
+        sentence = py::extract<std::string>(ret[2]);
+    } catch (...) {
+        PyErr_Print();
+        LOG(FATAL) << "Error py_stage";
     }
 
-    std::string event = py::extract<std::string>(py_task_.attr("get_event")());
-    if (!event.empty()) {
-        game_->record_event_in_buffer(event);
-    }
-
-    CHECK_EQ(py::len(ret), 3) << "Incorrect length of stage returns";
-    std::string next_stage = py::extract<std::string>(ret[0]);
-    double reward = py::extract<double>(ret[1]);
-    std::string sentence = py::extract<std::string>(ret[2]);
     give_reward(reward);
     teacher_speak(sentence);
     return next_stage;
@@ -111,9 +133,14 @@ void Task::run_stage() {
 
 void Task::obtain_performance(size_t& num_successes_since_simulation,
                               size_t& num_failures_since_simulation) {
-    py::tuple perf = py::extract<py::tuple>(py_task_.attr("obtain_performance")());
-    num_successes_since_simulation = py::extract<int>(perf[0]);
-    num_failures_since_simulation = py::extract<int>(perf[1]);
+    try {
+        py::tuple perf = py::extract<py::tuple>(py_task_.attr("obtain_performance")());
+        num_successes_since_simulation = py::extract<int>(perf[0]);
+        num_failures_since_simulation = py::extract<int>(perf[1]);
+    } catch (...) {
+        PyErr_Print();
+        LOG(FATAL) << "Error obtaining performance";
+    }
 }
 
 void TaskGroup::add_task(const std::string& task, double weight) {
