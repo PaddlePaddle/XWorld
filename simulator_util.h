@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #pragma once
-#include <glog/logging.h>
+
 #include <algorithm>
 #include <condition_variable>
 #include <ctime>
+#include <glog/logging.h>
+#include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -111,5 +113,7 @@ template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
     return std::unique_ptr<T>(new T(args...));
 }
-}
-}  // namespace simulator::util
+
+std::string path_join(std::initializer_list<std::string> list);
+
+}}  // namespace simulator::util

@@ -1,0 +1,25 @@
+{
+    "xworld3d" : {
+        "dimensions" : {
+            "height" : 10,
+            "width" : 10
+        },
+
+        "items" : {
+            "goal" : {
+                "number" : [1]
+            },
+            "agent" : {
+                "number" : [1],
+                "instances" : {
+                    // add predefined agent locations here
+                }
+            },
+            "block" : {
+                "number" : [10],
+                "instances" : {
+                }
+            }
+        }
+    }
+}

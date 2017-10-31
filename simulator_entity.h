@@ -17,6 +17,8 @@
 #include <boost/python.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#include "simulator_util.h"
+
 namespace simulator {
 
 class Vec3 {
@@ -50,6 +52,23 @@ class Vec3 {
         Vec3 diff = (*this) - l;
         return diff.L2_norm();
     }
+
+    bool defined() const {
+        return (x > std::numeric_limits<int>::min() +  EPS) &&
+               (y > std::numeric_limits<int>::min() +  EPS) &&
+               (z > std::numeric_limits<int>::min() +  EPS);
+    }
+
+    void random_loc(int w, int h) {
+        x = w * simulator::util::get_rand_range_val(1.0);
+        y = h * simulator::util::get_rand_range_val(1.0);
+        z = 0;
+    }
+
+    bool in_boundary(int w, int h) const {
+        return x >= 0 && x < w && y >= 0 && y < h;
+    }
+
 
     // currently get_direction ignores the z axis
     // get the direction of l wrt *this
