@@ -191,7 +191,7 @@ namespace std {
 template <>
 struct hash<simulator::Vec3> {
     size_t operator()(const simulator::Vec3& l) const {
-        return hash<int>()(l.x) ^ hash<int>()(l.y);
+        return hash<double>()(l.x) ^ hash<double>()(l.y) ^ hash<double>()(l.z);
     }
 };
 }
