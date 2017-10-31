@@ -53,6 +53,12 @@ public:
     template <typename T>
     void append(const T* data, int num_elements);
 
+    template <typename T>
+    inline void insert(size_t p, const T t);
+
+    template <typename T>
+    inline void insert(size_t p, const T* data, int num_elements);
+
     void rewind();
 
     template<typename T>
@@ -190,13 +196,13 @@ inline void BinaryBuffer::append(const T t) {
 }
 
 inline void BinaryBuffer::append(const std::string& str) {
-    append((std::size_t)str.length());
+    append((size_t)str.length());
     append(str.c_str(), str.length()+1);
 }
 
 template <typename T>
 inline void BinaryBuffer::append(const std::vector<T>& vec) {
-    append((std::size_t)vec.size());
+    append((size_t)vec.size());
     append(vec.data(), vec.size());
 }
 
@@ -209,7 +215,25 @@ inline void BinaryBuffer::append(const T* data, int num_elements) {
     size_t total_size = sizeof(T) * num_elements;
     reserve(total_size + size_);
     std::memcpy(data_ + size_, (uchar*)data, total_size);
-    size_ = size_ + total_size;
+    size_ += + total_size;
+}
+
+template <typename T>
+inline void BinaryBuffer::insert(size_t p, const T t) {
+    insert(p, &t, 1);
+}
+
+template <typename T>
+inline void BinaryBuffer::insert(size_t p, const T* data, int num_elements) {
+    if (num_elements == 0) {
+        return;
+    }
+
+    size_t total_size = sizeof(T) * num_elements;
+    reserve(size_ + total_size);
+    std::memmove(data_ + p + total_size, data_ + p, size_ - p);
+    std::memcpy(data_ + p, (uchar*)data, total_size);
+    size_ += + total_size;
 }
 
 inline void BinaryBuffer::rewind() {
@@ -222,7 +246,7 @@ inline void BinaryBuffer::read(T& t) {
 }
 
 inline void BinaryBuffer::read(std::string& str) {
-    std::size_t len;
+    size_t len;
     read(len);
     char tmp[len+1];
     read(tmp, len+1);
@@ -231,7 +255,7 @@ inline void BinaryBuffer::read(std::string& str) {
 
 template <typename T>
 inline void BinaryBuffer::read(std::vector<T>& vec) {
-    std::size_t size;
+    size_t size;
     read(size);
     vec.resize(size);
     read(vec.data(), size);

@@ -157,6 +157,8 @@ class SimulatorClient : public communication::CommClient {
 public:
     SimulatorClient(const std::string& name, const int port_no);
 
+    ~SimulatorClient() {}
+
     void start();
 
     void stop();

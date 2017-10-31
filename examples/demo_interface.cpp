@@ -31,7 +31,7 @@ void run_simulation(SimulatorInterface* g) {
     double reward = 0;
     double reward_per_game = 0;
     double r = 0;
-    for (int i = 0; i < 10; i++) {
+    while (true) {
         auto game_over_str = GameSimulator::decode_game_over_code(g->game_over());
         if (game_over_str != "alive") {
             LOG(INFO) << "game over because of " + game_over_str;
@@ -49,10 +49,10 @@ void run_simulation(SimulatorInterface* g) {
         StatePacket actions;
         int a = util::get_rand_ind(num_actions);
         actions.add_buffer_id("action", {a});
+
         r = g->take_actions(actions, 1);
         reward_per_game += r;
         reward += r;
-        LOG(INFO) << r;
     }
     g->stop();
 

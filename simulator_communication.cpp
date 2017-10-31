@@ -28,15 +28,6 @@ void MessageHeader::read_from_socket(Socket& s) {
     }
 }
 
-void MessageHeader::write_to_socket(Socket& s) {
-    try {
-        boost::asio::write(
-                s, boost::asio::buffer((char*)&msg_size_, header_size));
-    } catch (boost::system::system_error const & e) {
-        LOG(FATAL) << "asio error occured when writing message header";
-    }
-}
-
 /******************************** Communicators *******************************/
 //// Communicator
 void Communicator::close_connection() {
@@ -45,15 +36,16 @@ void Communicator::close_connection() {
 }
 
 Communicator::Communicator() : socket_(io_service_) {
-    msg_body_.reset(new Buffer());
+    msg_body_.reset(new BinaryBuffer());
 }
 
-void Communicator::send_msg() {
+void Communicator::deliver_msg() {
     size_t msg_size = msg_body_->size();
-    msg_header_.make_header(msg_size);    
-    msg_header_.write_to_socket(socket_);
+    msg_header_.make_header(msg_size);
+    msg_header_.insert_into_msg(msg_body_);
+
     boost::asio::write(
-            socket_, boost::asio::buffer(msg_body_->data(), msg_size));
+            socket_, boost::asio::buffer(msg_body_->data(), msg_body_->size()));
 }
 
 void Communicator::receive_msg() {

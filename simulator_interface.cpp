@@ -1,4 +1,3 @@
-#include <time.h>
 #include <unistd.h>
 #include "memory_util.h"
 #include "simulator_interface.h"
@@ -128,13 +127,13 @@ SimulatorServer::SimulatorServer(const std::string& name, const int port_no) :
 }
 
 void SimulatorServer::reset_game() {
-    send_cmd_and_get_reply("reset", NULL);
-    msg_body_->read(num_actions_);
-    msg_body_->read(game_over_code_);
-    msg_body_->read(lives_);
-    msg_body_->read(height_);
-    msg_body_->read(width_);
-    msg_body_->read(channels_);
+    call_remote_func("reset", NULL);
+    read_msg(num_actions_,
+             game_over_code_,
+             lives_,
+             height_,
+             width_,
+             channels_);
 
     num_steps_ = 0;
 }
@@ -146,9 +145,8 @@ void SimulatorServer::start() {
 
 void SimulatorServer::stop() { 
     LOG(INFO) << "[server " << name_ << "] stopping";
-    msg_body_->clear();
-    msg_body_->append(std::string("stop"));
-    send_msg();
+    compose_msg(std::string("stop"));
+    deliver_msg();
 
     close_connection();
     SimulatorInterface::stop();
@@ -160,12 +158,11 @@ bool SimulatorServer::establish_connection() {
         // simple identification procedure
         std::string greeting;
         receive_msg();
-        msg_body_->read(greeting);
+        read_msg(greeting);
         CHECK_EQ(greeting, name_);
         if (greeting == name_) {
-            msg_body_->clear();
-            msg_body_->append(std::string("accepted"));
-            send_msg();
+            compose_msg(std::string("accepted"));
+            deliver_msg();
         } else {
             LOG(INFO) << "[server " << name_ << "] " 
                       << "connection failed: name not matched";
@@ -214,31 +211,28 @@ void SimulatorServer::get_screen_out_dimensions (
 }
 
 void SimulatorServer::show_screen(float reward) {
-    send_cmd_and_get_reply("show_screen", NULL, reward);
+    call_remote_func("show_screen", NULL, reward);
 }
 
 float SimulatorServer::take_actions(const StatePacket& actions, int act_rep) {
     float r;
     decltype(num_steps_) num_steps_from_client;
     
-    send_cmd_and_get_reply("take_actions", &actions, act_rep);
+    call_remote_func("take_actions", &actions, act_rep);
 
-    num_steps_ ++;
-    msg_body_->read(r);
+    num_steps_++;
+    read_msg(r, num_steps_from_client, game_over_code_, lives_);
+
     // num_steps_ from server should be equal to num_steps_ from client
-    msg_body_->read(num_steps_from_client);
-    msg_body_->read(game_over_code_);
-    msg_body_->read(lives_);
-
     CHECK_EQ(num_steps_, num_steps_from_client);
 
     return r;
 }
 
 StatePacket SimulatorServer::get_state(const float reward) {
-    send_cmd_and_get_reply("get_state", NULL, reward);
+    call_remote_func("get_state", NULL, reward);
     StatePacket state;
-    state.decode(*msg_body_);
+    read_msg(state);
     return state;
 }
 
@@ -290,12 +284,12 @@ void SimulatorClient::stop() {
 bool SimulatorClient::establish_connection() {
     if (CommClient::establish_connection()) {
         // simple identification procedure
-        msg_body_->clear();
-        msg_body_->append(name_);
-        send_msg();
+        compose_msg(name_);
+        deliver_msg();
+        LOG(INFO) << "client establish_connection end";
         std::string reply;
         receive_msg();
-        msg_body_->read(reply);
+        read_msg(reply);
         if (reply != "accepted") {
             LOG(INFO) << "[client " << name_ << "] " 
                       << "connection failed: name not matched";
@@ -312,14 +306,9 @@ bool SimulatorClient::establish_connection() {
 
 void SimulatorClient::simulation_loop() {
     std::string cmd = "";
-    double time_comm = 0;
-    clock_t t;
     while (true) {
-        t = clock();
         receive_msg();
-        LOG(INFO) << cmd;
-        time_comm += clock() - t;
-        msg_body_->read(cmd);
+        read_msg(cmd);
         if (cmd == "reset") {
             reset_game();
         } else if (cmd == "show_screen") {
@@ -332,12 +321,8 @@ void SimulatorClient::simulation_loop() {
             break;
         }
 
-        t = clock();
-        send_msg();
-        time_comm += clock() - t;
+        deliver_msg();
     }
-    LOG(INFO) << "[client " << name_ << "] "
-              <<  "time comm: " << time_comm / CLOCKS_PER_SEC;
     stop();
 }
 
@@ -348,30 +333,25 @@ void SimulatorClient::reset_game() {
     size_t width;
     size_t channels;
     game_->get_screen_out_dimensions(height, width, channels);
-
-    msg_body_->clear();
-    msg_body_->append(std::string("reset"));
-    msg_body_->append(game_->get_num_actions());
-    msg_body_->append(game_->game_over());
-    msg_body_->append(game_->get_lives());
-    msg_body_->append(height);
-    msg_body_->append(width);
-    msg_body_->append(channels);
+    
+    compose_msg(std::string("reset"),
+                game_->get_num_actions(),
+                game_->game_over(),
+                game_->get_lives(),
+                height, width, channels);
 }
 
 void SimulatorClient::show_screen() {
     float reward;
-    msg_body_->read(reward);
-    game_->show_screen(reward);    
-    msg_body_->clear();
-    msg_body_->append(std::string("show_screen"));
+    read_msg(reward);
+    game_->show_screen(reward);
+    compose_msg(std::string("show_screen"));
 }
 
 void SimulatorClient::take_actions() {
     int act_rep;
     StatePacket actions;
-    msg_body_->read(act_rep);
-    actions.decode(*msg_body_);
+    read_msg(actions, act_rep);
 
     float reward = game_->take_actions(actions, act_rep);
     if (teacher_) {
@@ -379,23 +359,21 @@ void SimulatorClient::take_actions() {
         reward += teacher_->give_reward();
     }
 
-    msg_body_->clear();
-    msg_body_->append(std::string("take_actions"));
-    msg_body_->append(reward);
-    msg_body_->append(game_->get_num_steps());
-    msg_body_->append(game_->game_over());
-    msg_body_->append(game_->get_lives());
+    compose_msg(std::string("take_actions"),
+                reward,
+                game_->get_num_steps(),
+                game_->game_over(),
+                game_->get_lives());
 }
 
 void SimulatorClient::get_state() {
     float reward;
-    msg_body_->read(reward);
+    read_msg(reward);
+
     StatePacket state;
     game_->get_state_data(reward, state);
     
-    msg_body_->clear();
-    msg_body_->append(std::string("get_state"));
-    state.encode(*msg_body_);
+    compose_msg(state, std::string("get_state"));
 }
 
 } // namespace simulator

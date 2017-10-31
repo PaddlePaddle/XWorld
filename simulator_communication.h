@@ -21,15 +21,20 @@
 namespace simulator {
 namespace communication {
 
-/******************************* MessageHeadere *******************************/
+/******************************** MessageHeader *******************************/
 class MessageHeader {
+private:
     using Socket = boost::asio::ip::tcp::socket;
+    using BinaryBuffer = simulator::util::BinaryBuffer;
+    using BinaryBufferPtr = std::unique_ptr<BinaryBuffer>;
 public:
     MessageHeader() {}
 
     void read_from_socket(Socket& s);
 
-    void write_to_socket(Socket& s);
+    void insert_into_msg(BinaryBufferPtr& msg_body) {
+        msg_body->insert(0, msg_size_);
+    }
 
     void make_header(size_t msg_size) {
         msg_size_ = msg_size;
@@ -38,6 +43,7 @@ public:
     size_t msg_size() { return msg_size_; }
         
 private:
+    void null_callback() {}
     size_t msg_size_;
     static size_t const header_size = sizeof(size_t);
 };
@@ -46,8 +52,8 @@ private:
 //// Communicator
 class Communicator {
 protected:
-    using Buffer = simulator::util::BinaryBuffer;
-    using BufferPtr = std::unique_ptr<Buffer>;
+    using BinaryBuffer = simulator::util::BinaryBuffer;
+    using BinaryBufferPtr = std::unique_ptr<BinaryBuffer>;
     using IOService = boost::asio::io_service;
     using Socket = boost::asio::ip::tcp::socket;
 
@@ -61,43 +67,53 @@ protected:
     
     void close_connection();
 
-    void send_msg();
+    void deliver_msg();
 
     void receive_msg();
 
-    template <typename T>
-    void append_msg(const T& t) {
-        msg_body_->append(t);
-    }
+    template <typename... Args>
+    void read_msg(Args... args) {}
 
     template <typename T, typename... Args>
-    void append_msg(const T& t, Args... args) {
-        msg_body_->append(t);
+    void read_msg(T& t, Args& ... rets) {
+        msg_body_->read(t);
+        read_msg(rets...);
+    }
+
+    template <typename... Args>
+    void read_msg(StatePacket& sim_data, Args& ... rets) {
+        read_msg(rets...);
+        sim_data.decode(*msg_body_);
+    }
+    
+    template <typename... Args>
+    void compose_msg(const Args& ... args) {
+        msg_body_->clear();
         append_msg(args...);
     }
 
     template <typename... Args>
-    void send_msg_and_get_reply(const std::string& cmd,
-                                const StatePacket* sim_data,
-                                Args... args) {
+    void compose_msg(const StatePacket& sim_data, const Args& ... args) {
         msg_body_->clear();
-        append_msg(cmd, args...);
-        if (sim_data) {
-            sim_data->encode(*msg_body_);
-        }
-        send_msg();
-
-        std::string reply;
-        receive_msg();
-        msg_body_->read(reply);
-        CHECK_EQ(reply, cmd);
+        append_msg(args...);
+        sim_data.encode(*msg_body_);
     }
-
 
     IOService io_service_;
     Socket socket_;
+
+private:
+    template <typename... Args>
+    void append_msg(const Args& ... args) {}
+
+    template <typename T, typename... Args>
+    void append_msg(const T& t, const Args& ... args) {
+        msg_body_->append(t);
+        append_msg(args...);
+    }
+
     MessageHeader msg_header_;
-    BufferPtr msg_body_;
+    BinaryBufferPtr msg_body_;
 };
 
 //// CommServer
@@ -113,7 +129,23 @@ public:
 protected:
     virtual bool establish_connection() override;
 
-private:
+    template <typename... Args>
+    void call_remote_func(const std::string& func_name,
+                          const StatePacket* sim_data,
+                          Args... args) {
+        if (sim_data) {
+            compose_msg(*sim_data, func_name, args...);
+        } else {
+            compose_msg(func_name, args...);
+        }
+        deliver_msg();
+        receive_msg();
+        std::string reply;
+        read_msg(reply);
+        CHECK_EQ(reply, func_name);
+    }
+
+private:                      
     int port_;
     Acceptor acceptor_;
 };
