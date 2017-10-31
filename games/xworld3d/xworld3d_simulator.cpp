@@ -283,11 +283,6 @@ cv::Mat X3SimulatorImpl::show_screen(float reward) {
     cv::resize(img, img2, img2.size(), cv::INTER_LINEAR);
 
     return concat_images(img1, img2, false);
-
-    // cv::Mat img;
-    // get_screen_rgb(img);
-    //
-    // return img;
 }
 
 X3Simulator::X3Simulator(const std::string& world_config,

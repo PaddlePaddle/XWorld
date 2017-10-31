@@ -43,7 +43,7 @@ X3Parser::X3Parser(const std::string& world_config,
 }
 
 void X3Parser::reset_config(const std::string& world_config, bool print) {
-    curriculum_.num_games_so_far ++;
+    curriculum_.num_games_so_far++;
     world_conf_ = world_config;
     item_list_.clear();
     agent_list_.clear();

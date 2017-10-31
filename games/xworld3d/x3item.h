@@ -167,8 +167,8 @@ public:
     Pose pose() { return camera_.pose(); }
     
     // Return the image seen by agent. 
-    // If debug is true, a bird view image is also returned.
-    roboschool::RenderResult render(X3Agent* agent, bool debug = false);
+    // If bird_view is true, a bird view image is also returned.
+    roboschool::RenderResult render(X3Agent* agent, bool bird_view = false);
 
     // Camera can be attached to an agent so that the rendered image is centered
     // at the agent
@@ -178,7 +178,7 @@ public:
 
 private:
     // Update the pose of the camera.
-    void update(bool is_debug);
+    void update(bool bird_view);
 
     Camera camera_;
     X3Agent* agent_;

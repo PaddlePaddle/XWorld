@@ -93,7 +93,8 @@ float X3Agent::reach_test(const Pose& gpose) {
     float dy = gpose.y() - pose().y();
     float dz = gpose.z() - pose().z();
     float d = sqrt(dx * dx + dy * dy);
-    float reaching_score = -2; // a value smaller than any possible sim value
+    float reaching_score = -2; // a value smaller than any possible cosin 
+                               // similarity value
     if (d < reaching_dist_ && dz < 0.05) {
         dx /= d;
         dy /= d;
@@ -120,11 +121,11 @@ void X3Camera::attach_agent(X3Agent* agent) {
     }
 }
 
-void X3Camera::update(bool debug) {
+void X3Camera::update(bool bird_view) {
     // TODO: to support rendering using detached camera
     CHECK(agent_) << "camera is detached";
     Pose p = agent_->pose();
-    if (!debug) {
+    if (!bird_view) {
         double dir_x, dir_y;
         agent_->get_direction(dir_x, dir_y);
         camera_.move_and_look_at(p.x(), p.y(), p.z(),
@@ -135,9 +136,9 @@ void X3Camera::update(bool debug) {
     }
 }
 
-roboschool::RenderResult X3Camera::render(X3Agent* agent, bool is_debug) {
+roboschool::RenderResult X3Camera::render(X3Agent* agent, bool bird_view) {
     attach_agent(agent);
-    update(is_debug);
+    update(bird_view);
     return camera_.render(false, false, false);
 }
 
