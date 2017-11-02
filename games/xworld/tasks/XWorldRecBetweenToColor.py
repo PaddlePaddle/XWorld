@@ -26,7 +26,7 @@ class XWorldRecBetweenToColor(XWorldTask):
             if get_flag("task_mode") == "arxiv_lang_acquisition":
                 return ["idle", 0, sentence + " " + color]
             else:
-                self._record_answer(goal.color)
+                self._record_answer(color)
                 return ["simple_recognition_reward", 0, sentence]
 
         return ["idle", 0, ""]

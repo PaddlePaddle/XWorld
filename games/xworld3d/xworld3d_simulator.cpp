@@ -81,7 +81,7 @@ private:
     // resize the input image to the size of [IMG_HEIGHT_OUT, IMG_WIDTH_OUT]
     void resize_image(const GameFrame& screen_in,
                       GameFrame& screen_out,
-                      int img_height_out, int img_width_out,
+                      size_t img_height_out, size_t img_width_out,
                       bool color = false);
 
     cv::Mat concat_images(cv::Mat img1, cv::Mat img2,
@@ -91,10 +91,10 @@ private:
     X3Parser x3parser_;
     std::vector<X3NavAction> legal_actions_;
     std::string agent_name_;
-    int world_height_;
-    int world_width_;
-    int img_height_;      // original image size
-    int img_width_;       // original image size
+    size_t world_height_;
+    size_t world_width_;
+    size_t img_height_;      // original image size
+    size_t img_width_;       // original image size
     size_t img_height_out_;  // resized image size
     size_t img_width_out_;   // resized image size
     int event_of_last_action_;
@@ -216,7 +216,7 @@ void X3SimulatorImpl::get_screen_rgb(cv::Mat& screen, bool debug) {
 
 void X3SimulatorImpl::resize_image(const GameFrame& screen_in,
                                    GameFrame& screen_out,
-                                   int img_height_out, int img_width_out,
+                                   size_t img_height_out, size_t img_width_out,
                                    bool color /* =false */) {
     cv::Mat img(img_height_, img_width_, CV_8UC3);
     for (size_t h = 0, p = 0; h < img_height_; ++h) {
@@ -239,11 +239,11 @@ void X3SimulatorImpl::resize_image(const GameFrame& screen_in,
         cv::cvtColor(img_out, img_out, cv::COLOR_BGR2GRAY);
     }
 
-    for (int h = 0; h < img_height_out; ++h) {
-        for (int w = 0; w < img_width_out; ++w) {
+    for (size_t h = 0; h < img_height_out; ++h) {
+        for (size_t w = 0; w < img_width_out; ++w) {
             for (size_t c = 0; c < n_channels; c++) {
                 // normalize the pixel vals to [0,1]
-                int offset = c * img_width_out * img_height_out +
+                size_t offset = c * img_width_out * img_height_out +
                              h * img_width_out + w;
                 screen_out[offset] =
                     (color ? img_out.at<cv::Vec3b>(cv::Point(w, h)).val[c]

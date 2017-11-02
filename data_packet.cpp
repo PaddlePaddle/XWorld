@@ -173,7 +173,7 @@ void StateBuffer::decode(util::BinaryBuffer& buf) {
 template <typename T>
 bool StateBuffer::pointer_compare(const std::shared_ptr<T>& a,
                                   const std::shared_ptr<T>& b) {
-    if (a && !b || !a && b || a && b && (*a != *b)) {
+    if ((a && !b) || (!a && b) || (a && b && (*a != *b))) {
         return false;
     }
     return true;

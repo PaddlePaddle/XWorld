@@ -60,7 +60,7 @@ class Arcade : public ArcadeGame {
 
     GameFrame screen_rgb_;
 
-    size_t lives_;
+    int lives_;
 
     // ALE has different RGB layout than what we needs.
     // Using a member variable instead of a local one

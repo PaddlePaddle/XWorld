@@ -317,7 +317,7 @@ public:
     void decode(util::BinaryBuffer& buf) {
         std::size_t sz;
         buf.read(sz);
-        for (int i = 0; i < sz; ++i) {
+        for (size_t i = 0; i < sz; ++i) {
             std::string key;
             BufferPtr t = std::make_shared<T>();
             buf.read(key);

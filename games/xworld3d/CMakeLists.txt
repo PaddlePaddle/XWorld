@@ -6,9 +6,9 @@ function(append_libraries lib_list library_dir libraries)
     set(${lib_list} ${tmp_list} PARENT_SCOPE)
 endfunction(append_libraries)
 
-set(ROBOSCHOOL_INCLUDE_PATH "${ROBOSCHOOL_ROOT}/cpp-household")
-set(ROBOSCHOOL_LIB "${ROBOSCHOOL_ROOT}/libroboschool.so")
-set(BULLET_ROOT_DIR "${ROBOSCHOOL_ROOT}/cpp-household/bullet_local_install")
+set(ROBOSCHOOL_INCLUDE_PATH "${ROBOSCHOOL_ROOT}/roboschool/cpp-household")
+set(ROBOSCHOOL_LIB "${ROBOSCHOOL_ROOT}/roboschool/libroboschool.so")
+set(BULLET_ROOT_DIR "${ROBOSCHOOL_ROOT}/roboschool/cpp-household/bullet_local_install")
 
 add_library(xworld3d
     OBJECT
@@ -49,7 +49,7 @@ set(DEP_LIBS
     ${bullet_libs}
 )
 
-## Assimp 
+## Assimp
 pkg_check_modules(Assimp REQUIRED assimp>=4.0)
 
 target_include_directories(xworld3d

@@ -20,7 +20,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declarations")
+## -Wno-error for gcc 5.x
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
 
 include(ExternalProject)
 include(simulator_util)
@@ -31,6 +32,8 @@ find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
+
+set(DEP_LIBS ${Boost_LIBRARIES})
 
 if(OpenCV_DIR) # pre-defined opencv dir
   find_package(OpenCV 3.2 REQUIRED core highgui imgproc imgcodecs)
@@ -103,7 +106,6 @@ add_subdirectory(examples)
 
 target_link_libraries(simulator PUBLIC
   ${DEP_LIBS}
-  ${Boost_LIBRARIES}
   )
 
 set_target_properties(simulator
