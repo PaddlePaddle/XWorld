@@ -205,7 +205,7 @@ TEST(BinaryBuffer, read_write) {
     b1.read(sz);
     EXPECT_EQ(sz, v.size());
     int x;
-    for (int i = 0; i < sz; ++i) {
+    for (size_t i = 0; i < sz; ++i) {
         b1.read(x);
         EXPECT_EQ(x, v[i]);
     }

@@ -168,7 +168,7 @@ void X3Parser::instantiate_items(size_t total,
                                  const pt::ptree::value_type& item) {
     if (total == 0) { return; }
 
-    int cnt = 0;
+    size_t cnt = 0;
     if (item.second.count("instances") > 0) {
         for (const auto& node : item.second.get_child("instances")) {
             if (cnt == total) {
