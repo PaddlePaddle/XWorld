@@ -37,7 +37,12 @@ sudo ./qt-opensource-linux-x64-5.5.1.run
 rm qt-opensource-linux-x64-5.5.1.run
 ```
 (In the GUI installer, select "skip" for the account, and use the default installation settings.)
-
+Suppose the location of Qt is `[qt_path]`. Add the following lines to your `~/.bashrc`:
+```bash
+(in ~/.bashrc)
+export PKG_CONFIG_PATH=[qt_path]/5.5/gcc_64/lib/pkgconfig:$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH=[qt_path]/5.5/gcc_64/lib:$LD_LIBRARY_PATH
+```
 
 ## Assimp
 
@@ -57,11 +62,11 @@ cmake CMakeLists.txt -CMAKE_INSTALL_PREFIX=.
 make
 ```
 
-Suppose the locations that you install Qt and Assimp are ```[qt_path]``` and ```[assimp_root]/assimp```, respectively. You need now append their pkg-config directories to your ```.bashrc``` file:
+Suppose the location of Assimp is `[assimp_root]/assimp`. Add the following lines to your ```.bashrc``` file:
 ```bash
 (in ~/.bashrc)
-export PKG_CONFIG_PATH=[qt_path]/5.5/gcc_64/lib/pkgconfig:$PKG_CONFIG_PATH
 export PKG_CONFIG_PATH=[assimp_root]/assimp:$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH=[assimp_root]/assimp/lib:$LD_LIBRARY_PATH
 ```
 
 Then:
