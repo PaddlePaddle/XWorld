@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.0)
 # Need to set the following when doing cmake:
 # WITH_TESTING (optional, default ON)
 # WITH_ATARI (optional, default OFF)
+# WITH_XWORLD3D (optional, default OFF)
 #
 # 1. mkdir build; cd build
 # 2. cmake -DWITH_TESTING=ON ..
@@ -12,6 +13,7 @@ cmake_minimum_required(VERSION 3.0)
 project(simulator CXX C)
 
 option(WITH_ATARI "Include ATARI" OFF)
+option(WITH_XWORLD3D "Include XWorld3D" OFF)
 option(WITH_TESTING "Enable test cases" ON)
 
 if(NOT CMAKE_BUILD_TYPE)

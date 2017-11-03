@@ -12,7 +12,5 @@ ExternalProject_Add(atari
 )
 
 ExternalProject_Get_Property(atari SOURCE_DIR)
-
-## in-source build
 set(ATARI_INCLUDE_PATH "${SOURCE_DIR}/src")
 set(DEP_LIBS ${DEP_LIBS} "${SOURCE_DIR}/libale.so")

@@ -1,29 +1,26 @@
+function(add_opt_game DIR GAME_NAME)
+  add_definitions(-DPY_${GAME_NAME})
+  add_subdirectory(games/${DIR})
+  get_directory_property(${GAME_NAME}_DEP_LIBS
+    DIRECTORY games/${DIR}
+    DEFINITION DEP_LIBS)
+  set(DEP_LIBS ${DEP_LIBS} ${${GAME_NAME}_DEP_LIBS} PARENT_SCOPE)
+  set(OBJECT_LIBS_LIST ${OBJECT_LIBS_LIST} $<TARGET_OBJECTS:${DIR}> PARENT_SCOPE)
+  if(NOT OpenCV_DIR)
+    add_dependencies(${DIR} opencv)
+  endif()
+endfunction()
+
 if (WITH_ATARI)
   message("Info: Atari is added.")
-
-  add_definitions(-DPY_ATARI)
-  include(atari)
-  add_subdirectory(games/arcade)
-  set(OBJECT_LIBS_LIST ${OBJECT_LIBS_LIST} $<TARGET_OBJECTS:arcade>)
-  if(NOT OpenCV_DIR)
-    add_dependencies(arcade opencv)
-  endif()
+  add_opt_game(arcade ATARI)
 else()
   message("Warning: Atari is not added.")
 endif()
 
-if (ROBOSCHOOL_ROOT)
+if (WITH_XWORLD3D)
   message("Info: XWorld3D is added.")
- 
-  add_subdirectory(games/xworld3d)
-  set(OBJECT_LIBS_LIST ${OBJECT_LIBS_LIST} $<TARGET_OBJECTS:xworld3d>)
-  get_directory_property(XWORLD3D_DEP_LIBS
-    DIRECTORY games/xworld3d
-    DEFINITION DEP_LIBS)
-  set(DEP_LIBS ${DEP_LIBS} ${XWORLD3D_DEP_LIBS})
-  if(NOT OpenCV_DIR)
-    add_dependencies(xworld3d opencv)
-  endif()
+  add_opt_game(xworld3d XWORLD3D)
 else()
   message("Warning: XWorld3D is not added.")
 endif()

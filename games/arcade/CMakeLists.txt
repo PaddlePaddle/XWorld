@@ -1,3 +1,5 @@
+include(atari)
+
 add_library(arcade OBJECT arcade_simulator.cpp)
 
 add_dependencies(arcade atari)
