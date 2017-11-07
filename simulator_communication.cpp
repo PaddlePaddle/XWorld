@@ -17,26 +17,15 @@
 namespace simulator {
 namespace communication {
 
-/******************************* MessageHeadere *******************************/
-void MessageHeader::read_from_socket(Socket& s) {
-    try {
-        size_t bytes_read = boost::asio::read(
-                s, boost::asio::buffer((char*)&msg_size_, header_size));
-        CHECK_EQ(bytes_read, header_size);
-    } catch (boost::system::system_error const & e) {
-        LOG(FATAL) << "asio error occured when reading message header";
-    }
-}
-
 /******************************** Communicators *******************************/
 //// Communicator
+Communicator::Communicator() : socket_(io_service_) {
+    msg_body_.reset(new BinaryBuffer());
+}
+
 void Communicator::close_connection() {
     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
     socket_.close();
-}
-
-Communicator::Communicator() : socket_(io_service_) {
-    msg_body_.reset(new BinaryBuffer());
 }
 
 void Communicator::deliver_msg() {

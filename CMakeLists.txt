@@ -30,7 +30,7 @@ include(simulator_util)
 
 find_package(Threads REQUIRED)
 find_package(PythonLibs 2.7 EXACT REQUIRED)
-find_package(Boost REQUIRED COMPONENTS python)
+find_package(Boost REQUIRED COMPONENTS python system)
 
 set(DEP_LIBS ${Boost_LIBRARIES})
 

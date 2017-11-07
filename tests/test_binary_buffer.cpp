@@ -104,7 +104,8 @@ TEST(BinaryBuffer, assignment) {
     // operator=
     std::vector<int> v({1,2,3,4,5});
     BinaryBuffer int_buf(v.data(), sizeof(int)*v.size());
-    BinaryBuffer int_dup = int_buf;
+    BinaryBuffer int_dup;
+    int_dup = int_buf;
     EXPECT_EQ(equal(int_buf, int_dup), true);
 
     const int N = 10;

@@ -22,7 +22,6 @@ DECLARE_int32(context);
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    const float window_size = 480;
     auto race = std::make_shared<SimpleRaceGame>();
     race->reset_game();
 

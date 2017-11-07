@@ -1,3 +1,17 @@
+// Copyright (c) 2017 Baidu Inc. All Rights Reserved.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <unistd.h>
 #include "memory_util.h"
 #include "simulator_interface.h"
@@ -46,7 +60,7 @@ SimulatorInterface* create_simulator(
             game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
             teacher = std::make_shared<Teacher>(
                     xwd->conf_file(), xwd, false /*print*/);
-        } 
+        }
 #ifdef ATARI
         else if (name == "atari") {
             game.reset(ArcadeGame::create());
@@ -115,8 +129,14 @@ StatePacket SingleProcInterface::get_state(const float reward) {
     return state;
 }
 
+void SingleProcInterface::teacher_report_task_performance() {
+    if (teacher_) {
+        teacher_->report_task_performance();
+    }
+}
+
 /******************************* SimulatorServer ******************************/
-SimulatorServer::SimulatorServer(const std::string& name, const int port_no) : 
+SimulatorServer::SimulatorServer(const std::string& name, const int port_no) :
         CommServer(port_no),
         name_(name),
         num_actions_(-1),
@@ -143,8 +163,9 @@ void SimulatorServer::start() {
     SimulatorInterface::start();
 }
 
-void SimulatorServer::stop() { 
+void SimulatorServer::stop() {
     LOG(INFO) << "[server " << name_ << "] stopping";
+    // inform the client connected to itself to stop
     compose_msg(std::string("stop"));
     deliver_msg();
 
@@ -164,12 +185,12 @@ bool SimulatorServer::establish_connection() {
             compose_msg(std::string("accepted"));
             deliver_msg();
         } else {
-            LOG(INFO) << "[server " << name_ << "] " 
+            LOG(INFO) << "[server " << name_ << "] "
                       << "connection failed: name not matched";
             return false;
         }
     } else {
-        LOG(INFO) << "[server " << name_ << "] " 
+        LOG(INFO) << "[server " << name_ << "] "
                   << "cannot establish connection";
         return false;
     }
@@ -217,7 +238,7 @@ void SimulatorServer::show_screen(float reward) {
 float SimulatorServer::take_actions(const StatePacket& actions, int act_rep) {
     float r;
     decltype(num_steps_) num_steps_from_client;
-    
+
     call_remote_func("take_actions", &actions, act_rep);
 
     num_steps_++;
@@ -236,8 +257,12 @@ StatePacket SimulatorServer::get_state(const float reward) {
     return state;
 }
 
+void SimulatorServer::teacher_report_task_performance() {
+    call_remote_func("report_perf", NULL);
+}
+
 /******************************* SimulatorServer ******************************/
-SimulatorClient::SimulatorClient(const std::string& name, const int port_no) : 
+SimulatorClient::SimulatorClient(const std::string& name, const int port_no) :
         CommClient("localhost", port_no),
         name_(name),
         game_(nullptr), teacher_(nullptr) {
@@ -291,7 +316,7 @@ bool SimulatorClient::establish_connection() {
         receive_msg();
         read_msg(reply);
         if (reply != "accepted") {
-            LOG(INFO) << "[client " << name_ << "] " 
+            LOG(INFO) << "[client " << name_ << "] "
                       << "connection failed: name not matched";
             return false;
         }
@@ -317,6 +342,8 @@ void SimulatorClient::simulation_loop() {
             take_actions();
         } else if (cmd == "get_state") {
             get_state();
+        } else if (cmd == "report_perf") {
+            teacher_report_task_performance();
         } else if (cmd == "stop") {
             break;
         }
@@ -333,7 +360,7 @@ void SimulatorClient::reset_game() {
     size_t width;
     size_t channels;
     game_->get_screen_out_dimensions(height, width, channels);
-    
+
     compose_msg(std::string("reset"),
                 game_->get_num_actions(),
                 game_->game_over(),
@@ -372,8 +399,14 @@ void SimulatorClient::get_state() {
 
     StatePacket state;
     game_->get_state_data(reward, state);
-    
+
     compose_msg(state, std::string("get_state"));
+}
+
+void SimulatorClient::teacher_report_task_performance() {
+    if (teacher_) {
+        teacher_->report_task_performance();
+    }
 }
 
 } // namespace simulator
