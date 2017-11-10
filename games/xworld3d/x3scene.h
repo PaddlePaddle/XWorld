@@ -83,7 +83,6 @@ private:
 
     void step();
 
-    float dt_;
     int frame_skip_;
     int img_height_;
     int img_width_;

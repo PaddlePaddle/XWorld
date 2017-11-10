@@ -28,26 +28,33 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declara
 include(ExternalProject)
 include(simulator_util)
 
+find_package(Threads REQUIRED)
 find_package(PythonLibs 2.7 EXACT REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python)
-find_package(Glog REQUIRED)
-find_package(Gflags REQUIRED)
-find_package(GTest REQUIRED)
-find_package(Threads REQUIRED)
 
 set(DEP_LIBS ${Boost_LIBRARIES})
 
-if(OpenCV_DIR) # pre-defined opencv dir
-  find_package(OpenCV 3.2 REQUIRED core highgui imgproc imgcodecs)
-  ## we will only get opencv lib names
-  ## need to append its lib dir in the front if the dir is a custom location
-  set(OPENCV_LIBS "")
-  foreach(LIB ${OpenCV_LIBS})
-    set(OPENCV_LIBS ${OPENCV_LIBS} "${OpenCV_INSTALL_PATH}/lib/lib${LIB}.so")
-  endforeach()
-  include_directories(${OpenCV_INCLUDE_DIRS})
-else()
+## user can directly set GLOG_INCLUDE_DIRS and GLOG_LIBRARIES
+if(NOT GLOG_LIBRARIES)
+  # user can set GLOG_ROOT_DIR to help find_package
+  find_package(Glog REQUIRED)
+endif()
+## user can directly set GFLAGS_INCLUDE_DIRS and GFLAGS_LIBRARIES
+if(NOT GFLAGS_LIBRARIES)
+  # user can set GFLAGS_ROOT_DIR to help find_package
+  find_package(Gflags REQUIRED)
+endif()
+## user can directly set GTEST_INCLUDE_DIRS and GTEST_BOTH_LIBRARIES
+if(NOT GTEST_LIBRARIES)
+  # user can set GTEST_ROOT to help find_package
+  find_package(GTest REQUIRED)
+endif()
+
+## user can set OPENCV_LIBS and OpenCV_INCLUDE_DIRS
+if(NOT OPENCV_LIBS)
   include(opencv)
+else()
+  include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
 include_directories(${Boost_INCLUDE_DIRS})

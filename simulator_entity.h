@@ -60,8 +60,8 @@ class Vec3 {
     }
 
     void random_loc(int w, int h) {
-        x = w * simulator::util::get_rand_range_val(1.0);
-        y = h * simulator::util::get_rand_range_val(1.0);
+        x = simulator::util::get_rand_ind(w);
+        y = simulator::util::get_rand_ind(h);
         z = 0;
     }
 
