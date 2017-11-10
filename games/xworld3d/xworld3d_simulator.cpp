@@ -111,7 +111,7 @@ X3SimulatorImpl::X3SimulatorImpl(const std::string& world_config,
                                  int frame_skip) :
         x3scene_(gravity, time_step, frame_skip),
         x3parser_(world_config, model_dir, print, curriculum),
-        legal_actions_({MOVE_FORWARD, TURN_LEFT, TURN_RIGHT, COLLECT}),
+        legal_actions_({MOVE_FORWARD, TURN_LEFT, TURN_RIGHT, JUMP, COLLECT}),
         agent_name_(""),
         img_height_(0), img_width_(0),
         event_of_last_action_(X3Event::NOTHING) {}
@@ -322,12 +322,17 @@ void X3Simulator::show_screen(float reward) {
     std::string window_name = get_screen_name();
     cv::namedWindow(window_name);
     cv::imshow(window_name, img);
+    int key = -1;
     if (FLAGS_pause_screen) {
         // The screen will pause at every step waiting for keyboard
-        cv::waitKey(-1);
+        key = cv::waitKey(-1);
     } else {
         // Default mode: the screen will display continuously
-        cv::waitKey(1);
+        key = cv::waitKey(1);
+    }
+    // for some reason, ctrl+C in the terminal won't kill the program
+    if (key == 27) { // ESC {
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -340,17 +345,22 @@ float X3Simulator::take_action(const StatePacket& actions) {
         int key = cv::waitKey(0) % 256;
         switch (key) {
             case 'w':
-                action_idx = 0;
+                action_idx = X3NavAction::MOVE_FORWARD;
                 break;
             case 'a':
-                action_idx = 1;
+                action_idx = X3NavAction::TURN_LEFT;
                 break;
             case 'd':
-                action_idx = 2;
+                action_idx = X3NavAction::TURN_RIGHT;
+                break;
+            case 'j':
+                action_idx = X3NavAction::JUMP;
                 break;
             case 'c':
-                action_idx = 3;
+                action_idx = X3NavAction::COLLECT;
                 break;
+            case 27:
+                exit(EXIT_SUCCESS);
             default:
                 break;
         }
