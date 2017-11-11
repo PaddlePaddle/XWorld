@@ -19,6 +19,9 @@ namespace xworld3d {
 
 using simulator::util::path_join;
 
+const int REACH_HEIGHT_THRESHOLD = UNIT;
+const int CAMERA_BIRD_VIEW_HEIGHT = 10.0f * UNIT;
+
 X3Item::X3Item(const X3ItemInfo& info, World& world) :
         X3Entity(info.name, info.type),
         model_file_(info.model_file) {
@@ -50,10 +53,11 @@ inline void X3Item::destroy() {
 
 /*********************************** X3Agent **********************************/
 X3Agent::X3Agent(const X3ItemInfo& info, World& world,
-                 float speed_norm, int orientation_bins,
-                 float reaching_dist) :
+                 float move_speed_norm, float jump_speed_norm,
+                 int orientation_bins, float reaching_dist) :
         X3Item(info, world),
-        speed_norm_(speed_norm),
+        move_speed_norm_(move_speed_norm),
+        jump_speed_norm_(jump_speed_norm),
         orientation_bins_(orientation_bins),
         reaching_dist_(reaching_dist) {
     CHECK(info.type == X3EntityType::AGENT);
@@ -62,8 +66,8 @@ X3Agent::X3Agent(const X3ItemInfo& info, World& world,
 }
 
 void X3Agent::move_forward() {
-    float vx = speed_norm_ * dir_x_;
-    float vy = speed_norm_ * dir_y_;
+    float vx = move_speed_norm_ * dir_x_;
+    float vy = move_speed_norm_ * dir_y_;
     float vz = object_.speed_z();
     set_pose_and_speed(pose(), vx, vy, vz);
 }
@@ -84,7 +88,7 @@ void X3Agent::turn_right() {
 
 void X3Agent::jump() {
     if (fabs(pose().z()) < EPSILON) {
-        set_speed(0.0f, 0.0f, speed_norm_);
+        set_speed(0.0f, 0.0f, jump_speed_norm_);
     }
 }
 
@@ -93,14 +97,12 @@ float X3Agent::reach_test(const Pose& gpose) {
     float dy = gpose.y() - pose().y();
     float dz = gpose.z() - pose().z();
     float d = sqrt(dx * dx + dy * dy);
-    float reaching_score = -2; // a value smaller than any possible cosin 
-                               // similarity value
-    if (d < reaching_dist_ && dz < 0.05) {
+    float reaching_score = -1; // lower end of cos range
+    if (d < reaching_dist_ && dz < REACH_HEIGHT_THRESHOLD) {
         dx /= d;
         dy /= d;
         reaching_score = dx * dir_x_ + dy * dir_y_;
     }
-
     return reaching_score;
 }
 
@@ -128,11 +130,11 @@ void X3Camera::update(bool bird_view) {
     if (!bird_view) {
         double dir_x, dir_y;
         agent_->get_direction(dir_x, dir_y);
-        camera_.move_and_look_at(p.x(), p.y(), p.z(),
-                                 p.x() + dir_x, p.y() + dir_y, p.z());
+        camera_.move_and_look_at(p.x(), p.y(), p.z() + 0.5*UNIT,
+                                 p.x() + dir_x, p.y() + dir_y, p.z() + 0.5*UNIT);
     } else {
         // bird view
-        camera_.move_and_look_at(p.x(), p.y(), 1.0f, p.x(), p.y(), p.z());
+        camera_.move_and_look_at(p.x(), p.y(), CAMERA_BIRD_VIEW_HEIGHT, p.x(), p.y(), p.z());
     }
 }
 

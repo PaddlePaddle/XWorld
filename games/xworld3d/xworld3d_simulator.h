@@ -36,7 +36,10 @@ public:
                 const std::string& model_dir,
                 bool print_xworld_config,
                 int curriculum_learning,
-                float gravity, float time_step, int frame_skip);
+                float gravity,
+                float time_step,
+                int frame_skip,
+                bool big_screen = false);  // big_screen used for debugging
 
     void reset_game() override;
 

@@ -17,11 +17,17 @@
 DEFINE_string(x3_glsl_path, "", "directory path to OpenGL shader scripts");
 DEFINE_string(x3_model_dir, "", "3D model directory");
 DEFINE_string(x3_conf, "", "XWorld 3D configuration file");
-DEFINE_int32(x3_img_width, 256, "width of the rendering image");
-DEFINE_int32(x3_img_height, 256, "height of the rendering image");
-DEFINE_double(x3_reaching_distance, 0.12,
+DEFINE_int32(x3_training_img_width, 64, "width of the training input image");
+DEFINE_int32(x3_training_img_height, 64, "height of the training input image");
+
+
+//// NOTE: all the distance, velocity, and accelaration are specified by the user
+//// with a *unit* scale (i.e., adjacent blocks have a distance of 1).
+//// If you want to change the scale of the world, you need to change the UNIT variable
+//// in x3item.h. All the relevant quantities will automatically scale by it.
+DEFINE_double(x3_reaching_distance, 1.2,
               "two objects are considered touched if the distance between them"
               " is smaller than this value");
-DEFINE_double(x3_speed_norm, 10.0, "magnitude of moving speed");
-DEFINE_double(x3_jump_speed, 3.0, "magnitude of jumping speed");
+DEFINE_double(x3_move_speed, 50.0, "magnitude of moving speed");
+DEFINE_double(x3_jump_speed, 20.0, "magnitude of jumping speed");
 DEFINE_int32(x3_orientation_bins, 8, "number of orientation bins");

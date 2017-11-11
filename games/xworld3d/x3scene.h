@@ -46,7 +46,7 @@ enum X3Event {
 
 class X3Scene {
 public:
-    X3Scene(float gravity, float time_step, int frame_skip);
+    X3Scene(float gravity, float time_step, int frame_skip, bool big_screen);
 
     void clear_scene() {
         blocks_.clear();
@@ -84,14 +84,19 @@ private:
     void step();
 
     int frame_skip_;
-    int img_height_;
-    int img_width_;
+    int img_height_;     // size for opengl rendering (used for show and debug)
+    int img_width_;      // size for opengl rendering (used for show and debug)
+
+    // large sizes will crash in camera render
+    static const int IMG_HEIGHT_SHOW = 512;
+    static const int IMG_WIDTH_SHOW = 512;
 
     World world_;
     std::map<std::string, X3BlockPtr> blocks_;
     std::map<std::string, X3GoalPtr> goals_;
     std::map<std::string, X3AgentPtr> agents_;
     std::unique_ptr<X3Camera> camera_;
+    Thingy floor_;
 };
 
 }} // simulator::xworld_3d

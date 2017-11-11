@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     const int frame_skip = 5;
 
     X3Simulator game(FLAGS_x3_conf, FLAGS_x3_model_dir, false, 0,
-                     gravity, time_step, frame_skip);
+                     gravity, time_step, frame_skip, true/*big_screen*/);
     for (int e = 0; e < 100; ++e) {
         game.reset_game();
         auto num_actions = game.get_num_actions();
