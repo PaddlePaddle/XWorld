@@ -34,12 +34,13 @@ X3Parser::X3Parser(const std::string& world_config,
     item_types_["agent"] = X3EntityType::AGENT;
     item_types_["goal"] = X3EntityType::GOAL;
 
-    // TODO: use a class to pre-load these
-    item_repo_["ground"] = path_join({model_root_dir_, "floor.xml"});
-    item_repo_["stadium"] = path_join({model_root_dir_, "stadium/stadium.obj"});
-    item_repo_["block"] = path_join({model_root_dir_, "block/block.urdf"});
-    item_repo_["agent"] = path_join({model_root_dir_, "ball/ball.urdf"});
-    item_repo_["goal"] = path_join({model_root_dir_, "apple/apple.urdf"});
+    // TODO: use a class to pre-load these paths
+    item_repo_["ground"] = path_join({model_root_dir_, "floor/floor.xml"});
+    item_repo_["stadium"] = path_join({model_root_dir_, "floor/stadium/stadium1.obj"});
+    item_repo_["boundary"] = path_join({model_root_dir_, "block/boundary/boundary.urdf"});
+    item_repo_["block"] = path_join({model_root_dir_, "block/cube/cube.urdf"});
+    item_repo_["agent"] = path_join({model_root_dir_, "agent/ball/ball.urdf"});
+    item_repo_["goal"] = path_join({model_root_dir_, "goal/books/books.urdf"});
 }
 
 void X3Parser::reset_config(const std::string& world_config, bool print) {
@@ -89,33 +90,34 @@ void X3Parser::reset_config(const std::string& world_config, bool print) {
 }
 
 void X3Parser::build_world_boundaries(std::vector<X3ItemInfo>& list) {
+    const int boundary_height = 3; // put a larger height to prevent the agent fly over the wall
     for (int i = -1; i <= width_; ++i) {
-        list.emplace_back(
-            "block" + std::to_string(total_items_++),
-            X3EntityType::BLOCK,
-            item_repo_["block"],
-            Vec3(i, -1.0f, 0.0f)
-        );
-        list.emplace_back(
-            "block" + std::to_string(total_items_++),
-            X3EntityType::BLOCK,
-            item_repo_["block"],
-            Vec3(i, height_, 0.0f)
-        );
+        for (int j = 0; j < boundary_height; j ++) {
+            list.emplace_back(
+                "block" + std::to_string(total_items_++),
+                X3EntityType::BLOCK,
+                item_repo_["boundary"],
+                Vec3(i, -1.0f, j * 1.0f));
+            list.emplace_back(
+                "block" + std::to_string(total_items_++),
+                X3EntityType::BLOCK,
+                item_repo_["boundary"],
+                Vec3(i, height_, j * 1.0f));
+        }
     }
     for (int i = 0; i < height_; ++i) {
-        list.emplace_back(
-            "block" + std::to_string(total_items_++),
-            X3EntityType::BLOCK,
-            item_repo_["block"],
-            Vec3(-1.0f, i, 0.0f)
-        );
-        list.emplace_back(
-            "block" + std::to_string(total_items_++),
-            X3EntityType::BLOCK,
-            item_repo_["block"],
-            Vec3(width_, i, 0.0f)
-        );
+        for (int j = 0; j < boundary_height; j ++) {
+            list.emplace_back(
+                "block" + std::to_string(total_items_++),
+                X3EntityType::BLOCK,
+                item_repo_["boundary"],
+                Vec3(-1.0f, i, j * 1.0f));
+            list.emplace_back(
+                "block" + std::to_string(total_items_++),
+                X3EntityType::BLOCK,
+                item_repo_["boundary"],
+                Vec3(width_, i, j * 1.0f));
+        }
     }
 }
 

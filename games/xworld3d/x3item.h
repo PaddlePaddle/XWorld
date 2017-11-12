@@ -24,12 +24,13 @@ namespace simulator {
 namespace xworld3d {
 
 #define EPSILON 1e-6
-#define UNIT 0.1
+#define UNIT 1
 
 using roboschool::Pose;
 using roboschool::Object;
 using roboschool::World;
 using roboschool::Camera;
+using roboschool::Thingy;
 
 enum X3EntityType { GOAL = 0, AGENT = 1, BLOCK = 2, DUMMY = 3 };
 
@@ -52,19 +53,27 @@ protected:
 
 struct X3ItemInfo {
     X3ItemInfo(std::string n, X3EntityType t, std::string f) :
-               name(n), type(t), model_file(f), loc() {}
+               name(n), type(t), model_file(f), loc() {
+        CHECK(f != "") << n;
+    }
 
     X3ItemInfo(std::string n, X3EntityType t, std::string f,
                int x, int y, int z) :
-            name(n), type(t), model_file(f), loc(x, y, z) {}
+            name(n), type(t), model_file(f), loc(x, y, z) {
+        CHECK(f != "") << n;
+    }
 
     X3ItemInfo(std::string n, X3EntityType t, std::string f,
                const Vec3& l) :
-            name(n), type(t), model_file(f), loc(l) {}
+            name(n), type(t), model_file(f), loc(l) {
+        CHECK(f != "") << n;
+    }
 
     X3ItemInfo(std::string n, X3EntityType t, std::string f,
                const std::vector<int>& v) :
-            name(n), type(t), model_file(f), loc(v[0],v[1],v[2]) {}
+            name(n), type(t), model_file(f), loc(v[0],v[1],v[2]) {
+        CHECK(f != "") << n;
+    }
 
     std::string name;
     X3EntityType type;
@@ -127,8 +136,8 @@ typedef std::shared_ptr<X3Goal> X3GoalPtr;
 class X3Agent : public X3Item {
 public:
     X3Agent(const X3ItemInfo& info, World& world,
-            float speed_norm, int orientation_bins,
-            float reaching_dist);
+            float move_speed_norm, float jump_speed_norm,
+            int orientation_bins, float reaching_dist);
 
     void move_forward();
 
@@ -148,10 +157,11 @@ public:
 private:
     void set_direction();
 
-    const float speed_norm_;
+    const float move_speed_norm_;
+    const float jump_speed_norm_;
     int yaw_id_;
-    double dir_x_;
-    double dir_y_;
+    double dir_x_;              // the x component of the agent's facing direction
+    double dir_y_;              // the y component of the agent's facing direction
     const int orientation_bins_;
     const float reaching_dist_; // An agent can collect this goal if it is
                                 // within the reaching distance of this goal
@@ -165,8 +175,8 @@ public:
     X3Camera(World& world, int img_height, int img_width);
 
     Pose pose() { return camera_.pose(); }
-    
-    // Return the image seen by agent. 
+
+    // Return the image seen by agent.
     // If bird_view is true, a bird view image is also returned.
     roboschool::RenderResult render(X3Agent* agent, bool bird_view = false);
 
@@ -186,7 +196,6 @@ private:
 
 }} // simulator::xworld3d
 
-// TODO: need a better hash function
 namespace std {
 template <>
 struct hash<simulator::Vec3> {

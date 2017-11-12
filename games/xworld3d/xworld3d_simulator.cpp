@@ -14,6 +14,7 @@
 
 #include "x3scene.h"
 #include "xworld3d_parser.h"
+#include "xworld3d_flags.h"
 #include "xworld3d_simulator.h"
 
 DECLARE_bool(pause_screen);
@@ -31,8 +32,12 @@ class X3SimulatorImpl {
 public:
     X3SimulatorImpl(const std::string& world_config,
                     const std::string& model_dir,
-                    bool print, int curriculum,
-                    float gravity, float time_step, int frame_skip);
+                    bool print,
+                    int curriculum,
+                    float gravity,
+                    float time_step,
+                    int frame_skip,
+                    bool big_screen = false);
 
     ~X3SimulatorImpl() {}
 
@@ -84,23 +89,19 @@ private:
                       size_t img_height_out, size_t img_width_out,
                       bool color = false);
 
-    cv::Mat concat_images(cv::Mat img1, cv::Mat img2,
-                                           bool is_vertical);
+    cv::Mat concat_images(cv::Mat img1, cv::Mat img2, bool is_vertical);
 
     X3Scene x3scene_;  // the environment for all the agents
     X3Parser x3parser_;
     std::vector<X3NavAction> legal_actions_;
     std::string agent_name_;
-    size_t world_height_;
-    size_t world_width_;
-    size_t img_height_;      // original image size
-    size_t img_width_;       // original image size
-    size_t img_height_out_;  // resized image size
-    size_t img_width_out_;   // resized image size
+    size_t world_height_;    // unit: grid
+    size_t world_width_;     // unit: grid
+    size_t img_height_;      // opengl rendered image size (for debug and show)
+    size_t img_width_;       // opengl rendered image size (for debug and show)
+    size_t img_height_out_;  // training input image size
+    size_t img_width_out_;   // training input image size
     int event_of_last_action_;
-    GameFrame curr_screen_;
-
-    static const int GRID_SIZE = 32;
 };
 
 X3SimulatorImpl::X3SimulatorImpl(const std::string& world_config,
@@ -108,8 +109,9 @@ X3SimulatorImpl::X3SimulatorImpl(const std::string& world_config,
                                  bool print, int curriculum,
                                  float gravity,
                                  float time_step,
-                                 int frame_skip) :
-        x3scene_(gravity, time_step, frame_skip),
+                                 int frame_skip,
+                                 bool big_screen) :
+        x3scene_(gravity, time_step, frame_skip, big_screen),
         x3parser_(world_config, model_dir, print, curriculum),
         legal_actions_({MOVE_FORWARD, TURN_LEFT, TURN_RIGHT, JUMP, COLLECT}),
         agent_name_(""),
@@ -129,9 +131,8 @@ void X3SimulatorImpl::reset_game() {
     world_width_ = x3parser_.width();
     img_height_ = x3scene_.img_height();
     img_width_ = x3scene_.img_width();
-    img_height_out_ = world_height_ * GRID_SIZE;
-    img_width_out_ = world_width_ * GRID_SIZE;
-    curr_screen_.resize(3 * img_width_ * img_height_, 0);
+    img_height_out_ = FLAGS_x3_training_img_height;
+    img_width_out_ = FLAGS_x3_training_img_width;
 
     agent_name_ = x3parser_.assign_agent();
     event_of_last_action_ = X3Event::NOTHING;
@@ -165,8 +166,9 @@ inline int X3SimulatorImpl::get_lives() {
 
 void X3SimulatorImpl::get_screen(StatePacket& screen) {
     GameFrame screen_vec;
-    get_screen_rgb(curr_screen_);
-    resize_image(curr_screen_,
+    GameFrame curr_screen(3 * img_width_ * img_height_, 0);
+    get_screen_rgb(curr_screen);
+    resize_image(curr_screen,
                  screen_vec,
                  img_height_out_, img_width_out_,
                  FLAGS_color);
@@ -274,8 +276,8 @@ cv::Mat X3SimulatorImpl::concat_images(cv::Mat img1,
 
 cv::Mat X3SimulatorImpl::show_screen(float reward) {
     cv::Mat img;
-    cv::Mat img1(img_height_out_, img_width_out_, CV_8UC3);
-    cv::Mat img2(img_height_out_, img_width_out_, CV_8UC3);
+    cv::Mat img1(img_height_, img_width_, CV_8UC3);
+    cv::Mat img2(img_height_, img_width_, CV_8UC3);
 
     get_screen_rgb(img, false);
     cv::resize(img, img1, img1.size(), cv::INTER_LINEAR);
@@ -290,10 +292,11 @@ X3Simulator::X3Simulator(const std::string& world_config,
                          bool print, int curriculum,
                          float gravity,
                          float time_step,
-                         int frame_skip) : GameSimulator() {
+                         int frame_skip,
+                         bool big_screen) {
     impl_ = std::make_shared<X3SimulatorImpl>(
             world_config, model_dir, print, curriculum,
-            gravity, time_step, frame_skip);
+            gravity, time_step, frame_skip, big_screen);
 }
 
 void X3Simulator::reset_game() {
@@ -328,7 +331,7 @@ void X3Simulator::show_screen(float reward) {
         key = cv::waitKey(-1);
     } else {
         // Default mode: the screen will display continuously
-        key = cv::waitKey(1);
+        key = cv::waitKey(100);
     }
     // for some reason, ctrl+C in the terminal won't kill the program
     if (key == 27) { // ESC {
