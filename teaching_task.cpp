@@ -89,7 +89,6 @@ std::string Task::py_stage(const std::string& stage_name) {
 
         // during the stage
         py::list ret = py::extract<py::list>(py_task_.attr(stage_name.c_str())());
-
         // post-stage: the teacher might have changed the environment
         if (env.attr("env_changed")()) {
             game_->update_environment();

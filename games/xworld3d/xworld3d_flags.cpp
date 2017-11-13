@@ -19,13 +19,21 @@ DEFINE_int32(x3_training_img_width, 64, "width of the training input image");
 DEFINE_int32(x3_training_img_height, 64, "height of the training input image");
 
 
-//// NOTE: all the distance, velocity, and accelaration are specified by the user
-//// with a *unit* scale (i.e., adjacent blocks have a distance of 1).
-//// If you want to change the scale of the world, you need to change the UNIT variable
-//// in x3item.h. All the relevant quantities will automatically scale by it.
+DEFINE_double(x3_unit, 1.0, "unit scale in xworld 3d");
+//// NOTE: all the distance, velocity, and accelaration are scaled by x3_unit.
+//// (i.e., adjacent blocks have a distance of x3_unit).
+//// If you want to change the scale of the world, you need to change x3_unit.
+//// All the relevant quantities will automatically scale by it.
 DEFINE_double(x3_reaching_distance, 1.2,
               "two objects are considered touched if the distance between them"
               " is smaller than this value");
 DEFINE_double(x3_move_speed, 50.0, "magnitude of moving speed");
 DEFINE_double(x3_jump_speed, 20.0, "magnitude of jumping speed");
 DEFINE_int32(x3_orientation_bins, 8, "number of orientation bins");
+DEFINE_double(x3_gravity, 9.8, "gravitiy of the world");
+DEFINE_double(x3_time_step, 0.00165, "time step for one simulation step");
+DEFINE_int32(x3_frame_skip, 5, "time step for one simulation step");
+DEFINE_string(
+    x3_task_mode,
+    "one_channel",
+    "arxiv_lang_acquisition|arxiv_interactive|one_channel");

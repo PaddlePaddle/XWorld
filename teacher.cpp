@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "teacher.h"
+#include <sstream>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/exception/all.hpp>
+
+#include "teacher.h"
 
 DEFINE_bool(task_groups_exclusive,
             true,
             "whether task groups can happen simultaneously");
-
 DEFINE_int32(curriculum, 0, "number of games for curriculum learning");
 
 namespace simulator {
@@ -43,7 +45,7 @@ Teacher::Teacher(const std::string& teacher_conf,
 void Teacher::set_py_task_paths() {
     //// list all the relative paths of the python tasks here
     std::vector<std::string> relative_python_paths = {
-        "./games/xworld/tasks",
+        "./games/xworld3d/tasks"
     };
 
     CHECK(Py_IsInitialized());

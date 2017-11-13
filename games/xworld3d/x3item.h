@@ -14,184 +14,184 @@
 
 #pragma once
 
+#include <map>
 #include <tuple>
 
 #include "roboschool_API.h"
 #include "simulator_entity.h"
 #include "simulator_util.h"
+#include "xworld3d_flags.h"
 
 namespace simulator {
 namespace xworld3d {
 
 #define EPSILON 1e-6
-#define UNIT 1
+#define UNIT FLAGS_x3_unit
 
-using roboschool::Pose;
-using roboschool::Object;
-using roboschool::World;
-using roboschool::Camera;
-using roboschool::Thingy;
+class X3Item;
+class X3Agent;
 
-enum X3EntityType { GOAL = 0, AGENT = 1, BLOCK = 2, DUMMY = 3 };
+typedef double x3real;
+typedef std::shared_ptr<X3Item> X3ItemPtr;
+typedef std::shared_ptr<X3Agent> X3AgentPtr;
 
-class X3Entity {
-public:
-    X3Entity(std::string name, X3EntityType type) : name_(name), type_(type) {}
-
-    virtual ~X3Entity() {}
-
-    const std::string& name() const { return name_; }
-
-    X3EntityType type() { return type_; }
-
-    virtual void destroy() = 0;
-
+class X3Item {
 protected:
-    std::string name_;
-    X3EntityType type_;
-};
-
-struct X3ItemInfo {
-    X3ItemInfo(std::string n, X3EntityType t, std::string f) :
-               name(n), type(t), model_file(f), loc() {
-        CHECK(f != "") << n;
-    }
-
-    X3ItemInfo(std::string n, X3EntityType t, std::string f,
-               int x, int y, int z) :
-            name(n), type(t), model_file(f), loc(x, y, z) {
-        CHECK(f != "") << n;
-    }
-
-    X3ItemInfo(std::string n, X3EntityType t, std::string f,
-               const Vec3& l) :
-            name(n), type(t), model_file(f), loc(l) {
-        CHECK(f != "") << n;
-    }
-
-    X3ItemInfo(std::string n, X3EntityType t, std::string f,
-               const std::vector<int>& v) :
-            name(n), type(t), model_file(f), loc(v[0],v[1],v[2]) {
-        CHECK(f != "") << n;
-    }
-
-    std::string name;
-    X3EntityType type;
-    std::string model_file;
-    Vec3 loc;
-};
-
-class X3Item : public X3Entity {
+    using Pose = roboschool::Pose;
+    using Object = roboschool::Object;
+    using World = roboschool::World;
+    using Thingy = roboschool::Thingy;
+    using RenderResult = roboschool::RenderResult;
+    using Camera = roboschool::Camera;
 public:
-    X3Item(const X3ItemInfo& info, World& world);
+    static X3ItemPtr create_item(const Entity& e, World& world);
 
-    virtual ~X3Item() {
-        this->destroy();
+    X3Item(const Entity& e, World& world);
+
+    X3Item(const X3Item&) = delete;
+
+    X3Item& operator=(const X3Item&) = delete;
+
+    void destroy() {
+        object_.destroy();
     }
 
-    const Object& object() {
-        return object_;
-    }
+    // destructor
+    virtual ~X3Item() { this->destroy(); }
 
-    Pose pose() { return object_.pose(); }
+    const Object& object() const { return object_; }
+
+    // get the type of the item
+    std::string type() const { return e_.type; }
+
+    // get the id of the item
+    std::string id() const { return e_.id; }
+
+    // get the name of the item
+    std::string name() const { return e_.name; }
+
+    // get the color of the item
+    std::string color() const { return e_.color; }
+
+    // get the location of the item
+    Vec3 location() const;
+
+    // set the location of the item
+    void set_item_location(const x3real x, const x3real y, const x3real z);
+
+    Pose pose() const { return object_.pose(); }
 
     void set_pose(const Pose& pose);
 
-    void set_speed(double vx, double vy, double vz);
+    void set_speed(x3real vx, x3real vy, x3real vz);
 
-    void set_pose_and_speed(const Pose& pose, double vx, double vy, double vz);
-
-    bool equal(const X3Item* i) {
-        return (name_ == i->name());
-    }
-
-    void destroy() override;
-
-protected:
-    std::string model_file_;
-    Object object_;
-};
-
-/*********************************** X3Block **********************************/
-class X3Block : public X3Item {
-public:
-    X3Block(const X3ItemInfo& info, World& world) : X3Item(info, world) {
-        CHECK(info.type == X3EntityType::BLOCK);
-    }
-};
-
-typedef std::shared_ptr<X3Block> X3BlockPtr;
-
-/*********************************** X3Goal ***********************************/
-class X3Goal : public X3Item {
-public:
-    X3Goal(const X3ItemInfo& info, World& world) : X3Item(info, world) {
-        CHECK(info.type == X3EntityType::GOAL);
-    }
-};
-
-typedef std::shared_ptr<X3Goal> X3GoalPtr;
-
-/*********************************** X3Agent **********************************/
-class X3Agent : public X3Item {
-public:
-    X3Agent(const X3ItemInfo& info, World& world,
-            float move_speed_norm, float jump_speed_norm,
-            int orientation_bins, float reaching_dist);
-
-    void move_forward();
-
-    void turn_left();
-
-    void turn_right();
-
-    void jump();
-
-    void get_direction(double &dir_x, double &dir_y) {
+    void set_pose_and_speed(const Pose& pose,
+                                    x3real vx, x3real vy, x3real vz);
+    void get_direction(x3real &dir_x, x3real &dir_y) const {
         dir_x = dir_x_;
         dir_y = dir_y_;
     }
 
-    float reach_test(const Pose& gpose);
+    // set the type of the item
+    void set_item_type(const std::string& item_type) { e_.type = item_type; }
 
-private:
-    void set_direction();
+    Entity entity() const { return e_; }
 
-    const float move_speed_norm_;
-    const float jump_speed_norm_;
-    int yaw_id_;
-    double dir_x_;              // the x component of the agent's facing direction
-    double dir_y_;              // the y component of the agent's facing direction
-    const int orientation_bins_;
-    const float reaching_dist_; // An agent can collect this goal if it is
-                                // within the reaching distance of this goal
+    virtual void move_forward() { LOG(FATAL) << "actions not defined!"; }
+
+    virtual void move_backward() { LOG(FATAL) << "actions not defined!"; }
+
+    virtual void turn_left() { LOG(FATAL) << "actions not defined!"; }
+
+    virtual void turn_right() { LOG(FATAL) << "actions not defined!"; }
+
+    virtual void jump() { LOG(FATAL) << "actions not defined!"; }
+
+    void move_underground();
+
+    virtual X3ItemPtr collect_item(const std::map<std::string, X3ItemPtr>& items,
+                                   const std::string& type) {
+        LOG(FATAL) << "actions not defined!";
+    }
+
+    virtual int get_num_actions() const { return 0; }
+
+    bool equal(const X3Item& i) const {
+        return (this->e_.id == i.e_.id);
+    }
+
+protected:
+    Entity e_;
+    Object object_;
+    x3real dir_x_;              // the x component of the agent's facing direction
+    x3real dir_y_;              // the y component of the agent's facing direction
 };
 
-typedef std::shared_ptr<X3Agent> X3AgentPtr;
+class X3Agent : public X3Item {
+public:
+    X3Agent(const Entity& e, World& world);
 
-/********************************** X3Camera **********************************/
+    X3Agent(const X3Agent&) = delete;
+
+    X3Agent& operator=(const X3Agent&) = delete;
+
+    void move_forward() override;
+
+    void move_backward() override;
+
+    void turn_left() override;
+
+    void turn_right() override;
+
+    void jump() override;
+
+    X3ItemPtr collect_item(const std::map<std::string, X3ItemPtr>& items,
+                           const std::string& type) override;
+
+private:
+    x3real reach_test(const Pose& pose);
+
+    void set_direction();
+
+    const x3real move_speed_norm_;
+    const x3real jump_speed_norm_;
+    const int orientation_bins_;
+    const x3real reaching_dist_; // An agent can collect this goal if it is
+                                // within the reaching distance of this goal
+    int yaw_id_;
+};
+
 class X3Camera {
+private:
+    using Pose = roboschool::Pose;
+    using World = roboschool::World;
+    using Camera = roboschool::Camera;
 public:
     X3Camera(World& world, int img_height, int img_width);
 
+    X3Camera(const X3Camera&) = delete;
+
+    X3Camera& operator=(const X3Camera&) = delete;
+
+    // TODO: make this function const
     Pose pose() { return camera_.pose(); }
 
     // Return the image seen by agent.
     // If bird_view is true, a bird view image is also returned.
-    roboschool::RenderResult render(X3Agent* agent, bool bird_view = false);
+    roboschool::RenderResult render(X3Item* item, bool bird_view = false);
 
     // Camera can be attached to an agent so that the rendered image is centered
     // at the agent
-    void attach_agent(X3Agent* agent);
+    void attach_item(X3Item* item);
 
-    void detach() { agent_ = NULL; }
+    void detach() { item_ = NULL; }
 
 private:
     // Update the pose of the camera.
     void update(bool bird_view);
 
     Camera camera_;
-    X3Agent* agent_;
+    X3Item* item_;
 };
 
 }} // simulator::xworld3d
@@ -200,7 +200,9 @@ namespace std {
 template <>
 struct hash<simulator::Vec3> {
     size_t operator()(const simulator::Vec3& l) const {
-        return hash<double>()(l.x) ^ hash<double>()(l.y) ^ hash<double>()(l.z);
+        return hash<simulator::xworld3d::x3real>()(l.x) ^
+               hash<simulator::xworld3d::x3real>()(l.y) ^
+               hash<simulator::xworld3d::x3real>()(l.z);
     }
 };
 }

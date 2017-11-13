@@ -18,25 +18,64 @@
 using namespace simulator::xworld3d;
 using namespace simulator;
 
+DECLARE_bool(task_groups_exclusive);
+
+void game_reset_with_teacher(SimulatorPtr game, TeacherPtr teacher) {
+    game->reset_game();
+    teacher->reset_after_game_reset();
+    teacher->teach();
+}
+
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    FLAGS_x3_conf = "../games/xworld3d/confs/empty_ground.json";
-    const float gravity = 98;
-    const float time_step = 0.00165;
-    const int frame_skip = 5;
+    auto xwd = std::make_shared<X3Simulator>(true /*print*/, true /*big_screen*/);
 
-    X3Simulator game(false, gravity, time_step, frame_skip, true/*big_screen*/);
-    for (int e = 0; e < 100; ++e) {
-        game.reset_game();
-        auto num_actions = game.get_num_actions();
-        int step = 0;
-        while (game.game_over() == GameOverCode::ALIVE) {
-            game.show_screen(0.0f);
-            StatePacket actions;
-            actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});
-            float r = game.take_actions(actions, 1);
-            LOG(INFO) << "step: " << step++ << ", reward: " << r;
+    int agent_id = xwd->add_agent();
+    auto game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
+    auto teacher = std::make_shared<Teacher>(
+            xwd->conf_file(), xwd, false /*print*/);
+    game_reset_with_teacher(game, teacher);
+
+    auto num_actions = game->get_num_actions();
+    int act_rep = FLAGS_context;
+
+    teacher->print_total_possible_sentences();
+
+    double reward = 0;
+    double reward_per_game = 0;
+    double r = 0;
+    for (int i = 0; i < 100; i++) {
+        game->show_screen(reward_per_game);
+
+        auto game_over_str =
+            GameSimulator::decode_game_over_code(game->game_over());
+        if (game_over_str != "alive") {
+            LOG(INFO) << "game over because of " + game_over_str;
+            game_reset_with_teacher(game, teacher);
+            reward_per_game = 0;
+            continue;
         }
+
+        StatePacket state;
+        // You can choose to store the immediate reward r in the state
+        // Or you can just ignore the first argument
+        game->get_state_data(r, state);
+
+        StatePacket actions;
+        actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});
+        actions.add_buffer_str("pred_sentence", "");
+        r = game->take_actions(actions, act_rep);
+        teacher->teach();
+        r += teacher->give_reward();
+
+        reward_per_game += r;
+        reward += r;
+        LOG(INFO) << r;
     }
+
+    teacher->report_task_performance();
+
+    LOG(INFO) << "total reward " << reward;
+    return 0;
 }
