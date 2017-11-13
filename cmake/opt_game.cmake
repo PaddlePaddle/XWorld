@@ -1,5 +1,5 @@
 function(add_opt_game DIR GAME_NAME)
-  add_definitions(-DPY_${GAME_NAME})
+  add_definitions(-D${GAME_NAME})
   add_subdirectory(games/${DIR})
   get_directory_property(${GAME_NAME}_DEP_LIBS
     DIRECTORY games/${DIR}

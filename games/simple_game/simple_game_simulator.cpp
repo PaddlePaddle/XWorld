@@ -16,6 +16,8 @@
 #include <memory>
 #include <vector>
 
+DEFINE_int32(array_size, 6, "array size");
+
 namespace simulator {
 namespace simple_game {
 
@@ -77,7 +79,7 @@ SimpleGameEngine::ActionVect SimpleGameEngine::get_action_set() {
     return ActionVect({0, 1});
 }
 
-SimpleGame::SimpleGame(size_t array_size) : _game(array_size) {
+SimpleGame::SimpleGame() : _game(FLAGS_array_size) {
     _legal_actions = _game.get_action_set();
     _game.reset_game();
 }

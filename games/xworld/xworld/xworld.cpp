@@ -51,7 +51,7 @@ void XWorld::get_entities(std::vector<Entity>& entities) {
     }
 }
 
-XWorld::XWorld(const std::string& conf, bool print_conf) {
+XWorld::XWorld(const std::string& conf, bool print_conf) : conf_(conf) {
     if (print_conf) {
         std::ifstream infile(conf);
         std::string line;

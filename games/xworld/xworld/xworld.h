@@ -61,7 +61,10 @@ class XWorld {
 
     int width() { return width_; }
 
+    std::string conf_file() { return conf_; }
+
   private:
+    std::string conf_;
     XMap map_;
     int height_;
     int width_;

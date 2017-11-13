@@ -131,7 +131,7 @@ bool StateBuffer::operator==(const StateBuffer& other) {
     return true;
 }
 
-void StateBuffer::encode(util::BinaryBuffer& buf) {
+void StateBuffer::encode(util::BinaryBuffer& buf) const {
     uint8_t flags = (reals_ ? BIT_REALS : 0) | (pixels_ ? BIT_PIXELS : 0) |
                     (id_ ? BIT_ID : 0) | (str_ ? BIT_STR : 0);
     buf.append(flags);

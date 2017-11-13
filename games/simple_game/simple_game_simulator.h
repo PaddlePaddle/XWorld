@@ -17,6 +17,8 @@
 #include <vector>
 #include "simulator.h"
 
+DECLARE_int32(array_size);
+
 namespace simulator {
 namespace simple_game {
 
@@ -67,7 +69,7 @@ class SimpleGameEngine {
 // The optimal policy is to always move the left.
 class SimpleGame : public GameSimulator {
   public:
-    SimpleGame(size_t array_size = ARRAY_SIZE);
+    SimpleGame();
 
     virtual void reset_game() override;
 
@@ -90,8 +92,6 @@ class SimpleGame : public GameSimulator {
                                            size_t& channels) override;
 
   private:
-    static const size_t ARRAY_SIZE = 16;
-
     float get_reward();
 
     size_t _array_size;

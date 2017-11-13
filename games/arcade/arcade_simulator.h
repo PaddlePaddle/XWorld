@@ -15,6 +15,9 @@
 #pragma once
 #include "simulator.h"
 
+DECLARE_string(ale_rom);
+DECLARE_int32(ale_random_starts);
+
 namespace simulator {
 namespace arcade_game {
 
@@ -22,7 +25,7 @@ namespace arcade_game {
 // so that cmake of game_player does not need to include xitari path
 class ArcadeGame : public GameSimulator {
   public:
-    static ArcadeGame* create(const std::string& ale_rom);
+    static ArcadeGame* create();
 };
 }
 }  // namespace simulator::arcade_game

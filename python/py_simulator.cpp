@@ -24,7 +24,7 @@
 #include "games/simple_race/simple_race_simulator.h"
 #include "games/xworld/xworld_simulator.h"
 
-#ifdef PY_ATARI
+#ifdef ATARI
 #include "games/arcade/arcade_simulator.h"
 using namespace simulator::arcade_game;
 #endif
@@ -39,6 +39,9 @@ DECLARE_bool(color);         // default false
 DECLARE_int32(context);      // default 1
 DECLARE_bool(pause_screen);  // default false
 DECLARE_int32(curriculum);   // default 0
+
+//// simple game
+DECLARE_int32(array_size);
 
 //// xworld
 DECLARE_bool(task_groups_exclusive);  // default true
@@ -143,11 +146,9 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         extract_py_dict_val(args, "pause_screen", false, false);
     if (name == "simple_game") {
         auto array_size = extract_py_dict_val(args, "array_size", true, 0);
-        game = std::make_shared<SimpleGame>(array_size);
+        FLAGS_array_size = array_size;
+        game = std::make_shared<SimpleGame>();
     } else if (name == "simple_race") {
-        auto window_width = extract_py_dict_val(args, "window_width", true, 0);
-        auto window_height =
-            extract_py_dict_val(args, "window_height", true, 0);
         std::string track_type =
             extract_py_dict_val(args, "track_type", false, "straight");
         FLAGS_track_type = track_type;
@@ -163,10 +164,10 @@ SimulatorInterface* SimulatorInterface::create_simulator(
         std::string difficulty =
             extract_py_dict_val(args, "difficulty", false, "easy");
         FLAGS_difficulty = difficulty;
-        game = std::make_shared<SimpleRaceGame>(window_width, window_height);
+        game = std::make_shared<SimpleRaceGame>();
     } else if (name == "xworld") {
         FLAGS_color = true;
-        std::string conf_path =
+        FLAGS_xwd_conf_path =
             extract_py_dict_val(args, "conf_path", true, "");
         FLAGS_curriculum = extract_py_dict_val(args, "curriculum", false, 0);
         std::string task_mode =
@@ -181,17 +182,18 @@ SimulatorInterface* SimulatorInterface::create_simulator(
             FLAGS_task_groups_exclusive = false;
         }
 
-        auto xwd = std::make_shared<XWorldSimulator>(
-            true /*print*/, conf_path);
+        auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
+
         int agent_id = xwd->add_agent();
         game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-        teacher = std::make_shared<Teacher>(conf_path, xwd, false /*print*/);
+        teacher = std::make_shared<Teacher>(
+                xwd->conf_file(),  xwd, false /*print*/);
     }
-#ifdef PY_ATARI
+#ifdef ATARI
     else if (name == "atari") {
-        std::string ale_rom = extract_py_dict_val(args, "ale_rom", true, "");
+        FLAGS_ale_rom = extract_py_dict_val(args, "ale_rom", true, "");
         FLAGS_context = extract_py_dict_val(args, "context", false, 4);
-        game.reset(ArcadeGame::create(ale_rom));
+        game.reset(ArcadeGame::create());
     }
 #endif
     else {

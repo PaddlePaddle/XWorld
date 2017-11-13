@@ -19,6 +19,7 @@
 #include "arcade.h"
 
 DECLARE_bool(pause_screen);
+DEFINE_string(ale_rom, "", "atari rom file");
 DEFINE_int32(ale_random_starts,
              30,
              "play the action 0 N times at the beginning"
@@ -30,8 +31,9 @@ namespace arcade_game {
 
 using namespace ale;
 
-ArcadeGame* ArcadeGame::create(const std::string& ale_rom) {
-    return new Arcade(ale_rom);
+ArcadeGame* ArcadeGame::create() {
+    LOG(INFO) << FLAGS_ale_rom;
+    return new Arcade(FLAGS_ale_rom);
 }
 
 void Arcade::show_screen(float reward) {

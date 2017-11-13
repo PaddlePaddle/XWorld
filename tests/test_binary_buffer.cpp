@@ -23,7 +23,7 @@ using namespace simulator::util;
 
 template <typename T>
 bool equal(BinaryBuffer& buf, const std::vector<T>& v) {
-    buf.start_reading();
+    buf.rewind();
     T i;
     for (auto& e : v) {
         if (buf.eof()) {
@@ -39,7 +39,7 @@ bool equal(BinaryBuffer& buf, const std::vector<T>& v) {
 
 template <typename T>
 bool equal(BinaryBuffer& buf, const T* v, int num) {
-    buf.start_reading();
+    buf.rewind();
     T x;
     for (int i = 0; i < num; ++i) {
         if (buf.eof()) {
@@ -54,8 +54,8 @@ bool equal(BinaryBuffer& buf, const T* v, int num) {
 }
 
 bool equal(BinaryBuffer& b1,  BinaryBuffer& b2) {
-    b1.start_reading();
-    b2.start_reading();
+    b1.rewind();
+    b2.rewind();
     int i, j;
     while (!b1.eof()) {
         if (b2.eof()) {
@@ -104,7 +104,8 @@ TEST(BinaryBuffer, assignment) {
     // operator=
     std::vector<int> v({1,2,3,4,5});
     BinaryBuffer int_buf(v.data(), sizeof(int)*v.size());
-    BinaryBuffer int_dup = int_buf;
+    BinaryBuffer int_dup;
+    int_dup = int_buf;
     EXPECT_EQ(equal(int_buf, int_dup), true);
 
     const int N = 10;
@@ -150,73 +151,100 @@ TEST(BinaryBuffer, resize_reserve) {
 }
 
 TEST(BinaryBuffer, read_write) {
-    // vector
-    std::vector<int> v({1,2,3,4});
     BinaryBuffer b1;
-    b1.append(v);
-    b1.append(std::vector<float>(0));
-    b1.start_reading();
-    std::vector<int> v1, v2;
-    b1.read(v1);
-    b1.read(v2);
-    EXPECT_EQ(v1.size(), v.size());
-    EXPECT_EQ(v1[0], 1);
-    EXPECT_EQ(v1[1], 2);
-    EXPECT_EQ(v1[2], 3);
-    EXPECT_EQ(v1[3], 4);
-    EXPECT_EQ(v2.size(), 0);
-
-    // T*
-    float f[3] = {4, 5, 6};
     BinaryBuffer b2;
-    b2.append(f, 3);
-    b2.append(f, 3);
-    b2.start_reading();
-    float ff[6];
-    b2.read(ff, 6);
-    EXPECT_EQ(b2.size(), 6 * sizeof(float));
-    EXPECT_LE(fabs(ff[0] - 4), 1e-4);
-    EXPECT_LE(fabs(ff[1] - 5), 1e-4);
-    EXPECT_LE(fabs(ff[2] - 6), 1e-4);
-    EXPECT_LE(fabs(ff[3] - 4), 1e-4);
-    EXPECT_LE(fabs(ff[4] - 5), 1e-4);
-    EXPECT_LE(fabs(ff[5] - 6), 1e-4);
-
-    // string
-    std::string str("789");
     BinaryBuffer b3;
-    b3.append(str);
-    b3.append(std::string(""));
-    std::string tmp;
-    b3.start_reading();
-    b3.read(tmp);
-    EXPECT_EQ(tmp.length(), 3);
-    EXPECT_EQ(tmp, str);
-    b3.read(tmp);
-    EXPECT_EQ(tmp.length(), 0);
-    EXPECT_EQ(tmp, "");
+    BinaryBuffer b4;
+    BinaryBuffer b5;
+    std::vector<int> v({1,2,3,4});
+    float f[3] = {4, 5, 6};
+    float ff[6];
+    {
+        // vector
+        b1.append(v);
+        b1.append(std::vector<float>(0));
+        b1.rewind();
+        std::vector<int> v1, v2;
+        b1.read(v1);
+        b1.read(v2);
+        EXPECT_EQ(v1.size(), v.size());
+        EXPECT_EQ(v1[0], 1);
+        EXPECT_EQ(v1[1], 2);
+        EXPECT_EQ(v1[2], 3);
+        EXPECT_EQ(v1[3], 4);
+        EXPECT_EQ(v2.size(), 0);
+    }
+
+    {
+        // T*
+        b2.append(f, 3);
+        b2.append(f, 3);
+        b2.rewind();
+        b2.read(ff, 6);
+        EXPECT_EQ(b2.size(), 6 * sizeof(float));
+        EXPECT_LE(fabs(ff[0] - 4), 1e-4);
+        EXPECT_LE(fabs(ff[1] - 5), 1e-4);
+        EXPECT_LE(fabs(ff[2] - 6), 1e-4);
+        EXPECT_LE(fabs(ff[3] - 4), 1e-4);
+        EXPECT_LE(fabs(ff[4] - 5), 1e-4);
+        EXPECT_LE(fabs(ff[5] - 6), 1e-4);
+    }
+
+    {
+        // string
+        std::string str("789");
+        b3.append(str);
+        b3.append(std::string(""));
+        std::string tmp;
+        b3.rewind();
+        b3.read(tmp);
+        EXPECT_EQ(tmp.length(), 3);
+        EXPECT_EQ(tmp, str);
+        b3.read(tmp);
+        EXPECT_EQ(tmp.length(), 0);
+        EXPECT_EQ(tmp, "");
+    }
 
     // BinaryBuffer
-    BinaryBuffer b4;
-    // b1.append(b4);
-    b1.append(b2);
-    b1.start_reading();
-    std::size_t sz;
-    b1.read(sz);
-    EXPECT_EQ(sz, v.size());
-    int x;
-    for (size_t i = 0; i < sz; ++i) {
-        b1.read(x);
-        EXPECT_EQ(x, v[i]);
+    {
+        b1.append(b2);
+        b1.rewind();
+        std::size_t sz;
+        b1.read(sz);
+        EXPECT_EQ(sz, v.size());
+        int x;
+        for (int i = 0; i < sz; ++i) {
+            b1.read(x);
+            EXPECT_EQ(x, v[i]);
+        }
+        b1.read(sz);
+        EXPECT_EQ(sz, 0);
+        float f;
+        for (int i = 0; i < 3; ++i) {
+            b1.read(f);
+            EXPECT_LE(fabs(f - ff[i]), 1e-5);
+        }
+        b1.read(f);
     }
-    b1.read(sz);
-    EXPECT_EQ(sz, 0);
-    float xx;
-    for (int i = 0; i < 3; ++i) {
-        b1.read(xx);
-        EXPECT_LE(fabs(xx - ff[i]), 1e-5);
+
+    // insert
+    {
+        int x;
+        std::string s("a");
+
+        b5.append(int(1));
+        b5.append(s);
+        vector<int> a({2,3});
+        b5.insert(sizeof(int), a.data(), a.size());
+        b5.rewind();
+        for (int i = 1; i <= 3; ++i) {
+            int v;
+            b5.read(v);
+            EXPECT_EQ(v, i);
+        }
+        b5.read(s);
+        EXPECT_EQ(s, "a");
     }
-    b1.read(xx);
 }
 
 int main(int argc, char *argv[]) {
