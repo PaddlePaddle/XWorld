@@ -1,0 +1,16 @@
+{
+    "item_path" : "images",
+
+    "map" : "XWorldLanguage",
+
+    "task_groups" : {
+        "XWorldLan" : {
+            "schedule" : "weighted",
+            "weight" : 1,
+            "tasks" : {
+                "XWorldLanDirectionToObject" : 1,
+                "XWorldLanObjectToDirection" : 1
+            }
+        }
+    }
+}

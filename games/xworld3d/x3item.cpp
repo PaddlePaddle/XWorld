@@ -20,68 +20,74 @@ namespace xworld3d {
 using simulator::util::path_join;
 
 const int REACH_HEIGHT_THRESHOLD = UNIT;
-const int CAMERA_BIRD_VIEW_HEIGHT = 10.0f * UNIT;
+const int CAMERA_BIRD_VIEW_HEIGHT = 10 * UNIT;
 
-X3Item::X3Item(const X3ItemInfo& info, World& world) :
-        X3Entity(info.name, info.type),
-        model_file_(info.model_file) {
-    Pose pose(info.loc.x * UNIT, info.loc.y * UNIT, info.loc.z * UNIT);
-    object_ = world.load_urdf(info.model_file, pose, false, false);
+X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
+    if (e.type == "agent") {
+        return std::make_shared<X3Agent>(e, world);
+    } else {
+        return std::make_shared<X3Item>(e, world);
+    }
+}
+
+X3Item::X3Item(const Entity& e, World& world) :
+        e_(e), dir_x_(0.0f), dir_y_(1.0f) {
+    Pose pose(e_.loc.x * UNIT, e_.loc.y * UNIT, e_.loc.z * UNIT);
+    object_ = world.load_urdf(e.asset_path, pose, false, false);
     object_.query_position();
+}
+
+Vec3 X3Item::location() const {
+    const Pose& pose = object_.pose();
+    return Vec3(pose.x(), pose.y(), pose.z());
+}
+
+void X3Item::set_item_location(const x3real x, const x3real y, const x3real z) {
+    Pose pose(x * UNIT, y * UNIT, z * UNIT);
+    set_pose(pose);
+}
+
+void X3Item::set_speed(x3real vx, x3real vy, x3real vz) {
+    object_.set_speed(vx, vy, vz);
 }
 
 void X3Item::set_pose(const Pose& pose) {
     object_.set_pose(pose);
 }
 
-void X3Item::set_speed(double vx, double vy, double vz) {
-    object_.set_speed(vx, vy, vz);
-}
-
 void X3Item::set_pose_and_speed(const Pose& pose,
-                                double vx, double vy, double vz) {
+                                x3real vx, x3real vy, x3real vz) {
     object_.set_pose_and_speed(pose, vx, vy, vz);
 }
 
-inline void X3Item::destroy() {
-    object_.destroy();
-}
-
-/*********************************** X3Block***********************************/
-
-/*********************************** X3Goal ***********************************/
-
-/*********************************** X3Agent **********************************/
-X3Agent::X3Agent(const X3ItemInfo& info, World& world,
-                 float move_speed_norm, float jump_speed_norm,
-                 int orientation_bins, float reaching_dist) :
-        X3Item(info, world),
-        move_speed_norm_(move_speed_norm),
-        jump_speed_norm_(jump_speed_norm),
-        orientation_bins_(orientation_bins),
-        reaching_dist_(reaching_dist) {
-    CHECK(info.type == X3EntityType::AGENT);
+X3Agent::X3Agent(const Entity& e, World& world) :
+        X3Item(e, world),
+        move_speed_norm_(FLAGS_x3_move_speed * UNIT),
+        jump_speed_norm_(FLAGS_x3_jump_speed * UNIT),
+        orientation_bins_(FLAGS_x3_orientation_bins),
+        reaching_dist_(FLAGS_x3_reaching_distance) {
     yaw_id_ = simulator::util::get_rand_ind(orientation_bins_);
     set_direction();
 }
 
 void X3Agent::move_forward() {
-    float vx = move_speed_norm_ * dir_x_;
-    float vy = move_speed_norm_ * dir_y_;
-    float vz = object_.speed_z();
-    set_pose_and_speed(pose(), vx, vy, vz);
+    x3real vx = move_speed_norm_ * dir_x_;
+    x3real vy = move_speed_norm_ * dir_y_;
+    x3real vz = object_.speed_z();
+    set_pose_and_speed(this->pose(), vx, vy, vz);
 }
 
 void X3Agent::turn_left() {
+    // TODO: call set_rpy
     yaw_id_ = (yaw_id_ + 1) % orientation_bins_;
-    float vz = object_.speed_z();
+    x3real vz = object_.speed_z();
     set_speed(0.0f, 0.0f, vz);
     set_direction();
 }
 
 void X3Agent::turn_right() {
     yaw_id_ = (yaw_id_ - 1) % orientation_bins_ + orientation_bins_;
-    float vz = object_.speed_z();
+    x3real vz = object_.speed_z();
     set_speed(0.0f, 0.0f, vz);
     set_direction();
 }
@@ -92,12 +98,31 @@ void X3Agent::jump() {
     }
 }
 
-float X3Agent::reach_test(const Pose& gpose) {
-    float dx = gpose.x() - pose().x();
-    float dy = gpose.y() - pose().y();
-    float dz = gpose.z() - pose().z();
-    float d = sqrt(dx * dx + dy * dy);
-    float reaching_score = -1; // lower end of cos range
+X3ItemPtr X3Agent::collect_item(const std::map<std::string, X3ItemPtr>& items,
+                                const std::string& type) {
+    X3ItemPtr item = nullptr;
+    // the angle between the agent's facing direction and
+    // the direction from the agent to the item should be less than 45 degrees
+    x3real best_score = 0.707; // 45 degrees is the minimum
+    x3real score;
+    for (auto& kv : items) {
+        if (kv.second->type() == type) {
+            score = reach_test(kv.second->pose());
+            if (score > best_score) {
+                item = kv.second;
+                best_score = score;
+            }
+        }
+    }
+    return item;
+}
+
+x3real X3Agent::reach_test(const Pose& pose) {
+    x3real dx = pose.x() - pose.x();
+    x3real dy = pose.y() - pose.y();
+    x3real dz = pose.z() - pose.z();
+    x3real d = sqrt(dx * dx + dy * dy);
+    x3real reaching_score = -1; // lower end of cos range
     if (d < reaching_dist_ && dz < REACH_HEIGHT_THRESHOLD) {
         dx /= d;
         dy /= d;
@@ -107,7 +132,7 @@ float X3Agent::reach_test(const Pose& gpose) {
 }
 
 void X3Agent::set_direction() {
-    float rad = 2 * yaw_id_ * M_PI / orientation_bins_;
+    x3real rad = 2 * yaw_id_ * M_PI / orientation_bins_;
     dir_x_ = cos(rad);
     dir_y_ = sin(rad);
 }
@@ -115,21 +140,21 @@ void X3Agent::set_direction() {
 /********************************** X3Camera **********************************/
 X3Camera::X3Camera(World& world, int img_height, int img_width) :
         camera_(world.new_camera_free_float(img_width, img_height, "camera")),
-        agent_(NULL) {}
+        item_(NULL) {}
 
-void X3Camera::attach_agent(X3Agent* agent) {
-    if (agent && agent_ != agent) {
-        agent_ = agent;
+void X3Camera::attach_item(X3Item* item) {
+    if (item && item_ != item) {
+        item_ = item;
     }
 }
 
 void X3Camera::update(bool bird_view) {
     // TODO: to support rendering using detached camera
-    CHECK(agent_) << "camera is detached";
-    Pose p = agent_->pose();
+    CHECK(item_) << "camera is detached";
+    Pose p = item_->pose();
     if (!bird_view) {
-        double dir_x, dir_y;
-        agent_->get_direction(dir_x, dir_y);
+        x3real dir_x, dir_y;
+        item_->get_direction(dir_x, dir_y);
         camera_.move_and_look_at(p.x(), p.y(), p.z() + 0.5*UNIT,
                                  p.x() + dir_x, p.y() + dir_y, p.z() + 0.5*UNIT);
     } else {
@@ -138,8 +163,8 @@ void X3Camera::update(bool bird_view) {
     }
 }
 
-roboschool::RenderResult X3Camera::render(X3Agent* agent, bool bird_view) {
-    attach_agent(agent);
+roboschool::RenderResult X3Camera::render(X3Item* item, bool bird_view) {
+    attach_item(item);
     update(bird_view);
     return camera_.render(false, false, false);
 }
