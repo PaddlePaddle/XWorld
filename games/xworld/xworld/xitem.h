@@ -122,7 +122,10 @@ class XItem {
 
     Entity entity() { return e_; }
 
-    virtual Loc act(int action_id) { LOG(FATAL) << "actions not defined!"; }
+    virtual Loc act(int action_id) {
+        LOG(FATAL) << "actions not defined!";
+        return Loc();
+    }
 
     virtual int get_num_actions() { return 0; }
 

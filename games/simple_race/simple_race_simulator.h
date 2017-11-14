@@ -25,6 +25,14 @@
 #include <vector>
 #include "simulator.h"
 
+DECLARE_string(track_type);
+DECLARE_double(track_width);
+DECLARE_double(track_length);
+DECLARE_double(track_radius);
+DECLARE_bool(race_full_manouver);
+DECLARE_bool(random);
+DECLARE_string(difficulty);
+
 namespace simulator {
 namespace simple_race {
 

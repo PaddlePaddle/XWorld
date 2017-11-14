@@ -418,7 +418,7 @@ class AgentSpecificSimulator : public GameSimulator {
 
     void show_screen(float reward) override;
 
-    std::string last_action() override;
+    std::string last_action() override { return simulator_ptr_->last_action(); }
 
     float take_action(const StatePacket& actions) override;
 

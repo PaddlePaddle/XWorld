@@ -97,6 +97,7 @@ float SimpleGame::take_action(const StatePacket& actions) {
     CHECK_EQ(actions.size(), 1);
     int action_id = *(actions.get_buffer("action")->get_id());
     CHECK_LT(action_id, _legal_actions.size());
+    last_action_ = std::to_string(action_id);
     SimpleGameEngine::Action a = _legal_actions[action_id];
     return _game.act(a);
 }

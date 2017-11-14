@@ -31,8 +31,7 @@ using std::vector;
 Teacher::Teacher(const std::string& teacher_conf,
                  TeachingEnvPtr game,
                  bool print_teacher_config)
-    : teaching_(true),
-      task_groups_exclusive_(FLAGS_task_groups_exclusive),
+    : task_groups_exclusive_(FLAGS_task_groups_exclusive),
       teacher_conf_(teacher_conf),
       conf_root_(nullptr),
       num_games_so_far_(0),
@@ -197,9 +196,6 @@ void Teacher::before_teach() {
 }
 
 bool Teacher::teach() {
-    if (!teaching_) {
-        return false;
-    }
     before_teach();
     if (task_groups_exclusive_) {
         nondeterministic_sort_task_groups();

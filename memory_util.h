@@ -57,7 +57,7 @@ public:
 
     //// copy
     /**
-     * Overload the assignment operation. The capacity will increase if 
+     * Overload the assignment operation. The capacity will increase if
      * necessary, and in that case, BinaryBuffer owns the underlying data.
      */
     BinaryBuffer& operator=(const BinaryBuffer&);
@@ -73,9 +73,9 @@ public:
      * data and use it as new buffer. After calling this function, it is
      * BinaryBuffer's responsibility to manage the data.
      *
-     * @param[in]   data    data to take over    
+     * @param[in]   data    data to take over
      * @param[in]   size    the size (in bytes) of the data
-     */ 
+     */
     void take_over(void* data, size_t size);
 
     //// write/encode into buffer
@@ -134,7 +134,7 @@ public:
     /**
      * Get the offset of read pointer.
      */
-    int offset() const;
+    size_t offset() const;
     /**
      * Return true if read pointer reaches the end of buffer.
      */
@@ -167,7 +167,7 @@ public:
      */
     template<typename T>
     void read(T* t, int num_elements);
-    
+
     //// capacity
     /**
      * Get the size (in terms of bytes) of buffer.
@@ -221,7 +221,7 @@ private:
     size_t size_;       // number of bytes in buffer
     size_t capacity_;   // buffer capacity
     bool own_;          // whether this object owns its buffer
-    uchar* read_ptr_;   // read pointer. A new read operation starts from 
+    uchar* read_ptr_;   // read pointer. A new read operation starts from
                         // this pointer.
 };
 
@@ -437,8 +437,8 @@ inline void BinaryBuffer::clear() {
     size_ = 0;
 }
 
-inline int BinaryBuffer::offset() const {
-    return int(read_ptr_ - data_);
+inline size_t BinaryBuffer::offset() const {
+    return size_t(read_ptr_ - data_);
 }
 
 inline uchar* BinaryBuffer::data_mutable() {

@@ -48,7 +48,7 @@ void Communicator::receive_msg() {
 }
 
 //// CommServer
-CommServer::CommServer(const int port_no) : 
+CommServer::CommServer(const int port_no) :
         Communicator(),
         port_(port_no),
         acceptor_(io_service_, Endpoint(boost::asio::ip::tcp::v4(), port_)) {
@@ -63,7 +63,7 @@ bool CommServer::establish_connection() {
 const int CommClient::MAX_ATTEMPTS = 5;
 
 CommClient::CommClient(const std::string& host, const int port_no) :
-        Communicator(),    
+        Communicator(),
         host_(host), port_(port_no),
         resolver_(io_service_) {
 }
@@ -85,7 +85,7 @@ bool CommClient::establish_connection() {
         }
     }
 
-    return connected; 
+    return connected;
 }
 
 }} // simulator::communication

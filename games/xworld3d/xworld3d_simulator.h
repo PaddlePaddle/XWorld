@@ -32,10 +32,8 @@ class X3SimulatorImpl;
 
 class X3Simulator : public GameSimulator {
 public:
-    X3Simulator(const std::string& world_config,
-                const std::string& model_dir,
+    X3Simulator(const std::string& model_dir,
                 bool print_xworld_config,
-                int curriculum_learning,
                 float gravity,
                 float time_step,
                 int frame_skip,

@@ -200,9 +200,4 @@ int AgentSpecificSimulator::get_lives() {
     return simulator_ptr_->get_lives();
 }
 
-std::string AgentSpecificSimulator::last_action() {
-    // last action taken by any agent
-    return simulator_ptr_->last_action();
-}
-
 }  // namespace simulator

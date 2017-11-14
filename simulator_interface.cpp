@@ -16,8 +16,6 @@
 #include "memory_util.h"
 #include "simulator_interface.h"
 
-DECLARE_bool(task_groups_exclusive);
-
 namespace simulator {
 
 using namespace simple_game;
@@ -33,84 +31,81 @@ using util::BinaryBuffer;
 typedef std::shared_ptr<BinaryBuffer> BinaryBufferPtr;
 
 /***************************** SimulatorInterface *****************************/
-SimulatorInterface* create_simulator(
-        const std::string& name, const int port_no) {
-
-    SimulatorInterface* g = NULL;
-
-    if (port_no >= 0) {
-        g = new SimulatorServer(name, port_no);
-    } else {
-        TeacherPtr teacher = nullptr;
-        SimulatorPtr game = nullptr;
+SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
+        : reward_(0), running_(false), game_(nullptr), teacher_(nullptr) {
+    if (!server) {
         if (name == "simple_game") {
-            game = std::make_shared<SimpleGame>();
+            game_ = std::make_shared<SimpleGame>();
         } else if (name == "simple_race") {
-            game = std::make_shared<SimpleRaceGame>();
+            game_ = std::make_shared<SimpleRaceGame>();
         } else if (name == "xworld") {
             FLAGS_color = true;
-
             if (FLAGS_task_mode == "arxiv_lang_acquisition") {
                 FLAGS_task_groups_exclusive = false;
             }
 
             auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
-
             int agent_id = xwd->add_agent();
-            game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-            teacher = std::make_shared<Teacher>(
-                    xwd->conf_file(), xwd, false /*print*/);
+            game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
+            teacher_ = std::make_shared<Teacher>(
+                xwd->conf_file(), xwd, false /*print*/);
+            // print out all the possible sentences the teacher can say in this world
+            teacher_->print_total_possible_sentences();
         }
 #ifdef ATARI
         else if (name == "atari") {
-            game.reset(ArcadeGame::create());
+            game_.reset(ArcadeGame::create());
         }
 #endif
         else {
             LOG(FATAL) << "Unrecognized game type: " << name;
         }
-        g = new SingleProcInterface(game, teacher);
     }
-
-    return g;
 }
 
-/***************************** SingleProcInterface ****************************/
-SingleProcInterface::SingleProcInterface(SimulatorPtr game, TeacherPtr teacher)
-    : game_(game), teacher_(teacher) {}
+void SimulatorInterface::start() {
+    running_ = true;
+}
 
-void SingleProcInterface::reset_game() {
+void SimulatorInterface::stop() {
+    running_ = false;
+}
+
+void SimulatorInterface::reset_game() {
+    reward_ = 0;
     game_->reset_game();
+    // teacher should be reset after the game because it needs to update the
+    // game scanning results.
     if (teacher_) {
         teacher_->reset_after_game_reset();
         teacher_->teach();
     }
 }
 
-std::string SingleProcInterface::game_over_string() {
-    return GameSimulator::decode_game_over_code(game_->game_over());
+std::string SimulatorInterface::game_over_string() {
+    return GameSimulator::decode_game_over_code(game_over());
 }
 
-int SingleProcInterface::game_over() {
+int SimulatorInterface::game_over() {
     return game_->game_over();
 }
 
-int SingleProcInterface::get_num_actions() { return game_->get_num_actions(); }
+int SimulatorInterface::get_num_actions() { return game_->get_num_actions(); }
 
-int SingleProcInterface::get_lives() { return game_->get_lives(); }
+int SimulatorInterface::get_lives() { return game_->get_lives(); }
 
-int64_t SingleProcInterface::get_num_steps() { return game_->get_num_steps(); }
+int64_t SimulatorInterface::get_num_steps() { return game_->get_num_steps(); }
 
-void SingleProcInterface::get_screen_out_dimensions(
-        size_t& height, size_t& width, size_t& channels) {
+void SimulatorInterface::get_screen_out_dimensions(
+    size_t& height, size_t& width, size_t& channels) {
     game_->get_screen_out_dimensions(height, width, channels);
 }
 
-void SingleProcInterface::show_screen(float reward) {
-    game_->show_screen(reward);
+void SimulatorInterface::show_screen() {
+    game_->show_screen(reward_);
 }
 
-float SingleProcInterface::take_actions(const StatePacket& actions, int act_rep) {
+float SimulatorInterface::take_actions(const StatePacket& actions, int act_rep) {
     float r = 0;
     r += game_->take_actions(actions, act_rep);
     if (teacher_) {
@@ -118,32 +113,54 @@ float SingleProcInterface::take_actions(const StatePacket& actions, int act_rep)
                             // reward
         r += teacher_->give_reward();
     }
-
+    reward_ += r;  // accumulate for record
     return r;
 }
 
-StatePacket SingleProcInterface::get_state(const float reward) {
+StatePacket SimulatorInterface::get_state(float reward) {
     StatePacket state;
     game_->get_state_data(reward, state);
-
     return state;
 }
 
-void SingleProcInterface::teacher_report_task_performance() {
+void SimulatorInterface::get_extra_info(std::unordered_map<std::string, std::string>& info) {
+    game_->get_extra_info(info);
+}
+
+void SimulatorInterface::teacher_report_task_performance() {
     if (teacher_) {
         teacher_->report_task_performance();
     }
 }
 
+bool SimulatorInterface::last_action_success() {
+    return game_->last_action_success();
+}
+
+std::string SimulatorInterface::last_action() {
+    return game_->last_action();
+}
+
+void SimulatorInterface::get_world_dimensions(double& X, double& Y, double& Z) {
+    auto teaching_env = std::dynamic_pointer_cast<TeachingEnvironment>(game_);
+    if (teaching_env) {
+        teaching_env->get_world_dimensions(X, Y, Z);
+    }
+}
+
 /******************************* SimulatorServer ******************************/
 SimulatorServer::SimulatorServer(const std::string& name, const int port_no) :
+        SimulatorInterface(name, true),
         CommServer(port_no),
         name_(name),
         num_actions_(-1),
         num_steps_(-1),
         game_over_code_(0),
         lives_(0),
-        height_(0), width_(0), channels_(0) {
+        height_(0), width_(0), channels_(0),
+        X_(0), Y_(0), Z_(0),
+        last_action_success_(false),
+        last_action_("") {
 }
 
 void SimulatorServer::reset_game() {
@@ -153,7 +170,8 @@ void SimulatorServer::reset_game() {
              lives_,
              height_,
              width_,
-             channels_);
+             channels_,
+             X_, Y_, Z_);
 
     num_steps_ = 0;
 }
@@ -224,15 +242,15 @@ int64_t SimulatorServer::get_num_steps() {
 
 // return [h, w, c]
 void SimulatorServer::get_screen_out_dimensions (
-        size_t& height, size_t& width, size_t& channels) {
+    size_t& height, size_t& width, size_t& channels) {
     // height_, width_ and channels_ are returned from reset_game
     height = height_;
     width = width_;
     channels = channels_;
 }
 
-void SimulatorServer::show_screen(float reward) {
-    call_remote_func("show_screen", NULL, reward);
+void SimulatorServer::show_screen() {
+    call_remote_func("show_screen", NULL);
 }
 
 float SimulatorServer::take_actions(const StatePacket& actions, int act_rep) {
@@ -242,15 +260,15 @@ float SimulatorServer::take_actions(const StatePacket& actions, int act_rep) {
     call_remote_func("take_actions", &actions, act_rep);
 
     num_steps_++;
-    read_msg(r, num_steps_from_client, game_over_code_, lives_);
+    read_msg(r, num_steps_from_client, game_over_code_,
+             lives_, last_action_success_, last_action_);
 
     // num_steps_ from server should be equal to num_steps_ from client
     CHECK_EQ(num_steps_, num_steps_from_client);
-
     return r;
 }
 
-StatePacket SimulatorServer::get_state(const float reward) {
+StatePacket SimulatorServer::get_state(float reward) {
     call_remote_func("get_state", NULL, reward);
     StatePacket state;
     read_msg(state);
@@ -261,34 +279,25 @@ void SimulatorServer::teacher_report_task_performance() {
     call_remote_func("report_perf", NULL);
 }
 
+bool SimulatorServer::last_action_success() {
+    return last_action_success_;
+}
+
+std::string SimulatorServer::last_action() {
+    return last_action_;
+}
+
+void SimulatorServer::get_world_dimensions(double& X, double& Y, double& Z) {
+    X = X_;
+    Y = Y_;
+    Z = Z_;
+}
+
 /******************************* SimulatorServer ******************************/
 SimulatorClient::SimulatorClient(const std::string& name, const int port_no) :
+        SimulatorInterface(name, false),
         CommClient("localhost", port_no),
-        name_(name),
-        game_(nullptr), teacher_(nullptr) {
-    if (name == "simple_game") {
-        game_ = std::make_shared<SimpleGame>();
-    } else if (name == "simple_race") {
-        game_ = std::make_shared<SimpleRaceGame>();
-    } else if (name == "xworld") {
-        FLAGS_color = true;
-        if (FLAGS_task_mode == "arxiv_lang_acquisition") {
-            FLAGS_task_groups_exclusive = false;
-        }
-        auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
-        int agent_id = xwd->add_agent();
-        game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-        teacher_ = std::make_shared<Teacher>(
-                xwd->conf_file(), xwd, false /*print*/);
-    }
-#ifdef ATARI
-    else if (name == "atari") {
-        game_.reset(ArcadeGame::create());
-    }
-#endif
-    else {
-        LOG(FATAL) << "Unrecognized game type: " << name;
-    }
+        name_(name) {
 }
 
 void SimulatorClient::start() {
@@ -297,6 +306,7 @@ void SimulatorClient::start() {
                   << "stops due to connection error";
         return;
     }
+    SimulatorInterface::start();
     simulation_loop();
 }
 
@@ -304,6 +314,7 @@ void SimulatorClient::stop() {
     LOG(INFO) << "[client " << name_ << "] stopping";
     close_connection();
     LOG(INFO) << "[client " << name_ << "] stopped";
+    SimulatorInterface::stop();
 }
 
 bool SimulatorClient::establish_connection() {
@@ -354,24 +365,27 @@ void SimulatorClient::simulation_loop() {
 }
 
 void SimulatorClient::reset_game() {
-    game_->reset_game();
+    SimulatorInterface::reset_game();
 
     size_t height;
     size_t width;
     size_t channels;
-    game_->get_screen_out_dimensions(height, width, channels);
+    double X;
+    double Y;
+    double Z;
+    SimulatorInterface::get_screen_out_dimensions(height, width, channels);
+    SimulatorInterface::get_world_dimensions(X, Y, Z);
 
     compose_msg(std::string("reset"),
                 game_->get_num_actions(),
                 game_->game_over(),
                 game_->get_lives(),
-                height, width, channels);
+                height, width, channels,
+                X, Y, Z);
 }
 
 void SimulatorClient::show_screen() {
-    float reward;
-    read_msg(reward);
-    game_->show_screen(reward);
+    SimulatorInterface::show_screen();
     compose_msg(std::string("show_screen"));
 }
 
@@ -380,34 +394,23 @@ void SimulatorClient::take_actions() {
     StatePacket actions;
     read_msg(actions, act_rep);
 
-    float reward = game_->take_actions(actions, act_rep);
-    if (teacher_) {
-        CHECK(teacher_->teach());
-        reward += teacher_->give_reward();
-    }
-
+    float reward = SimulatorInterface::take_actions(actions, act_rep);
+    bool last_action_success = SimulatorInterface::last_action_success();
+    auto last_action = SimulatorInterface::last_action();
     compose_msg(std::string("take_actions"),
                 reward,
                 game_->get_num_steps(),
                 game_->game_over(),
-                game_->get_lives());
+                game_->get_lives(),
+                last_action_success,
+                last_action);
 }
 
 void SimulatorClient::get_state() {
     float reward;
     read_msg(reward);
-
-    StatePacket state;
-    game_->get_state_data(reward, state);
-
+    auto state = SimulatorInterface::get_state(reward);
     compose_msg(state, std::string("get_state"));
 }
 
-void SimulatorClient::teacher_report_task_performance() {
-    if (teacher_) {
-        teacher_->report_task_performance();
-    }
-}
-
 } // namespace simulator
-

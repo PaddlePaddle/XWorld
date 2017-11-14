@@ -17,6 +17,10 @@
 #include <exception>
 #include <functional>
 
+//// This file initializes some gflags for python scripts
+//// These gflags are first passed in by c++ binary
+//// Here we expose them to Python module py_gflags
+
 DECLARE_string(task_mode);            // default "one_channel"
 DECLARE_int32(curriculum);
 
