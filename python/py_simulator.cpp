@@ -58,22 +58,20 @@ T extract_py_dict_val(const py::dict& args,
 
 class PySimulatorInterface {
   public:
-    // args contains additional options for creating the simulator
-    // The complete list of args:
-    // SimpleGame      -- "array_size" -> int
-    // XWorldSimulator -- ""
+    // args contains options for creating the simulator
+    // see https://github.com/PaddlePaddle/XWorld for instructions
     static PySimulatorInterface* create_simulator(const std::string& name,
                                                   const py::dict& args);
 
-    void reset_game() { si_.reset_game(); }
+    void reset_game() { interface_.reset_game(); }
 
-    std::string game_over() { return si_.game_over_string(); }
+    std::string game_over() { return interface_.game_over_string(); }
 
-    int get_num_actions() { return si_.get_num_actions(); }
+    int get_num_actions() { return interface_.get_num_actions(); }
 
-    int get_lives() { return si_.get_lives(); }
+    int get_lives() { return interface_.get_lives(); }
 
-    void show_screen() { si_.show_screen(); }
+    void show_screen() { interface_.show_screen(); }
 
     // return [h, w, c]
     py::list get_screen_out_dimensions();
@@ -84,12 +82,12 @@ class PySimulatorInterface {
 
     py::dict get_state();
 
-    int get_num_steps() { return si_.get_num_steps(); }
+    int get_num_steps() { return interface_.get_num_steps(); }
 
   private:
     PySimulatorInterface(const std::string& name);
     // wrap a single-process simulator interface
-    SimulatorInterface si_;
+    SimulatorInterface interface_;
 };
 
 ///////////////////// pass flags in python dict to GFlags ///////////////////
@@ -143,7 +141,7 @@ void init_atari_gflags(const py::dict& args) {
 }
 
 PySimulatorInterface::PySimulatorInterface(const std::string& name)
-        : si_(name, false) {}
+        : interface_(name, false) {}
 
 PySimulatorInterface* PySimulatorInterface::create_simulator(
     const std::string& name, const py::dict& args) {
@@ -192,7 +190,7 @@ void convert_py_act_to_state_packet(const py::dict& actions, StatePacket& act) {
 float PySimulatorInterface::take_actions(const py::dict& actions, int act_rep) {
     StatePacket act;
     convert_py_act_to_state_packet(actions, act);
-    return si_.take_actions(act, act_rep);
+    return interface_.take_actions(act, act_rep);
 }
 
 float PySimulatorInterface::take_action(const py::dict& actions) {
@@ -200,7 +198,7 @@ float PySimulatorInterface::take_action(const py::dict& actions) {
 }
 
 py::dict PySimulatorInterface::get_state() {
-    auto state = si_.get_state(0);
+    auto state = interface_.get_state(0);
 
     py::dict d;
     auto keys = state.get_keys();
@@ -230,7 +228,7 @@ py::dict PySimulatorInterface::get_state() {
     }
     // extra info
     std::unordered_map<std::string, std::string> info;
-    si_.get_extra_info(info);
+    interface_.get_extra_info(info);
     for (const auto& i : info) {
         d[i.first] = i.second;
     }
@@ -241,7 +239,7 @@ py::list PySimulatorInterface::get_screen_out_dimensions() {
     size_t height;
     size_t width;
     size_t channels;
-    si_.get_screen_out_dimensions(height, width, channels);
+    interface_.get_screen_out_dimensions(height, width, channels);
     py::list dims;
     dims.append(height);
     dims.append(width);
