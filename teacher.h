@@ -77,15 +77,6 @@ class Teacher {
 
     double give_reward() { return game_->get_teacher_reward(); }
 
-    // should be called in game_player before any game begins
-    void start() { teaching_ = true; }
-
-    // should be called in game_player after all games end
-    void stop() { teaching_ = false; }
-
-    // whether the teacher has been "turned on"
-    bool is_teaching() const { return teaching_; }
-
     // whether all task groups are idle;
     // return false if some task group is busy
     bool is_idle();
@@ -101,7 +92,6 @@ class Teacher {
 
     std::vector<TaskGroupPtr> task_groups_;
     std::vector<double> task_group_weights_;
-    bool teaching_;
     bool task_groups_exclusive_;
     std::string teacher_conf_;
     std::unique_ptr<pt::ptree> conf_root_;

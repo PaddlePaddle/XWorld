@@ -26,6 +26,8 @@
 DECLARE_string(xwd_conf_path);
 DECLARE_int32(visible_radius_unit);
 DECLARE_string(task_mode);
+DECLARE_bool(task_groups_exclusive);
+DECLARE_bool(ego_centric);
 
 namespace simulator {
 namespace xwd {

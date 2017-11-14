@@ -21,8 +21,8 @@
 
 DEFINE_string(
     xwd_conf_path,
-    "./xworld/confs/empty_ground.json",
-    "the map configure file");
+    "./xworld/confs/navigation.json",
+    "the map and task configure file");
 DEFINE_int32(
     visible_radius_unit,
     0,

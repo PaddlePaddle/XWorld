@@ -15,17 +15,15 @@
 #pragma once
 
 #include <gflags/gflags.h>
-#include <iostream>
-
+#include "simulator.h"
+#include "teacher.h"
+#include "simulator_communication.h"
 #include "games/simple_game/simple_game_simulator.h"
 #include "games/simple_race/simple_race_simulator.h"
 #include "games/xworld/xworld_simulator.h"
 #ifdef ATARI
 #include "games/arcade/arcade_simulator.h"
 #endif
-#include "simulator.h"
-#include "simulator_communication.h"
-#include "teacher.h"
 
 namespace simulator {
 
@@ -38,91 +36,57 @@ namespace simulator {
  */
 class SimulatorInterface {
 public:
-    virtual void start() {
-        running_ = true;
-    }
+    SimulatorInterface(const std::string& name, bool communicator);
+    virtual ~SimulatorInterface() {}
 
-    virtual void stop() {
-        running_ = false;
-    }
+    virtual void start();
 
-    virtual void reset_game() = 0;
+    virtual void stop();
 
-    virtual std::string game_over_string() = 0;
+    virtual void reset_game();
 
-    virtual int game_over() = 0;
+    virtual std::string game_over_string();
 
-    virtual int get_num_actions() = 0;
+    virtual int game_over();
 
-    virtual int get_lives() = 0;
+    virtual int get_num_actions();
 
-    virtual int64_t get_num_steps() = 0;
+    virtual int get_lives();
+
+    virtual int64_t get_num_steps();
 
     // return [h, w, c]
     virtual void get_screen_out_dimensions(
-            size_t& height, size_t& width, size_t& channels) = 0;
+            size_t& height, size_t& width, size_t& channels);
 
-    virtual void show_screen(float reward) = 0;
+    virtual void show_screen();
 
-    virtual float take_actions(const StatePacket& actions, int act_rep) = 0;
+    virtual float take_actions(const StatePacket& actions, int act_rep);
 
     float take_action(const StatePacket& actions) {
         return take_actions(actions, 1);
     }
 
-    virtual StatePacket get_state(const float reward) = 0;
+    virtual StatePacket get_state(const float reward);
 
-    virtual void teacher_report_task_performance() = 0;
+    virtual void get_extra_info(std::unordered_map<std::string, std::string>& info);
+
+    virtual void teacher_report_task_performance();
+
+    virtual bool last_action_success();
+
+    virtual std::string last_action();
+
+    virtual void get_world_dimensions(double& X, double& Y, double& Z);
 
 protected:
+    float reward_;
     bool running_;
-};
-
-/**
- * Creator function for `SimulatorInterface`
- */
-SimulatorInterface* create_simulator(
-        const std::string& name, const int port_no = -1);
-
-/**
- * This class handles the simulation where users and simulation are in the same
- * process.
- */
-class SingleProcInterface : public SimulatorInterface {
-    friend SimulatorInterface* create_simulator(
-            const std::string& name, const int port_no);
-public:
-    void reset_game() override;
-
-    std::string game_over_string() override;
-
-    int game_over() override;
-
-    int get_num_actions() override;
-
-    int get_lives() override;
-
-    int64_t get_num_steps() override;
-
-    // return [h, w, c]
-    void get_screen_out_dimensions (
-            size_t& height, size_t& width, size_t& channels) override;
-
-    void show_screen(float reward) override;
-
-    float take_actions(const StatePacket& actions, int act_rep) override;
-
-    StatePacket get_state(const float reward) override;
-
-    void teacher_report_task_performance() override;
-
-private:
-    // user cannot create SimulatorInterface himself
-    SingleProcInterface(SimulatorPtr game, TeacherPtr teacher);
-
     SimulatorPtr game_;
     TeacherPtr teacher_;
 };
+
+typedef std::shared_ptr<SimulatorInterface> SimInterfacePtr;
 
 /**
  * Server-side simulation interface. It is only responsible for conveying the
@@ -150,12 +114,13 @@ private:
  */
 class SimulatorServer : public SimulatorInterface,
                         public communication::CommServer {
-    friend SimulatorInterface* create_simulator(
-            const std::string& name, const int port_no);
 public:
+    SimulatorServer(const std::string& name, const int port_no);
+
     void start() override;
 
     void stop() override;
+
     /**
      * Besides establishing TCP/IP connection, it also makes sure it connects
      * with the right client by checking the name.
@@ -219,7 +184,7 @@ public:
     /**
      * Request client to show current screens in the game.
      */
-    void show_screen(float reward) override;
+    void show_screen() override;
 
     /**
      * Request client to take actions. Client will also return:
@@ -233,26 +198,40 @@ public:
      */
     StatePacket get_state(const float reward) override;
 
+    void get_extra_info(std::unordered_map<std::string, std::string>& info) override {
+        LOG(FATAL) << "not supported";
+    }
+
     void teacher_report_task_performance() override;
 
-private:
-    SimulatorServer(const std::string& name, const int port_no);
+    bool last_action_success() override;
 
+    std::string last_action() override;
+
+    void get_world_dimensions(double& X, double& Y, double& Z) override;
+
+private:
     std::string name_;
     int num_actions_;
     int64_t num_steps_;
     int game_over_code_;
     int lives_;
-    int height_;
-    int width_;
-    int channels_;
+    size_t height_;
+    size_t width_;
+    size_t channels_;
+    double X_;
+    double Y_;
+    double Z_;
+    bool last_action_success_;
+    std::string last_action_;
 };
 
 /**
  * Client-side simulation interface. It executes simulation commands from, and
  * returns outcomes back to, server.
  */
-class SimulatorClient : public communication::CommClient {
+class SimulatorClient : public SimulatorInterface,
+                        public communication::CommClient {
 public:
     SimulatorClient(const std::string& name, const int port_no);
 
@@ -277,21 +256,17 @@ private:
      */
     void simulation_loop();
 
-    void reset_game();
+    void reset_game() override;
 
-    void show_screen();
+    void show_screen() override;
 
     void take_actions();
 
     void get_state();
 
-    void teacher_report_task_performance();
-
     std::string name_;
     std::string host_;
     int port_;
-    SimulatorPtr game_;
-    TeacherPtr teacher_;
 };
 
 } // namespace simulator

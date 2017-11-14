@@ -24,23 +24,22 @@ DEFINE_int32(num_agents, 1, "number of agents");
 DEFINE_int32(port, 50000, "port number for socket communication");
 DEFINE_int32(client_id, -1, "client id; -1 for server");
 
-void run_simulation(SimulatorInterface* g) {
+void run_simulation(std::shared_ptr<SimulatorInterface> g) {
     g->start();
     g->reset_game();
     auto num_actions = g->get_num_actions();
 
     double reward = 0;
-    double reward_per_game = 0;
     double r = 0;
-    while (true) {
-        auto game_over_str = GameSimulator::decode_game_over_code(g->game_over());
+    size_t cnt = 0;
+    while (cnt < 100) {
+        auto game_over_str = g->game_over_string();
         if (game_over_str != "alive") {
             LOG(INFO) << "game over because of " + game_over_str;
             g->reset_game();
-            reward_per_game = 0;
             continue;
         }
-        g->show_screen(reward_per_game);
+        g->show_screen();
 
         StatePacket state;
         // You can choose to store the immediate reward r in the state
@@ -52,8 +51,8 @@ void run_simulation(SimulatorInterface* g) {
         actions.add_buffer_id("action", {a});
 
         r = g->take_actions(actions, 1);
-        reward_per_game += r;
         reward += r;
+        cnt ++;
     }
     g->stop();
 
@@ -81,18 +80,18 @@ int main(int argc, char** argv) {
             int port = (FLAGS_port < 0) ? -1 : FLAGS_port + i;
             server_threads.emplace_back(
                 [&](int port) {
-                    SimulatorInterface* g = create_simulator(name, port);
+                    auto g = std::make_shared<SimulatorServer>(name, port);
                     run_simulation(g);
                 },
                 port
             );
         }
-        for (auto& t : server_threads) { t.join(); }        
+        for (auto& t : server_threads) { t.join(); }
     } else {
         int port = FLAGS_port + client_id;
         LOG(INFO) << "client process id " << getpid();
-        SimulatorClient client(name, port);
-        client.start();
+        auto client = std::make_shared<SimulatorClient>(name, port);
+        client->start();
     }
 
     return 0;

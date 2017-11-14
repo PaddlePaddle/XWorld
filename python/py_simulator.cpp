@@ -12,50 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <data_packet.h>
 #include <gflags/gflags.h>
-#include <simulator.h>
-#include <teacher.h>
 #include <boost/python.hpp>
 #include <boost/python/exception_translator.hpp>
 #include <exception>
 #include <iostream>
-#include "games/simple_game/simple_game_simulator.h"
-#include "games/simple_race/simple_race_simulator.h"
-#include "games/xworld/xworld_simulator.h"
-
-#ifdef ATARI
-#include "games/arcade/arcade_simulator.h"
-using namespace simulator::arcade_game;
-#endif
+#include "simulator_interface.h"
 
 using namespace simulator;
-using namespace simulator::simple_game;
-using namespace simulator::simple_race;
-using namespace simulator::xwd;
 namespace py = boost::python;
-
-DECLARE_bool(color);         // default false
-DECLARE_int32(context);      // default 1
-DECLARE_bool(pause_screen);  // default false
-DECLARE_int32(curriculum);   // default 0
-
-//// simple game
-DECLARE_int32(array_size);
-
-//// xworld
-DECLARE_bool(task_groups_exclusive);  // default true
-DECLARE_string(task_mode);            // default "one_channel"
-DECLARE_bool(ego_centric);           // default true
-
-//// simple race
-DECLARE_string(track_type);
-DECLARE_double(track_width);
-DECLARE_double(track_length);
-DECLARE_double(track_radius);
-DECLARE_bool(race_full_manouver);
-DECLARE_bool(random);
-DECLARE_string(difficulty);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -90,31 +55,25 @@ T extract_py_dict_val(const py::dict& args,
     return ret;
 }
 
-/**
- * A wrapper for exposing various CPP simulators to Python
- * We use SimulatorPtr as a class member and create simulators in
- * the factory mode.
- * In this way, we only need to expose a minimum number of functions in
- * GameSimulator
- **/
-class SimulatorInterface {
+
+class PySimulatorInterface {
   public:
     // args contains additional options for creating the simulator
     // The complete list of args:
     // SimpleGame      -- "array_size" -> int
     // XWorldSimulator -- ""
-    static SimulatorInterface* create_simulator(const std::string& name,
-                                                const py::dict& args);
+    static PySimulatorInterface* create_simulator(const std::string& name,
+                                                  const py::dict& args);
 
-    void reset_game();
+    void reset_game() { si_.reset_game(); }
 
-    std::string game_over();
+    std::string game_over() { return si_.game_over_string(); }
 
-    int get_num_actions();
+    int get_num_actions() { return si_.get_num_actions(); }
 
-    int get_lives();
+    int get_lives() { return si_.get_lives(); }
 
-    void show_screen();
+    void show_screen() { si_.show_screen(); }
 
     // return [h, w, c]
     py::list get_screen_out_dimensions();
@@ -125,104 +84,88 @@ class SimulatorInterface {
 
     py::dict get_state();
 
-    int get_num_steps();
+    int get_num_steps() { return si_.get_num_steps(); }
 
   private:
-    // user cannot create SimulatorInterface
-    SimulatorInterface(SimulatorPtr game, TeacherPtr teacher);
-    SimulatorPtr game_;
-    TeacherPtr teacher_;
-    float reward_;  // current accumulated reward (non-discounted)
+    PySimulatorInterface(const std::string& name);
+    // wrap a single-process simulator interface
+    SimulatorInterface si_;
 };
 
-SimulatorInterface::SimulatorInterface(SimulatorPtr game, TeacherPtr teacher)
-    : game_(game), teacher_(teacher) {}
+///////////////////// pass flags in python dict to GFlags ///////////////////
+///////////////////// simple game
+void init_simple_game_gflags(const py::dict& args) {
+    auto array_size = extract_py_dict_val(args, "array_size", true, 0);
+    FLAGS_array_size = array_size;
+}
 
-SimulatorInterface* SimulatorInterface::create_simulator(
+///////////////////// pass flags in python dict to GFlags ///////////////////
+///////////////////// simple race
+void init_simple_race_gflags(const py::dict& args) {
+    std::string track_type =
+            extract_py_dict_val(args, "track_type", false, "straight");
+    FLAGS_track_type = track_type;
+    FLAGS_track_width =
+            extract_py_dict_val(args, "track_width", true, 20.0f);
+    FLAGS_track_length =
+            extract_py_dict_val(args, "track_length", true, 100.0f);
+    FLAGS_track_radius =
+            extract_py_dict_val(args, "track_radius", true, 30.0f);
+    FLAGS_race_full_manouver =
+            extract_py_dict_val(args, "race_full_manouver", false, false);
+    FLAGS_random = extract_py_dict_val(args, "random", false, false);
+    std::string difficulty =
+            extract_py_dict_val(args, "difficulty", false, "easy");
+    FLAGS_difficulty = difficulty;
+}
+
+///////////////////// pass flags in python dict to GFlags ///////////////////
+///////////////////// xworld
+void init_xworld_gflags(const py::dict& args) {
+    FLAGS_xwd_conf_path =
+            extract_py_dict_val(args, "conf_path", true, "");
+    std::string task_mode =
+            extract_py_dict_val(args, "task_mode", false, "one_channel");
+    FLAGS_task_mode = task_mode;
+    FLAGS_task_groups_exclusive =
+            extract_py_dict_val(args, "task_groups_exclusive", false, true);
+    FLAGS_context = extract_py_dict_val(args, "context", false, 1);
+    FLAGS_ego_centric = extract_py_dict_val(args, "ego_centric", false, true);
+}
+
+///////////////////// pass flags in python dict to GFlags ///////////////////
+///////////////////// atari
+void init_atari_gflags(const py::dict& args) {
+#ifdef ATARI
+    FLAGS_ale_rom = extract_py_dict_val(args, "ale_rom", true, "");
+    FLAGS_context = extract_py_dict_val(args, "context", false, 4);
+#endif
+}
+
+PySimulatorInterface::PySimulatorInterface(const std::string& name)
+        : si_(name, false) {}
+
+PySimulatorInterface* PySimulatorInterface::create_simulator(
     const std::string& name, const py::dict& args) {
-    TeacherPtr teacher = nullptr;
-    SimulatorPtr game = nullptr;
+
     FLAGS_pause_screen =
         extract_py_dict_val(args, "pause_screen", false, false);
     if (name == "simple_game") {
-        auto array_size = extract_py_dict_val(args, "array_size", true, 0);
-        FLAGS_array_size = array_size;
-        game = std::make_shared<SimpleGame>();
+        init_simple_game_gflags(args);
     } else if (name == "simple_race") {
-        std::string track_type =
-            extract_py_dict_val(args, "track_type", false, "straight");
-        FLAGS_track_type = track_type;
-        FLAGS_track_width =
-            extract_py_dict_val(args, "track_width", true, 20.0f);
-        FLAGS_track_length =
-            extract_py_dict_val(args, "track_length", true, 100.0f);
-        FLAGS_track_radius =
-            extract_py_dict_val(args, "track_radius", true, 30.0f);
-        FLAGS_race_full_manouver =
-            extract_py_dict_val(args, "race_full_manouver", false, false);
-        FLAGS_random = extract_py_dict_val(args, "random", false, false);
-        std::string difficulty =
-            extract_py_dict_val(args, "difficulty", false, "easy");
-        FLAGS_difficulty = difficulty;
-        game = std::make_shared<SimpleRaceGame>();
+        init_simple_race_gflags(args);
     } else if (name == "xworld") {
-        FLAGS_color = true;
-        FLAGS_xwd_conf_path =
-            extract_py_dict_val(args, "conf_path", true, "");
-        FLAGS_curriculum = extract_py_dict_val(args, "curriculum", false, 0);
-        std::string task_mode =
-            extract_py_dict_val(args, "task_mode", false, "one_channel");
-        FLAGS_task_mode = task_mode;
-        FLAGS_task_groups_exclusive =
-            extract_py_dict_val(args, "task_groups_exclusive", false, true);
-        FLAGS_context = extract_py_dict_val(args, "context", false, 1);
-        FLAGS_ego_centric = extract_py_dict_val(args, "ego_centric", false, true);
-
-        if (task_mode == "arxiv_lang_acquisition") {
-            FLAGS_task_groups_exclusive = false;
-        }
-
-        auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
-
-        int agent_id = xwd->add_agent();
-        game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-        teacher = std::make_shared<Teacher>(
-                xwd->conf_file(),  xwd, false /*print*/);
-    }
-#ifdef ATARI
-    else if (name == "atari") {
-        FLAGS_ale_rom = extract_py_dict_val(args, "ale_rom", true, "");
-        FLAGS_context = extract_py_dict_val(args, "context", false, 4);
-        game.reset(ArcadeGame::create());
-    }
-#endif
-    else {
+        init_xworld_gflags(args);
+    } else if (name == "atari") {
+        init_atari_gflags(args);
+    } else {
         throw PyException("Unrecognized game type: " + name);
     }
 
-    auto g = new SimulatorInterface(game, teacher);
+    auto g = new PySimulatorInterface(name);
     g->reset_game();
     return g;
 }
-
-void SimulatorInterface::reset_game() {
-    reward_ = 0;
-    game_->reset_game();
-    if (teacher_) {
-        teacher_->reset_after_game_reset();
-        teacher_->teach();
-    }
-}
-
-std::string SimulatorInterface::game_over() {
-    return GameSimulator::decode_game_over_code(game_->game_over());
-}
-
-int SimulatorInterface::get_num_actions() { return game_->get_num_actions(); }
-
-int SimulatorInterface::get_lives() { return game_->get_lives(); }
-
-void SimulatorInterface::show_screen() { game_->show_screen(reward_); }
 
 // Convert a Python dict of actions to StatePacket so that
 // game_ can take an action
@@ -246,28 +189,20 @@ void convert_py_act_to_state_packet(const py::dict& actions, StatePacket& act) {
     }
 }
 
-float SimulatorInterface::take_actions(const py::dict& actions, int act_rep) {
+float PySimulatorInterface::take_actions(const py::dict& actions, int act_rep) {
     StatePacket act;
     convert_py_act_to_state_packet(actions, act);
-    float r = 0;
-    r += game_->take_actions(act, act_rep);
-    if (teacher_) {
-        teacher_->teach();  // teacher reacts to agent's action and evaluate the
-                            // reward
-        r += teacher_->give_reward();
-    }
-    reward_ += r;  // accumulate for record
-    return r;
+    return si_.take_actions(act, act_rep);
 }
 
-float SimulatorInterface::take_action(const py::dict& actions) {
+float PySimulatorInterface::take_action(const py::dict& actions) {
     return take_actions(actions, 1);
 }
 
-py::dict SimulatorInterface::get_state() {
-    StatePacket state;
+py::dict PySimulatorInterface::get_state() {
+    auto state = si_.get_state(0);
+
     py::dict d;
-    game_->get_state_data(0, state);
     auto keys = state.get_keys();
     for (const auto& k : keys) {
         // user will get reward outside this function from take_action()
@@ -295,20 +230,18 @@ py::dict SimulatorInterface::get_state() {
     }
     // extra info
     std::unordered_map<std::string, std::string> info;
-    game_->get_extra_info(info);
+    si_.get_extra_info(info);
     for (const auto& i : info) {
         d[i.first] = i.second;
     }
     return d;
 }
 
-int SimulatorInterface::get_num_steps() { return game_->get_num_steps(); }
-
-py::list SimulatorInterface::get_screen_out_dimensions() {
+py::list PySimulatorInterface::get_screen_out_dimensions() {
     size_t height;
     size_t width;
     size_t channels;
-    game_->get_screen_out_dimensions(height, width, channels);
+    si_.get_screen_out_dimensions(height, width, channels);
     py::list dims;
     dims.append(height);
     dims.append(width);
@@ -330,20 +263,20 @@ void help() {
 BOOST_PYTHON_MODULE(py_simulator) {
     py::register_exception_translator<PyException>(&error_translate);
     py::def("help", help);
-    py::class_<SimulatorInterface, boost::noncopyable>("Simulator", py::no_init)
+    py::class_<PySimulatorInterface, boost::noncopyable>("Simulator", py::no_init)
         .def("create",
-             &SimulatorInterface::create_simulator,
+             &PySimulatorInterface::create_simulator,
              py::return_value_policy<py::manage_new_object>())
         .staticmethod("create")
-        .def("reset_game", &SimulatorInterface::reset_game)
-        .def("game_over", &SimulatorInterface::game_over)
-        .def("get_num_actions", &SimulatorInterface::get_num_actions)
-        .def("get_lives", &SimulatorInterface::get_lives)
-        .def("show_screen", &SimulatorInterface::show_screen)
+        .def("reset_game", &PySimulatorInterface::reset_game)
+        .def("game_over", &PySimulatorInterface::game_over)
+        .def("get_num_actions", &PySimulatorInterface::get_num_actions)
+        .def("get_lives", &PySimulatorInterface::get_lives)
+        .def("show_screen", &PySimulatorInterface::show_screen)
         // intentionally bind take_actions to two functions so that it has
         // optional args
-        .def("take_actions", &SimulatorInterface::take_actions)
-        .def("take_actions", &SimulatorInterface::take_action)
-        .def("get_state", &SimulatorInterface::get_state)
-        .def("get_num_steps", &SimulatorInterface::get_num_steps);
+        .def("take_actions", &PySimulatorInterface::take_actions)
+        .def("take_actions", &PySimulatorInterface::take_action)
+        .def("get_state", &PySimulatorInterface::get_state)
+        .def("get_num_steps", &PySimulatorInterface::get_num_steps);
 }

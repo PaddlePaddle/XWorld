@@ -17,9 +17,6 @@
 #include "xworld3d_flags.h"
 #include "xworld3d_simulator.h"
 
-DECLARE_bool(pause_screen);
-DECLARE_bool(color);
-
 using std::make_shared;
 
 namespace simulator {
@@ -33,7 +30,6 @@ public:
     X3SimulatorImpl(const std::string& world_config,
                     const std::string& model_dir,
                     bool print,
-                    int curriculum,
                     float gravity,
                     float time_step,
                     int frame_skip,
@@ -106,13 +102,13 @@ private:
 
 X3SimulatorImpl::X3SimulatorImpl(const std::string& world_config,
                                  const std::string& model_dir,
-                                 bool print, int curriculum,
+                                 bool print,
                                  float gravity,
                                  float time_step,
                                  int frame_skip,
                                  bool big_screen) :
         x3scene_(gravity, time_step, frame_skip, big_screen),
-        x3parser_(world_config, model_dir, print, curriculum),
+        x3parser_(world_config, model_dir, print),
         legal_actions_({MOVE_FORWARD, TURN_LEFT, TURN_RIGHT, JUMP, COLLECT}),
         agent_name_(""),
         img_height_(0), img_width_(0),
@@ -287,15 +283,14 @@ cv::Mat X3SimulatorImpl::show_screen(float reward) {
     return concat_images(img1, img2, false);
 }
 
-X3Simulator::X3Simulator(const std::string& world_config,
-                         const std::string& model_dir,
-                         bool print, int curriculum,
+X3Simulator::X3Simulator(const std::string& model_dir,
+                         bool print,
                          float gravity,
                          float time_step,
                          int frame_skip,
                          bool big_screen) {
     impl_ = std::make_shared<X3SimulatorImpl>(
-            world_config, model_dir, print, curriculum,
+            FLAGS_x3_conf, model_dir, print,
             gravity, time_step, frame_skip, big_screen);
 }
 
