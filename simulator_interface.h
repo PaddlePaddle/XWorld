@@ -36,7 +36,7 @@ namespace simulator {
  */
 class SimulatorInterface {
 public:
-    SimulatorInterface(const std::string& name, bool communicator);
+    SimulatorInterface(const std::string& name, bool communicator = false);
     virtual ~SimulatorInterface() {}
 
     virtual void start();

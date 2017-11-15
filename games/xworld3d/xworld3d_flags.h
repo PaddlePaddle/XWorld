@@ -16,8 +16,6 @@
 
 #include <gflags/gflags.h>
 
-DECLARE_string(x3_glsl_path);
-DECLARE_string(x3_model_dir);
 DECLARE_string(x3_conf);
 DECLARE_int32(x3_training_img_width);
 DECLARE_int32(x3_training_img_height);
