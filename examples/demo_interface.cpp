@@ -18,12 +18,6 @@
 
 using namespace simulator;
 
-DECLARE_int32(context);
-DEFINE_string(game, "simple_game", "name of game");
-DEFINE_int32(num_agents, 1, "number of agents");
-DEFINE_int32(port, 50000, "port number for socket communication");
-DEFINE_int32(client_id, -1, "client id; -1 for server");
-
 void run_simulation(std::shared_ptr<SimulatorInterface> g) {
     g->start();
     g->reset_game();
@@ -62,22 +56,25 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    std::string name(FLAGS_game);
+    std::string name = "simple_game";
 
     int client_id = -1;
-    for (int i = 0; i < FLAGS_num_agents; ++i) {
-        if (fork() == 0) {
+    const int num_agents = 1;
+    const int base_port = 50000;
+    for (int i = 0; i < num_agents; ++i) {
+        if (fork() == 0) { // child process
             client_id = i;
             break;
         }
+        // parent process will continue
     }
 
     if (client_id < 0) {
         LOG(INFO) << "server process id " << getpid();
 
         std::vector<std::thread> server_threads;
-        for (int i = 0; i < FLAGS_num_agents; ++i) {
-            int port = (FLAGS_port < 0) ? -1 : FLAGS_port + i;
+        for (int i = 0; i < num_agents; ++i) {
+            int port = (base_port < 0) ? -1 : base_port + i;
             server_threads.emplace_back(
                 [&](int port) {
                     auto g = std::make_shared<SimulatorServer>(name, port);
@@ -88,7 +85,7 @@ int main(int argc, char** argv) {
         }
         for (auto& t : server_threads) { t.join(); }
     } else {
-        int port = FLAGS_port + client_id;
+        int port = base_port + client_id;
         LOG(INFO) << "client process id " << getpid();
         auto client = std::make_shared<SimulatorClient>(name, port);
         client->start();

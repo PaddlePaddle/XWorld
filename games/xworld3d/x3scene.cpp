@@ -35,7 +35,11 @@ X3Scene::X3Scene(float gravity, float time_step, int frame_skip, bool big_screen
         img_height_(big_screen? IMG_HEIGHT_SHOW: FLAGS_x3_training_img_height),
         img_width_(big_screen? IMG_WIDTH_SHOW: FLAGS_x3_training_img_width),
         world_(gravity, time_step) {
-    world_.set_glsl_path(FLAGS_x3_glsl_path);
+
+    std::string glsl_path = __FILE__;
+    glsl_path = glsl_path.substr(0, glsl_path.find_last_of("/") + 1) + "glsl";
+
+    world_.set_glsl_path(glsl_path);
     camera_ = std::unique_ptr<X3Camera>(
             new X3Camera(world_, img_height_, img_width_));
     blocks_.clear();

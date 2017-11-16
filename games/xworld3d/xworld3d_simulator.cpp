@@ -283,12 +283,14 @@ cv::Mat X3SimulatorImpl::show_screen(float reward) {
     return concat_images(img1, img2, false);
 }
 
-X3Simulator::X3Simulator(const std::string& model_dir,
-                         bool print,
+X3Simulator::X3Simulator(bool print,
                          float gravity,
                          float time_step,
                          int frame_skip,
                          bool big_screen) {
+    std::string model_dir = __FILE__;
+    model_dir = model_dir.substr(0, model_dir.find_last_of("/") + 1) + "models_3d";
+
     impl_ = std::make_shared<X3SimulatorImpl>(
             FLAGS_x3_conf, model_dir, print,
             gravity, time_step, frame_skip, big_screen);

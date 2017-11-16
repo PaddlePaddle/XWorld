@@ -14,8 +14,6 @@
 
 #include "xworld3d_flags.h"
 
-DEFINE_string(x3_glsl_path, "", "directory path to OpenGL shader scripts");
-DEFINE_string(x3_model_dir, "", "3D model directory");
 DEFINE_string(x3_conf, "", "XWorld 3D configuration file");
 DEFINE_int32(x3_training_img_width, 64, "width of the training input image");
 DEFINE_int32(x3_training_img_height, 64, "height of the training input image");
