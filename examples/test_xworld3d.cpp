@@ -18,11 +18,18 @@
 using namespace simulator::xworld3d;
 using namespace simulator;
 
+DECLARE_int32(context);
+DECLARE_bool(pause_screen);
+DECLARE_bool(task_groups_exclusive);
+
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
+    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
+        FLAGS_task_groups_exclusive = false;
+    }
+
     FLAGS_x3_glsl_path = "../games/xworld3d/glsl";
-    FLAGS_x3_model_dir = "../games/xworld3d/models_3d";
     FLAGS_x3_conf = "../games/xworld3d/confs/empty_ground.json";
     const float gravity = 98;
     const float time_step = 0.00165;

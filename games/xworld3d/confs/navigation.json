@@ -1,0 +1,36 @@
+{
+    "item_path" : "images",
+    "map" : "XWorldNav",
+    "task_groups" : {
+        "XWorldNav" : {
+            "held_out" : [
+            ],
+            "weight" : 0.5,
+            "schedule" : "random",  // optional, default "random"
+            "tasks" : {
+                "XWorldNavTarget" : 1,
+                "XWorldNavNear" : 1,
+                "XWorldNavColorTarget" : 1,
+                "XWorldNavBetween" : 1
+            }
+        },
+        "XWorldRec" : {
+            "schedule" : "weighted",
+            "weight" : 1,
+            "tasks" : {
+                "XWorldRecDirectionToObject" : 1,
+                "XWorldRecObjectToDirection" : 1,
+                "XWorldRecColorToObject" : 1,
+                "XWorldRecObjectToColor" : 1,
+                "XWorldRecDirectionToColor" : 1,
+                "XWorldRecColorToDirection" : 1,
+                "XWorldRecDirectionAndObjectToObject" : 1,
+                "XWorldRecDirectionAndObjectToColor" : 1,
+                "XWorldRecColorAndObject" : 1,
+                "XWorldRecBetweenToObject" : 1,
+                "XWorldRecBetweenToDirection" : 1,
+                "XWorldRecBetweenToColor" : 1
+            }
+        }
+    }
+}

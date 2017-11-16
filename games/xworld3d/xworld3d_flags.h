@@ -19,9 +19,14 @@
 DECLARE_string(x3_glsl_path);
 DECLARE_string(x3_model_dir);
 DECLARE_string(x3_conf);
+DECLARE_double(x3_unit);
 DECLARE_int32(x3_training_img_width);
 DECLARE_int32(x3_training_img_height);
 DECLARE_double(x3_reaching_distance);
 DECLARE_double(x3_move_speed);
 DECLARE_double(x3_jump_speed);
 DECLARE_int32(x3_orientation_bins);
+DECLARE_double(x3_gravity);
+DECLARE_double(x3_time_step);
+DECLARE_int32(x3_frame_skip);
+DECLARE_string(x3_task_mode);
