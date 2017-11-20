@@ -104,7 +104,11 @@ X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
 
     world_ = util::make_unique<roboschool::World>(
             FLAGS_x3_gravity, FLAGS_x3_time_step);
-    world_->set_glsl_path(FLAGS_x3_glsl_path);
+
+    std::string glsl_path = __FILE__;
+    glsl_path = glsl_path.substr(0, glsl_path.find_last_of("/") + 1) + "glsl";
+
+    world_->set_glsl_path(glsl_path);
 
     camera_ = util::make_unique<X3Camera>(
             *(world_.get()), img_height_, img_width_);
