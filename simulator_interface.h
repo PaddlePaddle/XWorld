@@ -83,6 +83,7 @@ protected:
     float reward_;
     bool running_;
     SimulatorPtr game_;
+    TeachingEnvPtr teaching_env_;
     TeacherPtr teacher_;
 };
 
