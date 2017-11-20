@@ -142,9 +142,9 @@ void X3Simulator::reset_game() {
     // default
     if (max_steps_ == 0) {
         if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
-            max_steps_ = (height_ + width_ ) * 2;
+            max_steps_ = (height_ + width_ ) * 4;
         } else {
-            max_steps_ = height_ * width_ * 2;
+            max_steps_ = height_ * width_ * 4;
         }
     }
 

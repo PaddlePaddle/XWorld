@@ -97,6 +97,8 @@ public:
 
     Entity entity() const { return e_; }
 
+    void sync_entity_info();
+
     virtual void move_forward() { LOG(FATAL) << "actions not defined!"; }
 
     virtual void move_backward() { LOG(FATAL) << "actions not defined!"; }

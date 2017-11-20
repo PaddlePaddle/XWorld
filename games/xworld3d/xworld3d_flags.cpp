@@ -27,7 +27,7 @@ DEFINE_double(x3_unit, 1.0, "unit scale in xworld 3d");
 DEFINE_double(x3_reaching_distance, 1.2,
               "two objects are considered touched if the distance between them"
               " is smaller than this value");
-DEFINE_double(x3_move_speed, 50.0, "magnitude of moving speed");
+DEFINE_double(x3_move_speed, 25.0, "magnitude of moving speed");
 DEFINE_double(x3_jump_speed, 20.0, "magnitude of jumping speed");
 DEFINE_int32(x3_orientation_bins, 8, "number of orientation bins");
 DEFINE_double(x3_gravity, 9.8, "gravitiy of the world");

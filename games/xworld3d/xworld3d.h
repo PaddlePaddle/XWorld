@@ -113,4 +113,4 @@ private:
     boost::python::object xwd_env_;
 };
 
-}} // simulator::xworld_3
+}} // simulator::xworld3d

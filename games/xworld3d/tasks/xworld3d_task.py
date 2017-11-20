@@ -38,6 +38,7 @@ class XWorld3DTask(object):
             (-1, -1) : "northwest"
         }
         self.distance_threshold = 1.0
+        self.orientation_threshold = 0.707
         self.env = env
         self.event = ""
         self.num_successes = 0
@@ -84,7 +85,7 @@ class XWorld3DTask(object):
             if (not best_sim) or (sim > best_sim):
                 best_sim = sim
                 best_dir = d
-        return self.directions[best_dir], dist
+        return best_sim, dist, self.directions[best_dir]
 
     def _record_success(self):
         self.num_successes += 1
@@ -200,16 +201,19 @@ class XWorld3DTask(object):
             self._bind("S -> timeup")
             next_stage = "idle"
             sentence = self._generate()
-        elif agent.loc == self.target:
-            self.steps_in_cur_task = 0
-            self._record_success()
-            self._record_event("correct_goal")
-            reward += XWorld3DTask.correct_reward
-            self._bind("S -> finish")
-            next_stage = "idle"
-            sentence = self._generate()
-        elif agent.loc in goal_locs:
-            reward += XWorld3DTask.wrong_reward
+        else:
+            o, dist, _ = self._get_direction_and_distance(agent.loc, self.target)
+            if o >= self.orientation_threshold \
+               and dist <= self.distance_threshold:
+                self.steps_in_cur_task = 0
+                self._record_success()
+                self._record_event("correct_goal")
+                reward += XWorld3DTask.correct_reward
+                self._bind("S -> finish")
+                next_stage = "idle"
+                sentence = self._generate()
+            elif agent.loc in goal_locs:
+                reward += XWorld3DTask.wrong_reward
 
         return [next_stage, reward, sentence]
 
@@ -294,9 +298,9 @@ class XWorld3DTask(object):
             refer_loc = agent.loc
         ret = []
         for g in goals:
-            d, dist = self._get_direction_and_distance(refer_loc, g.loc)
+            _, dist, dir_name = self._get_direction_and_distance(refer_loc, g.loc)
             if dist < self.distance_threshold:
-                ret.append((g, d))
+                ret.append((g, dir_name))
         return ret
 
     def _get_surrounding_empty_grids(self, refer_loc=None):

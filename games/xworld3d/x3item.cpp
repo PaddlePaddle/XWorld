@@ -60,8 +60,12 @@ void X3Item::set_pose_and_speed(const Pose& pose,
     object_.set_pose_and_speed(pose, vx, vy, vz);
 }
 
+void X3Item::sync_entity_info() {
+    std::tie(e_.loc.x, e_.loc.y, e_.loc.z) = object_.pose().xyz();
+}
+
 void X3Item::move_underground() {
-   Pose pose = this->pose();
+   Pose pose(object_.pose());
    pose.set_xyz(pose.x(), pose.y(), -2);
    set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
@@ -77,7 +81,7 @@ X3Agent::X3Agent(const Entity& e, World& world) :
 }
 
 void X3Agent::move_forward() {
-    Pose pose = this->pose();
+    Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     x3real vx = move_speed_norm_ * dir_x_;
     x3real vy = move_speed_norm_ * dir_y_;
@@ -86,7 +90,7 @@ void X3Agent::move_forward() {
 }
 
 void X3Agent::move_backward() {
-    Pose pose = this->pose();
+    Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     x3real vx = -move_speed_norm_ * dir_x_;
     x3real vy = -move_speed_norm_ * dir_y_;
@@ -95,7 +99,7 @@ void X3Agent::move_backward() {
 }
 
 void X3Agent::turn_left() {
-    Pose pose = this->pose();
+    Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     // TODO: call set_rpy
     yaw_id_ = (yaw_id_ + 1) % orientation_bins_;
@@ -105,7 +109,7 @@ void X3Agent::turn_left() {
 }
 
 void X3Agent::turn_right() {
-    Pose pose = this->pose();
+    Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     yaw_id_ = (yaw_id_ - 1) % orientation_bins_ + orientation_bins_;
     x3real vz = object_.speed_z();
@@ -140,7 +144,7 @@ X3ItemPtr X3Agent::collect_item(const std::map<std::string, X3ItemPtr>& items,
 }
 
 x3real X3Agent::reach_test(const Pose& pose) {
-    const Pose& self = this->pose();
+    const Pose self = object_.pose();
     x3real dx = pose.x() - self.x();
     x3real dy = pose.y() - self.y();
     x3real dz = pose.z() - self.z();

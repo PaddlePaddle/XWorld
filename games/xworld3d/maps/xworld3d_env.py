@@ -279,7 +279,6 @@ class XWorld3DEnv(object):
         wall_blocks = []
         def add_blocks(range1, range2, id):
             for loc in itertools.product(range1, range2):
-                print(loc+(0,))
                 wall_blocks.append(Entity(type="block", loc=loc+(0,), id="boundary_%d" % id,
                                           name="boundary", color="na",
                                           asset_path=self.items["block"]["boundary"][0]))

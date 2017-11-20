@@ -239,6 +239,9 @@ roboschool::RenderResult X3World::render(const size_t agent_id, bool debug) {
 
 void X3World::step(const int frame_skip) {
     world_->step(frame_skip);
+    for (auto& i : items_) {
+        i.second->sync_entity_info();
+    }
 }
 
 }} // simulator::xworld3d
