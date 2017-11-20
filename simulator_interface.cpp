@@ -32,7 +32,8 @@ typedef std::shared_ptr<BinaryBuffer> BinaryBufferPtr;
 
 /***************************** SimulatorInterface *****************************/
 SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
-        : reward_(0), running_(false), game_(nullptr), teacher_(nullptr) {
+        : reward_(0), running_(false), game_(nullptr),
+          teaching_env_(nullptr), teacher_(nullptr) {
     if (!server) {
         if (name == "simple_game") {
             game_ = std::make_shared<SimpleGame>();
@@ -47,6 +48,7 @@ SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
             auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
             int agent_id = xwd->add_agent();
             game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
+            teaching_env_ = xwd;
             teacher_ = std::make_shared<Teacher>(
                 xwd->conf_file(), xwd, false /*print*/);
             // print out all the possible sentences the teacher can say in this world
@@ -142,9 +144,8 @@ std::string SimulatorInterface::last_action() {
 }
 
 void SimulatorInterface::get_world_dimensions(double& X, double& Y, double& Z) {
-    auto teaching_env = std::dynamic_pointer_cast<TeachingEnvironment>(game_);
-    if (teaching_env) {
-        teaching_env->get_world_dimensions(X, Y, Z);
+    if (teaching_env_) {
+        teaching_env_->get_world_dimensions(X, Y, Z);
     }
 }
 

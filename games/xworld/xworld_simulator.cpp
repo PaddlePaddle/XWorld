@@ -112,6 +112,7 @@ void XWorldSimulator::reset_game() {
     TeachingEnvironment::reset_game();
     xworld_.reset();
     init();  // update dimensions
+    history_messages_.clear();
     history_messages_.push_back("--------------- New Game --------------");
     if (history_messages_.size() > n_history_) {
         history_messages_.pop_front();
