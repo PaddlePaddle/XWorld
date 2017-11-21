@@ -56,7 +56,7 @@ public:
 
     void get_screen_rgb(const size_t agent_id,
                         cv::Mat& img,
-                        bool debug = false);  // get the current screenshot (color)
+                        bool bird_view = false);  // get the current screenshot (color)
 
 private:
     X3SimulatorImpl(const X3SimulatorImpl&) = delete;
@@ -104,9 +104,9 @@ inline void X3SimulatorImpl::step(const int frame_skip) {
 }
 
 void X3SimulatorImpl::get_screen_rgb(
-        const size_t agent_id, cv::Mat& screen, bool debug) {
+        const size_t agent_id, cv::Mat& screen, bool bird_view) {
     roboschool::RenderResult render_result =
-            xworld3d_.render(agent_id, debug);
+            xworld3d_.render(agent_id, bird_view);
     std::string render_str = std::get<0>(render_result);
     int img_height = std::get<4>(render_result);
     int img_width = std::get<5>(render_result);
@@ -126,7 +126,8 @@ void X3SimulatorImpl::get_screen_rgb(
 X3Simulator::X3Simulator(bool print, bool big_screen) :
         height_(0), width_(0),
         img_height_out_(FLAGS_x3_training_img_height),
-        img_width_out_(FLAGS_x3_training_img_width) {
+        img_width_out_(FLAGS_x3_training_img_width),
+        bird_view_(false) {
     impl_ = util::make_unique<X3SimulatorImpl>(
             FLAGS_x3_conf, print, big_screen);
 }
@@ -147,6 +148,7 @@ void X3Simulator::reset_game() {
             max_steps_ = height_ * width_ * 4;
         }
     }
+    history_messages_.clear();
 
     history_messages_.push_back("--------------- New Game --------------");
     if (history_messages_.size() > n_history_) {
@@ -189,7 +191,7 @@ std::string X3Simulator::conf_file() {
 
 void X3Simulator::show_screen(float reward) {
     cv::Mat img;
-    impl_->get_screen_rgb(active_agent_id_, img, false);
+    impl_->get_screen_rgb(active_agent_id_, img, bird_view_);
 
     cv::Mat img_wo_msg = concat_images(img, get_reward_image(reward), true);
     prev_screen_ = img_wo_msg;
@@ -328,6 +330,8 @@ float X3Simulator::take_action(const StatePacket& actions) {
                     break;
                 case 'c':
                     action_idx = 5;
+                case 'z':
+                    bird_view_ = !bird_view_;
                 default:
                     break;
             }

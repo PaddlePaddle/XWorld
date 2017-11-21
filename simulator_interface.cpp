@@ -21,6 +21,9 @@ namespace simulator {
 using namespace simple_game;
 using namespace simple_race;
 using namespace xwd;
+#ifdef XWORLD3D
+using namespace simulator::xworld3d;
+#endif
 #ifdef ATARI
 using namespace simulator::arcade_game;
 #endif
@@ -54,6 +57,16 @@ SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
             // print out all the possible sentences the teacher can say in this world
             teacher_->print_total_possible_sentences();
         }
+#ifdef XWORLD3D
+        else if (name == "xworld3d") {
+            auto xwd = std::make_shared<X3Simulator>(true /*print*/, true /*big_screen*/);
+            int agent_id = xwd->add_agent();
+            game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
+            teaching_env_ = xwd;
+            teacher_ = std::make_shared<Teacher>(
+                    xwd->conf_file(), xwd, false /*print*/);
+        }
+#endif
 #ifdef ATARI
         else if (name == "atari") {
             game_.reset(ArcadeGame::create());

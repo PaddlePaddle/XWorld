@@ -18,6 +18,8 @@
 
 using namespace simulator;
 
+DEFINE_string(game, "simple_game", "name of the game");
+
 void run_simulation(std::shared_ptr<SimulatorInterface> g) {
     g->start();
     g->reset_game();
@@ -43,6 +45,7 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
         StatePacket actions;
         int a = util::get_rand_ind(num_actions);
         actions.add_buffer_id("action", {a});
+        actions.add_buffer_str("pred_sentence", "");
 
         r = g->take_actions(actions, 1);
         reward += r;
@@ -56,7 +59,7 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    std::string name = "simple_game";
+    std::string name = FLAGS_game;
 
     int client_id = -1;
     const int num_agents = 1;

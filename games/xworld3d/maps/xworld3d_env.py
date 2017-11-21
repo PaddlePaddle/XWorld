@@ -25,7 +25,7 @@ import pprint
 Entity:
   id         - unique str for this entity
   type       - "agent", "goal", "block"
-  location   - (x, y)
+  location   - (x, y, z)
   asset_path - the model path
   name       - name of the entity
   color      - color of the entity
@@ -213,8 +213,6 @@ class XWorld3DEnv(object):
     def cpp_get_entities(self):
         """
         C++ code gets entities information. Used by the underlying simulator.
-        C++ entity is in 3D so we need to add an additional 0.
-        A 3D entity is compatible with different games.
         """
         actual_entities = [e.__dict__ for e in self.entities]
         boundary_entities = [e.__dict__ for e in self.boundaries]
@@ -225,7 +223,6 @@ class XWorld3DEnv(object):
         Update the environment from C++. The changes might be due to
         the environment dynamics or the agent's actions.
         Entities is a list of python dicts.
-        We only keep the first two dimensions of a C++ entity.
         """
         self.entity_nums = {t : 0 for t in self.grid_types}
         self.entities = [Entity(**i) for i in entities if not self.__is_boundary(i["loc"])]

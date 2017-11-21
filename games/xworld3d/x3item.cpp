@@ -20,7 +20,7 @@ namespace xworld3d {
 using simulator::util::path_join;
 
 const int REACH_HEIGHT_THRESHOLD = UNIT;
-const int CAMERA_BIRD_VIEW_HEIGHT = 10 * UNIT;
+const int CAMERA_BIRD_VIEW_HEIGHT = 10.0f * UNIT;
 
 X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
     if (e.type == "agent") {
@@ -75,7 +75,7 @@ X3Agent::X3Agent(const Entity& e, World& world) :
         move_speed_norm_(FLAGS_x3_move_speed * UNIT),
         jump_speed_norm_(FLAGS_x3_jump_speed * UNIT),
         orientation_bins_(FLAGS_x3_orientation_bins),
-        reaching_dist_(FLAGS_x3_reaching_distance) {
+        reaching_dist_(FLAGS_x3_reaching_distance * UNIT) {
     yaw_id_ = simulator::util::get_rand_ind(orientation_bins_);
     set_direction();
 }

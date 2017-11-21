@@ -198,13 +198,13 @@ private:
 
 }} // simulator::xworld3d
 
-namespace std {
-template <>
-struct hash<simulator::Vec3> {
-    size_t operator()(const simulator::Vec3& l) const {
-        return hash<simulator::xworld3d::x3real>()(l.x) ^
-               hash<simulator::xworld3d::x3real>()(l.y) ^
-               hash<simulator::xworld3d::x3real>()(l.z);
-    }
-};
-}
+//namespace std {
+//template <>
+//struct hash<simulator::Vec3> {
+//    size_t operator()(const simulator::Vec3& l) const {
+//        return hash<simulator::xworld3d::x3real>()(l.x) ^
+//               hash<simulator::xworld3d::x3real>()(l.y) ^
+//               hash<simulator::xworld3d::x3real>()(l.z);
+//    }
+//};
+//}

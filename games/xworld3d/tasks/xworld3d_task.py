@@ -308,7 +308,7 @@ class XWorld3DTask(object):
         Given a reference location, return all empty grids in its 3x3 neighborhood
         """
         # TODO
-        yield
+        raise NotImplementedError()
 
     def _get_between_pair_goals(self):
         """
@@ -316,7 +316,7 @@ class XWorld3DTask(object):
         one grid that is not a wall block
         """
         # TODO
-        yield
+        raise NotImplementedError()
 
     def _reachable(self, start, to):
         """
