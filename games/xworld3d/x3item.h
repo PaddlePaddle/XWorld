@@ -26,7 +26,6 @@ namespace simulator {
 namespace xworld3d {
 
 #define EPSILON 1e-6
-#define UNIT FLAGS_x3_unit
 
 class X3Item;
 class X3Agent;
@@ -83,10 +82,10 @@ public:
 
     void set_pose(const Pose& pose);
 
-    void set_speed(x3real vx, x3real vy, x3real vz);
+    void set_speed(const x3real vx, const x3real vy, const x3real vz);
 
     void set_pose_and_speed(const Pose& pose,
-                                    x3real vx, x3real vy, x3real vz);
+                            const x3real vx, const x3real vy, const x3real vz);
     void get_direction(x3real &dir_x, x3real &dir_y) const {
         dir_x = dir_x_;
         dir_y = dir_y_;
@@ -121,6 +120,10 @@ public:
     bool equal(const X3Item& i) const {
         return (this->e_.id == i.e_.id);
     }
+
+public:
+    static const x3real UNIT;
+    static const x3real UNIT_INV;
 
 protected:
     Entity e_;

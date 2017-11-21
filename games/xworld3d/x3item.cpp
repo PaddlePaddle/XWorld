@@ -19,11 +19,15 @@ namespace xworld3d {
 
 using simulator::util::path_join;
 
-const int REACH_HEIGHT_THRESHOLD = UNIT;
-const int CAMERA_BIRD_VIEW_HEIGHT = 10.0f * UNIT;
+const x3real X3Item::UNIT = FLAGS_x3_unit;
+const x3real X3Item::UNIT_INV = 1.0 / FLAGS_x3_unit;
+
+const x3real REACH_HEIGHT_THRESHOLD = X3Item::UNIT;
+const x3real CAMERA_BIRD_VIEW_HEIGHT = 10.0 * X3Item::UNIT;
 
 X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
     if (e.type == "agent") {
+        LOG(INFO) << "agent created";
         return std::make_shared<X3Agent>(e, world);
     } else {
         return std::make_shared<X3Item>(e, world);
@@ -62,6 +66,7 @@ void X3Item::set_pose_and_speed(const Pose& pose,
 
 void X3Item::sync_entity_info() {
     std::tie(e_.loc.x, e_.loc.y, e_.loc.z) = object_.pose().xyz();
+    e_.loc.scale(UNIT_INV);
 }
 
 void X3Item::move_underground() {
@@ -182,8 +187,8 @@ void X3Camera::update(bool bird_view) {
     if (!bird_view) {
         x3real dir_x, dir_y;
         item_->get_direction(dir_x, dir_y);
-        camera_.move_and_look_at(p.x(), p.y(), p.z() + 0.5*UNIT,
-                                 p.x() + dir_x, p.y() + dir_y, p.z() + 0.5*UNIT);
+        camera_.move_and_look_at(p.x(), p.y(), p.z() + 0.5 * X3Item::UNIT,
+                                 p.x() + dir_x, p.y() + dir_y, p.z() + 0.5 * X3Item::UNIT);
     } else {
         // bird view
         camera_.move_and_look_at(p.x(), p.y(), CAMERA_BIRD_VIEW_HEIGHT, p.x(), p.y(), p.z());
