@@ -21,6 +21,9 @@
 #include "games/simple_game/simple_game_simulator.h"
 #include "games/simple_race/simple_race_simulator.h"
 #include "games/xworld/xworld_simulator.h"
+#ifdef XWORLD3D
+#include "games/xworld3d/xworld3d_simulator.h"
+#endif
 #ifdef ATARI
 #include "games/arcade/arcade_simulator.h"
 #endif

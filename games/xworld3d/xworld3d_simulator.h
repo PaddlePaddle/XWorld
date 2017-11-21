@@ -18,11 +18,13 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <memory>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "simulator.h"
+#include "teacher.h"
 #include "xworld3d_flags.h"
 
 namespace simulator {
@@ -30,13 +32,11 @@ namespace xworld3d {
 
 class X3SimulatorImpl;
 
-class X3Simulator : public GameSimulator {
+class X3Simulator : public GameSimulatorMulti, public TeachingEnvironment {
 public:
-    X3Simulator(bool print_xworld_config,
-                float gravity,
-                float time_step,
-                int frame_skip,
-                bool big_screen = false);  // big_screen used for debugging
+    X3Simulator(bool print_xworld_config, bool big_screen/*for debug*/ = false);
+
+    ~X3Simulator();
 
     void reset_game() override;
 
@@ -54,12 +54,64 @@ public:
 
     void define_state_specs(StatePacket& state) override;
 
+    void get_extra_info(
+            std::unordered_map<std::string, std::string>& info) override;
+
     void get_screen_out_dimensions(size_t& height,
                                    size_t& width,
                                    size_t& channels) override;
 
+    int add_agent() override;
+
+    //// TeachingEnvironment
+    void apply_teacher_actions() override;
+
+    void get_world_dimensions(double& X, double& Y, double& Z) override;
+
+    // get the information for all the entities
+    void get_all_entities(std::vector<Entity>& entities) override;
+
+    boost::python::object get_py_env() override;
+
+    void update_environment() override;
+
+    std::string conf_file();
+
 private:
-    std::shared_ptr<X3SimulatorImpl> impl_;
+    cv::Mat get_reward_image(float reward);  // get the sub-image for reward
+
+    cv::Mat get_message_image(
+        std::deque<std::string>& messages);  // get history msg images
+
+    //// image process
+    void update_message_box_on_screen();  // reward msg box on the screen with
+                                          // updated msgs
+
+    void resize_image_to_frame(const cv::Mat& img,
+                               GameFrame& frame,
+                               size_t img_height_out,
+                               size_t img_width_out,
+                               bool color);
+
+    cv::Mat concat_images(cv::Mat img1, cv::Mat img2, bool is_vertical);
+
+    std::unique_ptr<X3SimulatorImpl> impl_;
+
+    size_t height_;
+    size_t width_;
+    size_t img_height_out_;  // training input image size
+    size_t img_width_out_;   // training input image size
+    bool bird_view_;
+    cv::Mat prev_screen_;  // previous screen for display
+    cv::Mat screen_;
+
+    std::vector<std::string> agent_received_sentences_;
+    static const int n_history_ =
+        25;  // how many history messages to display in the message box
+             // that is next to the xworld map screen
+             // this variable won't affect the game and the training
+    std::deque<std::string>
+        history_messages_;  // history message buffer for showing in the GUI
 };
 
 }} // simulator::xworld3d

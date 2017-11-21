@@ -75,9 +75,6 @@ def generate_urdf(obj_file, new_name, bb_sizes):
         n.attrib["filename"] = os.path.basename(obj_file)
     for n in xml.iter('box'):
         n.attrib["size"] = "%f %f %f" % (bb_sizes[0], bb_sizes[1], bb_sizes[2])
-    if "agent" in obj_file:
-        for n in xml.iter('mass'):
-            n.attrib["value"] = "0.5"
     urdf_file = os.path.join(os.path.dirname(obj_file), new_name + ".urdf")
     et.ElementTree(xml).write(urdf_file)
 
