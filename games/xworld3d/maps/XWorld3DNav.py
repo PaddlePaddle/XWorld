@@ -3,9 +3,9 @@ from py_gflags import get_flag
 import os
 import random
 
-class XWorldNav(XWorld3DEnv):
+class XWorld3DNav(XWorld3DEnv):
     def __init__(self, item_path):
-        super(XWorldNav, self).__init__(
+        super(XWorld3DNav, self).__init__(
             item_path=item_path,
             max_height=7,
             max_width=7)

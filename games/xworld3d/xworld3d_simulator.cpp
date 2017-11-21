@@ -398,24 +398,24 @@ cv::Mat X3Simulator::get_message_image(std::deque<std::string>& messages) {
     auto get_message_color = [&](std::string type) {
         if (type == "Silence" || type == "Reply") {
             return black;
-        } else if (type.find("XWorldNav") == 0) {
+        } else if (type.find("XWorld3DNav") == 0) {
             return green;
-        } else if (type == "XWorldRecColorToObject" ||
-                   type == "XWorldRecObjectToColor") {
+        } else if (type == "XWorld3DRecColorToObject" ||
+                   type == "XWorld3DRecObjectToColor") {
             return red;
-        } else if (type == "XWorldRecDirectionToObject" ||
-                   type == "XWorldRecObjectToDirection") {
+        } else if (type == "XWorld3DRecDirectionToObject" ||
+                   type == "XWorld3DRecObjectToDirection") {
             return yellow;
-        } else if (type == "XWorldRecDirectionToColor" ||
-                   type == "XWorldRecColorToDirection") {
+        } else if (type == "XWorld3DRecDirectionToColor" ||
+                   type == "XWorld3DRecColorToDirection") {
             return blue;
-        } else if (type == "XWorldRecColorAndObject") {
+        } else if (type == "XWorld3DRecColorAndObject") {
             return magenta;
-        } else if (type.find("XWorldRecDirectionAndObject") == 0) {
+        } else if (type.find("XWorld3DRecDirectionAndObject") == 0) {
             return cyan;
-        } else if (type.find("XWorldRecBetween") == 0) {
+        } else if (type.find("XWorld3DRecBetween") == 0) {
             return pink;
-        } else if (type.find("XWorldLan") == 0) {
+        } else if (type.find("XWorld3DLan") == 0) {
             return white;
         } else {
             LOG(FATAL) << "unrecognized message type: " + type;

@@ -15,9 +15,9 @@ Finally, the function get_stage_names() return all the stage functions the
 user wants to register.
 """
 
-class XWorldNavTarget(XWorld3DTask):
+class XWorld3DNavTarget(XWorld3DTask):
     def __init__(self, env):
-        super(XWorldNavTarget, self).__init__(env)
+        super(XWorld3DNavTarget, self).__init__(env)
 
     def idle(self):
         goals = self._get_goals()

@@ -45,7 +45,7 @@ Teacher::Teacher(const std::string& teacher_conf,
 void Teacher::set_py_task_paths() {
     //// list all the relative paths of the python tasks here
     std::vector<std::string> relative_python_paths = {
-        "./games/xworld3d/tasks"
+        "./games/xworld3d/tasks", "./games/xworld/tasks"
     };
 
     CHECK(Py_IsInitialized());
