@@ -291,8 +291,11 @@ class XWorld3DEnv(object):
         Given a location, determine whether it's a padding block or not
         """
         x, y, _ = loc
-        return not (x >= 0 and x < self.width and \
-                    y >= 0 and y < self.height)
+        # sometimes the agent may "go into" boundaries due to collision
+        # detection, hence we add some tolerance (0.4 here) so that the agent
+        # won't be wrongly considered as a boundary unit
+        return not (x >= -0.4 and x < self.width - 0.6 and \
+                    y >= -0.4 and y < self.height - 0.6)
 
     def __clean_env(self):
         """
