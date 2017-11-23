@@ -59,12 +59,10 @@ void XWorldSimulator::init() {
     // default
     if (FLAGS_max_steps == 0) {
         if (FLAGS_task_mode == "arxiv_lang_acquisition") {
-            max_steps_ = (height_ + width_ ) * 2;
+            FLAGS_max_steps = (height_ + width_ ) * 2;
         } else {
-            max_steps_ = height_ * width_ * 2;
+            FLAGS_max_steps = height_ * width_ * 2;
         }
-    } else {
-        max_steps_ = FLAGS_max_steps;
     }
 }
 

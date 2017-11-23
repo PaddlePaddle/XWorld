@@ -66,7 +66,7 @@ class GameSimulator {
      * @brief return the game status
      */
     virtual int game_over() {
-        if (max_steps_ > 0 && num_steps_ >= max_steps_) {
+        if (FLAGS_max_steps > 0 && num_steps_ >= FLAGS_max_steps) {
             return MAX_STEP;
         } else {
             return ALIVE;
@@ -171,7 +171,6 @@ class GameSimulator {
     static std::string decode_game_over_code(int code);
 
   protected:
-    int64_t max_steps_;
     int64_t num_steps_;  // number of steps since the beginning of the game
 
     std::string last_action_;  // store the last action for the agent
@@ -255,7 +254,7 @@ class GameSimulatorMulti : public GameSimulator {
     }
 
     // this function is called to return max_steps to AgentSpecificSimulator
-    int64_t get_max_steps() { return max_steps_; }
+    int64_t get_max_steps() { return FLAGS_max_steps; }
 
   protected:
     int num_agents_;

@@ -27,7 +27,6 @@ const x3real CAMERA_BIRD_VIEW_HEIGHT = 10.0 * X3Item::UNIT;
 
 X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
     if (e.type == "agent") {
-        LOG(INFO) << "agent created";
         return std::make_shared<X3Agent>(e, world);
     } else {
         return std::make_shared<X3Item>(e, world);
@@ -90,7 +89,7 @@ void X3Agent::move_forward() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     x3real vx = move_speed_norm_ * dir_x_;
     x3real vy = move_speed_norm_ * dir_y_;
-    x3real vz = object_.speed_z();
+    //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
@@ -99,7 +98,7 @@ void X3Agent::move_backward() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     x3real vx = -move_speed_norm_ * dir_x_;
     x3real vy = -move_speed_norm_ * dir_y_;
-    x3real vz = object_.speed_z();
+    //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
@@ -108,7 +107,7 @@ void X3Agent::turn_left() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     // TODO: call set_rpy
     yaw_id_ = (yaw_id_ + 1) % orientation_bins_;
-    x3real vz = object_.speed_z();
+    //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
     set_direction();
 }
@@ -117,7 +116,7 @@ void X3Agent::turn_right() {
     Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     yaw_id_ = (yaw_id_ - 1) % orientation_bins_ + orientation_bins_;
-    x3real vz = object_.speed_z();
+    //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
     set_direction();
 }
