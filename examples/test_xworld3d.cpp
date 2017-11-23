@@ -29,6 +29,8 @@ void game_reset_with_teacher(SimulatorPtr game, TeacherPtr teacher) {
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
+    FLAGS_x3_conf = "../games/xworld3d/confs/navigation.json";
+
     auto xwd = std::make_shared<X3Simulator>(true /*print*/, true /*big_screen*/);
 
     int agent_id = xwd->add_agent();

@@ -43,6 +43,7 @@ class Entity:
 
 class XWorld3DEnv(object):
     def __init__(self, item_path, max_height=10, max_width=10):
+        self.border_tolerance = 0.3
         self.num_games = -1
         ## load all items from item_path
         self.grid_types = ["goal", "block", "agent"]
@@ -291,8 +292,8 @@ class XWorld3DEnv(object):
         Given a location, determine whether it's a padding block or not
         """
         x, y, _ = loc
-        return not (x >= 0 and x < self.width and \
-                    y >= 0 and y < self.height)
+        return not (x >= -self.border_tolerance and x <= self.width - 1 + self.border_tolerance  and \
+                    y >= -self.border_tolerance and y <= self.height - 1 + self.border_tolerance)
 
     def __clean_env(self):
         """

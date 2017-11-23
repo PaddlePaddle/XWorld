@@ -27,6 +27,7 @@ DEFINE_int32(
     visible_radius_unit,
     0,
     "the radius of visible range in terms of unit (0 for fully observe)");
+DECLARE_int32(max_steps);
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
 DEFINE_bool(ego_centric, true, "whether have ego-centric view");
@@ -56,12 +57,14 @@ void XWorldSimulator::init() {
         img_width_out_ = width_ * block_size_;
     }
     // default
-    if (max_steps_ == 0) {
+    if (FLAGS_max_steps == 0) {
         if (FLAGS_task_mode == "arxiv_lang_acquisition") {
             max_steps_ = (height_ + width_ ) * 2;
         } else {
             max_steps_ = height_ * width_ * 2;
         }
+    } else {
+        max_steps_ = FLAGS_max_steps;
     }
 }
 

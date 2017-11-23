@@ -18,6 +18,8 @@
 #include "xworld3d_flags.h"
 #include "xworld3d_simulator.h"
 
+DECLARE_int32(max_steps);
+
 namespace simulator {
 namespace xworld3d {
 
@@ -113,8 +115,8 @@ void X3SimulatorImpl::get_screen_rgb(
 
     screen.create(img_height, img_width, CV_8UC3);
     // TODO: get rid of for loop
-    for (size_t h = 0, p = 0; h < img_height; ++h) {
-        for (size_t w = 0; w < img_width; ++w, p += 3) {
+    for (int h = 0, p = 0; h < img_height; ++h) {
+        for (int w = 0; w < img_width; ++w, p += 3) {
             cv::Vec3b& color = screen.at<cv::Vec3b>(cv::Point(w, h));
             color[0] = render_str[p + 2];
             color[1] = render_str[p + 1];
@@ -141,12 +143,14 @@ void X3Simulator::reset_game() {
     height_ = impl_->height();
     width_ = impl_->width();
     // default
-    if (max_steps_ == 0) {
+    if (FLAGS_max_steps == 0) {
         if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
             max_steps_ = (height_ + width_ ) * 4;
         } else {
-            max_steps_ = height_ * width_ * 4;
+            max_steps_ = height_ * width_ * 10;
         }
+    } else {
+        max_steps_ = FLAGS_max_steps;
     }
     history_messages_.clear();
 
@@ -311,6 +315,7 @@ float X3Simulator::take_action(const StatePacket& actions) {
         CHECK(actions.contain_key("action"))
             << "The agent has to take the move action.";
         int action_idx = *(actions.get_buffer("action")->get_id());
+        LOG(INFO) << "action=" << action_idx;
         if (FLAGS_pause_screen) {
             switch (key) {
                 case 'w':
@@ -330,8 +335,10 @@ float X3Simulator::take_action(const StatePacket& actions) {
                     break;
                 case 'c':
                     action_idx = 5;
+                    break;
                 case 'z':
                     bird_view_ = !bird_view_;
+                    break;
                 default:
                     break;
             }
