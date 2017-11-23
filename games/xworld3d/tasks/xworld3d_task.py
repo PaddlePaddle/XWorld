@@ -195,7 +195,7 @@ class XWorld3DTask(object):
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if get_flag("task_mode") == "one_channel" \
-           and self.steps_in_cur_task >= h*w / 2:
+           and self.steps_in_cur_task >= h*w * 2:
             self.steps_in_cur_task = 0
             self._record_failure()
             self._bind("S -> timeup")

@@ -120,6 +120,8 @@ void X3World::reset_world(bool map_reset) {
         if (map_reset) {
             // regenerate a xwd map
             xwd_env_.attr("reset")();
+            // reset the change flag
+            CHECK(xwd_env_.attr("env_changed")());
         }
 
         py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
@@ -164,7 +166,6 @@ void X3World::add_item(const Entity& e) {
             << e.type << " " << e.id << " exists.";
 
     // TODO: check overlapping with existing items
-
     auto item_ptr = X3Item::create_item(e, *world_);
     items_[e.id] = item_ptr;
     if (e.type == "agent") {

@@ -36,6 +36,6 @@ class XWorld3DNav(XWorld3DEnv):
             self.set_entity(type="goal")
 
         ## set blocks
-        num_blocks = int(progress * 5)
+        num_blocks = int(progress * 10)
         for i in range(num_blocks):
             self.set_entity(type="block")

@@ -1,6 +1,6 @@
 {
     "item_path" : "models_3d",
-    "map" : "XWorldNav",
+    "map" : "XWorld3DNav",
     "task_groups" : {
         "XWorld3DNav" : {
             "held_out" : [

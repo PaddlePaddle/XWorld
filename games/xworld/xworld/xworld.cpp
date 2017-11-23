@@ -101,6 +101,8 @@ void XWorld::reset(bool map_reset) {
         if (map_reset) {
             // regenerate a xwd map
             xwd_env_.attr("reset")();
+            // reset the change flag
+            CHECK(xwd_env_.attr("env_changed")());
         }
         item_list_.clear();
         agent_list_.clear();
