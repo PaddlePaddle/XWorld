@@ -29,7 +29,7 @@ namespace simulator {
 std::mutex GameSimulator::s_display_mutex_;
 
 GameSimulator::GameSimulator()
-        : max_steps_(FLAGS_max_steps), num_steps_(0), last_action_(""), last_action_success_(true) {}
+        : num_steps_(0), last_action_(""), last_action_success_(true) {}
 
 void GameSimulator::init_context_screens(bool is_uint8) {
     StatePacket screen;
@@ -144,7 +144,6 @@ std::string GameSimulator::decode_game_over_code(int code) {
 AgentSpecificSimulator::AgentSpecificSimulator(SimulatorMultiPtr simulator_ptr,
                                                int agent_id /*= 0*/)
     : simulator_ptr_(simulator_ptr), agent_id_(agent_id) {
-    max_steps_ = simulator_ptr_->get_max_steps();
 }
 
 void AgentSpecificSimulator::reset_game() {

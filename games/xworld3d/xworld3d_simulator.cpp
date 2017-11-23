@@ -145,12 +145,10 @@ void X3Simulator::reset_game() {
     // default
     if (FLAGS_max_steps == 0) {
         if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
-            max_steps_ = (height_ + width_ ) * 4;
+            FLAGS_max_steps = (height_ + width_ ) * 4;
         } else {
-            max_steps_ = height_ * width_ * 10;
+            FLAGS_max_steps = height_ * width_ * 10;
         }
-    } else {
-        max_steps_ = FLAGS_max_steps;
     }
     history_messages_.clear();
 
@@ -315,7 +313,6 @@ float X3Simulator::take_action(const StatePacket& actions) {
         CHECK(actions.contain_key("action"))
             << "The agent has to take the move action.";
         int action_idx = *(actions.get_buffer("action")->get_id());
-        LOG(INFO) << "action=" << action_idx;
         if (FLAGS_pause_screen) {
             switch (key) {
                 case 'w':

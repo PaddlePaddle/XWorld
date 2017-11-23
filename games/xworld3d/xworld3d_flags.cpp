@@ -17,7 +17,7 @@
 DEFINE_string(x3_conf, "", "XWorld 3D configuration file");
 DEFINE_int32(x3_training_img_width, 64, "width of the training input image");
 DEFINE_int32(x3_training_img_height, 64, "height of the training input image");
-
+DEFINE_bool(x3_big_screen, true, "whether show big screen");
 
 DEFINE_double(x3_unit, 1.0, "unit scale in xworld 3d");
 //// NOTE: all the distance, velocity, and accelaration are scaled by x3_unit.

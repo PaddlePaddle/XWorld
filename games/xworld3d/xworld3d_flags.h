@@ -28,3 +28,4 @@ DECLARE_double(x3_gravity);
 DECLARE_double(x3_time_step);
 DECLARE_int32(x3_frame_skip);
 DECLARE_string(x3_task_mode);
+DECLARE_bool(x3_big_screen);

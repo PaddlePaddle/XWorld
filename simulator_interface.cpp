@@ -59,12 +59,13 @@ SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
         }
 #ifdef XWORLD3D
         else if (name == "xworld3d") {
-            auto xwd = std::make_shared<X3Simulator>(true /*print*/, true /*big_screen*/);
+            auto xwd = std::make_shared<X3Simulator>(true /*print*/, FLAGS_x3_big_screen);
             int agent_id = xwd->add_agent();
             game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
             teaching_env_ = xwd;
             teacher_ = std::make_shared<Teacher>(
                     xwd->conf_file(), xwd, false /*print*/);
+            teacher_->print_total_possible_sentences();
         }
 #endif
 #ifdef ATARI

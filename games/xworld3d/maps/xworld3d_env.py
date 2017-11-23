@@ -43,7 +43,6 @@ class Entity:
 
 class XWorld3DEnv(object):
     def __init__(self, item_path, max_height=10, max_width=10):
-        self.border_tolerance = 0.3
         self.num_games = -1
         ## load all items from item_path
         self.grid_types = ["goal", "block", "agent"]
@@ -226,7 +225,7 @@ class XWorld3DEnv(object):
         Entities is a list of python dicts.
         """
         self.entity_nums = {t : 0 for t in self.grid_types}
-        self.entities = [Entity(**i) for i in entities if not self.__is_boundary(i["loc"])]
+        self.entities = [Entity(**i) for i in entities if not self.__is_boundary(i["id"])]
         for e in self.entities:
             self.entity_nums[e.type] += 1
 
@@ -287,13 +286,11 @@ class XWorld3DEnv(object):
         id = add_blocks((-1, self.max_width), range(0, self.max_height), id);
         return wall_blocks
 
-    def __is_boundary(self, loc):
+    def __is_boundary(self, id):
         """
         Given a location, determine whether it's a padding block or not
         """
-        x, y, _ = loc
-        return not (x >= -self.border_tolerance and x <= self.width - 1 + self.border_tolerance  and \
-                    y >= -self.border_tolerance and y <= self.height - 1 + self.border_tolerance)
+        return (id in [b.id for b in self.boundaries])
 
     def __clean_env(self):
         """
