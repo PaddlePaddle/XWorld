@@ -97,6 +97,7 @@ private:
 
     std::unique_ptr<X3SimulatorImpl> impl_;
 
+    std::vector<size_t> legal_actions_;
     size_t height_;
     size_t width_;
     size_t img_height_out_;  // training input image size

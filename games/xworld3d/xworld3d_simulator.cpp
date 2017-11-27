@@ -34,9 +34,6 @@ public:
 
     void reset_game();
 
-    // get the number of actions the agent (learner) possesses
-    int get_num_actions() { return legal_actions_.size(); }
-
     // called by AgentSpecificSimulator
     void define_state_specs(StatePacket& state);
 
@@ -52,7 +49,7 @@ public:
 
     void update_environment();
 
-    bool act(const size_t agent_id, const int a);
+    bool act(const size_t agent_id, const size_t action);
 
     void step(const int frame_skip);
 
@@ -64,7 +61,6 @@ private:
     X3SimulatorImpl(const X3SimulatorImpl&) = delete;
 
     X3World xworld3d_;       // the environment for all the agents
-    std::vector<X3NavAction> legal_actions_;
     size_t height_;          // unit: grid
     size_t width_;           // unit: grid
 };
@@ -73,7 +69,6 @@ X3SimulatorImpl::X3SimulatorImpl(const std::string& conf,
                                  bool print,
                                  bool big_screen) :
         xworld3d_(conf, print, big_screen),
-        legal_actions_({MOVE_FORWARD, MOVE_BACKWARD, TURN_LEFT, TURN_RIGHT, JUMP, COLLECT}),
         height_(0), width_(0) {}
 
 void X3SimulatorImpl::reset_game() {
@@ -97,8 +92,8 @@ inline void X3SimulatorImpl::update_environment() {
     xworld3d_.reset_world(false);
 }
 
-inline bool X3SimulatorImpl::act(const size_t agent_id, const int a) {
-    return xworld3d_.act(agent_id, a);
+inline bool X3SimulatorImpl::act(const size_t agent_id, const size_t action) {
+    return xworld3d_.act(agent_id, action);
 }
 
 inline void X3SimulatorImpl::step(const int frame_skip) {
@@ -126,6 +121,8 @@ void X3SimulatorImpl::get_screen_rgb(
 }
 
 X3Simulator::X3Simulator(bool print, bool big_screen) :
+        legal_actions_({MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT,
+                        TURN_LEFT, TURN_RIGHT, COLLECT}),
         height_(0), width_(0),
         img_height_out_(FLAGS_x3_training_img_height),
         img_width_out_(FLAGS_x3_training_img_width),
@@ -184,7 +181,7 @@ int X3Simulator::game_over() {
 }
 
 int X3Simulator::get_num_actions() {
-    return impl_->get_num_actions();
+    return legal_actions_.size();
 }
 
 std::string X3Simulator::conf_file() {
@@ -312,26 +309,34 @@ float X3Simulator::take_action(const StatePacket& actions) {
         FLAGS_x3_task_mode == "one_channel") {
         CHECK(actions.contain_key("action"))
             << "The agent has to take the move action.";
-        int action_idx = *(actions.get_buffer("action")->get_id());
+        size_t action_idx = *(actions.get_buffer("action")->get_id());
+        CHECK_LT(action_idx, get_num_actions());
+        auto action = legal_actions_[action_idx];
         if (FLAGS_pause_screen) {
             switch (key) {
                 case 'w':
-                    action_idx = 0;
+                    action = X3NavAction::MOVE_FORWARD;
                     break;
                 case 's':
-                    action_idx = 1;
+                    action = X3NavAction::MOVE_BACKWARD;
                     break;
                 case 'a':
-                    action_idx = 2;
+                    action = X3NavAction::MOVE_LEFT;
                     break;
                 case 'd':
-                    action_idx = 3;
+                    action = X3NavAction::MOVE_RIGHT;
+                    break;
+                case 'q':
+                    action = X3NavAction::TURN_LEFT;
+                    break;
+                case 'e':
+                    action = X3NavAction::TURN_RIGHT;
                     break;
                 case 'j':
-                    action_idx = 4;
+                    action = X3NavAction::JUMP;
                     break;
                 case 'c':
-                    action_idx = 5;
+                    action = X3NavAction::COLLECT;
                     break;
                 case 'z':
                     bird_view_ = !bird_view_;
@@ -340,10 +345,11 @@ float X3Simulator::take_action(const StatePacket& actions) {
                     break;
             }
         }
-        CHECK_LT(action_idx, get_num_actions());
+        CHECK(std::find(legal_actions_.begin(), legal_actions_.end(), action)
+              != legal_actions_.end()) << "action invalid!";
         // take one step in the game
-        last_action_success_ = impl_->act(active_agent_id_, action_idx);
-        last_action_ += std::to_string(action_idx);
+        last_action_success_ = impl_->act(active_agent_id_, action);
+        last_action_ += std::to_string(action);
         record_agent_action_successful_in_buffer(last_action_success_);
     }
     impl_->step(FLAGS_x3_frame_skip);

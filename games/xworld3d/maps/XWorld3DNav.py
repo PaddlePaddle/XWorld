@@ -7,8 +7,8 @@ class XWorld3DNav(XWorld3DEnv):
     def __init__(self, item_path):
         super(XWorld3DNav, self).__init__(
             item_path=item_path,
-            max_height=7,
-            max_width=7)
+            max_height=4,
+            max_width=4)
         self.curriculum = get_flag("curriculum")
 
     def _configure(self):
@@ -30,12 +30,14 @@ class XWorld3DNav(XWorld3DEnv):
         self.set_dims(min_dim + delta_dim, min_dim + delta_dim)
 
         ## set goals
+        max_num_goal = 1
         min_num_goal = 1
-        num_goals = int(progress * 2) + min_num_goal
+        num_goals = int(progress * (max_num_goal - min_num_goal)) + min_num_goal
         for i in range(num_goals):
             self.set_entity(type="goal")
 
         ## set blocks
-        num_blocks = int(progress * 10)
+        max_num_blocks = 2
+        num_blocks = int(progress * max_num_blocks)
         for i in range(num_blocks):
             self.set_entity(type="block")

@@ -102,6 +102,10 @@ public:
 
     virtual void move_backward() { LOG(FATAL) << "actions not defined!"; }
 
+    virtual void move_left() { LOG(FATAL) << "actions not defined!"; }
+
+    virtual void move_right() { LOG(FATAL) << "actions not defined!"; }
+
     virtual void turn_left() { LOG(FATAL) << "actions not defined!"; }
 
     virtual void turn_right() { LOG(FATAL) << "actions not defined!"; }
@@ -143,6 +147,10 @@ public:
     void move_forward() override;
 
     void move_backward() override;
+
+    void move_left() override;
+
+    void move_right() override;
 
     void turn_left() override;
 

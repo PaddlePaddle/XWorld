@@ -180,20 +180,26 @@ void X3World::get_entities(std::vector<Entity>& entities) {
     }
 }
 
-bool X3World::act(const size_t agent_id, const int a) {
+bool X3World::act(const size_t agent_id, const size_t action) {
     CHECK_LT(agent_id, agents_.size());
     auto agent_ptr = agents_[agent_id];
-    return apply_action(agent_ptr, a);
+    return apply_action(agent_ptr, action);
 }
 
-bool X3World::apply_action(const X3ItemPtr& item, const int a) {
+bool X3World::apply_action(const X3ItemPtr& item, const size_t action) {
     bool action_success = true;
-    switch (a) {
+    switch (action) {
         case X3NavAction::MOVE_FORWARD:
             item->move_forward();
             break;
         case X3NavAction::MOVE_BACKWARD:
             item->move_backward();
+            break;
+        case X3NavAction::MOVE_LEFT:
+            item->move_left();
+            break;
+        case X3NavAction::MOVE_RIGHT:
+            item->move_right();
             break;
         case X3NavAction::TURN_LEFT:
             item->turn_left();
@@ -209,13 +215,12 @@ bool X3World::apply_action(const X3ItemPtr& item, const int a) {
             if (goal) {
                 remove_item(goal);
             } else {
-                action_success = false;
+                //                action_success = false;
             }
             break;
         }
         default:
-            action_success = false;
-            LOG(ERROR) << "unknown action id: " << a;
+            LOG(ERROR) << "unknown action id: " << action;
     }
     return action_success;
 }
