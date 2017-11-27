@@ -28,12 +28,14 @@ namespace simulator {
 namespace xworld3d {
 
 enum X3NavAction {
-    MOVE_FORWARD = 0,
-    MOVE_BACKWARD = 1,
-    TURN_LEFT = 2,
-    TURN_RIGHT = 3,
-    JUMP = 4,
-    COLLECT = 5
+    MOVE_FORWARD,
+    MOVE_BACKWARD,
+    MOVE_LEFT,
+    MOVE_RIGHT,
+    TURN_LEFT,
+    TURN_RIGHT,
+    JUMP,
+    COLLECT
 };
 
 typedef std::map<std::string, X3ItemPtr> IDItemMap;
@@ -79,7 +81,7 @@ public:
 
     void get_entities(std::vector<Entity>& entities);
 
-    bool act(const size_t agent_id, const int a);
+    bool act(const size_t agent_id, const size_t action);
 
     roboschool::RenderResult render(const size_t agent_id, bool debug);
 
@@ -88,7 +90,7 @@ public:
 private:
     void build_world(const std::vector<Entity>& entities);
 
-    bool apply_action(const X3ItemPtr& item, const int a);
+    bool apply_action(const X3ItemPtr& item, const size_t action);
 
     void remove_item(X3ItemPtr item);
 

@@ -102,6 +102,24 @@ void X3Agent::move_backward() {
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
+void X3Agent::move_left() {
+    Pose pose(object_.pose());
+    pose.set_xyz(pose.x(), pose.y(), 0.0f);
+    x3real vx = -move_speed_norm_ * dir_y_;
+    x3real vy = move_speed_norm_ * dir_x_;
+    //    x3real vz = object_.speed_z();
+    set_pose_and_speed(pose, vx, vy, 0.0f);
+}
+
+void X3Agent::move_right() {
+    Pose pose(object_.pose());
+    pose.set_xyz(pose.x(), pose.y(), 0.0f);
+    x3real vx = move_speed_norm_ * dir_y_;
+    x3real vy = -move_speed_norm_ * dir_x_;
+    //    x3real vz = object_.speed_z();
+    set_pose_and_speed(pose, vx, vy, 0.0f);
+}
+
 void X3Agent::turn_left() {
     Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);

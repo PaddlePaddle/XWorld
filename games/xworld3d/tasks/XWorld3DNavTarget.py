@@ -28,7 +28,8 @@ class XWorld3DNavTarget(XWorld3DTask):
             self._record_target(sel_goal.loc);
             self._bind("S -> start")
             self._bind("G -> '" + sel_goal.name + "'")
-            return ["simple_navigation_reward", 0.0, self._generate()]
+            self.sentence = self._generate()
+            return ["simple_navigation_reward", 0.0, self.sentence]
         else:
             return ["idle", 0, ""]
 

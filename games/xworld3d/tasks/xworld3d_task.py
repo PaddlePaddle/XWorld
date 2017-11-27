@@ -20,7 +20,7 @@ from py_gflags import get_flag
 class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
-    time_penalty = -0.1
+    time_penalty = -0.01
     correct_reward = 1.0
     wrong_reward = -1.0
     failed_action_penalty = -0.2
@@ -45,6 +45,7 @@ class XWorld3DTask(object):
         self.num_failures = 0
         self.reset(True)
         self.cfg = CFG(*self._define_grammar())
+        self.sentence = ""
 
     ################ internal functions ####################
     def _define_grammar(self):
@@ -162,7 +163,7 @@ class XWorld3DTask(object):
         _, agent_sent, _ = self._get_agent()
         self._bind("S -> answer")
         self._set_production_rule("answer -> '%s'" % self.answer)
-        sentence = self._generate()
+        self.sentence = self._generate()
         if agent_sent == self.answer:
             reward = XWorld3DTask.correct_reward / 2
             self._record_success()
@@ -171,7 +172,8 @@ class XWorld3DTask(object):
             reward = XWorld3DTask.wrong_reward / 2
             self._record_failure()
             self._record_event("wrong_reply")
-        return ["conversation_wrapup", reward, sentence]
+
+        return ["conversation_wrapup", reward, self.sentence]
 
     def simple_navigation_reward(self):
         """
@@ -190,7 +192,6 @@ class XWorld3DTask(object):
 
         goal_locs = [g.loc for g in self._get_goals()]
         next_stage = "simple_navigation_reward"
-        sentence = ""
 
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
@@ -199,8 +200,9 @@ class XWorld3DTask(object):
             self.steps_in_cur_task = 0
             self._record_failure()
             self._bind("S -> timeup")
+            self._record_event("time_up")
             next_stage = "idle"
-            sentence = self._generate()
+            self.sentence = self._generate()
         else:
             o, dist, _ = self._get_direction_and_distance(agent.loc, self.target)
             if o >= self.orientation_threshold \
@@ -211,11 +213,12 @@ class XWorld3DTask(object):
                 reward += XWorld3DTask.correct_reward
                 self._bind("S -> finish")
                 next_stage = "idle"
-                sentence = self._generate()
-            elif agent.loc in goal_locs:
-                reward += XWorld3DTask.wrong_reward
+                self.sentence = self._generate()
+            else:
+                if agent.loc in goal_locs:
+                    reward += XWorld3DTask.wrong_reward
 
-        return [next_stage, reward, sentence]
+        return [next_stage, reward, self.sentence]
 
     ############ functions that wrap self.env and self.cfg #############
     def _list_of_strs_to_rhs(self, strs):
