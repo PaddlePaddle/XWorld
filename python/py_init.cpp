@@ -22,7 +22,7 @@
 //// Here we expose them to Python module py_gflags
 
 DECLARE_string(task_mode);            // default "one_channel"
-DECLARE_int32(curriculum);
+DECLARE_double(curriculum);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -39,7 +39,7 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
     if (flag_name == "task_mode") {
         return PyString_FromString(FLAGS_task_mode.c_str());
     } else if (flag_name == "curriculum") {
-        return Py_BuildValue("i", FLAGS_curriculum);
+        return Py_BuildValue("d", FLAGS_curriculum);
     } else {
         throw PyException("GFlag '" + flag_name + "' is not recognized");
     }

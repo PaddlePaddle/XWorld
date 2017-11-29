@@ -7,37 +7,53 @@ class XWorld3DNav(XWorld3DEnv):
     def __init__(self, item_path):
         super(XWorld3DNav, self).__init__(
             item_path=item_path,
-            max_height=4,
-            max_width=4)
+            max_height=5,
+            max_width=5)
         self.curriculum = get_flag("curriculum")
+        self.current_level = 0
 
     def _configure(self):
         self.set_goal_subtrees(["animal", "others"])
         self.set_entity(type="agent")
 
-        num_games = self.get_num_games()
-
         ## compute world dims
-        min_dim = 3
-        max_h, max_w = self.get_dims()
+        min_dim = 2
+        max_h, max_w = self.get_max_dims()
+        n_levels = max_h - min_dim + 1
+        max_num_goals, min_num_goals = 1, 1
+        max_num_blocks, min_num_blocks = 2, 0
+
+        def compute(current_level):
+            rate = float(current_level) / (n_levels - 1)
+            return min_dim + current_level, \
+                int(rate * (max_num_goals - min_num_goals) + min_num_goals), \
+                int(rate * (max_num_blocks - min_num_blocks) + min_num_blocks)
 
         if self.curriculum == 0:
             progress = 1.0
-            delta_dim = max_h - min_dim
+            current_dim = max_h
+            num_goals = max_num_goals
+            num_blocks = max_num_blocks
         else:
-            progress = min(float(num_games) / self.curriculum, 1.0)
-            delta_dim = int(progress * (max_h - min_dim))
-        self.set_dims(min_dim + delta_dim, min_dim + delta_dim)
+            flag = False
+            if self.current_usage >= self.curriculum:
+                print("~~~~~~ Entering the next level: ~~~~~~~")
+                current_dim, num_goals, num_blocks = compute(self.current_level)
+                print "%dx%d map, %d goals, %d blocks ->" \
+                      % (current_dim, current_dim, num_goals, num_blocks),
+                ## move to the next stage
+                self.current_level = min(self.current_level + 1, n_levels - 1)
+                flag = True
 
+            current_dim, num_goals, num_blocks = compute(self.current_level)
+            if flag:
+                print("%dx%d map, %d goals, %d blocks"
+                      % (current_dim, current_dim, num_goals, num_blocks))
+
+        self.set_dims(current_dim, current_dim)
         ## set goals
-        max_num_goal = 1
-        min_num_goal = 1
-        num_goals = int(progress * (max_num_goal - min_num_goal)) + min_num_goal
         for i in range(num_goals):
             self.set_entity(type="goal")
-
         ## set blocks
-        max_num_blocks = 2
-        num_blocks = int(progress * max_num_blocks)
         for i in range(num_blocks):
             self.set_entity(type="block")

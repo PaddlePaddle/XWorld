@@ -22,7 +22,7 @@
 DEFINE_bool(task_groups_exclusive,
             true,
             "whether task groups can happen simultaneously");
-DEFINE_int32(curriculum, 0, "number of games for curriculum learning");
+DEFINE_double(curriculum, 0, "performance threshold for entering the next level");
 
 namespace simulator {
 

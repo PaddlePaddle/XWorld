@@ -57,12 +57,10 @@ void XWorldSimulator::init() {
         img_width_out_ = width_ * block_size_;
     }
     // default
-    if (FLAGS_max_steps == 0) {
-        if (FLAGS_task_mode == "arxiv_lang_acquisition") {
-            FLAGS_max_steps = (height_ + width_ ) * 2;
-        } else {
-            FLAGS_max_steps = height_ * width_ * 2;
-        }
+    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
+        FLAGS_max_steps = (height_ + width_ ) * 2;
+    } else {
+        FLAGS_max_steps = height_ * width_ * 2;
     }
 }
 

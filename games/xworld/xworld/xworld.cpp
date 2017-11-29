@@ -107,7 +107,7 @@ void XWorld::reset(bool map_reset) {
         item_list_.clear();
         agent_list_.clear();
 
-        py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
+        py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_max_dims")());
         height_ = py::extract<int>(dims[0]);
         width_ = py::extract<int>(dims[1]);
         map_ = XMap(height_, width_);
