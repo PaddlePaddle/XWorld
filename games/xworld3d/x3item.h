@@ -77,13 +77,6 @@ public:
 
     Pose pose() const { return object_.pose(); }
 
-    void set_pose(const Pose& pose);
-
-    void set_speed(const x3real vx, const x3real vy, const x3real vz);
-
-    void set_pose_and_speed(const Pose& pose,
-                            const x3real vx, const x3real vy, const x3real vz);
-
     void get_direction(x3real &dir_x, x3real &dir_y) const {
         x3real yaw = std::get<2>(object_.pose().rpy());
         dir_x = cos(yaw);
@@ -94,6 +87,8 @@ public:
     void set_item_type(const std::string& item_type) { e_.type = item_type; }
 
     Entity entity() const { return e_; }
+    
+    void set_entity(const Entity& e) { e_ = e; }
 
     void sync_entity_info();
 
@@ -113,6 +108,8 @@ public:
 
     void move_underground();
 
+    void move_to(const Vec3& loc);
+
     virtual X3ItemPtr collect_item(const std::map<std::string, X3ItemPtr>& items,
                                    const std::string& type) {
         LOG(FATAL) << "actions not defined!";
@@ -124,11 +121,17 @@ public:
         return (this->e_.id == i.e_.id);
     }
 
-public:
     static const x3real UNIT;
     static const x3real UNIT_INV;
 
 protected:
+    void set_pose(const Pose& pose);
+
+    void set_speed(const x3real vx, const x3real vy, const x3real vz);
+
+    void set_pose_and_speed(const Pose& pose,
+                            const x3real vx, const x3real vy, const x3real vz);
+
     Entity e_;
     Object object_;
 };

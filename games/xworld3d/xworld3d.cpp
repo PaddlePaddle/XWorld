@@ -35,8 +35,34 @@ namespace xworld3d {
 namespace pt = boost::property_tree;
 namespace py = boost::python;
 
+X3ItemPool::X3ItemPool() : size_(0) {}
+
+X3ItemPtr X3ItemPool::get_item(const Entity& e, const WorldPtr& world) {
+    auto& pool = item_pool_[e.type];
+    X3ItemPtr item = nullptr;
+    if (pool.find(e.name) != pool.end() && !pool[e.name].empty()) {
+        item = pool[e.name].front();
+        item->set_entity(e);
+        pool[e.name].pop_front();
+        size_--;
+    } else {
+        item = X3Item::create_item(e, *world);
+    }
+    return item;
+}
+
+void X3ItemPool::recycle_item(const X3ItemPtr& item) {
+    auto& pool = item_pool_[item->type()];
+    pool[item->name()].push_back(item);
+    size_++;
+}
+
 void X3Stadium::load_stadium(const std::string& item_path,
                              const WorldPtr& world) {
+    if (olist_.size()) {
+        // stadium has already been loaded
+        return;
+    }
     std::string floor_file = item_path + "/floor/floor.xml";
     std::string stadium_file = item_path + "/floor/stadium/stadium1.obj";
 
@@ -114,6 +140,12 @@ X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
             *(world_.get()), img_height_, img_width_);
 }
 
+X3World::~X3World() {
+    items_.clear();
+    agents_.clear();
+    world_->clean_everything();
+}
+
 void X3World::reset_world(bool map_reset) {
     std::vector<Entity> entities;
     try {
@@ -122,6 +154,7 @@ void X3World::reset_world(bool map_reset) {
             xwd_env_.attr("reset")();
             // reset the change flag
             CHECK(xwd_env_.attr("env_changed")());
+            clear_world();
         }
 
         py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
@@ -140,25 +173,55 @@ void X3World::reset_world(bool map_reset) {
         LOG(FATAL) << "Error resetting world";
     }
 
-    clear_world();
-    build_world(entities);
+    update_world(entities);
 }
 
 void X3World::clear_world() {
+    // move all items underground to pretend they are gone 
+    for (auto& i : items_) {
+        i.second->move_underground();
+        item_pool_.recycle_item(i.second);
+    }
     items_.clear();
     agents_.clear();
-    camera_->detach();
-    world_->clean_everything();
+    // floor is not cleared
 }
 
-void X3World::build_world(const std::vector<Entity>& entities) {
+void X3World::update_world(const std::vector<Entity>& entities) {
     stadium_.load_stadium(item_path_, world_);
 
+    auto found_item_in_entities = [&](const std::string& id)->bool {
+        bool ret = false;
+        for (const auto& e : entities) {
+            if (e.id == id) {
+                ret = true;
+                break;
+            }
+        }
+        return ret;
+    };
+    for (auto& i : items_) {
+        if (!found_item_in_entities(i.second->id())) {
+            // If an item is not found among the udpated entities, that means
+            // the item is removed by XWorld3dTask. Then we remove it from
+            // X3World too.
+            remove_item(i.second);
+        }
+    }
+
     for (auto const& e : entities) {
-        add_item(e);
+        if (items_.find(e.id) != items_.end()) {
+            // Update an existing item
+            items_[e.id]->move_to(e.loc);
+        } else {
+            // Create a new item
+            add_item(e);
+        }
     }
 
     CHECK_GT(agents_.size(), 0) << "There should be at least one agent.";
+    // Call step to update the 3D environment.
+    world_->step(1);
 }
 
 void X3World::add_item(const Entity& e) {
@@ -166,7 +229,7 @@ void X3World::add_item(const Entity& e) {
             << e.type << " " << e.id << " exists.";
 
     // TODO: check overlapping with existing items
-    auto item_ptr = X3Item::create_item(e, *world_);
+    auto item_ptr = item_pool_.get_item(e, world_);
     items_[e.id] = item_ptr;
     if (e.type == "agent") {
         agents_.push_back(item_ptr);
@@ -212,7 +275,7 @@ bool X3World::apply_action(const X3ItemPtr& item, const size_t action) {
             break;
         case X3NavAction::COLLECT: {
             X3ItemPtr goal = item->collect_item(items_, "goal");
-            if (goal) {
+            if (goal && goal->type() != "agent") {
                 remove_item(goal);
             } else {
                 //                action_success = false;
@@ -225,15 +288,11 @@ bool X3World::apply_action(const X3ItemPtr& item, const size_t action) {
     return action_success;
 }
 
-void X3World::remove_item(X3ItemPtr item) {
-    CHECK_NE(item->type(), "agent");
+void X3World::remove_item(X3ItemPtr& item) {
     auto it = items_.find(item->id());
     if (it != items_.end()) {
-        auto& i = it->second;
-        // TODO: remove object from bullet physics
-        //world_->remove_object(i->object());
-        //i->destroy();
-        i->move_underground();
+        item->move_underground();
+        item_pool_.recycle_item(item);
         items_.erase(it);
     }
 }

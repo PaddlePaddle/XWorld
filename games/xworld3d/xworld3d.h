@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <deque>
 #include <map>
 #include <memory>
 #include <vector>
@@ -39,11 +40,47 @@ enum X3NavAction {
 };
 
 typedef std::map<std::string, X3ItemPtr> IDItemMap;
+typedef std::map<std::string, std::deque<X3ItemPtr>> ItemPoolOfOneKind;
 typedef std::unique_ptr<roboschool::World> WorldPtr;
+
+/**
+ * An container that recycles items removed from X3World.
+ * 
+ * Everytime we remove an item from X3World, the X3Item directly goes to this
+ * container instead of being deleted from memory. Next time when X3World need
+ * an item of some kind, it will first try to reuse one from container.
+ * 
+ * The items in the container are organized through a 2-level mapping. The first
+ * level key is item type (e.g., goal, blocks), and the second level key is item
+ * name (e.g., apple, cat).
+ */
+class X3ItemPool {
+public:
+    X3ItemPool();
+    
+    /**
+     * Reuse an item from the container.
+     *
+     * The type and name of the item are specified in e. If not such item is
+     * available, a new one will be created.
+     */
+    X3ItemPtr get_item(const Entity& e, const WorldPtr& world);
+    
+    /**
+     * Put removed item into the container for later usage.
+     */
+    void recycle_item(const X3ItemPtr& item);
+
+    size_t size() { return size_; }
+
+private:
+    std::map<std::string, ItemPoolOfOneKind> item_pool_;
+    size_t size_; // the number of items in the container
+};
 
 class X3Stadium {
 public:
-    X3Stadium() {};
+    X3Stadium() { olist_.clear(); };
 
     void load_stadium(const std::string& item_path, const WorldPtr& world);
 
@@ -61,9 +98,21 @@ public:
 
     X3World(const X3World&)  = delete;
 
-    void reset_world(bool map_reset = true);
+    ~X3World();
 
-    void clear_world();
+    /**
+     * Reset the 3D environment.
+     *
+     * This function is called from two places. One place is where an
+     * environment update is request (when map_reset is false). The function 
+     * will get the updated entity information from thy python object 
+     * XWorld3DEnv (defined in xworld3d_env.py).
+     * 
+     * Another place is where we reset the game (when map_reset is true). Before 
+     * getting the update from XWorld3dEnv, the items in current environment 
+     * except X3Stadium will all be removed.
+     */
+    void reset_world(bool map_reset = true);
 
     int height() const { return height_; }
 
@@ -72,8 +121,6 @@ public:
     int img_height() const { return img_height_; }
 
     int img_width() const { return img_width_; }
-
-    void add_item(const Entity& e);
 
     std::string conf_file() { return conf_; }
 
@@ -88,11 +135,21 @@ public:
     void step(const int frame_skip);
 
 private:
-    void build_world(const std::vector<Entity>& entities);
+    void clear_world();
+
+    /**
+     * Update items whose entity informations are changed by the python object 
+     * XWorld3DTask.
+     * 
+     * @param   entities[in]    updated entity information
+     */
+    void update_world(const std::vector<Entity>& entities);
 
     bool apply_action(const X3ItemPtr& item, const size_t action);
 
-    void remove_item(X3ItemPtr item);
+    void add_item(const Entity& e);
+
+    void remove_item(X3ItemPtr& item);
 
     std::string conf_;
     int height_;         // world size
@@ -113,6 +170,7 @@ private:
     WorldPtr world_;
     X3Stadium stadium_; // later we can extend it to handle more complex terrain
     boost::python::object xwd_env_;
+    X3ItemPool item_pool_;
 };
 
 }} // simulator::xworld3d

@@ -68,7 +68,13 @@ void X3Item::sync_entity_info() {
 void X3Item::move_underground() {
    Pose pose(object_.pose());
    pose.set_xyz(pose.x(), pose.y(), -2);
-   set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+   object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+}
+
+void X3Item::move_to(const Vec3& loc) {
+   Pose pose;
+   pose.set_xyz(loc.x, loc.y, loc.z);
+   object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
 
 X3Agent::X3Agent(const Entity& e, World& world) :
@@ -84,7 +90,7 @@ void X3Agent::move_forward() {
     x3real vx = move_speed_norm_ * cos(yaw);
     x3real vy = move_speed_norm_ * sin(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_backward() {
@@ -94,7 +100,7 @@ void X3Agent::move_backward() {
     x3real vx = -move_speed_norm_ * cos(yaw);
     x3real vy = -move_speed_norm_ * sin(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_left() {
@@ -104,7 +110,7 @@ void X3Agent::move_left() {
     x3real vx = -move_speed_norm_ * sin(yaw);
     x3real vy = move_speed_norm_ * cos(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_right() {
@@ -114,7 +120,7 @@ void X3Agent::move_right() {
     x3real vx = move_speed_norm_ * sin(yaw);
     x3real vy = -move_speed_norm_ * cos(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::turn_left() {
@@ -122,7 +128,7 @@ void X3Agent::turn_left() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     pose.rotate_z(FLAGS_x3_turning_rad);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+    object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
 
 void X3Agent::turn_right() {
@@ -130,19 +136,19 @@ void X3Agent::turn_right() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     pose.rotate_z(-FLAGS_x3_turning_rad);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+    object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
 
 void X3Agent::jump() {
     if (fabs(pose().z()) < EPSILON) {
-        set_speed(0.0f, 0.0f, jump_speed_norm_);
+        object_.set_speed(0.0f, 0.0f, jump_speed_norm_);
     }
 }
 
 X3ItemPtr X3Agent::collect_item(const std::map<std::string, X3ItemPtr>& items,
                                 const std::string& type) {
     X3ItemPtr item = nullptr;
-    set_speed(0.0f, 0.0f, 0.0f);
+    object_.set_speed(0.0f, 0.0f, 0.0f);
     // the angle between the agent's facing direction and
     // the direction from the agent to the item should be less than 45 degrees
     x3real best_score = 0.707; // 45 degrees is the minimum
