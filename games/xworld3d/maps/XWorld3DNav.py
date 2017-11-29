@@ -24,7 +24,9 @@ class XWorld3DNav(XWorld3DEnv):
         max_num_blocks, min_num_blocks = 2, 0
 
         def compute(current_level):
-            rate = float(current_level) / (n_levels - 1)
+            rate = 0
+            if n_levels - 1 > 0:
+                rate = float(current_level) / (n_levels - 1)
             return min_dim + current_level, \
                 int(rate * (max_num_goals - min_num_goals) + min_num_goals), \
                 int(rate * (max_num_blocks - min_num_blocks) + min_num_blocks)

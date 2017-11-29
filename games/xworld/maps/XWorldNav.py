@@ -33,7 +33,9 @@ class XWorldNav(XWorldEnv):
                 ## move to the next stage
                 self.current_level = min(self.current_level + 1, n_levels - 1)
             current_dim = min_dim + self.current_level
-            rate = float(self.current_level) / (n_levels - 1)
+            rate = 0
+            if n_levels - 1 > 0:
+                rate = float(self.current_level) / (n_levels - 1)
             num_goals = int(rate * (max_num_goals - min_num_goals) + min_num_goals)
             num_blocks = int(rate * (max_num_blocks - min_num_blocks) + min_num_blocks)
 
