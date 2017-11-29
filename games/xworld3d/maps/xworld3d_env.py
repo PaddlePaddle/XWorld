@@ -48,9 +48,8 @@ class XWorld3DEnv(object):
         self.grid_types = ["goal", "block", "agent"]
         self.item_path = item_path
         self.max_height = max_height
-        self.height = max_height
         self.max_width = max_width
-        self.width = max_width
+        self.current_usage = 0
         self.all_object_paths = []
         for dirpath, _, files in os.walk(item_path):
             for f in files:
@@ -101,12 +100,16 @@ class XWorld3DEnv(object):
         """
         Add an entity of type to loc which must be currently empty
         """
-        if not loc is None:
-            assert loc in self.available_grids, \
+        self.__set_entity(Entity(type=type, loc=loc, name=name))
+
+    def __set_entity(self, e):
+        ## agent has continuous loc, so we don't check
+        if not e.loc is None and e.type != "agent":
+            assert e.loc in self.available_grids, \
                 "set_dims correctly before setting a location"
-            self.available_grids.remove(loc)
-        self.entity_nums[type] += 1
-        self.entities.append(Entity(type=type, loc=loc, name=name))
+            self.available_grids.remove(e.loc)
+        self.entity_nums[e.type] += 1
+        self.entities.append(e)
         self.changed = True
 
     def delete_entity(self, loc=None, id=None):
@@ -119,8 +122,18 @@ class XWorld3DEnv(object):
         x = xe[0]
         self.entities.remove(x)
         self.entity_nums[x.type] -= 1
-        self.available_grids.append(x.loc)
+        ## agent has continuous loc, so we don't restore
+        if x.type != "agent":
+            self.available_grids.append(x.loc)
         self.changed = True
+
+    def move_entity(self, e, loc):
+        """
+        Move entity e from its current location to loc
+        """
+        self.delete_entity(id=e.id)
+        e.loc = loc
+        self.__set_entity(e)
 
     def set_goal_subtrees(self, subtrees):
         """
@@ -146,10 +159,13 @@ class XWorld3DEnv(object):
             assert type in self.items
             self.items[type][os.path.basename(k)] = list(g)
 
+    def get_max_dims(self):
+        """
+        Get the max height and max width of the map
+        """
+        return (self.max_height, self.max_width)
+
     def get_dims(self):
-        """
-        Get the height and width of the map
-        """
         return (self.height, self.width)
 
     def get_n(self, type):
@@ -199,6 +215,15 @@ class XWorld3DEnv(object):
         """
         return self.entities
 
+    def record_environment_usage(self, x):
+        """
+        Update the current environment usage
+        The higher the usage is, the better the agent handles the environment (so
+        it might be a good time now to move to more difficult scenarios)
+        This quantity can be used to generate a curriculum of the world
+        """
+        self.current_usage = x
+
     ######################## interface with C++ #############################
     def env_changed(self):
         """
@@ -228,6 +253,11 @@ class XWorld3DEnv(object):
         self.entities = [Entity(**i) for i in entities if not self.__is_boundary(i["id"])]
         for e in self.entities:
             self.entity_nums[e.type] += 1
+        # update available grids
+        self.available_grids = set(itertools.product(range(self.width), range(self.height)))
+        occupied = set([e.loc[:2] for e in self.entities])
+        self.available_grids -= occupied
+        random.shuffle(list(self.available_grids))
 
     def update_agent_sentence_from_cpp(self, sent):
         """
@@ -256,6 +286,7 @@ class XWorld3DEnv(object):
         The entities should have been set in _configure()
         """
         ## select a random object path for each entity
+        self.current_usage = 0
         for i, e in enumerate(self.entities):
             if e.name is None:
                 e.name = random.choice(self.get_all_possible_names(e.type))
@@ -281,9 +312,9 @@ class XWorld3DEnv(object):
                                           asset_path=self.items["block"]["boundary"][0]))
                 id += 1
             return id
-        id = add_blocks(range(-1, self.max_width+1), (-1, self.max_height),
-                        self.max_height * self.max_width)
-        id = add_blocks((-1, self.max_width), range(0, self.max_height), id);
+        id = add_blocks(range(-1, self.width+1), (-1, self.height),
+                        self.height * self.width)
+        id = add_blocks((-1, self.width), range(0, self.height), id);
         return wall_blocks
 
     def __is_boundary(self, id):
@@ -302,4 +333,4 @@ class XWorld3DEnv(object):
         self.entities = []
         self.boundaries = []
         self.entity_nums = {t : 0 for t in self.grid_types}
-        self.available_grids = list(itertools.product(range(self.max_width), range(self.max_height)))
+        self.available_grids = []

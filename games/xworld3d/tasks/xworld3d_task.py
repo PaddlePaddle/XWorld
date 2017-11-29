@@ -16,6 +16,7 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
 
 from context_free_grammar import CFG
 from py_gflags import get_flag
+import itertools
 
 class XWorld3DTask(object):
     ## some static class variables
@@ -24,6 +25,9 @@ class XWorld3DTask(object):
     correct_reward = 1.0
     wrong_reward = -1.0
     failed_action_penalty = -0.2
+
+    # how often we should record the environment usage for the curriculum learning
+    record_env_usage_period = 500
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -90,9 +94,20 @@ class XWorld3DTask(object):
 
     def _record_success(self):
         self.num_successes += 1
+        self._record_env_usage()
 
     def _record_failure(self):
         self.num_failures += 1
+        self._record_env_usage()
+
+    def _record_env_usage(self):
+        ## wait until sufficient data
+        if self.num_successes + self.num_failures == XWorld3DTask.record_env_usage_period:
+            ## env usage is decided by the task success rate
+            self.env.record_environment_usage(
+                float(self.num_successes) / XWorld3DTask.record_env_usage_period)
+            self.num_successes = 0
+            self.num_failures = 0
 
     def _record_answer(self, answer):
         """
@@ -214,6 +229,12 @@ class XWorld3DTask(object):
                 self._bind("S -> finish")
                 next_stage = "idle"
                 self.sentence = self._generate()
+
+                ## move the agent far from the current goal
+                grids = list(itertools.product(range(w), range(h)))
+                dists = [self._get_direction_and_distance(l, self.target)[1] for l in grids]
+                far_loc = grids[dists.index(max(dists))]
+                self._move_entity(agent, far_loc + (0,))
             else:
                 if agent.loc in goal_locs:
                     reward += XWorld3DTask.wrong_reward
@@ -279,9 +300,12 @@ class XWorld3DTask(object):
 
     def _get_agent(self):
         """
-        Get the agent information; see XWorldEnv.get_agent()
+        Get the agent information; see XWorld3DEnv.get_agent()
         """
         return self.env.get_agent()
+
+    def _move_entity(self, e, loc):
+        self.env.move_entity(e, loc)
 
     def __within_boundary(self, loc):
         """

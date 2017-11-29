@@ -140,12 +140,10 @@ void X3Simulator::reset_game() {
     height_ = impl_->height();
     width_ = impl_->width();
     // default
-    if (FLAGS_max_steps == 0) {
-        if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
-            FLAGS_max_steps = (height_ + width_ ) * 4;
-        } else {
-            FLAGS_max_steps = height_ * width_ * 10;
-        }
+    if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
+        FLAGS_max_steps = (height_ + width_ ) * 4;
+    } else {
+        FLAGS_max_steps = height_ * width_ * 10;
     }
     history_messages_.clear();
 
@@ -254,6 +252,7 @@ void X3Simulator::apply_teacher_actions() {
         type = "Silence";
     }
     agent_received_sentences_[active_agent_id_] = sentence;
+
     auto message = "[" + type + "] Teacher: " + sentence;
     history_messages_.push_back(message);
     if (history_messages_.size() > n_history_) {

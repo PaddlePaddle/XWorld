@@ -25,6 +25,8 @@ class XWorldTask(object):
     wrong_reward = -1.0
     failed_action_penalty = -0.2
 
+    record_env_usage_period = 100
+
     def __init__(self, env):
         ## define all the spatial relations
         self.directions = {
@@ -81,9 +83,20 @@ class XWorldTask(object):
 
     def _record_success(self):
         self.num_successes += 1
+        self._record_env_usage()
 
     def _record_failure(self):
         self.num_failures += 1
+        self._record_env_usage()
+
+    def _record_env_usage(self):
+        ## wait until sufficient data
+        if self.num_successes + self.num_failures == XWorldTask.record_env_usage_period:
+            ## env usage is decided by the task success rate
+            self.env.record_environment_usage(
+                float(self.num_successes) / XWorldTask.record_env_usage_period)
+            self.num_successes = 0
+            self.num_failures = 0
 
     def _record_answer(self, answer):
         """
@@ -185,7 +198,7 @@ class XWorldTask(object):
         sentence = ""
 
         self.steps_in_cur_task += 1
-        h, w = self.env.get_dims()
+        h, w = self.env.get_max_dims()
         if get_flag("task_mode") == "one_channel" \
            and self.steps_in_cur_task >= h*w / 2:
             self.steps_in_cur_task = 0

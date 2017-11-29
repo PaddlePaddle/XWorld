@@ -49,6 +49,7 @@ class XWorldEnv(object):
         self.item_path = item_path
         self.max_height = max_height
         self.max_width = max_width
+        self.current_usage = 0
         self.all_icon_paths = []
         for dirpath, _, files in os.walk(item_path):
             for f in files:
@@ -57,7 +58,6 @@ class XWorldEnv(object):
         self.set_goal_subtrees([])
         ## init dimensions
         self.__clean_env()
-        self.set_dims(max_height, max_width)
         ## read item colors
         color_file = os.path.join(item_path, "properties.txt")
         assert os.path.exists(color_file)
@@ -162,12 +162,15 @@ class XWorldEnv(object):
             assert type in self.items
             self.items[type][os.path.basename(k)] = list(g)
 
-    def get_dims(self):
+    def get_max_dims(self):
         """
-        Get the height and width of the map
+        Get the max height and width of the map
         We return the max height and width because C++ will render the padding walls
         """
         return (self.max_height, self.max_width)
+
+    def get_dims(self):
+        return (self.height, self.width)
 
     def get_n(self, type):
         """
@@ -216,6 +219,15 @@ class XWorldEnv(object):
         """
         return self.entities
 
+    def record_environment_usage(self, x):
+        """
+        Update the current environment usage
+        The higher the usage is, the better the agent handles the environment (so
+        it might be a good time now to move to more difficult scenarios)
+        This quantity can be used to generate a curriculum of the world
+        """
+        self.current_usage = x
+
     ######################## interface with C++ #############################
     def env_changed(self):
         """
@@ -256,6 +268,11 @@ class XWorldEnv(object):
         for e in self.entities:
             e.loc = (e.loc[0] - self.offset_w, e.loc[1] - self.offset_h)
             self.entity_nums[e.type] += 1
+        # update available grids
+        self.available_grids = set(itertools.product(range(self.width), range(self.height)))
+        occupied = set([e.loc for e in self.entities])
+        self.available_grids -= occupied
+        random.shuffle(list(self.available_grids))
 
     def update_agent_sentence_from_cpp(self, sent):
         """
@@ -283,6 +300,7 @@ class XWorldEnv(object):
         after which its properties are set.
         The entities should have been set in _configure()
         """
+        self.current_usage = 0
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
             if e.name is None:
@@ -334,4 +352,4 @@ class XWorldEnv(object):
         self.changed = False
         self.entities = []
         self.entity_nums = {t : 0 for t in self.grid_types}
-        self.available_grids = list(itertools.product(range(self.max_width), range(self.max_height)))
+        self.available_grids = []
