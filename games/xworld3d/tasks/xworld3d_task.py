@@ -13,7 +13,11 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
  See the License for the specific language governing permissions and
  limitations under the License.
 """
-
+from math import cos
+from math import acos
+from math import sin
+from math import asin
+from math import copysign
 from context_free_grammar import CFG
 from py_gflags import get_flag
 import itertools
@@ -25,6 +29,10 @@ class XWorld3DTask(object):
     correct_reward = 1.0
     wrong_reward = -1.0
     failed_action_penalty = -0.2
+    PI_8 = 0.3926990
+    PI_4 = 0.7853982
+    PI_2 = 1.5707963
+    PI = 3.1415926
 
     # how often we should record the environment usage for the curriculum learning
     record_env_usage_period = 500
@@ -32,17 +40,19 @@ class XWorld3DTask(object):
     def __init__(self, env):
         ## define all the spatial relations
         self.directions = {
-            (1, 0) : "east",
-            (-1, 0) : "west",
-            (0, 1) : "south",
-            (0, -1) : "north",
-            (1, 1) : "southeast",
-            (1, -1) : "northeast",
-            (-1, 1) : "southwest",
-            (-1, -1) : "northwest"
+            ( self.PI_2-self.PI_8,  self.PI_2+self.PI_8)    : "right",
+            (-self.PI_2-self.PI_8, -self.PI_2+self.PI_8)    : "left",
+            (                   0,            self.PI_8)    : "front",
+            (          -self.PI_8,                    0)    : "front", # it is on purpose
+            (   self.PI-self.PI_8,              self.PI)    : "back",
+            (            -self.PI,   -self.PI+self.PI_8)    : "back", # it is on purpose
+            (           self.PI_8,  self.PI_4+self.PI_8)    : "front-right",
+            ( self.PI_2+self.PI_8,    self.PI-self.PI_8)    : "back-right",
+            (-self.PI_2+self.PI_8,           -self.PI_8)    : "front-left",
+            (  -self.PI+self.PI_8, -self.PI_2-self.PI_8)    : "back-left"
         }
-        self.distance_threshold = 1.0
-        self.orientation_threshold = 0.707
+        self.distance_threshold = get_flag("x3_reaching_distance")
+        self.orientation_threshold = self.PI_4
         self.env = env
         self.event = ""
         self.num_successes = 0
@@ -74,23 +84,25 @@ class XWorld3DTask(object):
         """
         return self.env.get_all_colors()
 
-    def _get_direction_and_distance(self, l1, l2):
+    def _get_direction_and_distance(self, p1, yaw, p2):
         """
-        Get the direciton of l2 wrt l1. For example, if the result is 'X'
-        then 'l2 is in the X of l1'.
-        When obtaining the direction, we use (l2 - l1)
+        Get the direciton of p2 wrt p1's orientation, and the distance from p1
+        to l2.
         """
-        dx = l2[0] - l1[0]
-        dy = l2[1] - l1[1]
-        best_sim = []
-        best_dir = []
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
         dist = pow(pow(dx, 2) + pow(dy, 2), 0.5)
-        for d in self.directions.keys():
-            sim = (dx*d[0] + dy*d[1]) / pow(d[0]*d[0]+d[1]*d[1], 0.5)
-            if (not best_sim) or (sim > best_sim):
-                best_sim = sim
-                best_dir = d
-        return best_sim, dist, self.directions[best_dir]
+        v1 = (cos(yaw), sin(yaw))
+        v2 = (dx / dist, dy / dist)
+        # theta is the angle from p2 to p1 wrt p1's orientation
+        cos_theta = max(-1, min(1, v1[0]*v2[0] + v1[1]*v2[1]))
+        sin_theta = max(-1, min(1, v1[1]*v2[0] - v1[0]*v2[1]))
+        theta = acos(cos_theta) * copysign(1, asin(sin_theta))
+        direction = ""
+        for r in self.directions.keys():
+            if (theta >= r[0] and theta < r[1]):
+                direction = self.directions[r]
+        return theta, dist, direction
 
     def _record_success(self):
         self.num_successes += 1
@@ -205,12 +217,11 @@ class XWorld3DTask(object):
         if not action_successful:
             reward += XWorld3DTask.failed_action_penalty
 
-        goal_locs = [g.loc for g in self._get_goals()]
         next_stage = "simple_navigation_reward"
 
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
-        if get_flag("task_mode") == "one_channel" \
+        if get_flag("x3_task_mode") == "one_channel" \
            and self.steps_in_cur_task >= h*w * 2:
             self.steps_in_cur_task = 0
             self._record_failure()
@@ -219,9 +230,8 @@ class XWorld3DTask(object):
             next_stage = "idle"
             self.sentence = self._generate()
         else:
-            o, dist, _ = self._get_direction_and_distance(agent.loc, self.target)
-            if o >= self.orientation_threshold \
-               and dist <= self.distance_threshold:
+            theta, dist, direction = self._get_direction_and_distance(agent.loc, agent.yaw, self.target)
+            if abs(theta) <= self.orientation_threshold and dist <= self.distance_threshold:
                 self.steps_in_cur_task = 0
                 self._record_success()
                 self._record_event("correct_goal")
@@ -231,6 +241,7 @@ class XWorld3DTask(object):
                 self.sentence = self._generate()
 
                 ## move the agent far from the current goal
+                ## TODO: dont move agent to occupied grids
                 grids = list(itertools.product(range(w), range(h)))
                 dists = [self._get_direction_and_distance(l, self.target)[1] for l in grids]
                 far_loc = grids[dists.index(max(dists))]

@@ -4,8 +4,9 @@ import os
 import random
 
 class XWorld3DNav(XWorld3DEnv):
-    def __init__(self, item_path):
+    def __init__(self, asset_path):
         super(XWorld3DNav, self).__init__(
+            asset_path=asset_path,
             item_path=item_path,
             max_height=5,
             max_width=5)

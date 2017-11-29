@@ -75,9 +75,6 @@ public:
     // get the location of the item
     Vec3 location() const;
 
-    // set the location of the item
-    void set_item_location(const x3real x, const x3real y, const x3real z);
-
     Pose pose() const { return object_.pose(); }
 
     void set_pose(const Pose& pose);
@@ -86,9 +83,11 @@ public:
 
     void set_pose_and_speed(const Pose& pose,
                             const x3real vx, const x3real vy, const x3real vz);
+
     void get_direction(x3real &dir_x, x3real &dir_y) const {
-        dir_x = dir_x_;
-        dir_y = dir_y_;
+        x3real yaw = std::get<2>(object_.pose().rpy());
+        dir_x = cos(yaw);
+        dir_y = sin(yaw);
     }
 
     // set the type of the item
@@ -132,8 +131,6 @@ public:
 protected:
     Entity e_;
     Object object_;
-    x3real dir_x_;              // the x component of the agent's facing direction
-    x3real dir_y_;              // the y component of the agent's facing direction
 };
 
 class X3Agent : public X3Item {
@@ -164,11 +161,8 @@ public:
 private:
     x3real reach_test(const Pose& pose);
 
-    void set_direction();
-
     const x3real move_speed_norm_;
     const x3real jump_speed_norm_;
-    const int orientation_bins_;
     const x3real reaching_dist_; // An agent can collect this goal if it is
                                 // within the reaching distance of this goal
     int yaw_id_;

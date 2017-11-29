@@ -33,9 +33,9 @@ X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
     }
 }
 
-X3Item::X3Item(const Entity& e, World& world) :
-        e_(e), dir_x_(0.0f), dir_y_(1.0f) {
+X3Item::X3Item(const Entity& e, World& world) : e_(e) {
     Pose pose(e_.loc.x * UNIT, e_.loc.y * UNIT, e_.loc.z * UNIT);
+    pose.rotate_z(e_.yaw);
     object_ = world.load_urdf(e.asset_path, pose, false, false);
     object_.query_position();
 }
@@ -43,11 +43,6 @@ X3Item::X3Item(const Entity& e, World& world) :
 Vec3 X3Item::location() const {
     const Pose& pose = object_.pose();
     return Vec3(pose.x(), pose.y(), pose.z());
-}
-
-void X3Item::set_item_location(const x3real x, const x3real y, const x3real z) {
-    Pose pose(x * UNIT, y * UNIT, z * UNIT);
-    set_pose(pose);
 }
 
 void X3Item::set_speed(x3real vx, x3real vy, x3real vz) {
@@ -64,8 +59,10 @@ void X3Item::set_pose_and_speed(const Pose& pose,
 }
 
 void X3Item::sync_entity_info() {
-    std::tie(e_.loc.x, e_.loc.y, e_.loc.z) = object_.pose().xyz();
+    Pose pose = object_.pose();
+    std::tie(e_.loc.x, e_.loc.y, e_.loc.z) = pose.xyz();
     e_.loc.scale(UNIT_INV);
+    e_.yaw = std::get<2>(pose.rpy());
 }
 
 void X3Item::move_underground() {
@@ -78,44 +75,44 @@ X3Agent::X3Agent(const Entity& e, World& world) :
         X3Item(e, world),
         move_speed_norm_(FLAGS_x3_move_speed * UNIT),
         jump_speed_norm_(FLAGS_x3_jump_speed * UNIT),
-        orientation_bins_(FLAGS_x3_orientation_bins),
-        reaching_dist_(FLAGS_x3_reaching_distance * UNIT) {
-    yaw_id_ = simulator::util::get_rand_ind(orientation_bins_);
-    set_direction();
-}
+        reaching_dist_(FLAGS_x3_reaching_distance * UNIT) {}
 
 void X3Agent::move_forward() {
     Pose pose(object_.pose());
+    x3real yaw = std::get<2>(pose.rpy());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
-    x3real vx = move_speed_norm_ * dir_x_;
-    x3real vy = move_speed_norm_ * dir_y_;
+    x3real vx = move_speed_norm_ * cos(yaw);
+    x3real vy = move_speed_norm_ * sin(yaw);
     //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_backward() {
     Pose pose(object_.pose());
+    x3real yaw = std::get<2>(pose.rpy());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
-    x3real vx = -move_speed_norm_ * dir_x_;
-    x3real vy = -move_speed_norm_ * dir_y_;
+    x3real vx = -move_speed_norm_ * cos(yaw);
+    x3real vy = -move_speed_norm_ * sin(yaw);
     //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_left() {
     Pose pose(object_.pose());
+    x3real yaw = std::get<2>(pose.rpy());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
-    x3real vx = -move_speed_norm_ * dir_y_;
-    x3real vy = move_speed_norm_ * dir_x_;
+    x3real vx = -move_speed_norm_ * sin(yaw);
+    x3real vy = move_speed_norm_ * cos(yaw);
     //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_right() {
     Pose pose(object_.pose());
+    x3real yaw = std::get<2>(pose.rpy());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
-    x3real vx = move_speed_norm_ * dir_y_;
-    x3real vy = -move_speed_norm_ * dir_x_;
+    x3real vx = move_speed_norm_ * sin(yaw);
+    x3real vy = -move_speed_norm_ * cos(yaw);
     //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, vx, vy, 0.0f);
 }
@@ -123,20 +120,17 @@ void X3Agent::move_right() {
 void X3Agent::turn_left() {
     Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
-    // TODO: call set_rpy
-    yaw_id_ = (yaw_id_ + 1) % orientation_bins_;
+    pose.rotate_z(FLAGS_x3_turning_rad);
     //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
-    set_direction();
 }
 
 void X3Agent::turn_right() {
     Pose pose(object_.pose());
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
-    yaw_id_ = (yaw_id_ - 1) % orientation_bins_ + orientation_bins_;
+    pose.rotate_z(-FLAGS_x3_turning_rad);
     //    x3real vz = object_.speed_z();
     set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
-    set_direction();
 }
 
 void X3Agent::jump() {
@@ -167,6 +161,9 @@ X3ItemPtr X3Agent::collect_item(const std::map<std::string, X3ItemPtr>& items,
 
 x3real X3Agent::reach_test(const Pose& pose) {
     const Pose self = object_.pose();
+    x3real yaw = std::get<2>(pose.rpy());
+    x3real dir_x = cos(yaw);
+    x3real dir_y = sin(yaw);
     x3real dx = pose.x() - self.x();
     x3real dy = pose.y() - self.y();
     x3real dz = pose.z() - self.z();
@@ -175,15 +172,9 @@ x3real X3Agent::reach_test(const Pose& pose) {
     if (d < reaching_dist_ && dz < REACH_HEIGHT_THRESHOLD) {
         dx /= d;
         dy /= d;
-        reaching_score = dx * dir_x_ + dy * dir_y_;
+        reaching_score = dx * dir_x + dy * dir_y;
     }
     return reaching_score;
-}
-
-void X3Agent::set_direction() {
-    x3real rad = 2 * yaw_id_ * M_PI / orientation_bins_;
-    dir_x_ = cos(rad);
-    dir_y_ = sin(rad);
 }
 
 /********************************** X3Camera **********************************/
