@@ -119,6 +119,7 @@ struct Entity {
         loc = Vec3(boost::python::extract<double>(l[0]),
                    boost::python::extract<double>(l[1]),
                    boost::python::extract<double>(l[2]));
+        yaw = boost::python::extract<double>(e["yaw"]);
         name = boost::python::extract<std::string>(e["name"]);
         asset_path = boost::python::extract<std::string>(e["asset_path"]);
         color = boost::python::extract<std::string>(e["color"]);
@@ -128,6 +129,7 @@ struct Entity {
         d["type"] = type;
         d["id"] = id;
         d["loc"] = boost::python::make_tuple(loc.x, loc.y, loc.z);
+        d["yaw"] = yaw;
         d["name"] = name;
         d["asset_path"] = asset_path;
         d["color"] = color;
@@ -136,6 +138,7 @@ struct Entity {
     std::string type;
     std::string id;
     Vec3 loc;
+    double yaw;
     std::string name;
     std::string asset_path;
     std::string color;

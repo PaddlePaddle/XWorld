@@ -14,56 +14,63 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
  limitations under the License.
 """
 
-import random
-import os
 import copy
-from itertools import groupby
 import itertools
+import numbers
+import os
 import pprint
+import random
 
 """
 Entity:
-  id         - unique str for this entity
-  type       - "agent", "goal", "block"
-  location   - (x, y, z)
-  asset_path - the model path
-  name       - name of the entity
-  color      - color of the entity
+  id            - unique str for this entity
+  grid_types    - "agent", "goal", "block"
+  location      - (x, y, z)
+  yaw           - in radian
+  name          - name of the entity
+  asset_path    - the model path
+  color         - color of the entity
 """
 class Entity:
-    def __init__(self, type, id=None, loc=None, name=None, asset_path=None, color=None):
+    def __init__(self, type, id=None, loc=None, yaw=None, name=None, asset_path=None, color=None):
         if not loc is None:
             assert isinstance(loc, tuple) and len(loc) == 3
+        if not yaw is None:
+            assert isinstance(yaw, numbers.Real)
         self.type = type
         self.id = id
         self.loc = loc
+        self.yaw = yaw
         self.name = name
         self.asset_path = asset_path
         self.color = color
 
 class XWorld3DEnv(object):
-    def __init__(self, item_path, max_height=10, max_width=10):
+    PI_2 = 1.5707963
+    PI = 3.1415926
+    def __init__(self, asset_path, max_height=10, max_width=10):
         self.num_games = -1
-        ## load all items from item_path
+        self.current_usage = 0
         self.grid_types = ["goal", "block", "agent"]
-        self.item_path = item_path
+        ## init dimensions
         self.max_height = max_height
         self.max_width = max_width
-        self.current_usage = 0
+        self.__clean_env()
+
+        ## load all items from asset_path
+        self.asset_path = asset_path
         self.all_object_paths = []
-        for dirpath, _, files in os.walk(item_path):
+        for dirpath, _, files in os.walk(asset_path):
             for f in files:
                 if f.endswith(".urdf"):
                     self.all_object_paths.append(os.path.join(dirpath, f))
         self.set_goal_subtrees([])
-        ## init dimensions
-        self.__clean_env()
-        ## read item colors
-        color_file = os.path.join(item_path, "properties.txt")
+        ## read item properties
+        color_file = os.path.join(asset_path, "properties.txt")
         assert os.path.exists(color_file)
         with open(color_file, "r") as f:
             lines = f.read().splitlines()
-        self.color_table = {os.path.join(item_path, l.split()[0]) : l.split()[1]\
+        self.color_table = {os.path.join(asset_path, l.split()[0]) : l.split()[1]\
                             for l in lines if not l.startswith("//") and not l == ""}
 
     ############################ interface with Python tasks ############################
@@ -96,7 +103,7 @@ class XWorld3DEnv(object):
         random.shuffle(self.available_grids)
         self.changed = True
 
-    def set_entity(self, type, loc=None, name=None):
+    def set_entity(self, type, loc=None, yaw=None, name=None):
         """
         Add an entity of type to loc which must be currently empty
         """
@@ -143,7 +150,7 @@ class XWorld3DEnv(object):
         The change of goal subtrees will only be reflected for the next game, after
         reset() is called. The current game still uses old goal subtrees.
         """
-        goal_path = os.path.join(self.item_path, "goal")
+        goal_path = os.path.join(self.asset_path, "goal")
         self.object_paths = copy.deepcopy(self.all_object_paths)
         if len(subtrees) > 0:
             self.object_paths \
@@ -151,7 +158,7 @@ class XWorld3DEnv(object):
                    if not p.startswith(goal_path) or p.split("/")[-3] in subtrees]
         ## get a hierarchy of all possible objects
         key = lambda p: '_'.join(p.split('_')[:-1])
-        objects = groupby(sorted(self.object_paths, key=key), key=key)
+        objects = itertools.groupby(sorted(self.object_paths, key=key), key=key)
 
         self.items = {t : {} for t in self.grid_types}
         for k, g in objects:
@@ -208,6 +215,12 @@ class XWorld3DEnv(object):
         Return all the blocks on the current map
         """
         return [e for e in self.entities if e.type == "block"]
+
+    def get_available_grids(self):
+        """
+        Return all the available grids on the current map
+        """
+        return list(self.available_grids)
 
     def get_entities(self):
         """
@@ -298,6 +311,11 @@ class XWorld3DEnv(object):
                 assert len(self.available_grids) > 0
                 e.loc = self.available_grids[0] + (0, )
                 self.available_grids = self.available_grids[1:]
+            if e.yaw is None:
+                if e.type == "agent":
+                    e.yaw = random.uniform(-self.PI, self.PI)
+                else:
+                    e.yaw = random.randint(-1,2) * self.PI_2
 
     def __add_boundaries(self):
         """
@@ -307,7 +325,7 @@ class XWorld3DEnv(object):
         wall_blocks = []
         def add_blocks(range1, range2, id):
             for loc in itertools.product(range1, range2):
-                wall_blocks.append(Entity(type="block", loc=loc+(0,), id="boundary_%d" % id,
+                wall_blocks.append(Entity(type="block", loc=loc+(0,), yaw=0, id="boundary_%d" % id,
                                           name="boundary", color="na",
                                           asset_path=self.items["block"]["boundary"][0]))
                 id += 1

@@ -23,7 +23,7 @@ DECLARE_int32(x3_training_img_height);
 DECLARE_double(x3_reaching_distance);
 DECLARE_double(x3_move_speed);
 DECLARE_double(x3_jump_speed);
-DECLARE_int32(x3_orientation_bins);
+DECLARE_double(x3_turning_rad);
 DECLARE_double(x3_gravity);
 DECLARE_double(x3_time_step);
 DECLARE_int32(x3_frame_skip);

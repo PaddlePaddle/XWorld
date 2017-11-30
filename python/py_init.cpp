@@ -23,6 +23,8 @@
 
 DECLARE_string(task_mode);            // default "one_channel"
 DECLARE_double(curriculum);
+DECLARE_string(x3_task_mode);
+DECLARE_double(x3_reaching_distance);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -38,11 +40,16 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
     std::string flag_name = c_name;
     if (flag_name == "task_mode") {
         return PyString_FromString(FLAGS_task_mode.c_str());
+    } else if (flag_name == "x3_task_mode") {
+        return PyString_FromString(FLAGS_x3_task_mode.c_str());
+    } else if (flag_name == "x3_reaching_distance") {
+        return Py_BuildValue("d", FLAGS_x3_reaching_distance);
     } else if (flag_name == "curriculum") {
         return Py_BuildValue("d", FLAGS_curriculum);
     } else {
         throw PyException("GFlag '" + flag_name + "' is not recognized");
     }
+
     return NULL;
 }
 
