@@ -29,10 +29,10 @@ class XWorld3DTask(object):
     correct_reward = 1.0
     wrong_reward = -1.0
     failed_action_penalty = -0.2
-    PI_8 = 0.3926990
-    PI_4 = 0.7853982
-    PI_2 = 1.5707963
     PI = 3.1415926
+    PI_8 = PI / 8
+    PI_4 = PI / 4
+    PI_2 = PI / 2
 
     # how often we should record the environment usage for the curriculum learning
     record_env_usage_period = 500
@@ -42,10 +42,11 @@ class XWorld3DTask(object):
         self.directions = {
             ( self.PI_2-self.PI_8,  self.PI_2+self.PI_8)    : "right",
             (-self.PI_2-self.PI_8, -self.PI_2+self.PI_8)    : "left",
-            (                   0,            self.PI_8)    : "front",
-            (          -self.PI_8,                    0)    : "front", # it is on purpose
+            (          -self.PI_8,            self.PI_8)    : "front",
+            # two intervals of "back" cannot be merged, so we need to specify
+            # them separately
             (   self.PI-self.PI_8,              self.PI)    : "back",
-            (            -self.PI,   -self.PI+self.PI_8)    : "back", # it is on purpose
+            (            -self.PI,   -self.PI+self.PI_8)    : "back",
             (           self.PI_8,  self.PI_4+self.PI_8)    : "front-right",
             ( self.PI_2+self.PI_8,    self.PI-self.PI_8)    : "back-right",
             (-self.PI_2+self.PI_8,           -self.PI_8)    : "front-left",
@@ -88,6 +89,10 @@ class XWorld3DTask(object):
         """
         Get the direciton of p2 wrt p1's orientation, and the distance from p1
         to l2.
+        Return:
+        theta:      relative angle from p2 to p1 wrt p1's orientation
+        dist:       distance from p1 to p2
+        direction:  name of the direction
         """
         dx = p2[0] - p1[0]
         dy = p2[1] - p1[1]
@@ -103,6 +108,9 @@ class XWorld3DTask(object):
             if (theta >= r[0] and theta < r[1]):
                 direction = self.directions[r]
         return theta, dist, direction
+
+    def _get_distance(self, p1, p2):
+        return pow(pow(p2[0]-p1[0], 2) + pow(p2[1]-p1[1], 2), 0.5)
 
     def _record_success(self):
         self.num_successes += 1
@@ -241,14 +249,11 @@ class XWorld3DTask(object):
                 self.sentence = self._generate()
 
                 ## move the agent far from the current goal
-                ## TODO: dont move agent to occupied grids
-                grids = list(itertools.product(range(w), range(h)))
-                dists = [self._get_direction_and_distance(l, self.target)[1] for l in grids]
+                ## TODO: select a grid with probability instead of simply max
+                grids = self.env.get_available_grids()
+                dists = [self._get_distance(l, self.target) for l in grids]
                 far_loc = grids[dists.index(max(dists))]
                 self._move_entity(agent, far_loc + (0,))
-            else:
-                if agent.loc in goal_locs:
-                    reward += XWorld3DTask.wrong_reward
 
         return [next_stage, reward, self.sentence]
 
@@ -331,12 +336,12 @@ class XWorld3DTask(object):
         Given a reference location, return all goals in its 3x3 neighborhood
         """
         goals = self._get_goals()
+        agent, _, _ = self._get_agent()
         if refer_loc is None:
-            agent, _, _ = self._get_agent()
             refer_loc = agent.loc
         ret = []
         for g in goals:
-            _, dist, dir_name = self._get_direction_and_distance(refer_loc, g.loc)
+            _, dist, dir_name = self._get_direction_and_distance(refer_loc, agent.yaw, g.loc)
             if dist < self.distance_threshold:
                 ret.append((g, dir_name))
         return ret

@@ -32,7 +32,7 @@ Entity:
   color         - color of the entity
 """
 class Entity:
-    def __init__(self, type, id=None, loc=None, yaw = None, name=None, asset_path=None, color=None):
+    def __init__(self, type, id=None, loc=None, yaw=None, name=None, asset_path=None, color=None):
         if not loc is None:
             assert isinstance(loc, tuple) and len(loc) == 3
         if not yaw is None:
@@ -114,7 +114,7 @@ class XWorld3DEnv(object):
         if not e.loc is None and e.type != "agent":
             assert e.loc in self.available_grids, \
                 "set_dims correctly before setting a location"
-        self.available_grids.remove(e.loc)
+            self.available_grids.remove(e.loc)
         self.entity_nums[e.type] += 1
         self.entities.append(e)
         self.changed = True
@@ -215,6 +215,12 @@ class XWorld3DEnv(object):
         Return all the blocks on the current map
         """
         return [e for e in self.entities if e.type == "block"]
+
+    def get_available_grids(self):
+        """
+        Return all the available grids on the current map
+        """
+        return list(self.available_grids)
 
     def get_entities(self):
         """
@@ -345,7 +351,4 @@ class XWorld3DEnv(object):
         self.entities = []
         self.boundaries = []
         self.entity_nums = {t : 0 for t in self.grid_types}
-        ## before any configuration happens, we temporarily set an all-emtpy map
-        self.height = self.max_height
-        self.width = self.max_width
-        self.available_grids = list(itertools.product(range(self.max_width), range(self.max_height)))
+        self.available_grids = []
