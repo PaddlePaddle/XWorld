@@ -25,7 +25,7 @@ namespace simulator {
    At each stage, the teacher performs an action, whether it being
    a sentence sent to the agent, or some changes to the environment.
    Each stage corresponds to a time step.
-
+nn
    A wrapper class that use the embedded Python class for defining tasks
    The python users are responsible for implementing
    1. all the stage functions
@@ -46,7 +46,7 @@ class Task {
     const std::string& name() const { return name_; }
 
     void reset() {
-        py_task_.attr("reset")(is_idle());
+        py_task_.attr("reset")();
         current_stage_ = "idle";
     }
 
