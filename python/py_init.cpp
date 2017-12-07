@@ -14,6 +14,7 @@
 
 #include <Python.h>
 #include <gflags/gflags.h>
+#include <glog/logging.h>
 #include <exception>
 #include <functional>
 
@@ -50,7 +51,25 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
         throw PyException("GFlag '" + flag_name + "' is not recognized");
     }
 
-    return NULL;
+    return Py_None;
+}
+
+PyObject* log_info(PyObject* self, PyObject* args) {
+    const char* msg;
+    if (!PyArg_ParseTuple(args, "s", &msg)) {
+        throw PyException("glog args incorrect");
+    }
+    LOG(INFO) << msg;
+    return Py_None;
+}
+
+PyObject* log_fatal(PyObject* self, PyObject* args) {
+    const char* msg;
+    if (!PyArg_ParseTuple(args, "s", &msg)) {
+        throw PyException("glog args incorrect");
+    }
+    LOG(FATAL) << msg;
+    return Py_None;
 }
 
 // Used for executing global statements
@@ -69,6 +88,8 @@ static InitFunction py_init_interpreter([](){
 
 static PyMethodDef cpp_methods[] = {
     {"get_flag", get_gflag, METH_VARARGS, "get gflags used by C++"},
+    {"log_info", log_info, METH_VARARGS, "glog info"},
+    {"log_fatal", log_fatal, METH_VARARGS, "glog fatal"},
     {NULL, NULL, 0, NULL}
 };
 

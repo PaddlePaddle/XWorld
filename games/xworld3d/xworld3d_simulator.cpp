@@ -18,8 +18,6 @@
 #include "xworld3d_flags.h"
 #include "xworld3d_simulator.h"
 
-DECLARE_int32(max_steps);
-
 namespace simulator {
 namespace xworld3d {
 
@@ -122,7 +120,7 @@ void X3SimulatorImpl::get_screen_rgb(
 
 X3Simulator::X3Simulator(bool print, bool big_screen) :
         legal_actions_({MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT,
-                        TURN_LEFT, TURN_RIGHT, COLLECT}),
+                        TURN_LEFT, TURN_RIGHT}),
         height_(0), width_(0),
         img_height_out_(FLAGS_x3_training_img_height),
         img_width_out_(FLAGS_x3_training_img_width),
@@ -139,12 +137,6 @@ void X3Simulator::reset_game() {
     impl_->reset_game();
     height_ = impl_->height();
     width_ = impl_->width();
-    // default
-    if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
-        FLAGS_max_steps = (height_ + width_ ) * 4;
-    } else {
-        FLAGS_max_steps = height_ * width_ * 10;
-    }
     history_messages_.clear();
 
     history_messages_.push_back("--------------- New Game --------------");
@@ -154,26 +146,35 @@ void X3Simulator::reset_game() {
 }
 
 int X3Simulator::game_over() {
-    if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
-        // Each session has a navigation task, during which some questions are
-        // asked
-        // The answer is appended after each question
-        auto event = get_event_from_buffer();
-        if (event == "correct_goal") {
-            return SUCCESS;
-        }
-    } else if (FLAGS_x3_task_mode == "arxiv_interactive") {
-        // Each session has a language task; there is no navigation
-        auto event = get_event_from_buffer();
-        if (event == "correct_reply") {
-            return SUCCESS;
-        } else if (event == "wrong_reply") {
-            return DEAD;
-        }
-    } else if (FLAGS_x3_task_mode == "one_channel") {
-        // Each session has all tasks until the max steps
-    } else {
-        LOG(FATAL) << "unsupported task mode: " << FLAGS_x3_task_mode;
+    // if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
+    //     // Each session has a navigation task, during which some questions are
+    //     // asked
+    //     // The answer is appended after each question
+    //     auto event = get_event_from_buffer();
+    //     if (event == "correct_goal") {
+    //         return SUCCESS;
+    //     }
+    // } else if (FLAGS_x3_task_mode == "arxiv_interactive") {
+    //     // Each session has a language task; there is no navigation
+    //     auto event = get_event_from_buffer();
+    //     if (event == "correct_reply") {
+    //         return SUCCESS;
+    //     } else if (event == "wrong_reply") {
+    //         return DEAD;
+    //     }
+    // } else if (FLAGS_x3_task_mode == "one_channel") {
+    //     // Each session has all tasks until the max steps
+    // } else {
+    //     LOG(FATAL) << "unsupported task mode: " << FLAGS_x3_task_mode;
+    // }
+
+    auto event = get_event_from_buffer();
+    if (event.find("correct") != std::string::npos) {
+        return SUCCESS;
+    } else if (event.find("wrong") != std::string::npos) {
+        return DEAD;
+    } else if (event == "time_up") {
+        return MAX_STEP;
     }
     return ALIVE;
 }

@@ -1,5 +1,6 @@
 from xworld3d_env import XWorld3DEnv
 from py_gflags import get_flag
+from py_gflags import log_info
 import os
 import random
 
@@ -7,8 +8,8 @@ class XWorld3DNav(XWorld3DEnv):
     def __init__(self, asset_path):
         super(XWorld3DNav, self).__init__(
             asset_path=asset_path,
-            max_height=5,
-            max_width=5)
+            max_height=7,
+            max_width=7)
         self.curriculum = get_flag("curriculum")
         self.current_level = 0
 
@@ -17,11 +18,11 @@ class XWorld3DNav(XWorld3DEnv):
         self.set_entity(type="agent")
 
         ## compute world dims
-        min_dim = 2
+        min_dim = 3
         max_h, max_w = self.get_max_dims()
         n_levels = max_h - min_dim + 1
         max_num_goals, min_num_goals = 1, 1
-        max_num_blocks, min_num_blocks = 2, 0
+        max_num_blocks, min_num_blocks = 10, 0
 
         def compute(current_level):
             rate = 0
@@ -38,19 +39,21 @@ class XWorld3DNav(XWorld3DEnv):
             num_blocks = max_num_blocks
         else:
             flag = False
-            if self.current_usage >= self.curriculum:
-                print("~~~~~~ Entering the next level: ~~~~~~~")
+            if self.current_usage >= self.curriculum \
+               and self.current_level < n_levels - 1:
+                log_info("~~~~~~ Entering the next level: ~~~~~~~")
                 current_dim, num_goals, num_blocks = compute(self.current_level)
-                print "%dx%d map, %d goals, %d blocks ->" \
-                      % (current_dim, current_dim, num_goals, num_blocks),
+                msg = "%dx%d map, %d goals, %d blocks -> " \
+                      % (current_dim, current_dim, num_goals, num_blocks)
                 ## move to the next stage
-                self.current_level = min(self.current_level + 1, n_levels - 1)
+                self.current_level += 1
                 flag = True
 
             current_dim, num_goals, num_blocks = compute(self.current_level)
             if flag:
-                print("%dx%d map, %d goals, %d blocks"
-                      % (current_dim, current_dim, num_goals, num_blocks))
+                msg += "%dx%d map, %d goals, %d blocks" \
+                       % (current_dim, current_dim, num_goals, num_blocks)
+                log_info(msg)
 
         self.set_dims(current_dim, current_dim)
         ## set goals

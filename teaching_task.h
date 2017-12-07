@@ -46,7 +46,7 @@ class Task {
     const std::string& name() const { return name_; }
 
     void reset() {
-        py_task_.attr("reset")(is_idle());
+        py_task_.attr("reset")();
         current_stage_ = "idle";
     }
 

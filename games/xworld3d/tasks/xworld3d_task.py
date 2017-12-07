@@ -25,17 +25,20 @@ import itertools
 class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
-    time_penalty = -0.01
+    time_penalty = -0.1
     correct_reward = 1.0
     wrong_reward = -1.0
     failed_action_penalty = -0.2
+
+    navigation_max_steps_factor = 10
+
     PI = 3.1415926
     PI_8 = PI / 8
     PI_4 = PI / 4
     PI_2 = PI / 2
 
     # how often we should record the environment usage for the curriculum learning
-    record_env_usage_period = 500
+    record_env_usage_period = 20
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -53,12 +56,12 @@ class XWorld3DTask(object):
             (  -self.PI+self.PI_8, -self.PI_2-self.PI_8)    : "back-left"
         }
         self.distance_threshold = get_flag("x3_reaching_distance")
-        self.orientation_threshold = self.PI_4
+        self.orientation_threshold = self.PI_8
         self.env = env
         self.event = ""
         self.num_successes = 0
         self.num_failures = 0
-        self.reset(True)
+        self.reset()
         self.cfg = CFG(*self._define_grammar())
         self.sentence = ""
 
@@ -149,12 +152,10 @@ class XWorld3DTask(object):
         self.event = event
 
     ############# public APIs #############
-    def reset(self, is_idle):
+    def reset(self):
         self.steps_in_cur_task = 0
         self.target = (-1, -1)
         self.answer = ""
-        if not is_idle:
-            self._record_failure();
 
     def get_event(self):
         """
@@ -229,8 +230,7 @@ class XWorld3DTask(object):
 
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
-        if get_flag("x3_task_mode") == "one_channel" \
-           and self.steps_in_cur_task >= h*w * 2:
+        if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
             self.steps_in_cur_task = 0
             self._record_failure()
             self._bind("S -> timeup")
