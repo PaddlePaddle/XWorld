@@ -25,7 +25,7 @@ namespace simulator {
    At each stage, the teacher performs an action, whether it being
    a sentence sent to the agent, or some changes to the environment.
    Each stage corresponds to a time step.
-nn
+
    A wrapper class that use the embedded Python class for defining tasks
    The python users are responsible for implementing
    1. all the stage functions
