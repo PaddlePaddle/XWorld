@@ -200,7 +200,8 @@ void X3World::update_world(const std::vector<Entity>& entities) {
         }
         return ret;
     };
-    for (auto& i : items_) {
+    std::map<std::string, X3ItemPtr> tmp(items_);
+    for (auto& i : tmp) {
         if (!found_item_in_entities(i.second->id())) {
             // If an item is not found among the udpated entities, that means
             // the item is removed by XWorld3dTask. Then we remove it from
@@ -208,11 +209,12 @@ void X3World::update_world(const std::vector<Entity>& entities) {
             remove_item(i.second);
         }
     }
+    items_ = tmp;
 
     for (auto const& e : entities) {
         if (items_.find(e.id) != items_.end()) {
             // Update an existing item
-            items_[e.id]->move_to(e.loc);
+            items_[e.id]->set_entity(e);
         } else {
             // Create a new item
             add_item(e);

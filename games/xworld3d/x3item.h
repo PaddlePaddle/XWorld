@@ -88,7 +88,7 @@ public:
 
     Entity entity() const { return e_; }
     
-    void set_entity(const Entity& e) { e_ = e; }
+    void set_entity(const Entity& e);
 
     void sync_entity_info();
 

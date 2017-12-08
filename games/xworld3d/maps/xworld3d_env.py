@@ -351,3 +351,4 @@ class XWorld3DEnv(object):
         self.boundaries = []
         self.entity_nums = {t : 0 for t in self.grid_types}
         self.available_grids = []
+
