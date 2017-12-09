@@ -27,16 +27,16 @@ const x3real CAMERA_BIRD_VIEW_HEIGHT = 10.0 * X3Item::UNIT;
 
 X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
     if (e.type == "agent") {
-        return std::make_shared<X3Agent>(e, world);
+        return std::make_shared<X3Agent>(e, 0.5, world);
     } else {
-        return std::make_shared<X3Item>(e, world);
+        return std::make_shared<X3Item>(e, 1, world);
     }
 }
 
-X3Item::X3Item(const Entity& e, World& world) : e_(e) {
+X3Item::X3Item(const Entity& e, x3real scale, World& world) : e_(e) {
     Pose pose(e_.loc.x * UNIT, e_.loc.y * UNIT, e_.loc.z * UNIT);
     pose.rotate_z(e_.yaw);
-    object_ = world.load_urdf(e.asset_path, pose, false, false);
+    object_ = world.load_urdf(e.asset_path, pose, scale, false, false);
     object_.query_position();
 }
 
@@ -68,11 +68,18 @@ void X3Item::sync_entity_info() {
 void X3Item::move_underground() {
    Pose pose(object_.pose());
    pose.set_xyz(pose.x(), pose.y(), -2);
-   set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+   object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
 
-X3Agent::X3Agent(const Entity& e, World& world) :
-        X3Item(e, world),
+void X3Item::set_entity(const Entity& e) {
+   e_ = e;
+   Pose pose(e_.loc.x * UNIT, e_.loc.y * UNIT, e_.loc.z * UNIT);
+   pose.rotate_z(e_.yaw);
+   object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+}
+
+X3Agent::X3Agent(const Entity& e, x3real scale, World& world) :
+        X3Item(e, scale, world),
         move_speed_norm_(FLAGS_x3_move_speed * UNIT),
         jump_speed_norm_(FLAGS_x3_jump_speed * UNIT),
         reaching_dist_(FLAGS_x3_reaching_distance * UNIT) {}
@@ -84,7 +91,7 @@ void X3Agent::move_forward() {
     x3real vx = move_speed_norm_ * cos(yaw);
     x3real vy = move_speed_norm_ * sin(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_backward() {
@@ -94,7 +101,7 @@ void X3Agent::move_backward() {
     x3real vx = -move_speed_norm_ * cos(yaw);
     x3real vy = -move_speed_norm_ * sin(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_left() {
@@ -104,7 +111,7 @@ void X3Agent::move_left() {
     x3real vx = -move_speed_norm_ * sin(yaw);
     x3real vy = move_speed_norm_ * cos(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::move_right() {
@@ -114,7 +121,7 @@ void X3Agent::move_right() {
     x3real vx = move_speed_norm_ * sin(yaw);
     x3real vy = -move_speed_norm_ * cos(yaw);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, vx, vy, 0.0f);
+    object_.set_pose_and_speed(pose, vx, vy, 0.0f);
 }
 
 void X3Agent::turn_left() {
@@ -122,7 +129,7 @@ void X3Agent::turn_left() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     pose.rotate_z(FLAGS_x3_turning_rad);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+    object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
 
 void X3Agent::turn_right() {
@@ -130,19 +137,19 @@ void X3Agent::turn_right() {
     pose.set_xyz(pose.x(), pose.y(), 0.0f);
     pose.rotate_z(-FLAGS_x3_turning_rad);
     //    x3real vz = object_.speed_z();
-    set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+    object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
 }
 
 void X3Agent::jump() {
     if (fabs(pose().z()) < EPSILON) {
-        set_speed(0.0f, 0.0f, jump_speed_norm_);
+        object_.set_speed(0.0f, 0.0f, jump_speed_norm_);
     }
 }
 
 X3ItemPtr X3Agent::collect_item(const std::map<std::string, X3ItemPtr>& items,
                                 const std::string& type) {
     X3ItemPtr item = nullptr;
-    set_speed(0.0f, 0.0f, 0.0f);
+    object_.set_speed(0.0f, 0.0f, 0.0f);
     // the angle between the agent's facing direction and
     // the direction from the agent to the item should be less than 45 degrees
     x3real best_score = 0.707; // 45 degrees is the minimum
@@ -195,8 +202,8 @@ void X3Camera::update(bool bird_view) {
     if (!bird_view) {
         x3real dir_x, dir_y;
         item_->get_direction(dir_x, dir_y);
-        camera_.move_and_look_at(p.x(), p.y(), p.z() + 0.5 * X3Item::UNIT,
-                                 p.x() + dir_x, p.y() + dir_y, p.z() + 0.5 * X3Item::UNIT);
+        camera_.move_and_look_at(p.x(), p.y(), p.z() + 1.5 * X3Item::UNIT,
+                                 p.x() + dir_x, p.y() + dir_y, p.z() + 1.2 * X3Item::UNIT);
     } else {
         // bird view
         camera_.move_and_look_at(p.x(), p.y(), CAMERA_BIRD_VIEW_HEIGHT, p.x(), p.y(), p.z());

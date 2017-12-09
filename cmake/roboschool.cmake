@@ -25,7 +25,7 @@ set(ASSIMP_LIBRARIES "${SOURCE_DIR}/lib/libassimp.so.4")
 
 ## bullet physics
 ExternalProject_Add(bullet
-  GIT_REPOSITORY "https://github.com/yu239/bullet3"
+  GIT_REPOSITORY "https://github.com/skylian/bullet3"
   GIT_TAG "master"
   INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/bullet"
   LOG_DOWNLOAD ON

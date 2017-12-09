@@ -74,35 +74,6 @@ class Vec3 {
         y *= s;
         z *= s;
     }
-
-
-    // currently get_direction ignores the z axis
-    // get the direction of l wrt *this
-    // It returns one of eight directions, every two directions
-    // separated by 45 degrees: "north", "northeast", "east" ...
-//    std::string get_direction(const Vec3& l) const {
-//        if (l == (*this)) {
-//            return "";
-//        }
-//        double delta = atan(1.0) / 2;
-//        Vec3 vec = l - (*this);
-//        double angle = atan2(vec.y, vec.x) + delta * 8;  // [0, 2pi]
-//        std::vector<std::string> dir = {"southeast",
-//                                        "south",
-//                                        "southwest",
-//                                        "west",
-//                                        "northwest",
-//                                        "north",
-//                                        "northeast",
-//                                        "east"};
-//        std::vector<int> start = {9, 11, 13, 15, 1, 3, 5, 7};
-//        for (size_t i = 0; i < dir.size(); i++) {
-//            if (angle >= start[i] * delta && angle < (start[i] + 2) * delta) {
-//                return dir[i];
-//            }
-//        }
-//        return "west";  // [2pi-delta, 2pi], [0, delta]
-//    }
 };
 
 /*

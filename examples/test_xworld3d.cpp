@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     double reward = 0;
     double reward_per_game = 0;
     double r = 0;
-    for (int i = 0; i < 100; i++) {
+    while (true) {
         game->show_screen(reward_per_game);
 
         auto game_over_str =

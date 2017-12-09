@@ -119,12 +119,11 @@ class XWorld3DEnv(object):
         self.entities.append(e)
         self.changed = True
 
-    def delete_entity(self, loc=None, id=None):
+    def delete_entity(self, id):
         """
-        Delete an entity on the current map either by its location or id
+        Delete an entity on the current map either by its id
         """
-        assert not (loc is None and id is None), "must specify what to delete"
-        xe = [e for e in self.entities if e.loc == loc or e.id == id]
+        xe = [e for e in self.entities if e.id == id]
         assert len(xe) == 1
         x = xe[0]
         self.entities.remove(x)
@@ -352,3 +351,4 @@ class XWorld3DEnv(object):
         self.boundaries = []
         self.entity_nums = {t : 0 for t in self.grid_types}
         self.available_grids = []
+
