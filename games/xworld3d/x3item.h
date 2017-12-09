@@ -45,7 +45,7 @@ protected:
 public:
     static X3ItemPtr create_item(const Entity& e, World& world);
 
-    X3Item(const Entity& e, World& world);
+    X3Item(const Entity& e, x3real scale, World& world);
 
     X3Item(const X3Item&) = delete;
 
@@ -87,7 +87,7 @@ public:
     void set_item_type(const std::string& item_type) { e_.type = item_type; }
 
     Entity entity() const { return e_; }
-    
+
     void set_entity(const Entity& e);
 
     void sync_entity_info();
@@ -138,7 +138,7 @@ protected:
 
 class X3Agent : public X3Item {
 public:
-    X3Agent(const Entity& e, World& world);
+    X3Agent(const Entity& e, x3real scale, World& world);
 
     X3Agent(const X3Agent&) = delete;
 

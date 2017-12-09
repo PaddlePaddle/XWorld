@@ -74,7 +74,7 @@ void X3Stadium::load_stadium(const std::string& item_path,
     roboschool::Pose stadium_pose(0.0f, 0.0f, 0.0f);
     floor_ = world->load_thingy(stadium_file,
                                 stadium_pose,
-                                X3Stadium::STADIUM_SCALE,
+                                1.0,//X3Stadium::STADIUM_SCALE,
                                 0.0f, // mass: 0 means that the stadium is
                                       // non-movable
                                 0xffffff,
@@ -177,7 +177,7 @@ void X3World::reset_world(bool map_reset) {
 }
 
 void X3World::clear_world() {
-    // move all items underground to pretend they are gone 
+    // move all items underground to pretend they are gone
     for (auto& i : items_) {
         i.second->move_underground();
         item_pool_.recycle_item(i.second);
