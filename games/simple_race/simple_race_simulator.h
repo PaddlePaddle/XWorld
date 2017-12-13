@@ -38,10 +38,6 @@ namespace simple_race {
 
 #define PI 3.1415926
 
-void draw_circle(cv::Mat img, cv::Point2f c, float r);
-
-void draw_line(cv::Mat img, cv::Point2f p1, cv::Point2f p2);
-
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> vec);
 
