@@ -31,11 +31,12 @@ namespace simple_race {
 
 using cv::Mat;
 using cv::Point2f;
+using cv::Scalar;
 
 const int WINDOW_WIDTH = 480;
 const int WINDOW_HEIGHT = 720;
-const cv::Scalar lane_color = cv::Scalar(105,105,105);
-const cv::Scalar road_base_color = cv::Scalar(19,69,139);
+const Scalar lane_color = Scalar(105,105,105);
+const Scalar road_base_color = Scalar(19,69,139);
 
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> vec) {
@@ -62,10 +63,10 @@ CircleTrack::CircleTrack(const CircleTrack &ct) {
 }
 
 void CircleTrack::draw(Mat img) {
-    circle(img, _center, _outer_radius, lane_color, -1, 8);
-    circle(img, _center, _inner_radius, road_base_color, -1, 8);
-    circle(img, _center, _inner_radius, cv::Scalar(250,250,250), 1, 8);
-    circle(img, _center, _outer_radius, cv::Scalar(250,250,250), 1, 8);
+    cv::circle(img, _center, _outer_radius, lane_color, -1, 8);
+    cv::circle(img, _center, _inner_radius, road_base_color, -1, 8);
+    cv::circle(img, _center, _inner_radius, Scalar(250,250,250), 1, 8);
+    cv::circle(img, _center, _outer_radius, Scalar(250,250,250), 1, 8);
 }
 
 bool CircleTrack::out_of_bound(const Point2f &pos) {
@@ -94,7 +95,7 @@ float CircleTrack::horizontal_displacement(float x, float y) {
     return horizontal_displacement(Point2f(x, y));
 }
 
-cv::Point2f CircleTrack::get_tangent_vec(const Point2f &p) {
+Point2f CircleTrack::get_tangent_vec(const Point2f &p) {
     Point2f t(_center.y - p.y, p.x - _center.x);
     return t * (1 / cv::norm(t));
 }
@@ -118,14 +119,14 @@ StraightTrack::StraightTrack(const StraightTrack &st) {
 
 void StraightTrack::draw(Mat img) {
     // road base
-    rectangle(img,
+    cv::rectangle(img,
          _start_pos + Point2f(-0.75*_width, -10.0f),
          _end_pos + Point2f(0.75*_width, 30.0f),
          road_base_color,
          -1,
          8);
     // lane
-    rectangle(img,
+    cv::rectangle(img,
          _start_pos + Point2f(-_width / 2, -10.0f),
          _end_pos + Point2f(_width / 2, 30.0f),
          lane_color,
@@ -133,10 +134,10 @@ void StraightTrack::draw(Mat img) {
          8);
     
     // start line
-    line(img,
+    cv::line(img,
          _start_pos + Point2f(-0.75 * _width, 0.0f),
          _start_pos + Point2f(0.75 * _width, 0.0f),
-         cv::Scalar(255,255,255),
+         Scalar(255,255,255),
          2,
          8);
     cv::putText(img,
@@ -144,14 +145,14 @@ void StraightTrack::draw(Mat img) {
                 _start_pos + Point2f(-100-0.75*_width, 0.0f),
                 cv::FONT_HERSHEY_SIMPLEX,
                 1,
-                cv::Scalar(255, 255, 255),
+                Scalar(255, 255, 255),
                 2,
                 8);
     // finish line
-    line(img,
+    cv::line(img,
          _end_pos + Point2f(-0.75 * _width, 0.0f),
          _end_pos + Point2f(0.75 * _width, 0.0f),
-         cv::Scalar(255,255,255),
+         Scalar(255,255,255),
          2,
          8);
     cv::putText(img,
@@ -159,21 +160,21 @@ void StraightTrack::draw(Mat img) {
                 _end_pos + Point2f(-100-0.75*_width, 00.0f),
                 cv::FONT_HERSHEY_SIMPLEX,
                 1,
-                cv::Scalar(255, 255, 255),
+                Scalar(255, 255, 255),
                 2,
                 8);
 
     // left and rigth boundaries
-    line(img,
+    cv::line(img,
          _start_pos + Point2f(-_width / 2, -10.0f),
          _end_pos + Point2f(-_width / 2, 30.0f),
-         cv::Scalar(255,255,255),
+         Scalar(255,255,255),
          1,
          8);
-    line(img,
+    cv::line(img,
          _start_pos + Point2f(_width / 2, -10.0f),
          _end_pos + Point2f(_width / 2, 30.0f),
-         cv::Scalar(255,255,255),
+         Scalar(255,255,255),
          1,
          8);
 }
@@ -247,9 +248,9 @@ CircleCar::CircleCar(float x, float y, float angle, float radius)
     : BaseCar(x, y, angle), _radius(radius) {}
 
 void CircleCar::draw(Mat img) {
-    circle(img, _pos, _radius, cv::Scalar(255,0,0), -1, 8);
+    cv::circle(img, _pos, _radius, Scalar(255,0,0), -1, 8);
     Point2f p = _pos + 2 * _radius * Point2f(cos(_angle), sin(_angle));
-    arrowedLine(img, _pos, p, cv::Scalar(255,255,255), 1, 8, 0, 0.4);
+    cv::arrowedLine(img, _pos, p, Scalar(255,255,255), 1, 8, 0, 0.4);
 }
 
 // -------------------------------- Race Engine --------------------------------
@@ -354,7 +355,7 @@ Mat RaceEngine::draw() {
                 cv::Point(10, 40),
                 cv::FONT_HERSHEY_SIMPLEX,
                 0.5,
-                cv::Scalar(255, 255, 255),
+                Scalar(255, 255, 255),
                 1.5,
                 8);
     sprintf(msg, "dist to middle of lane: %.2f", state[2]);
@@ -363,7 +364,7 @@ Mat RaceEngine::draw() {
                 cv::Point(10, 60),
                 cv::FONT_HERSHEY_SIMPLEX,
                 0.5,
-                cv::Scalar(255, 255, 255),
+                Scalar(255, 255, 255),
                 1.5,
                 8);
     sprintf(msg, "dist to finish line: %.2f", state[3]);
@@ -372,7 +373,7 @@ Mat RaceEngine::draw() {
                 cv::Point(10, 80),
                 cv::FONT_HERSHEY_SIMPLEX,
                 0.5,
-                cv::Scalar(255, 255, 255),
+                Scalar(255, 255, 255),
                 1.5,
                 8);
 
