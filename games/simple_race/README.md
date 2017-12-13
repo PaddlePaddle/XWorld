@@ -18,5 +18,5 @@ A car drives on a track which can be either straight or circular. For the straig
 |```track_length```|The length of the track, if ```track_type``` is "straight". (Default: 100.0)|
 |```track_radius```|The radius of the circluar track, if ```track_type``` is "circle". (Default: 30.0)|
 |```race_full_manouver```|Whether to allow turning and moving forward/backward at the same time (true) or not (false). (Default: false)|
-|```random```|Whether to enable random start positiona and facing direction (true) or not (false). (Default: false)|
+|```random```|Whether to have random start location and facing direction (true) or not (false). (Default: false)|
 |```difficulty```|The "easy" level provides negative rewards when moving away from the center line of the track, and the "hard" level only provides rewards when out-of-boundary or reaching finish line. (Default: "easy")|
