@@ -1,4 +1,8 @@
 # XWorld3D
+## <img src="../../doc/xworld3d.png">
+
+## Game description
+*This game is not officially made public yet.*
 
 ## Dependencies
 

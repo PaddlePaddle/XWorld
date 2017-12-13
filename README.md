@@ -1,12 +1,18 @@
-# <img src="doc/xworld_logo.png" alt="XWorld">
-This repository currently contains a collection of simulators for Reinforcement Learning research.
+<img src="doc/xworld_logo.png" alt="XWorld" width="834" height="192">
 
-|**Name**|**Description**|**Thread-compatible?***|**Optional?**|
-|:--------------|---------------|:---------------:|:---------------:|
-|**SimpleGame**|A simple 1D array-walking game.|Yes|No|
-|**SimpleRace**|A simple synthetic car racing game.|Yes|No|
-|**XWorld2D**|A 2D environment for an agent to learn vision and language abilities.|No|No|
-|**Atari**|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|
+<img src="doc/simple_race_2.png" width="180" height="250"> <img src="doc/atari.png" width="191" height="250"> <img src="doc/xworld2d.png" width="250" height="250"> <img src="doc/xworld3d.png" width="250" height="250">
+
+
+This repository contains a collection of simulators for Reinforcement Learning research.
+
+|**Difficulty**|**Name**|**Description**|**Thread-compatible?***|**Optional?**|
+|-----|--------------|---------------|---------------|---------------|
+|Easy|[**SimpleGame**](games/simple_game/README.md)|A simple 1D array-walking game.|Yes|No|
+|Easy,Medium|[**SimpleRace**](games/simple_race/README.md)|A simple synthetic car racing game.|Yes|No|
+|Medium,Hard|[**Atari**](games/arcade/README.md)|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|
+|Medium,Hard|[**XWorld2D**](games/xworld/README.md)|A 2D world for an agent to learn vision and language abilities.|No|No|
+|Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*Work In Progress;a preliminary version without documentation is available in the C++ interface.*)|No|No|
+
 
 *If yes, then multithreading can be used; otherwise multiprocessing is needed.
 
@@ -17,11 +23,12 @@ This repository currently contains a collection of simulators for Reinforcement 
 
 # Dependencies
 The following softwares must be installed before building XWorld.
-* [Boost](http://www.boost.org/)
-* [Glog](https://github.com/google/glog)
-* [GFlags](https://github.com/gflags/gflags)
-* [GTest](https://github.com/google/googletest)
-* [Python](https://www.python.org/)
+
+[Boost](http://www.boost.org/),
+[Glog](https://github.com/google/glog),
+[GFlags](https://github.com/gflags/gflags),
+[GTest](https://github.com/google/googletest),
+and [Python](https://www.python.org/)
 
 In Ubuntu 14.04 and 16.04, you can do
 ```
@@ -60,9 +67,9 @@ cmake -DWITH_ATARI=ON ..
 ```
 which will automatically download and build Atari.
 
-# Use
-You can compile a C++ project with XWorld. The C++ simulator APIs are located in simulator.h ```GameSimulator```.
-Alternatively, we provide a set of simple Python APIs for interacting with the simulators. After building XWorld, you need to export the path of the python module:
+# Usage
+## Python interface
+We provide a set of simple Python APIs for interacting with the simulators. After building XWorld, you need to export the path of the python module:
 ```
 export PYTHONPATH=<xworld_path>/python:$PYTHONPATH
 ```
@@ -72,48 +79,33 @@ To get started, several examples of the simulator Python APIs can be found in
 ```
 <xworld_path>/python/examples
 ```
-And several C++ examples (run the .sh scripts inside) can be found in
+
+## C++ interface
+Alternatively, several C++ examples (run the .sh scripts inside) can be found in
 ```
 <xworld_path>/examples
 ```
-Generally, C++ APIs are more flexible but expose more details than Python APIs.
+These examples use the individual class constructors to create games. However, we also provide a unified simulator interface for creating games in a more convenient way (like in Python). A demo of the unified C++ simulator interface for multi-process simulation can be found in
+```
+<xworld_path>/examples/demo_interface.cpp
+```
+Generally, C++ APIs are more flexible but expose more details compared to the Python APIs.
 
-See [instructions](https://github.com/PaddlePaddle/XWorld/tree/master/games) for how to create different games.
+## Flags of a game
+Option flags are passed into a game via different ways for the two interfaces:
 
-# Code for training XWorld2D
-Currently there is a PyTorch [reimplementation](https://github.com/zihangdai/pytorch_xworld) (by [@zihangdai](https://github.com/zihangdai)) of the framework used in arXiv:1703.09831. The code runs on the whole vocabulary and does not include the zero-shot experiments, but you can choose to do so according to the zero-shot setups discussed in the paper.
+* Python: you need to provide the flags when creating the game as the arguments.
+* C++: you need to set the flags via GFlags in the command line.
 
-# Write your own XWorld2D tasks
-You can customize XWorld2D tasks in a flexible way. To define a new task, you need three things:
-1. A Python class that defines the map
-  * This class must be defined in a file with the same name and put in
-  ```
-  <xworld_path>/games/xworld/maps/
-  ```
-  The class has to inherit from the base class ```XWorldEnv``` (defined in ```xworld_env.py```) and overwrite the member function ```_configure``` to specify how the map is configured. For an example, please take a look at ```XWorldNav.py```.
-
-2. A Python class that defines the task
-  * This class must be defined in a file with the same name and put in
-  ```
-  <xworld_path>/games/xworld/tasks/
-  ```
-  The class has to inherit from the base class ```XWorldTask``` (defined in ```xworld_task.py```). For an example, please take a look at ```XWorldNavTarget.py```.
-
-3. A JSON conf file. This file specifies three aspects of the world:
-  * ```item_path```: where the icon images are stored. Change this variable if you have new icons.
-  * ```map``` : the name of the Python class that defines the map. It should be one of the Python defined maps.
-  * ```task_groups``` : how the teacher assigns multiple tasks to the agent. Each task should be one of the Python defined tasks.
-  For an example, please take a look at ```<xworld_path>/confs/walls.json```.
-
-Generally, the teacher can dynamically change the environment at every time step, potentially according to the agent's performance and/or behaviors, which is important if you want to implement curriculum learning. The teacher's sentences can be generated by a context-free grammar (```<xworld_path>/python/context_free_grammar.py```) at each time step of each task. You have to define the grammar and decide when to generate what sentence when writing a task.
+For descriptions of the flags of a game, please take a look at the README file under the game directory.
 
 # Citations
-If you use the XWorld2D environment for your research, please consider citing
+If you use XWorld2D for research, consider citing
 
 * Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/abs/1703.09831), arXiv:1703.09831, 2017.
-* Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), arXiv:1705.09906, 2017.
+* Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), NIPS workshop on Visually-Grounded Interaction and Language, 2017.
 
-If you use our wrappers for the third-party simulators, please follow their original guide for citation.
+If you use our wrappers of the third-party simulators, please follow their original guide for citation.
 
 # License
 This repository has the Apache2.0 license, except that the third-party simulator ALE has its own license.
