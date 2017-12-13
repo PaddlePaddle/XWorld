@@ -121,7 +121,7 @@ void init_simple_race_gflags(const py::dict& args) {
 ///////////////////// xworld
 void init_xworld_gflags(const py::dict& args) {
     FLAGS_xwd_conf_path =
-            extract_py_dict_val(args, "conf_path", true, "");
+            extract_py_dict_val(args, "xwd_conf_path", true, "");
     std::string task_mode =
             extract_py_dict_val(args, "task_mode", false, "one_channel");
     FLAGS_task_mode = task_mode;
