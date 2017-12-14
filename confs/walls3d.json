@@ -1,0 +1,15 @@
+{
+    "item_path" : "models_3d",
+    "map" : "XWorld3DNav",
+    "task_groups" : {
+        "XWorld3DNav" : {
+            "held_out" : [
+            ],
+            "weight" : 0.5,
+            "schedule" : "random",  // optional, default "random"
+            "tasks" : {
+                "XWorld3DNavTarget" : 1
+            }
+        }
+    }
+}

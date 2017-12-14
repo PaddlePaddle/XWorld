@@ -328,6 +328,10 @@ class XWorld3DEnv(object):
                                           name="boundary", color="na",
                                           asset_path=self.items["block"]["boundary"][0]))
                 id += 1
+                wall_blocks.append(Entity(type="block", loc=loc+(1,), yaw=0, id="boundary_%d" % id,
+                                          name="boundary", color="na",
+                                          asset_path=self.items["block"]["boundary"][0]))
+                id += 1
             return id
         id = add_blocks(range(-1, self.width+1), (-1, self.height),
                         self.height * self.width)
@@ -351,4 +355,3 @@ class XWorld3DEnv(object):
         self.boundaries = []
         self.entity_nums = {t : 0 for t in self.grid_types}
         self.available_grids = []
-
