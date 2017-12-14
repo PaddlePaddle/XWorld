@@ -1,6 +1,6 @@
 <img src="doc/xworld_logo.png" alt="XWorld" width="834" height="192">
 
-<img src="doc/simple_race_2.png" width="180" height="250"> <img src="doc/atari.png" width="191" height="250"> <img src="doc/xworld2d.png" width="250" height="250"> <img src="doc/xworld3d.png" width="250" height="250">
+<img src="doc/simple_race_2.png" width="150" height="250"> <img src="doc/atari.png" width="191" height="250"> <img src="doc/xworld2d.png" width="250" height="250"> <img src="doc/xworld3d.png" width="250" height="250">
 
 
 This repository contains a collection of simulators for Reinforcement Learning research.
@@ -11,7 +11,7 @@ This repository contains a collection of simulators for Reinforcement Learning r
 |Easy,Medium|[**SimpleRace**](games/simple_race/README.md)|A simple synthetic car racing game.|Yes|No|Discrete|
 |Medium,Hard|[**Atari**](games/arcade/README.md)|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|Discrete|
 |Medium,Hard|[**XWorld2D**](games/xworld/README.md)|A 2D world for an agent to learn vision and language abilities.|No|No|Discrete<br>Continuous|
-|Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*WIP; a preliminary version without documentation is available in the C++ interface.*)|No|No|Discrete<br>Continuous|
+|Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*WIP; a preliminary version without documentation is available.*)|No|Yes|Discrete<br>Continuous|
 
 
 *If yes, then multithreading can be used; otherwise multiprocessing is needed.
