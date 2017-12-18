@@ -56,6 +56,10 @@ class XWorld3DEnv(object):
         self.max_height = max_height
         self.max_width = max_width
         self.__clean_env()
+        ## event messages
+        self.action_successful = False
+        self.agent_sent = ""
+        self.game_event = ""
 
         ## load all items from asset_path
         self.asset_path = asset_path
@@ -71,7 +75,7 @@ class XWorld3DEnv(object):
         with open(color_file, "r") as f:
             lines = f.read().splitlines()
         self.color_table = {os.path.join(asset_path, l.split()[0]) : l.split()[1]\
-                            for l in lines if not l.startswith("//") and not l == ""}
+                           for l in lines if not l.startswith("//") and not l == ""}
 
     ############################ interface with Python tasks ############################
     def reset(self):
@@ -282,6 +286,12 @@ class XWorld3DEnv(object):
         Update the agent action success from the CPP simulator
         """
         self.action_successful = successful
+
+    def update_game_event_from_cpp(self, event):
+        """
+        Update the game event from CPP simulator
+        """
+        self.game_event = event
 
     ######################## private or protected #########################
     def _configure(self):

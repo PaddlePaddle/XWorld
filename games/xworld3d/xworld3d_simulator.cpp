@@ -55,6 +55,8 @@ public:
                         cv::Mat& img,
                         bool bird_view = false);  // get the current screenshot (color)
 
+    std::set<std::string> contact_list(const size_t agent_id);
+
 private:
     X3SimulatorImpl(const X3SimulatorImpl&) = delete;
 
@@ -118,6 +120,10 @@ void X3SimulatorImpl::get_screen_rgb(
     }
 }
 
+std::set<std::string> X3SimulatorImpl::contact_list(const size_t agent_id) {
+    return xworld3d_.contact_list(xworld3d_.get_agent(agent_id));
+}
+
 X3Simulator::X3Simulator(bool print, bool big_screen) :
         legal_actions_({MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT,
                         TURN_LEFT, TURN_RIGHT}),
@@ -138,6 +144,7 @@ void X3Simulator::reset_game() {
     height_ = impl_->height();
     width_ = impl_->width();
     history_messages_.clear();
+    game_events_ = "";
 
     history_messages_.push_back("--------------- New Game --------------");
     if (history_messages_.size() > n_history_) {
@@ -265,6 +272,25 @@ void X3Simulator::get_all_entities(std::vector<Entity>& entities) {
     impl_->get_all_entities(entities);
 }
 
+std::string X3Simulator::get_events_of_game() {
+    return game_events_;
+}
+
+void X3Simulator::record_collision_events(
+        const std::set<std::string>& collision_list) {
+    if (!collision_list.empty()) {
+        game_events_ += "collision:";
+        for (auto& s : collision_list) {
+            if (game_events_.back() == ':') {
+                game_events_ += s;
+            } else {
+                game_events_ += "|" + s;
+            }
+        }
+        game_events_ += "\n";
+    }
+}
+
 boost::python::object X3Simulator::get_py_env() {
     return impl_->get_py_env();
 }
@@ -273,8 +299,15 @@ void X3Simulator::update_environment() {
     impl_->update_environment();
 }
 
+float X3Simulator::take_actions(const StatePacket& actions, int actrep) {
+    CHECK(actrep == 1) << "XWorld3D simulator does not support action"
+                          " repetition greater than 1.";
+    game_events_ = "";
+    return GameSimulator::take_actions(actions, 1);
+}
+
 float X3Simulator::take_action(const StatePacket& actions) {
-    TeachingEnvironment::take_action(actions);
+    TeachingEnvironment::take_action();
     last_action_ = "";
 
     int key = -1;
@@ -352,7 +385,10 @@ float X3Simulator::take_action(const StatePacket& actions) {
         last_action_ += std::to_string(action);
         record_agent_action_successful_in_buffer(last_action_success_);
     }
-    impl_->step(FLAGS_x3_frame_skip);
+    impl_->step(1);
+    auto s = impl_->contact_list(active_agent_id_);
+    record_collision_events(s);
+
     return 0;  // xworld rewards are given by the teacher
 }
 

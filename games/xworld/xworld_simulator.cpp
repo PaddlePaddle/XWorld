@@ -150,7 +150,7 @@ int XWorldSimulator::game_over() {
 }
 
 float XWorldSimulator::take_action(const StatePacket& actions) {
-    TeachingEnvironment::take_action(actions);
+    TeachingEnvironment::take_action();
     last_action_ = "";
 
     //// speak

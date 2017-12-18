@@ -15,6 +15,7 @@
 #pragma once
 
 #include <deque>
+#include <set>
 #include <map>
 #include <memory>
 #include <vector>
@@ -45,11 +46,11 @@ typedef std::unique_ptr<roboschool::World> WorldPtr;
 
 /**
  * An container that recycles items removed from X3World.
- * 
+ *
  * Everytime we remove an item from X3World, the X3Item directly goes to this
  * container instead of being deleted from memory. Next time when X3World need
  * an item of some kind, it will first try to reuse one from container.
- * 
+ *
  * The items in the container are organized through a 2-level mapping. The first
  * level key is item type (e.g., goal, blocks), and the second level key is item
  * name (e.g., apple, cat).
@@ -57,7 +58,7 @@ typedef std::unique_ptr<roboschool::World> WorldPtr;
 class X3ItemPool {
 public:
     X3ItemPool();
-    
+
     /**
      * Reuse an item from the container.
      *
@@ -65,7 +66,7 @@ public:
      * available, a new one will be created.
      */
     X3ItemPtr get_item(const Entity& e, const WorldPtr& world);
-    
+
     /**
      * Put removed item into the container for later usage.
      */
@@ -104,15 +105,17 @@ public:
      * Reset the 3D environment.
      *
      * This function is called from two places. One place is where an
-     * environment update is request (when map_reset is false). The function 
-     * will get the updated entity information from thy python object 
+     * environment update is request (when map_reset is false). The function
+     * will get the updated entity information from thy python object
      * XWorld3DEnv (defined in xworld3d_env.py).
-     * 
-     * Another place is where we reset the game (when map_reset is true). Before 
-     * getting the update from XWorld3dEnv, the items in current environment 
+     *
+     * Another place is where we reset the game (when map_reset is true). Before
+     * getting the update from XWorld3dEnv, the items in current environment
      * except X3Stadium will all be removed.
      */
     void reset_world(bool map_reset = true);
+
+    X3ItemPtr& get_agent(const size_t agent_id);
 
     int height() const { return height_; }
 
@@ -134,13 +137,15 @@ public:
 
     void step(const int frame_skip);
 
+    std::set<std::string> contact_list(X3ItemPtr& item);
+
 private:
     void clear_world();
 
     /**
-     * Update items whose entity informations are changed by the python object 
+     * Update items whose entity informations are changed by the python object
      * XWorld3DTask.
-     * 
+     *
      * @param   entities[in]    updated entity information
      */
     void update_world(const std::vector<Entity>& entities);
@@ -164,6 +169,7 @@ private:
     static const int IMG_WIDTH_SHOW = 512;
 
     IDItemMap items_;
+    std::map<int, std::string> b3handle_to_id_;
     std::vector<X3ItemPtr> agents_;
     std::unique_ptr<X3Camera> camera_;
 

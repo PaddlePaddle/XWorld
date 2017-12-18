@@ -29,6 +29,7 @@ class XWorld3DTask(object):
     correct_reward = 1.0
     wrong_reward = -1.0
     failed_action_penalty = -0.2
+    collision_penalty = -0.2
 
     navigation_max_steps_factor = 10
 
@@ -151,10 +152,23 @@ class XWorld3DTask(object):
         """
         self.event = event
 
+    def _parse_game_event(self, events, event_type):
+        """
+        Extract an event of a specific type
+        """
+        collision_events = [e for e in events.strip().split('\n') if e.startswith("collision")]
+        hits = set()
+        for e in collision_events:
+            o = e.split(':')[1].split('|')
+            hits.update(o)
+
+        return hits
+
+
     ############# public APIs #############
     def reset(self):
         self.steps_in_cur_task = 0
-        self.target = (-1, -1)
+        self.target = []
         self.answer = ""
 
     def get_event(self):
@@ -238,8 +252,9 @@ class XWorld3DTask(object):
             next_stage = "idle"
             self.sentence = self._generate()
         else:
-            theta, dist, direction = self._get_direction_and_distance(agent.loc, agent.yaw, self.target)
-            if abs(theta) <= self.orientation_threshold and dist <= self.distance_threshold:
+            theta, _, _ = self._get_direction_and_distance(agent.loc, agent.yaw, self.target.loc)
+            collisions = self._parse_game_event(self.env.game_event, "collision")
+            if abs(theta) <= self.orientation_threshold and self.target.id in collisions:
                 self.steps_in_cur_task = 0
                 self._record_success()
                 self._record_event("correct_goal")
@@ -251,9 +266,11 @@ class XWorld3DTask(object):
                 ## move the agent far from the current goal
                 ## TODO: select a grid with probability instead of simply max
                 grids = self.env.get_available_grids()
-                dists = [self._get_distance(l, self.target) for l in grids]
+                dists = [self._get_distance(l, self.target.loc) for l in grids]
                 far_loc = grids[dists.index(max(dists))]
                 self._move_entity(agent, far_loc + (0,))
+            elif len(collisions) > 0:
+                reward += XWorld3DTask.collision_penalty
 
         return [next_stage, reward, self.sentence]
 

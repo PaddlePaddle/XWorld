@@ -87,6 +87,9 @@ std::string Task::py_stage(const std::string& stage_name) {
         auto action_success = game_->get_agent_action_successful_from_buffer();
         env.attr("update_agent_action_success_from_cpp")(action_success);
 
+        auto game_event = game_->get_events_of_game();
+        env.attr("update_game_event_from_cpp")(game_event.c_str());
+
         // during the stage
         py::list ret = py::extract<py::list>(py_task_.attr(stage_name.c_str())());
         // post-stage: the teacher might have changed the environment

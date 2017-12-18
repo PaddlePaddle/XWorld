@@ -144,6 +144,7 @@ X3World::~X3World() {
     items_.clear();
     agents_.clear();
     world_->clean_everything();
+    b3handle_to_id_.clear();
 }
 
 void X3World::reset_world(bool map_reset) {
@@ -232,10 +233,16 @@ void X3World::add_item(const Entity& e) {
 
     // TODO: check overlapping with existing items
     auto item_ptr = item_pool_.get_item(e, world_);
+    b3handle_to_id_[item_ptr->b3handle()] = e.id;
     items_[e.id] = item_ptr;
     if (e.type == "agent") {
         agents_.push_back(item_ptr);
     }
+}
+
+X3ItemPtr& X3World::get_agent(const size_t agent_id) {
+    CHECK_LT(agent_id, agents_.size());
+    return agents_[agent_id];
 }
 
 void X3World::get_entities(std::vector<Entity>& entities) {
@@ -246,8 +253,7 @@ void X3World::get_entities(std::vector<Entity>& entities) {
 }
 
 bool X3World::act(const size_t agent_id, const size_t action) {
-    CHECK_LT(agent_id, agents_.size());
-    auto agent_ptr = agents_[agent_id];
+    auto agent_ptr = get_agent(agent_id);
     return apply_action(agent_ptr, action);
 }
 
@@ -300,8 +306,8 @@ void X3World::remove_item(X3ItemPtr& item) {
 }
 
 roboschool::RenderResult X3World::render(const size_t agent_id, bool debug) {
-    CHECK_LT(agent_id, agents_.size());
-    return camera_->render(agents_[agent_id].get(), debug);
+    auto agent_ptr = get_agent(agent_id);
+    return camera_->render(agent_ptr.get(), debug);
 }
 
 void X3World::step(const int frame_skip) {
@@ -309,6 +315,22 @@ void X3World::step(const int frame_skip) {
     for (auto& i : items_) {
         i.second->sync_entity_info();
     }
+    auto s = contact_list(agents_[0]);
+    for (auto& id : s) {
+        LOG(INFO) << id;
+    }
+}
+
+std::set<std::string> X3World::contact_list(X3ItemPtr& item) {
+    auto& o = item->object_mutable();
+    auto l = o.contact_list();
+
+    std::set<std::string> id_set;
+    for (auto& t : l) {
+        id_set.insert(b3handle_to_id_[t.bullet_handle()]);
+    }
+
+    return id_set;
 }
 
 }} // simulator::xworld3d
