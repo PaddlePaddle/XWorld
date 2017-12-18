@@ -38,6 +38,7 @@ X3Item::X3Item(const Entity& e, x3real scale, World& world) : e_(e) {
     pose.rotate_z(e_.yaw);
     object_ = world.load_urdf(e.asset_path, pose, scale, false, false);
     object_.query_position();
+    b3handle_ = object_.bullet_handle();
 }
 
 Vec3 X3Item::location() const {

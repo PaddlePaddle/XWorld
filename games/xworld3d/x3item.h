@@ -60,6 +60,8 @@ public:
 
     const Object& object() const { return object_; }
 
+    Object& object_mutable() { return object_; }
+
     // get the type of the item
     std::string type() const { return e_.type; }
 
@@ -89,6 +91,8 @@ public:
     Entity entity() const { return e_; }
 
     void set_entity(const Entity& e);
+
+    int b3handle() const { return b3handle_; }
 
     void sync_entity_info();
 
@@ -134,6 +138,7 @@ protected:
 
     Entity e_;
     Object object_;
+    int b3handle_;
 };
 
 class X3Agent : public X3Item {

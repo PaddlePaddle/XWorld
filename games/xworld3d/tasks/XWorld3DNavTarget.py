@@ -25,7 +25,7 @@ class XWorld3DNavTarget(XWorld3DTask):
         targets = [g for g in goals if self._reachable(agent.loc, g.loc)]
         if targets:
             sel_goal = random.choice(targets)
-            self._record_target(sel_goal.loc);
+            self._record_target(sel_goal);
             self._bind("S -> start")
             self._bind("G -> '" + sel_goal.name + "'")
             self.sentence = self._generate()

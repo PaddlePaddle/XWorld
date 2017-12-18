@@ -150,7 +150,7 @@ class GameSimulator {
      *
      * screens_ will be updated after taking actions.
      */
-    float take_actions(const StatePacket& actions, int actrep);
+    virtual float take_actions(const StatePacket& actions, int actrep);
 
     int64_t get_num_steps() { return num_steps_; }
 
@@ -353,6 +353,12 @@ class TeachingEnvironment {
 
     int get_agent_action_from_buffer() const { return buffer_.agent_action; }
 
+    // Some events can only be obtained from cpp end (e.g., collisions in
+    // XWorld3d, so we need this function to send such events to python end
+    virtual std::string get_events_of_game() {
+        return std::string("");
+    }
+
     // get all the entities in the current game
     virtual void get_all_entities(std::vector<Entity>& entities) = 0;
 
@@ -373,7 +379,7 @@ class TeachingEnvironment {
         num_games_since_simulation_++;
     }
 
-    virtual float take_action(const StatePacket& actions) {
+    float take_action() {
         beginning_ = false;
         // clear teacher's buffer after agent takes an action
         clear_teacher_env_buffer();
@@ -418,6 +424,8 @@ class AgentSpecificSimulator : public GameSimulator {
     void show_screen(float reward) override;
 
     std::string last_action() override { return simulator_ptr_->last_action(); }
+
+    float take_actions(const StatePacket& actions, int actrep) override;
 
     float take_action(const StatePacket& actions) override;
 

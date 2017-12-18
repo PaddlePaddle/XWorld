@@ -15,6 +15,7 @@
 #pragma once
 
 #include <deque>
+#include <set>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <memory>
@@ -48,6 +49,8 @@ public:
 
     void show_screen(float reward) override;
 
+    float take_actions(const StatePacket& actions, int actrep) override;
+
     float take_action(const StatePacket& actions) override;
 
     void get_screen(StatePacket& screen) override;
@@ -68,6 +71,8 @@ public:
 
     void get_world_dimensions(double& X, double& Y, double& Z) override;
 
+    std::string get_events_of_game() override;
+
     // get the information for all the entities
     void get_all_entities(std::vector<Entity>& entities) override;
 
@@ -78,6 +83,8 @@ public:
     std::string conf_file();
 
 private:
+    void record_collision_events(const std::set<std::string>& collision_list);
+
     cv::Mat get_reward_image(float reward);  // get the sub-image for reward
 
     cv::Mat get_message_image(
@@ -113,6 +120,7 @@ private:
              // this variable won't affect the game and the training
     std::deque<std::string>
         history_messages_;  // history message buffer for showing in the GUI
+    std::string game_events_;
 };
 
 }} // simulator::xworld3d
