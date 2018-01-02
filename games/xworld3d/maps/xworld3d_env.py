@@ -49,9 +49,9 @@ class XWorld3DEnv(object):
     PI_2 = 1.5707963
     PI = 3.1415926
     def __init__(self, asset_path, max_height=10, max_width=10):
-        self.num_games = -1
         self.current_usage = 0
-        self.grid_types = ["goal", "block", "agent"]
+        self.action_successful = False
+        self.grid_types = ["goal", "block", "agent", "boundary"]
         ## init dimensions
         self.max_height = max_height
         self.max_width = max_width
@@ -86,11 +86,10 @@ class XWorld3DEnv(object):
         self._configure()
         self.__instantiate_entities()
 
-    def get_num_games(self):
-        """
-        How many sessions the agent has played
-        """
-        return self.num_games
+    def get_current_usage(self):
+        usage = self.current_usage
+        self.current_usage = 0
+        return usage
 
     def set_dims(self, h, w):
         """
@@ -103,7 +102,7 @@ class XWorld3DEnv(object):
         self.height = h
         self.width = w
         self.boundaries = self.__add_boundaries()
-        self.available_grids = list(set(itertools.product(range(w), range(h))))
+        self.available_grids = list(set(itertools.product(range(w), range(h), (0,))))
         random.shuffle(self.available_grids)
         self.changed = True
 
@@ -223,7 +222,7 @@ class XWorld3DEnv(object):
         """
         Return all the available grids on the current map
         """
-        return list(self.available_grids)
+        return self.available_grids
 
     def get_entities(self):
         """
@@ -270,10 +269,11 @@ class XWorld3DEnv(object):
         for e in self.entities:
             self.entity_nums[e.type] += 1
         # update available grids
-        self.available_grids = set(itertools.product(range(self.width), range(self.height)))
-        occupied = set([e.loc[:2] for e in self.entities])
+        self.available_grids = set(itertools.product(range(self.width), range(self.height), (0,)))
+        occupied = set([e.loc for e in self.entities])
         self.available_grids -= occupied
-        random.shuffle(list(self.available_grids))
+        self.available_grids = list(self.available_grids)
+        random.shuffle(self.available_grids)
 
     def update_agent_sentence_from_cpp(self, sent):
         """
@@ -301,25 +301,105 @@ class XWorld3DEnv(object):
         """
         raise NotImplementedError()
 
+    ## compute paths from the start to the end
+    def bfs(self, start, end, X, Y, obstacles):
+        """
+        return a shortest path from start to end
+        """
+        que = [start]
+        prev = {start: None}
+        moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+        while len(que) > 0:
+            cur = que.pop(0)
+            if cur == end:
+                break
+            random.shuffle(moves)
+            for m in moves:
+                next = (cur[0] + m[0], cur[1] + m[1], cur[2] + m[2])
+                if next[0] >= 0 and next[0] < X and next[1] >= 0 and next[1] < Y \
+                   and (not next in prev) and (not next in obstacles):
+                    prev[next] = cur
+                    que.append(next)
+        ## if end is not reachable
+        if cur != end:
+            return
+        ## backtrack
+        track = []
+        while cur is not None:
+            track.append(cur)
+            cur = prev[cur]
+        assert len(track) >= 2
+        return track[1:-1]
+
+    def __spanning_tree_maze_generator(self, X, Y):
+        """
+        Generate a maze that has no loop
+        """
+        assert X == Y, "only support square maps"
+        pad = False
+        if X % 2 == 0:
+            pad = True
+            X, Y = X - 1, Y - 1
+
+        visited = set([])
+        maze = [[(' ' if x % 2 == 0 and y % 2 ==0 else '#') \
+                 for x in range(X)] for y in range(Y)]
+        moves = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+        edges = set([])
+
+        x, y = (X + 1) / 2, (Y + 1) / 2
+        def dfs(cur):
+            visited.add(cur)
+            random.shuffle(moves)
+            for m in moves:
+                next = (cur[0] + m[0], cur[1] + m[1])
+                if not next in visited and next[0] >= 0 \
+                   and next[0] < x and next[1] >= 0 and next[1] < y:
+                    edges.add((cur, next))
+                    dfs(next)
+
+        ## always start from (0, 0)
+        dfs((0, 0))
+        ## render the maze
+        for e in edges:
+            mid_x = e[0][0] + e[1][0]
+            mid_y = e[0][1] + e[1][1]
+            maze[mid_y][mid_x] = ' '
+
+        if pad: # for even sizes, we pad the maze
+            maze.append([' ' if i % 2 == 0 else '#' for i in range(X)])
+            for i, m in enumerate(maze):
+                m.append(' ' if i % 2 == 0 else '#')
+        return maze
+
     def __instantiate_entities(self):
         """
         For each entity, select an instance from the object class it belongs to,
         after which its properties are set.
         The entities should have been set in _configure()
         """
-        ## select a random object path for each entity
-        self.current_usage = 0
+        Y, X = self.get_dims()
+
+        maze = self.__spanning_tree_maze_generator(X, Y)
+        blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
+        random.shuffle(blocks)
+
+        for e in self.get_blocks():
+            e.loc = blocks.pop()
+            self.available_grids.remove(e.loc)
+
+        ## select a random object path for each non-block entity
         for i, e in enumerate(self.entities):
             if e.name is None:
                 e.name = random.choice(self.get_all_possible_names(e.type))
-            icons = self.items[e.type][e.name]
-            e.asset_path = random.choice(icons)
             e.id = "%s_%d" % (e.name, i)
+            if e.asset_path is None:
+                icons = self.items[e.type][e.name]
+                e.asset_path = random.choice(icons)
             e.color = self.color_table[e.asset_path]
-            if e.loc is None:
+            if e.loc is None and e.type != "block":
                 assert len(self.available_grids) > 0
-                e.loc = self.available_grids[0] + (0, )
-                self.available_grids = self.available_grids[1:]
+                e.loc = self.available_grids.pop()
             if e.yaw is None:
                 if e.type == "agent":
                     e.yaw = random.uniform(-self.PI, self.PI)
@@ -332,16 +412,14 @@ class XWorld3DEnv(object):
         wall blocks.
         """
         wall_blocks = []
+        wall_height = 3
         def add_blocks(range1, range2, id):
             for loc in itertools.product(range1, range2):
-                wall_blocks.append(Entity(type="block", loc=loc+(0,), yaw=0, id="boundary_%d" % id,
-                                          name="boundary", color="na",
-                                          asset_path=self.items["block"]["boundary"][0]))
-                id += 1
-                wall_blocks.append(Entity(type="block", loc=loc+(1,), yaw=0, id="boundary_%d" % id,
-                                          name="boundary", color="na",
-                                          asset_path=self.items["block"]["boundary"][0]))
-                id += 1
+                for k in range(wall_height):
+                    wall_blocks.append(Entity(type="boundary", loc=loc+(k,), yaw=0, id="wall_%d" % id,
+                                              name="wall", color="na",
+                                              asset_path=random.choice(self.items["boundary"]["wall"])))
+                    id += 1
             return id
         id = add_blocks(range(-1, self.width+1), (-1, self.height),
                         self.height * self.width)
@@ -358,7 +436,6 @@ class XWorld3DEnv(object):
         """
         Reset members; preparing for the next session
         """
-        self.num_games += 1
         self.agent_sent = ""
         self.changed = False
         self.entities = []

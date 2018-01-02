@@ -147,6 +147,11 @@ void X3Agent::jump() {
     }
 }
 
+void X3Agent::clear_move() {
+    Pose pose(object_.pose());
+    object_.set_pose_and_speed(pose, 0.0f, 0.0f, 0.0f);
+}
+
 X3ItemPtr X3Agent::collect_item(const std::map<std::string, X3ItemPtr>& items,
                                 const std::string& type) {
     X3ItemPtr item = nullptr;
@@ -204,7 +209,7 @@ void X3Camera::update(bool bird_view) {
         x3real dir_x, dir_y;
         item_->get_direction(dir_x, dir_y);
         camera_.move_and_look_at(p.x(), p.y(), p.z() + 1.5 * X3Item::UNIT,
-                                 p.x() + dir_x, p.y() + dir_y, p.z() + 1.2 * X3Item::UNIT);
+                                 p.x() + dir_x, p.y() + dir_y, p.z() + 1.0 * X3Item::UNIT);
     } else {
         // bird view
         camera_.move_and_look_at(p.x(), p.y(), CAMERA_BIRD_VIEW_HEIGHT, p.x(), p.y(), p.z());

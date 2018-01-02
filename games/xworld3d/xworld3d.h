@@ -30,14 +30,16 @@ namespace simulator {
 namespace xworld3d {
 
 enum X3NavAction {
-    MOVE_FORWARD,
+    MOVE_FORWARD = 0,
     MOVE_BACKWARD,
     MOVE_LEFT,
     MOVE_RIGHT,
     TURN_LEFT,
     TURN_RIGHT,
+    STOP,
     JUMP,
-    COLLECT
+    COLLECT,
+    NOOP
 };
 
 typedef std::map<std::string, X3ItemPtr> IDItemMap;
@@ -130,6 +132,8 @@ public:
     boost::python::object get_py_env() { return xwd_env_; }
 
     void get_entities(std::vector<Entity>& entities);
+
+    std::vector<X3ItemPtr> get_agents() { return agents_; }
 
     bool act(const size_t agent_id, const size_t action);
 

@@ -14,10 +14,12 @@
 
 #include <gflags/gflags.h>
 #include <boost/python.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/python/exception_translator.hpp>
 #include <exception>
 #include <iostream>
 #include "simulator_interface.h"
+#include <unordered_map>
 
 using namespace simulator;
 namespace py = boost::python;
@@ -216,6 +218,25 @@ float PySimulatorInterface::take_action(const py::dict& actions) {
     return take_actions(actions, 1);
 }
 
+void parse_extra_sim_info(std::string info, int& pid,
+                          std::unordered_map<std::string, std::string>& parsed_info) {
+    size_t idx = info.find("|");
+    CHECK(idx != std::string::npos);
+    pid = std::stoi(info.substr(0, idx));
+    info = info.substr(idx + 1);
+
+    parsed_info.clear();
+    std::vector<std::string> tokens;
+    boost::split(tokens, info, boost::is_any_of(","));
+    for (const auto& t : tokens) {
+        idx = t.find(":");
+        CHECK(idx != std::string::npos);
+        auto key = t.substr(0, idx);
+        auto val = t.substr(idx + 1);
+        parsed_info[key] = val;
+    }
+}
+
 py::dict PySimulatorInterface::get_state() {
     auto state = interface_.get_state(0);
 
@@ -246,9 +267,12 @@ py::dict PySimulatorInterface::get_state() {
         }
     }
     // extra info
-    std::unordered_map<std::string, std::string> info;
+    std::string info;
     interface_.get_extra_info(info);
-    for (const auto& i : info) {
+    int pid;
+    std::unordered_map<std::string, std::string> parsed_info;
+    parse_extra_sim_info(info, pid, parsed_info);
+    for (const auto& i : parsed_info) {
         d[i.first] = i.second;
     }
     return d;

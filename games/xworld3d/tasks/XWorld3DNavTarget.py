@@ -41,11 +41,14 @@ class XWorld3DNavTarget(XWorld3DTask):
 
     def _define_grammar(self):
         all_goal_names = self._get_all_goal_names_as_rhs()
+        # I1 | I2 | I3 | I4 | I5 | I6
         grammar_str = """
-        S --> start | finish | timeup
-        start -> I1 | I2 | I3 | I4 | I5 | I6
-        finish -> 'Well' 'done' '!'
+        S --> start | timeup | correct | wrong
+        start -> I0
+        correct -> 'Well' 'done' '!'
+        wrong -> 'Wrong' '!'
         timeup -> 'Time' 'up' '.'
+        I0 -> G
         I1 -> A G 'please' '.'
         I2 -> 'Please' A G '.'
         I3 -> A G '.'

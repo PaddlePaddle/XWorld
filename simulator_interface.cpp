@@ -139,7 +139,7 @@ StatePacket SimulatorInterface::get_state(float reward) {
     return state;
 }
 
-void SimulatorInterface::get_extra_info(std::unordered_map<std::string, std::string>& info) {
+void SimulatorInterface::get_extra_info(std::string& info) {
     game_->get_extra_info(info);
 }
 
@@ -290,6 +290,11 @@ StatePacket SimulatorServer::get_state(float reward) {
     return state;
 }
 
+void SimulatorServer::get_extra_info(std::string& info) {
+    call_remote_func("get_extra_info", NULL);
+    read_msg(info);
+}
+
 void SimulatorServer::teacher_report_task_performance() {
     call_remote_func("report_perf", NULL);
 }
@@ -370,6 +375,8 @@ void SimulatorClient::simulation_loop() {
             get_state();
         } else if (cmd == "report_perf") {
             teacher_report_task_performance();
+        } else if (cmd == "get_extra_info") {
+            get_extra_info();
         } else if (cmd == "stop") {
             break;
         }
@@ -426,6 +433,13 @@ void SimulatorClient::get_state() {
     read_msg(reward);
     auto state = SimulatorInterface::get_state(reward);
     compose_msg(state, std::string("get_state"));
+}
+
+void SimulatorClient::get_extra_info() {
+    std::string info;
+    SimulatorInterface::get_extra_info(info);
+    compose_msg(std::string("get_extra_info"),
+                info);
 }
 
 } // namespace simulator

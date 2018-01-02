@@ -162,11 +162,6 @@ int AgentSpecificSimulator::get_num_actions() {
     return simulator_ptr_->get_num_actions();
 }
 
-float AgentSpecificSimulator::take_actions(const StatePacket& actions, int actrep) {
-    activate_my_agent();
-    return simulator_ptr_->take_actions(actions, actrep);
-}
-
 float AgentSpecificSimulator::take_action(const StatePacket& actions) {
     activate_my_agent();
     return simulator_ptr_->take_action(actions);
@@ -182,8 +177,7 @@ void AgentSpecificSimulator::define_state_specs(StatePacket& state) {
     simulator_ptr_->define_state_specs(state);
 }
 
-void AgentSpecificSimulator::get_extra_info(
-    std::unordered_map<std::string, std::string>& info) {
+void AgentSpecificSimulator::get_extra_info(std::string& info) {
     activate_my_agent();
     simulator_ptr_->get_extra_info(info);
 }

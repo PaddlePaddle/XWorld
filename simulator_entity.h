@@ -44,6 +44,10 @@ class Vec3 {
         return Vec3(x + l.x, y + l.y, z + l.z);
     }
 
+    Vec3 operator*(double c) const {
+        return Vec3(x * c, y * c, z * c);
+    }
+
     bool operator==(const Vec3& l) const { return square_distance(l) < EPS; }
 
     double L2_norm() const { return x * x + y * y + z * z; }
@@ -90,7 +94,11 @@ struct Entity {
         loc = Vec3(boost::python::extract<double>(l[0]),
                    boost::python::extract<double>(l[1]),
                    boost::python::extract<double>(l[2]));
-        yaw = boost::python::extract<double>(e["yaw"]);
+        try {
+            yaw = boost::python::extract<double>(e["yaw"]);
+        } catch (...) {
+            yaw = 0.0;
+        }
         name = boost::python::extract<std::string>(e["name"]);
         asset_path = boost::python::extract<std::string>(e["asset_path"]);
         color = boost::python::extract<std::string>(e["color"]);

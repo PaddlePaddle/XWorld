@@ -110,6 +110,8 @@ public:
 
     virtual void jump() { LOG(FATAL) << "actions not defined!"; }
 
+    virtual void clear_move() { LOG(FATAL) << "actions not defined!"; }
+
     void move_underground();
 
     void move_to(const Vec3& loc);
@@ -162,6 +164,8 @@ public:
     void turn_right() override;
 
     void jump() override;
+
+    void clear_move() override;
 
     X3ItemPtr collect_item(const std::map<std::string, X3ItemPtr>& items,
                            const std::string& type) override;

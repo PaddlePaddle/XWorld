@@ -43,7 +43,7 @@ class XWorldTask(object):
         self.event = ""
         self.num_successes = 0
         self.num_failures = 0
-        self.reset(True)
+        self.reset()
         self.cfg = CFG(*self._define_grammar())
 
     ################ internal functions ####################
@@ -110,20 +110,21 @@ class XWorldTask(object):
         """
         self.target = target
 
-    def _record_event(self, event):
+    def _record_event(self, event, next=False):
         """
         Record an event at every time step if necessary
         Every event has a lifespan of only one time step
         """
-        self.event = event
+        if not next:
+            self.event = event
+        else:
+            self.prev_event = event
 
     ############# public APIs #############
-    def reset(self, is_idle):
+    def reset(self):
         self.steps_in_cur_task = 0
         self.target = (-1, -1)
         self.answer = ""
-        if not is_idle:
-            self._record_failure();
 
     def get_event(self):
         """
@@ -157,6 +158,8 @@ class XWorldTask(object):
         conversation is over, which enables the agent to learn language model
         from teacher's last sentence.
         """
+        self._record_event(self.prev_event)
+        self.prev_event = None
         return ["idle", 0, ""]
 
     def simple_recognition_reward(self):
@@ -171,11 +174,11 @@ class XWorldTask(object):
         if agent_sent == self.answer:
             reward = XWorldTask.correct_reward / 2
             self._record_success()
-            self._record_event("correct_reply")
+            self._record_event("correct_reply", next=True)
         else:
             reward = XWorldTask.wrong_reward / 2
             self._record_failure()
-            self._record_event("wrong_reply")
+            self._record_event("wrong_reply", next=True)
         return ["conversation_wrapup", reward, sentence]
 
     def simple_navigation_reward(self):

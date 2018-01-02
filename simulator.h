@@ -139,10 +139,7 @@ class GameSimulator {
      * extra info. Usually this info shouldn't be used by the agent for
      * learning. As a result, all values in the map are designed as strings.
      */
-    virtual void get_extra_info(
-        std::unordered_map<std::string, std::string>& info) {
-        info.clear();
-    }
+    virtual void get_extra_info(std::string& info) { info = ""; }
 
     /**
      * @brief repeatedly take `actions` for `actrep` times, and return the
@@ -150,7 +147,7 @@ class GameSimulator {
      *
      * screens_ will be updated after taking actions.
      */
-    virtual float take_actions(const StatePacket& actions, int actrep);
+    float take_actions(const StatePacket& actions, int actrep);
 
     int64_t get_num_steps() { return num_steps_; }
 
@@ -425,16 +422,13 @@ class AgentSpecificSimulator : public GameSimulator {
 
     std::string last_action() override { return simulator_ptr_->last_action(); }
 
-    float take_actions(const StatePacket& actions, int actrep) override;
-
     float take_action(const StatePacket& actions) override;
 
     bool last_action_success() override { return simulator_ptr_->last_action_success(); }
 
     void get_screen(StatePacket& screen) override;
 
-    void get_extra_info(
-        std::unordered_map<std::string, std::string>& info) override;
+    void get_extra_info(std::string& info) override;
 
     void get_screen_out_dimensions(size_t& height,
                                    size_t& width,

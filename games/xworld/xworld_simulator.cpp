@@ -423,14 +423,13 @@ void XWorldSimulator::define_state_specs(StatePacket& state) {
     state.get_buffer("sentence")->set_str(get_teacher_sentence_for_agent());
 }
 
-void XWorldSimulator::get_extra_info(
-        std::unordered_map<std::string, std::string>& info) {
-    info.clear();
+void XWorldSimulator::get_extra_info(std::string& info) {
+    info = std::to_string(::getpid()) + "|";
     auto type =
         get_teacher_sent_type_from_buffer();  // task type related to a sentence
     auto event = get_event_from_buffer();     // current event happending in env
-    info["task"] = type;
-    info["event"] = event;
+    info += "task:" + type + ",";
+    info += "event:" + event;
 }
 
 int XWorldSimulator::get_lives() { return game_over() ? 0 : 1; }
