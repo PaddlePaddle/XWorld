@@ -300,10 +300,9 @@ void X3Simulator::update_environment() {
 }
 
 float X3Simulator::take_actions(const StatePacket& actions, int actrep) {
-    CHECK(actrep == 1) << "XWorld3D simulator does not support action"
-                          " repetition greater than 1.";
+    // we want to stack all events that happen during taking actrep actions
     game_events_ = "";
-    return GameSimulator::take_actions(actions, 1);
+    return GameSimulator::take_actions(actions, actrep);
 }
 
 float X3Simulator::take_action(const StatePacket& actions) {
