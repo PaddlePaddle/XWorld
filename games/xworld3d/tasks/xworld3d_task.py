@@ -152,9 +152,9 @@ class XWorld3DTask(object):
         """
         self.event = event
 
-    def _parse_game_event(self, events, event_type):
+    def _parse_collision_event(self, events):
         """
-        Extract an event of a specific type
+        Extract collision events from game event message
         """
         collision_events = [e for e in events.strip().split('\n') if e.startswith("collision")]
         hits = set()
@@ -253,7 +253,7 @@ class XWorld3DTask(object):
             self.sentence = self._generate()
         else:
             theta, _, _ = self._get_direction_and_distance(agent.loc, agent.yaw, self.target.loc)
-            collisions = self._parse_game_event(self.env.game_event, "collision")
+            collisions = self._parse_collision_event(self.env.game_event)
             if abs(theta) <= self.orientation_threshold and self.target.id in collisions:
                 self.steps_in_cur_task = 0
                 self._record_success()

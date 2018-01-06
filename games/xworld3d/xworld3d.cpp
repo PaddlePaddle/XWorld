@@ -315,10 +315,6 @@ void X3World::step(const int frame_skip) {
     for (auto& i : items_) {
         i.second->sync_entity_info();
     }
-    auto s = contact_list(agents_[0]);
-    for (auto& id : s) {
-        LOG(INFO) << id;
-    }
 }
 
 std::set<std::string> X3World::contact_list(X3ItemPtr& item) {
