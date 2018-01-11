@@ -14,7 +14,16 @@ This repository contains a collection of simulators for Reinforcement Learning r
 |Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*WIP; a preliminary version without documentation is available.*)|No|Yes|Discrete<br>Continuous|
 
 
-*If yes, then multithreading can be used; otherwise multiprocessing is needed.
+(*If yes, then multithreading can be used; otherwise multiprocessing is needed.)
+
+# Architecture
+XWorld features a *teacher* infrastructure implemented as a scheduler of multiple Finite State Machines (FSMs). The idea is that given the environment, the teacher can propose a task sampled (by some heuristics) from a task set. Each task - formulated as an FSM - has several stages, and the teacher does different things in different stages. The transition from one stage to another is determined by the envionment state, e.g., whehter the agent is idle or whether it has achieved the goal. Each stage returns several things including the next stage and the teacher's action. Currently, we define language (strings) as the teacher's sole action. However, the teacher is able to change the environment (e.g., adding/deleting objects, changing the map size, etc) within each stage.
+
+<img src="doc/xworld_arch.png">
+
+The above figure illustrates the architecture. The motivation is to let the users flexibly write simple Python scripts to configure the environment maps and tasks.
+
+Currently, the teacher is only incorporated into XWorld2D and XWorld3D.
 
 # Requirements
 * Compiler: GCC 4.8 or above
