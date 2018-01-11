@@ -5,13 +5,13 @@
 
 This repository contains a collection of simulators for Reinforcement Learning research.
 
-|**Difficulty**|**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Policy**|
-|:-----|:--------------|:---------------|:---------------|:---------------|:------|
-|Easy|[**SimpleGame**](games/simple_game/README.md)|A simple 1D array-walking game.|Yes|No|Discrete|
-|Easy,Medium|[**SimpleRace**](games/simple_race/README.md)|A simple synthetic car racing game.|Yes|No|Discrete|
-|Medium,Hard|[**Atari**](games/arcade/README.md)|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|Discrete|
-|Medium,Hard|[**XWorld2D**](games/xworld/README.md)|A 2D world for an agent to learn vision and language abilities.|No|No|Discrete<br>Continuous|
-|Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*WIP; a preliminary version without documentation is available.*)|No|Yes|Discrete<br>Continuous|
+|**Difficulty**|**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Policy**|**Teacher?**|
+|:-----|:--------------|:---------------|:---------------|:---------------|:------|:------|
+|Easy|[**SimpleGame**](games/simple_game/README.md)|A simple 1D array-walking game.|Yes|No|Discrete|No|
+|Easy,Medium|[**SimpleRace**](games/simple_race/README.md)|A simple synthetic car racing game.|Yes|No|Discrete|No|
+|Medium,Hard|[**Atari**](games/arcade/README.md)|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|Discrete|No|
+|Medium,Hard|[**XWorld2D**](games/xworld/README.md)|A 2D world for an agent to learn vision and language abilities.|No|No|Discrete<br>Continuous|Yes|
+|Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*WIP; a preliminary version without documentation is available.*)|No|Yes|Discrete<br>Continuous|Yes|
 
 
 (*If yes, then multithreading can be used; otherwise multiprocessing is needed.)
