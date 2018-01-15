@@ -26,12 +26,14 @@ class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
     time_penalty = -0.1
-    correct_reward = 1.0
-    wrong_reward = -1.0
-    failed_action_penalty = -0.2
-    collision_penalty = -0.2
+    correct_reward = 10.0
+    wrong_reward = -10.0
+    collision_penalty = -0.02
 
-    navigation_max_steps_factor = 10
+    failed_action_penalty = -0.1
+    max_steps = 500
+
+    navigation_max_steps_factor = 20
 
     PI = 3.1415926
     PI_8 = PI / 8
@@ -39,7 +41,7 @@ class XWorld3DTask(object):
     PI_2 = PI / 2
 
     # how often we should record the environment usage for the curriculum learning
-    record_env_usage_period = 20
+    record_env_usage_period = 200
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -145,12 +147,15 @@ class XWorld3DTask(object):
         """
         self.target = target
 
-    def _record_event(self, event):
+    def _record_event(self, event, next=False):
         """
         Record an event at every time step if necessary
         Every event has a lifespan of only one time step
         """
-        self.event = event
+        if not next:
+            self.event = event
+        else:
+            self.prev_event = event
 
     def _parse_collision_event(self, events):
         """
@@ -168,7 +173,7 @@ class XWorld3DTask(object):
     ############# public APIs #############
     def reset(self):
         self.steps_in_cur_task = 0
-        self.target = []
+        self.target = None
         self.answer = ""
 
     def get_event(self):
@@ -203,6 +208,9 @@ class XWorld3DTask(object):
         conversation is over, which enables the agent to learn language model
         from teacher's last sentence.
         """
+        ### prev_event should have been recorded by self._record_event(); otherwise crash
+        self._record_event(self.prev_event)
+        self.prev_event = None
         return ["idle", 0, ""]
 
     def simple_recognition_reward(self):
@@ -210,20 +218,42 @@ class XWorld3DTask(object):
         A simple recognition reward stage. It gives reward according to the
         single-word answer. The agent has to exactly match the answer word.
         """
+        reward = XWorld3DTask.time_penalty
         _, agent_sent, _ = self._get_agent()
-        self._bind("S -> answer")
-        self._set_production_rule("answer -> '%s'" % self.answer)
-        self.sentence = self._generate()
-        if agent_sent == self.answer:
-            reward = XWorld3DTask.correct_reward / 2
-            self._record_success()
-            self._record_event("correct_reply")
-        else:
-            reward = XWorld3DTask.wrong_reward / 2
-            self._record_failure()
-            self._record_event("wrong_reply")
 
-        return ["conversation_wrapup", reward, self.sentence]
+        collisions = self._parse_collision_event(self.env.game_event)
+        if collisions:
+            reward += XWorld3DTask.collision_penalty
+
+        self.steps_in_cur_task += 1
+
+        session_end = True
+        if self.steps_in_cur_task >= XWorld3DTask.max_steps / 2:
+            self.steps_in_cur_task = 0
+            self._record_failure()
+            self._record_event("time_up", next=True)
+        elif agent_sent != "-":  # if the agent answers
+            if agent_sent == self.answer:
+                reward += XWorld3DTask.correct_reward
+                self._record_success()
+                self._record_event("correct_reply", next=True)
+            else:
+                reward += XWorld3DTask.wrong_reward
+                self._record_failure()
+                self._record_event("wrong_reply", next=True)
+        else:
+            session_end = False
+
+        if session_end:
+            self._bind("S -> answer")
+            self._set_production_rule("answer -> '%s'" % self.answer)
+            self.sentence = self._generate()
+            next_stage = "conversation_wrapup"
+        else:
+            self.sentence = ""
+            next_stage = "simple_recognition_reward"
+
+        return [next_stage, reward, self.sentence]
 
     def simple_navigation_reward(self):
         """
@@ -236,15 +266,23 @@ class XWorld3DTask(object):
         """
         reward = XWorld3DTask.time_penalty
 
-        agent, _, action_successful = self._get_agent()
-        if not action_successful:
-            reward += XWorld3DTask.failed_action_penalty
+        agent, _, _ = self._get_agent()
+
+        ## even though the collided object might be the goal, we still have a penalty
+        ## hopefully the huge positive reward will motivate it
+        collisions = self._parse_collision_event(self.env.game_event)
+        if collisions:
+            reward += XWorld3DTask.collision_penalty
 
         next_stage = "simple_navigation_reward"
+        self.sentence = ""
+
+        def reach_object(agent, yaw, object):
+            theta, _, _ = self._get_direction_and_distance(agent, yaw, object.loc)
+            return abs(theta) < self.orientation_threshold and object.id in collisions
 
         self.steps_in_cur_task += 1
-        h, w = self.env.get_dims()
-        if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
+        if self.steps_in_cur_task >= XWorld3DTask.max_steps:
             self.steps_in_cur_task = 0
             self._record_failure()
             self._bind("S -> timeup")
@@ -252,25 +290,22 @@ class XWorld3DTask(object):
             next_stage = "idle"
             self.sentence = self._generate()
         else:
-            theta, _, _ = self._get_direction_and_distance(agent.loc, agent.yaw, self.target.loc)
-            collisions = self._parse_collision_event(self.env.game_event)
-            if abs(theta) <= self.orientation_threshold and self.target.id in collisions:
+            objects_reach_test = [(g.id, reach_object(agent.loc, agent.yaw, g)) \
+                                  for g in self._get_goals()]
+            if (self.target.id, True) in objects_reach_test:
                 self.steps_in_cur_task = 0
                 self._record_success()
                 self._record_event("correct_goal")
                 reward += XWorld3DTask.correct_reward
-                self._bind("S -> finish")
-                next_stage = "idle"
+                self._bind("S -> correct")
                 self.sentence = self._generate()
-
-                ## move the agent far from the current goal
-                ## TODO: select a grid with probability instead of simply max
-                grids = self.env.get_available_grids()
-                dists = [self._get_distance(l, self.target.loc) for l in grids]
-                far_loc = grids[dists.index(max(dists))]
-                self._move_entity(agent, far_loc + (0,))
-            elif len(collisions) > 0:
-                reward += XWorld3DTask.collision_penalty
+                next_stage = "idle"
+            elif [t for t in objects_reach_test if t[1]]: # reach other objects
+                reward += XWorld3DTask.wrong_reward
+                self._bind("S -> wrong")
+                self.sentence = self._generate()
+                self._record_failure()
+                self._record_event("wrong_goal")
 
         return [next_stage, reward, self.sentence]
 
@@ -350,7 +385,8 @@ class XWorld3DTask(object):
 
     def _get_surrounding_goals(self, refer_loc=None):
         """
-        Given a reference location, return all goals in its 3x3 neighborhood
+        Given a reference location, return all goals within a circular neighborhood
+        with a radius of self.distance_threshold
         """
         goals = self._get_goals()
         agent, _, _ = self._get_agent()
@@ -378,13 +414,19 @@ class XWorld3DTask(object):
         # TODO
         raise NotImplementedError()
 
-    def _reachable(self, start, to):
+    def _reachable(self, start, end):
         """
-        Use BFS to determine that if location 'to' can be reached from location 'start'
-        The obstacles are the wall blocks on the current map.
+        Use BFS to determine that if location 'end' can be reached from location 'start'
+        The obstacles are the wall blocks and goals on the current map.
         """
-        # TODO
-        return True
+        blocks = [b.loc for b in self._get_blocks()]
+        goals = [g.loc for g in self._get_goals()]
+        obstacles = blocks + goals
+        assert not start in obstacles, "start pos should not be in obstacles"
+        if end in obstacles: # end could be occupied by a goal
+            obstacles.remove(end)
+        Y, X = self.env.get_dims()
+        return (self.env.bfs(start, end, X, Y, obstacles) is not None)
 
     def _bind(self, binding_str):
         """

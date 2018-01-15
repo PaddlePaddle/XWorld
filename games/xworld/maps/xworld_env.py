@@ -31,12 +31,13 @@ Entity:
   color      - color of the entity
 """
 class Entity:
-    def __init__(self, type, id=None, loc=None, name=None, asset_path=None, color=None):
+    def __init__(self, type, id=None, loc=None, name=None, asset_path=None, color=None, yaw=0.0):
         if not loc is None:
             assert isinstance(loc, tuple) and len(loc) == 2
         self.type = type
         self.id = id
         self.loc = loc
+        self.yaw = yaw
         self.name = name
         self.asset_path = asset_path
         self.color = color
@@ -285,6 +286,9 @@ class XWorldEnv(object):
         Update the agent action success from the CPP simulator
         """
         self.action_successful = successful
+
+    def update_game_event_from_cpp(self, event):
+        pass
 
     ######################## private or protected #########################
     def _configure(self):

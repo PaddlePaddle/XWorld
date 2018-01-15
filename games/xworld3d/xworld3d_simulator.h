@@ -49,16 +49,13 @@ public:
 
     void show_screen(float reward) override;
 
-    float take_actions(const StatePacket& actions, int actrep) override;
-
     float take_action(const StatePacket& actions) override;
 
     void get_screen(StatePacket& screen) override;
 
     void define_state_specs(StatePacket& state) override;
 
-    void get_extra_info(
-            std::unordered_map<std::string, std::string>& info) override;
+    void get_extra_info(std::string& info) override;
 
     void get_screen_out_dimensions(size_t& height,
                                    size_t& width,
@@ -114,6 +111,8 @@ private:
     cv::Mat screen_;
 
     std::vector<std::string> agent_received_sentences_;
+    std::vector<Vec3> agent_init_positions_;  // the init position of the current session
+    std::vector<size_t> agent_prev_actions_;  // the agent's action in the previous time step
     static const int n_history_ =
         25;  // how many history messages to display in the message box
              // that is next to the xworld map screen

@@ -30,7 +30,7 @@ public:
 
     ~X3SimulatorImpl() {}
 
-    void reset_game();
+    void reset_game(bool map_reset);
 
     // called by AgentSpecificSimulator
     void define_state_specs(StatePacket& state);
@@ -38,6 +38,8 @@ public:
     void get_world_dimensions(double& X, double& Y, double& Z);
 
     void get_all_entities(std::vector<Entity>& entities);
+
+    std::vector<X3ItemPtr> get_agents() { return xworld3d_.get_agents(); }
 
     boost::python::object get_py_env();
 
@@ -71,8 +73,8 @@ X3SimulatorImpl::X3SimulatorImpl(const std::string& conf,
         xworld3d_(conf, print, big_screen),
         height_(0), width_(0) {}
 
-void X3SimulatorImpl::reset_game() {
-    xworld3d_.reset_world(true/* reset map */);
+void X3SimulatorImpl::reset_game(bool map_reset) {
+    xworld3d_.reset_world(map_reset);
 
     height_ = xworld3d_.height();
     width_ = xworld3d_.width();
@@ -130,7 +132,10 @@ X3Simulator::X3Simulator(bool print, bool big_screen) :
         height_(0), width_(0),
         img_height_out_(FLAGS_x3_training_img_height),
         img_width_out_(FLAGS_x3_training_img_width),
-        bird_view_(false) {
+        bird_view_(false),
+        agent_received_sentences_(0),
+        agent_init_positions_(0),
+        agent_prev_actions_(0) {
     impl_ = util::make_unique<X3SimulatorImpl>(
             FLAGS_x3_conf, print, big_screen);
 }
@@ -140,12 +145,22 @@ X3Simulator::~X3Simulator() {}
 void X3Simulator::reset_game() {
     TeachingEnvironment::reset_game();
 
-    impl_->reset_game();
+    // only change the map when the agent succeeds
+    // impl_->reset_game(
+    //     history_messages_.size() == 0  // the very beginning of simulation; we must reset
+    //     || game_over() == SUCCESS);
+    impl_->reset_game(true);
     height_ = impl_->height();
     width_ = impl_->width();
-    history_messages_.clear();
     game_events_ = "";
 
+    // reset the agent init positions
+    auto agents = impl_->get_agents();
+    for (size_t i = 0; i < agents.size(); i ++) {
+        agent_init_positions_[i] = agents[i]->location();
+    }
+
+    history_messages_.clear();
     history_messages_.push_back("--------------- New Game --------------");
     if (history_messages_.size() > n_history_) {
         history_messages_.pop_front();
@@ -153,28 +168,6 @@ void X3Simulator::reset_game() {
 }
 
 int X3Simulator::game_over() {
-    // if (FLAGS_x3_task_mode == "arxiv_lang_acquisition") {
-    //     // Each session has a navigation task, during which some questions are
-    //     // asked
-    //     // The answer is appended after each question
-    //     auto event = get_event_from_buffer();
-    //     if (event == "correct_goal") {
-    //         return SUCCESS;
-    //     }
-    // } else if (FLAGS_x3_task_mode == "arxiv_interactive") {
-    //     // Each session has a language task; there is no navigation
-    //     auto event = get_event_from_buffer();
-    //     if (event == "correct_reply") {
-    //         return SUCCESS;
-    //     } else if (event == "wrong_reply") {
-    //         return DEAD;
-    //     }
-    // } else if (FLAGS_x3_task_mode == "one_channel") {
-    //     // Each session has all tasks until the max steps
-    // } else {
-    //     LOG(FATAL) << "unsupported task mode: " << FLAGS_x3_task_mode;
-    // }
-
     auto event = get_event_from_buffer();
     if (event.find("correct") != std::string::npos) {
         return SUCCESS;
@@ -217,19 +210,28 @@ void X3Simulator::define_state_specs(StatePacket& state) {
     state.add_key("reward");
     state.add_key("screen");
     state.add_key("sentence");
+    state.add_key("relative_position");
     // set the teacher's sentence
     state.get_buffer("sentence")->set_str(
-            agent_received_sentences_[active_agent_id_]);
+        agent_received_sentences_[active_agent_id_]);
+
+    auto agents = impl_->get_agents();
+    auto pos = agents[active_agent_id_]->location() - agent_init_positions_[active_agent_id_];
+    pos = pos * (2.0 / (height_ + width_));  // normalize pos to [-1, 1]
+    std::vector<double> pos_buf = {pos.x, pos.y, pos.z};
+    state.get_buffer("relative_position")->set_value(
+        pos_buf.begin(), pos_buf.end());
 }
 
-void X3Simulator::get_extra_info(
-        std::unordered_map<std::string, std::string>& info) {
-    info.clear();
+void X3Simulator::get_extra_info(std::string& info) {
+    info = std::to_string(::getpid()) + "|";
     auto type =
         get_teacher_sent_type_from_buffer();  // task type related to a sentence
     auto event = get_event_from_buffer();     // current event happending in env
-    info["task"] = type;
-    info["event"] = event;
+    info += "task:" + type + ",";
+    info += "event:" + event + ",";
+    info += "height:" + std::to_string(height_) + ",";
+    info += "width:" + std::to_string(width_);
 }
 
 void X3Simulator::get_world_dimensions(double& X, double& Y, double& Z) {
@@ -248,6 +250,8 @@ void X3Simulator::get_screen_out_dimensions(size_t& height,
 
 int X3Simulator::add_agent() {
     agent_received_sentences_.push_back("");
+    agent_init_positions_.push_back(Vec3());
+    agent_prev_actions_.push_back(X3NavAction::NOOP);
     return GameSimulatorMulti::add_agent();
 }
 
@@ -273,7 +277,9 @@ void X3Simulator::get_all_entities(std::vector<Entity>& entities) {
 }
 
 std::string X3Simulator::get_events_of_game() {
-    return game_events_;
+    auto ret = game_events_;
+    game_events_ = "";
+    return ret;
 }
 
 void X3Simulator::record_collision_events(
@@ -297,12 +303,6 @@ boost::python::object X3Simulator::get_py_env() {
 
 void X3Simulator::update_environment() {
     impl_->update_environment();
-}
-
-float X3Simulator::take_actions(const StatePacket& actions, int actrep) {
-    // we want to stack all events that happen during taking actrep actions
-    game_events_ = "";
-    return GameSimulator::take_actions(actions, actrep);
 }
 
 float X3Simulator::take_action(const StatePacket& actions) {
@@ -351,6 +351,7 @@ float X3Simulator::take_action(const StatePacket& actions) {
                     break;
                 case 's':
                     action = X3NavAction::MOVE_BACKWARD;
+                    //                    action = X3NavAction::STOP;
                     break;
                 case 'a':
                     action = X3NavAction::MOVE_LEFT;
@@ -374,11 +375,23 @@ float X3Simulator::take_action(const StatePacket& actions) {
                     bird_view_ = !bird_view_;
                     break;
                 default:
+                    //                    action = X3NavAction::NOOP;
                     break;
             }
         }
         CHECK(std::find(legal_actions_.begin(), legal_actions_.end(), action)
               != legal_actions_.end()) << "action invalid!";
+
+        ////// This block of code simulates uninterupted actions ///////
+        // auto& prev_action = agent_prev_actions_[active_agent_id_];
+        // if (action == X3NavAction::STOP) {
+        //     action = X3NavAction::NOOP;
+        // } else if (prev_action != X3NavAction::NOOP) {
+        //     action = prev_action;
+        // }
+        // prev_action = action;
+        ////////////////////////////////////////////////////////////////
+
         // take one step in the game
         last_action_success_ = impl_->act(active_agent_id_, action);
         last_action_ += std::to_string(action);
@@ -392,7 +405,7 @@ float X3Simulator::take_action(const StatePacket& actions) {
 }
 
 inline int X3Simulator::get_lives() {
-    return game_over() | DEAD ? 0 : 1;
+    return (game_over() & DEAD) ? 0 : 1;
 }
 
 void X3Simulator::get_screen(StatePacket& screen) {

@@ -65,8 +65,7 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
     void define_state_specs(StatePacket& state);
 
     // called by AgentSpecificsimulator
-    virtual void get_extra_info(
-        std::unordered_map<std::string, std::string>& info) override;
+    virtual void get_extra_info(std::string& info) override;
 
     // add an agent to the XWorld with name as agent_name (should be unique)
     virtual int add_agent() override;

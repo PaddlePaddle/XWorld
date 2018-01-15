@@ -38,10 +38,12 @@ class XWorldLanDirectionToObject(XWorldTask):
             self._bind("Y -> 'Yes'")
             reward = 1.0
             self._record_success()
+            self._record_event("correct_reply", next=True)
         else:
             self._bind("Y -> 'No'")
             reward = -1.0
             self._record_failure()
+            self._record_event("wrong_reply", next=True)
         return ["conversation_wrapup", reward, self._generate()]
 
     def get_stage_names(self):

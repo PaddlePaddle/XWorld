@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     print "Example 1: Navigation with language instruction"
     options = {
-        "conf_path": "../../confs/walls.json",
+        "xwd_conf_path": "../../confs/walls.json",
         "curriculum": 0,
         "task_mode": "arxiv_lang_acquisition",
         "context": 1,
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     print "Example 2: Interactive language learning"
     options = {
-        "conf_path": "../../confs/lang.json",
+        "xwd_conf_path": "../../confs/lang.json",
         "curriculum": 0,
         "task_mode": "arxiv_interactive",
         "context": 1,
@@ -75,6 +75,7 @@ if __name__ == "__main__":
         xworld.show_screen()
 
         game_over_str = xworld.game_over()
+        print(game_over_str)
         if game_over_str != "alive":
             print "game over because of ", game_over_str
             xworld.reset_game()

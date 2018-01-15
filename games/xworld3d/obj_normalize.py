@@ -75,15 +75,19 @@ def generate_urdf(obj_file, new_name, bb_sizes):
         n.attrib["filename"] = os.path.basename(obj_file)
     for n in xml.iter('box'):
         n.attrib["size"] = "%f %f %f" % (bb_sizes[0], bb_sizes[1], bb_sizes[2])
-    urdf_file = os.path.join(os.path.dirname(obj_file), new_name + ".urdf")
+    urdf_file = os.path.join(os.path.dirname(obj_file), new_name.split("_")[0] + ".urdf")
     et.ElementTree(xml).write(urdf_file)
 
-
+"""
+usage: ./obj_normalize.py models_3d/goal/furniture
+       ./obj_normalize.py models_3d/goal/furniture chair
+"""
 if __name__ == "__main__":
-#    obj_file = sys.argv[1]
     path = sys.argv[1]
-    print(path)
-    dirs = glob.glob(path + "/*/")
+    if len(sys.argv) > 2:
+        dirs = glob.glob(path + "/" + sys.argv[2] + "_*/")
+    else:
+        dirs = glob.glob(path + "/*/")
     print(dirs)
     for d in dirs:
         obj_files = glob.glob(d + "/*.obj")

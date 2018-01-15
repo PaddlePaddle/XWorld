@@ -72,7 +72,7 @@ public:
 
     virtual StatePacket get_state(const float reward);
 
-    virtual void get_extra_info(std::unordered_map<std::string, std::string>& info);
+    virtual void get_extra_info(std::string& info);
 
     virtual void teacher_report_task_performance();
 
@@ -202,9 +202,7 @@ public:
      */
     StatePacket get_state(const float reward) override;
 
-    void get_extra_info(std::unordered_map<std::string, std::string>& info) override {
-        LOG(FATAL) << "not supported";
-    }
+    void get_extra_info(std::string& info) override;
 
     void teacher_report_task_performance() override;
 
@@ -267,6 +265,8 @@ private:
     void take_actions();
 
     void get_state();
+
+    void get_extra_info();
 
     std::string name_;
     std::string host_;

@@ -64,7 +64,7 @@ void X3Stadium::load_stadium(const std::string& item_path,
         return;
     }
     std::string floor_file = item_path + "/floor/floor.xml";
-    std::string stadium_file = item_path + "/floor/stadium/stadium1.obj";
+    std::string stadium_file = item_path + "/floor/stadium/stadium0.obj";
 
     olist_ = world->load_mjcf(floor_file);
     for (auto& o : olist_) {
@@ -151,7 +151,7 @@ void X3World::reset_world(bool map_reset) {
     std::vector<Entity> entities;
     try {
         if (map_reset) {
-            // regenerate a xwd map
+            // regenerate an xwd map
             xwd_env_.attr("reset")();
             // reset the change flag
             CHECK(xwd_env_.attr("env_changed")());
@@ -290,6 +290,10 @@ bool X3World::apply_action(const X3ItemPtr& item, const size_t action) {
             }
             break;
         }
+        case X3NavAction::NOOP:
+            // stay static
+            item->clear_move();
+            break;
         default:
             LOG(ERROR) << "unknown action id: " << action;
     }

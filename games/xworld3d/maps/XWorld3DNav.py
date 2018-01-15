@@ -14,15 +14,15 @@ class XWorld3DNav(XWorld3DEnv):
         self.current_level = 0
 
     def _configure(self):
-        self.set_goal_subtrees(["animal", "others"])
+        self.set_goal_subtrees(["animal", "others", "furniture"])
         self.set_entity(type="agent")
 
         ## compute world dims
         min_dim = 3
         max_h, max_w = self.get_max_dims()
         n_levels = max_h - min_dim + 1
-        max_num_goals, min_num_goals = 1, 1
-        max_num_blocks, min_num_blocks = 10, 0
+        max_num_goals, min_num_goals = 2, 2
+        max_num_blocks, min_num_blocks = 8, 0
 
         def compute(current_level):
             rate = 0
@@ -39,7 +39,7 @@ class XWorld3DNav(XWorld3DEnv):
             num_blocks = max_num_blocks
         else:
             flag = False
-            if self.current_usage >= self.curriculum \
+            if self.get_current_usage() >= self.curriculum \
                and self.current_level < n_levels - 1:
                 log_info("~~~~~~ Entering the next level: ~~~~~~~")
                 current_dim, num_goals, num_blocks = compute(self.current_level)
@@ -57,8 +57,11 @@ class XWorld3DNav(XWorld3DEnv):
 
         self.set_dims(current_dim, current_dim)
         ## set goals
+        # make sure no duplicate goal names
+        goal_names = self.get_all_possible_names("goal")
+        random.shuffle(goal_names)
         for i in range(num_goals):
-            self.set_entity(type="goal")
+            self.set_entity(type="goal", name=goal_names.pop())
         ## set blocks
         for i in range(num_blocks):
-            self.set_entity(type="block")
+            self.set_entity(type="block", name=random.choice(["cube"]))
