@@ -34,12 +34,14 @@ XML = """<?xml version="1.0"?>
   </robot>
 """
 
+unit_scale = 1
+
 def normalize(vertices):
     max_x, max_y, max_z = np.max(np.array(vertices), axis=0)
     min_x, min_y, min_z = np.min(np.array(vertices), axis=0)
 
     sizes = np.array([max_x - min_x, max_y - min_y, max_z - min_z])
-    scale = np.max(sizes)
+    scale = np.max(sizes) / unit_scale
     nor_sizes = sizes / scale
     return (np.array(vertices) - np.array([(max_x + min_x) / 2, min_y,
                                             (max_z + min_z) / 2])) / float(scale), \
@@ -80,7 +82,7 @@ def generate_urdf(obj_file, new_name, bb_sizes):
 
 """
 usage: ./obj_normalize.py models_3d/goal/furniture
-       ./obj_normalize.py models_3d/goal/furniture chair
+       ./obj_normalize.py models_3d/goal/furniture bed
 """
 if __name__ == "__main__":
     path = sys.argv[1]

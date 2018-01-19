@@ -385,6 +385,7 @@ class XWorld3DEnv(object):
         random.shuffle(blocks)
 
         for e in self.get_blocks():
+            assert blocks, "too many blocks for a valid maze"
             e.loc = blocks.pop()
             self.available_grids.remove(e.loc)
 

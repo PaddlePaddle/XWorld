@@ -40,10 +40,10 @@ X3ItemPool::X3ItemPool() : size_(0) {}
 X3ItemPtr X3ItemPool::get_item(const Entity& e, const WorldPtr& world) {
     auto& pool = item_pool_[e.type];
     X3ItemPtr item = nullptr;
-    if (pool.find(e.name) != pool.end() && !pool[e.name].empty()) {
-        item = pool[e.name].front();
+    if (pool.find(e.asset_path) != pool.end() && !pool[e.asset_path].empty()) {
+        item = pool[e.asset_path].front();
         item->set_entity(e);
-        pool[e.name].pop_front();
+        pool[e.asset_path].pop_front();
         size_--;
     } else {
         item = X3Item::create_item(e, *world);
@@ -53,7 +53,7 @@ X3ItemPtr X3ItemPool::get_item(const Entity& e, const WorldPtr& world) {
 
 void X3ItemPool::recycle_item(const X3ItemPtr& item) {
     auto& pool = item_pool_[item->type()];
-    pool[item->name()].push_back(item);
+    pool[item->asset_path()].push_back(item);
     size_++;
 }
 

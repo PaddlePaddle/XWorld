@@ -325,9 +325,9 @@ float X3Simulator::take_action(const StatePacket& actions) {
     if (FLAGS_x3_task_mode == "arxiv_interactive" ||
         FLAGS_x3_task_mode == "one_channel") {
         CHECK(actions.contain_key("pred_sentence"))
-            << "The agent has to take the speak action.";
+                << "The agent has to take the speak action.";
         std::string agent_sent =
-            *(actions.get_buffer("pred_sentence")->get_str());
+                *(actions.get_buffer("pred_sentence")->get_str());
         record_agent_sent_in_buffer(agent_sent);
         last_action_ += "speak(" + agent_sent + ")";
         // update message box
