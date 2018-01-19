@@ -71,6 +71,9 @@ public:
     // get the name of the item
     std::string name() const { return e_.name; }
 
+    // get the asset path of the item
+    std::string asset_path() const { return e_.asset_path; }
+
     // get the color of the item
     std::string color() const { return e_.color; }
 

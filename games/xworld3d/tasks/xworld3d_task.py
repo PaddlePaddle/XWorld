@@ -25,15 +25,15 @@ import itertools
 class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
-    time_penalty = -0.1
+    time_penalty = -0.05
     correct_reward = 10.0
     wrong_reward = -10.0
-    collision_penalty = -0.02
+    collision_penalty = 0.00
 
     failed_action_penalty = -0.1
-    max_steps = 500
+#    max_steps = 500
 
-    navigation_max_steps_factor = 20
+    navigation_max_steps_factor = 10
 
     PI = 3.1415926
     PI_8 = PI / 8
@@ -59,7 +59,7 @@ class XWorld3DTask(object):
             (  -self.PI+self.PI_8, -self.PI_2-self.PI_8)    : "back-left"
         }
         self.distance_threshold = get_flag("x3_reaching_distance")
-        self.orientation_threshold = self.PI_8
+        self.orientation_threshold = self.PI_4
         self.env = env
         self.event = ""
         self.num_successes = 0
@@ -67,6 +67,7 @@ class XWorld3DTask(object):
         self.reset()
         self.cfg = CFG(*self._define_grammar())
         self.sentence = ""
+        self.failure_recorded = False
 
     ################ internal functions ####################
     def _define_grammar(self):
@@ -282,13 +283,15 @@ class XWorld3DTask(object):
             return abs(theta) < self.orientation_threshold and object.id in collisions
 
         self.steps_in_cur_task += 1
-        if self.steps_in_cur_task >= XWorld3DTask.max_steps:
+        h, w = self.env.get_dims()
+        if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
             self.steps_in_cur_task = 0
             self._record_failure()
             self._bind("S -> timeup")
             self._record_event("time_up")
             next_stage = "idle"
             self.sentence = self._generate()
+            self.failure_recorded = False
         else:
             objects_reach_test = [(g.id, reach_object(agent.loc, agent.yaw, g)) \
                                   for g in self._get_goals()]
@@ -300,12 +303,16 @@ class XWorld3DTask(object):
                 self._bind("S -> correct")
                 self.sentence = self._generate()
                 next_stage = "idle"
-            elif [t for t in objects_reach_test if t[1]]: # reach other objects
+                self.failure_recorded = False
+            elif (not self.failure_recorded) and [t for t in objects_reach_test if t[1]]: # other objects
                 reward += XWorld3DTask.wrong_reward
-                self._bind("S -> wrong")
-                self.sentence = self._generate()
                 self._record_failure()
-                self._record_event("wrong_goal")
+                if False:
+                    self.failure_recorded = True
+                else:
+                    self._bind("S -> wrong")
+                    self.sentence = self._generate()
+                    self._record_event("wrong_goal")
 
         return [next_stage, reward, self.sentence]
 
