@@ -176,6 +176,7 @@ int X3Simulator::game_over() {
     } else if (event == "time_up") {
         return MAX_STEP;
     }
+    CHECK(event == "") << "Unrecognized event: " << event;
     return ALIVE;
 }
 
@@ -330,10 +331,11 @@ float X3Simulator::take_action(const StatePacket& actions) {
                 *(actions.get_buffer("pred_sentence")->get_str());
         record_agent_sent_in_buffer(agent_sent);
         last_action_ += "speak(" + agent_sent + ")";
-        // update message box
-        history_messages_.push_back("[Reply] Learner: " +
-                                    agent_sent);  // add token
-        update_message_box_on_screen();
+        if (false) {
+            // update message box
+            history_messages_.push_back("[Reply] Learner: " + agent_sent);  // add token
+            update_message_box_on_screen();
+        }
     }
 
     //// move

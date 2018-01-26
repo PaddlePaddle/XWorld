@@ -92,15 +92,14 @@ std::string Task::py_stage(const std::string& stage_name) {
 
         // during the stage
         py::list ret = py::extract<py::list>(py_task_.attr(stage_name.c_str())());
+
         // post-stage: the teacher might have changed the environment
         if (env.attr("env_changed")()) {
             game_->update_environment();
         }
 
         std::string event = py::extract<std::string>(py_task_.attr("get_event")());
-        if (!event.empty()) {
-            game_->record_event_in_buffer(event);
-        }
+        game_->record_event_in_buffer(event);
 
         CHECK_EQ(py::len(ret), 3) << "Incorrect length of stage returns";
         next_stage = py::extract<std::string>(ret[0]);
