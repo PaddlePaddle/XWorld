@@ -25,7 +25,7 @@ class XWorld3DNav(XWorld3DEnv):
         n_levels = max_h - min_dim + 1
         max_num_goals, min_num_goals = 2, 2
         max_goal_classes, min_goal_classes = len(goal_names), len(goal_names)
-        max_num_blocks, min_num_blocks = 0, 0
+        max_num_blocks, min_num_blocks = 10, 10
 
         def compute(current_level):
             def interpolate(min_, max_, rate):

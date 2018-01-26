@@ -239,6 +239,28 @@ class XWorld3DEnv(object):
         """
         self.current_usage = x
 
+    def print_env(self):
+        """
+        Print the current environment map for debugging purpose
+        """
+        Y, X = self.get_dims()
+        m = [[' ' for x in range(X)] for y in range(Y)]
+        for e in self.entities:
+            if e.type == "goal":
+                c = 'G'
+            elif e.type == "block":
+                c = 'B'
+            else:
+                assert e.type == "agent"
+                c = 'A'
+            x, y, _ = e.loc
+            x, y = int(x), int(y)
+            assert y < len(m)
+            assert x < len(m[y])
+            m[y][x] = c
+        print("Environment configure:")
+        pprint.pprint(m)
+
     ######################## interface with C++ #############################
     def env_changed(self):
         """
@@ -308,11 +330,11 @@ class XWorld3DEnv(object):
         """
         que = [start]
         prev = {start: None}
-        moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
         while len(que) > 0:
             cur = que.pop(0)
             if cur == end:
                 break
+            moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
             random.shuffle(moves)
             for m in moves:
                 next = (cur[0] + m[0], cur[1] + m[1], cur[2] + m[2])
@@ -344,12 +366,13 @@ class XWorld3DEnv(object):
         visited = set([])
         maze = [[(' ' if x % 2 == 0 and y % 2 ==0 else '#') \
                  for x in range(X)] for y in range(Y)]
-        moves = [(-1, 0), (1, 0), (0, 1), (0, -1)]
         edges = set([])
 
         x, y = (X + 1) / 2, (Y + 1) / 2
         def dfs(cur):
             visited.add(cur)
+            ## do not move moves outside
+            moves = [(-1, 0), (1, 0), (0, 1), (0, -1)]
             random.shuffle(moves)
             for m in moves:
                 next = (cur[0] + m[0], cur[1] + m[1])
@@ -382,8 +405,9 @@ class XWorld3DEnv(object):
 
         maze = self.__spanning_tree_maze_generator(X, Y)
         blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
-        random.shuffle(blocks)
+#        random.shuffle(blocks)
 
+        ## might create some empty grids surrounded by blocks
         for e in self.get_blocks():
             assert blocks, "too many blocks for a valid maze"
             e.loc = blocks.pop()

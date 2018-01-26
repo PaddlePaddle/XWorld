@@ -275,7 +275,6 @@ class XWorld3DTask(object):
         if collisions:
             reward += XWorld3DTask.collision_penalty
 
-        next_stage = "simple_navigation_reward"
         self.sentence = ""
 
         def reach_object(agent, yaw, object):
@@ -285,24 +284,20 @@ class XWorld3DTask(object):
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
-            self.steps_in_cur_task = 0
             self._record_failure()
             self._bind("S -> timeup")
             self._record_event("time_up")
-            next_stage = "idle"
             self.sentence = self._generate()
             self.failure_recorded = False
         else:
             objects_reach_test = [(g.id, reach_object(agent.loc, agent.yaw, g)) \
                                   for g in self._get_goals()]
             if (self.target.id, True) in objects_reach_test:
-                self.steps_in_cur_task = 0
                 self._record_success()
                 self._record_event("correct_goal")
                 reward += XWorld3DTask.correct_reward
                 self._bind("S -> correct")
                 self.sentence = self._generate()
-                next_stage = "idle"
                 self.failure_recorded = False
             elif (not self.failure_recorded) and [t for t in objects_reach_test if t[1]]: # other objects
                 reward += XWorld3DTask.wrong_reward
@@ -314,7 +309,8 @@ class XWorld3DTask(object):
                     self.sentence = self._generate()
                     self._record_event("wrong_goal")
 
-        return [next_stage, reward, self.sentence]
+        # game_over will reset the stage to "idle" so we don't bother here
+        return ["simple_navigation_reward", reward, self.sentence]
 
     ############ functions that wrap self.env and self.cfg #############
     def _list_of_strs_to_rhs(self, strs):

@@ -23,6 +23,13 @@ class XWorld3DNavTarget(XWorld3DTask):
         goals = self._get_goals()
         agent, _, _ = self._get_agent()
         targets = [g for g in goals if self._reachable(agent.loc, g.loc)]
+
+        if len(targets) == 0:
+            self.env.print_env()
+            print([g.loc for g in goals])
+            print(agent.loc)
+            assert False, "There must be some targets"
+
         if targets:
             sel_goal = random.choice(targets)
             self._record_target(sel_goal);
