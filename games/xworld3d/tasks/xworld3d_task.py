@@ -275,7 +275,7 @@ class XWorld3DTask(object):
         if collisions:
             reward += XWorld3DTask.collision_penalty
 
-        self.sentence = ""
+#        self.sentence = ""
 
         def reach_object(agent, yaw, object):
             theta, _, _ = self._get_direction_and_distance(agent, yaw, object.loc)

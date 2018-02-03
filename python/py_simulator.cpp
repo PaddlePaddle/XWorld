@@ -220,6 +220,10 @@ float PySimulatorInterface::take_action(const py::dict& actions) {
 
 void parse_extra_sim_info(std::string info, int& pid,
                           std::unordered_map<std::string, std::string>& parsed_info) {
+    if (info == "") {
+        return;
+    }
+
     size_t idx = info.find("|");
     CHECK(idx != std::string::npos);
     pid = std::stoi(info.substr(0, idx));
