@@ -111,7 +111,7 @@ For descriptions of the flags of a game, please take a look at the README file u
 # Citations
 If you use XWorld2D for research, consider citing
 
-* Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/abs/1703.09831), arXiv:1703.09831, 2017.
+* Haonan Yu, Haichao Zhang, Wei Xu, [*Interactive Grounded Language Acquisition and Generalization in a 2D World*](http://upplysingaoflun.ecn.purdue.edu/~yu239/papers/iclr2018.pdf), ICLR, 2018.
 * Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), NIPS workshop on Visually-Grounded Interaction and Language, 2017.
 
 If you use our wrappers of the third-party simulators, please follow their original guide for citation.
