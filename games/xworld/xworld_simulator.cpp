@@ -24,13 +24,12 @@ DEFINE_string(
     "./xworld/confs/navigation.json",
     "the map and task configure file");
 DEFINE_int32(
-    visible_radius_unit,
+    visible_radius,
     0,
     "the radius of visible range in terms of unit (0 for fully observe)");
 DECLARE_int32(max_steps);
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
-DEFINE_bool(ego_centric, true, "whether have ego-centric view");
 DEFINE_string(
     task_mode,
     "one_channel",
@@ -49,12 +48,14 @@ void XWorldSimulator::init() {
     width_ = xworld_.width();
     img_height_ = height_ * XItem::item_size_;
     img_width_ = width_ * XItem::item_size_;
-    if (FLAGS_ego_centric) {
-        img_height_out_ = (height_ * 2 - 1) * block_size_;
-        img_width_out_ = (width_ * 2 - 1) * block_size_;
+    if (FLAGS_visible_radius == 0) { // fully observed
+        int block_size = 12;
+        img_height_out_ = (height_ * 2 - 1) * block_size;
+        img_width_out_ = (width_ * 2 - 1) * block_size;
     } else {
-        img_height_out_ = height_ * block_size_;
-        img_width_out_ = width_ * block_size_;
+        int block_size = 28; // for partially observed, we can use larger grids
+        img_height_out_ = FLAGS_visible_radius * block_size;
+        img_width_out_ = FLAGS_visible_radius * block_size;
     }
     // default
     if (FLAGS_task_mode == "arxiv_lang_acquisition") {
@@ -200,16 +201,10 @@ void XWorldSimulator::get_screen(StatePacket& screen) {
 }
 
 void XWorldSimulator::get_screen_rgb(GameFrame& rgbs) {
-    int pad_size = 0;
-    // ego-centric view
     cv::Mat screen = xworld_.to_image(
-        FLAGS_ego_centric,
         active_agent_id_,
-        pad_size,
         /* flag_illustration= */ false,
-        /* success= */ 0,
-        FLAGS_visible_radius_unit,
-        /*flag_crop_receiptive_field*/ true);
+        FLAGS_visible_radius);
 
     cv::Mat screen_resized(img_height_, img_width_, CV_8UC3);
     cv::resize(screen, screen_resized, screen_resized.size(), cv::INTER_LINEAR);
@@ -356,48 +351,12 @@ void XWorldSimulator::update_message_box_on_screen() {
 }
 
 void XWorldSimulator::show_screen(float reward) {
-    int pad_size = 0;
-    int success = 0;
-    // non-ego centric
-    cv::Mat img =
-        xworld_.to_image(false,
-                         active_agent_id_,
-                         pad_size,
-                         true,
-                         success,
-                         0,
-                         false);
-    if (FLAGS_visible_radius_unit > 0) {
-        cv::Mat img_partial =
-            xworld_.to_image(false,
-                             active_agent_id_,
-                             pad_size,
-                             true,
-                             success,
-                             FLAGS_visible_radius_unit,
-                             false);
-        float alpha = 0.5;
-        float beta = (1.0 - alpha);
-        cv::addWeighted(img, alpha, img_partial, beta, 0.0, img);
-    }
-
-    // ego-centric
-    const cv::Mat img_ego =
-        xworld_.to_image(true,
-                         active_agent_id_,
-                         pad_size,
-                         true,
-                         success,
-                         FLAGS_visible_radius_unit,
-                         false);
-    cv::Mat ego_img(
-        int(floor(img.rows / 2.0)), int(floor(img.cols / 2.0)), CV_8UC3);
-    cv::resize(img_ego, ego_img, ego_img.size(), cv::INTER_LINEAR);
-
+    cv::Mat img = xworld_.to_image(active_agent_id_,
+                                   /*flag_illustration=*/ true,
+                                   FLAGS_visible_radius);
     cv::Mat img_wo_msg = concat_images(img, get_reward_image(reward), true);
     prev_screen_ = img_wo_msg;
-    screen_ =
-        concat_images(img_wo_msg, get_message_image(history_messages_), false);
+    screen_ = concat_images(img_wo_msg, get_message_image(history_messages_), false);
 
     // show screen
     if (FLAGS_pause_screen) {
@@ -405,7 +364,7 @@ void XWorldSimulator::show_screen(float reward) {
         cv::waitKey(-1);
     } else {
         // Default mode: the screen will display continuously
-        cv::waitKey(success ? 1000 : 200);
+        cv::waitKey(200);
     }
     cv::namedWindow("XWorld Game");
     // screen_ must still be valid after the end of this function

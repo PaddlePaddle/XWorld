@@ -14,6 +14,7 @@
 
 #include "xmap.h"
 #include "xitem.h"
+#include <cmath>
 
 namespace simulator {
 namespace xwd {
@@ -113,12 +114,10 @@ Loc XMap::get_item_location(std::string item_id) {
     return loc;
 }
 
-cv::Mat XMap::to_image(bool flag_item_centric,
-                       const Loc& item_loc,
+cv::Mat XMap::to_image(const Loc& item_loc,
+                       double yaw,
                        bool flag_illustration,
-                       int success,
-                       int visible_radius_unit,
-                       bool flag_crop_receiptive_field) {
+                       int visible_radius_unit) {
     cv::Mat world(height_ * grid_size_,
                   width_ * grid_size_,
                   CV_8UC3,
@@ -127,59 +126,49 @@ cv::Mat XMap::to_image(bool flag_item_centric,
     for (int i = 0; i < height_; i++) {
         for (int j = 0; j < width_; j++) {
             for (unsigned int k = 0; k < item_ptr_cube_[i][j].size(); k++) {
-                if (flag_item_centric) {
-                    // when training, don't render the agent in the image
-                    if (!flag_illustration
-                        && item_ptr_cube_[i][j][k]->get_item_type() == "agent") {
-                        continue;
-                    }
-                }
-
                 cv::Mat item_image = item_ptr_cube_[i][j][k]->get_item_image();
-
-                cv::Mat item_image_active;
-                item_image.copyTo(item_image_active);
 
                 cv::Mat imageROI = world(cv::Rect(j * grid_size_,
                                                   i * grid_size_,
                                                   grid_size_,
                                                   grid_size_));
-                item_image_active.copyTo(imageROI);
+                item_image.copyTo(imageROI);
             }
         }
     }
 
-    if (flag_illustration) {
-        for (int i = 1; i < height_; i++) {
-            dashed_line(world,
-                        4,
-                        cv::Point(0, i * grid_size_),
-                        cv::Point(world.cols - 1, i * grid_size_));
-        }
-        for (int i = 1; i < width_; i++) {
-            dashed_line(world,
-                        4,
-                        cv::Point(i * grid_size_, 0),
-                        cv::Point(i * grid_size_, world.rows - 1));
-        }
-    }
-
+    cv::Mat view;
     if (visible_radius_unit > 0) {
-        int mask_value = 0;
-        world = image_masking(world,
-                              item_loc,
-                              visible_radius_unit,
-                              mask_value,
-                              flag_crop_receiptive_field);
-    } else if (flag_item_centric) {
-        world = image_centering(world, item_loc);
+        // pad the original image
+        cv::copyMakeBorder(world,
+                           world,
+                           visible_radius_unit * grid_size_,
+                           visible_radius_unit * grid_size_,
+                           visible_radius_unit * grid_size_,
+                           visible_radius_unit * grid_size_,
+                           cv::BORDER_CONSTANT,
+                           cv::Scalar(0, 0, 0));
+        auto roi = image_masking(world,
+                                 item_loc,
+                                 yaw,
+                                 visible_radius_unit);
+        world(roi).copyTo(view);
+        if (flag_illustration) {
+            cv::Mat black(world.rows, world.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+            cv::addWeighted(black, 0.5, world, 0.5, 0.0, world);
+            view.copyTo(world(roi));
+            view = world;
+        } else { // rotate the image according to the agent's yaw
+            cv::Point2f center(view.cols / 2.0, view.rows / 2.0);
+            cv::Mat rot_mat = cv::getRotationMatrix2D(center, yaw * 180 / M_PI + 180, 1.0);
+            cv::warpAffine(view, view, rot_mat, view.size());
+            // TODO: shadow behind wall blocks
+        }
+    } else {
+        view = image_centering(world, item_loc);
     }
 
-    if (success != 0) {
-        draw_success(world, success);
-    }
-
-    return world;
+    return view;
 }
 
 void XMap::draw_success(cv::Mat& img, int success) {
@@ -236,71 +225,44 @@ cv::Mat XMap::image_centering(cv::Mat img_in, const Loc& item_loc) {
     int yt = Y - ya - 1;
     int yb = ya;
     cv::Mat img_out;
-    copyMakeBorder(img_in,
-                   img_out,
-                   yt * grid_size_,
-                   yb * grid_size_,
-                   xl * grid_size_,
-                   xr * grid_size_,
-                   cv::BORDER_CONSTANT,
-                   cv::Scalar(0, 0, 0));
+    cv::copyMakeBorder(img_in,
+                       img_out,
+                       yt * grid_size_,
+                       yb * grid_size_,
+                       xl * grid_size_,
+                       xr * grid_size_,
+                       cv::BORDER_CONSTANT,
+                       cv::Scalar(0, 0, 0));
     return img_out;
 }
 
-cv::Mat XMap::image_masking(cv::Mat img_in,
+cv::Rect XMap::image_masking(cv::Mat img_in,
                             const Loc& item_loc,
-                            int visible_radius_unit,
-                            int mask_value,
-                            bool flag_crop_receiptive_field) {
-    int xa = item_loc.x;
-    int ya = item_loc.y;
-    cv::Mat img_partial;
-    if (!flag_crop_receiptive_field) {
-        cv::Mat img_p(height_ * grid_size_,
-                      width_ * grid_size_,
-                      CV_8UC3,
-                      cv::Scalar(mask_value, mask_value, mask_value));
-        img_partial = img_p;
-    } else {
-        cv::Mat img_p((2 * visible_radius_unit + 1) * grid_size_,
-                      (2 * visible_radius_unit + 1) * grid_size_,
-                      CV_8UC3,
-                      cv::Scalar(mask_value, mask_value, mask_value));
-        img_partial = img_p;
-    }
-    int x_st = xa - visible_radius_unit;
-    int y_st = ya - visible_radius_unit;
-    int x_ed = xa + visible_radius_unit;
-    int y_ed = ya + visible_radius_unit;
+                            double yaw,
+                            int visible_radius_unit) {
+    CHECK_EQ(visible_radius_unit % 2, 1) << "Must be an odd int";
 
-    int x_st_src = (x_st > 0) ? x_st : 0;
-    int y_st_src = (y_st > 0) ? y_st : 0;
-    int x_ed_src = (x_ed < width_ - 1) ? x_ed : width_ - 1;
-    int y_ed_src = (y_ed < height_ - 1) ? y_ed : height_ - 1;
+    int xa = item_loc.x + visible_radius_unit;
+    int ya = item_loc.y + visible_radius_unit;
 
-    int x_delta = x_st_src - x_st;
-    int y_delta = y_st_src - y_st;
-    cv::Rect rect_src = cv::Rect(x_st_src * grid_size_,
-                                 y_st_src * grid_size_,
-                                 (x_ed_src - x_st_src + 1) * grid_size_,
-                                 (y_ed_src - y_st_src + 1) * grid_size_);
-    cv::Rect rect_dst;
-    if (!flag_crop_receiptive_field) {
-        rect_dst = rect_src;
+    auto dir = XItem::get_item_facing_dir(yaw);
+    if (dir == "right") {
+        xa += (visible_radius_unit + 1) / 2;
+    } else if (dir == "up") {
+        ya -= (visible_radius_unit + 1) / 2;
+    } else if (dir == "left") {
+        xa -= (visible_radius_unit + 1) / 2;
     } else {
-        int x_st_dst = 0 + x_delta;
-        int y_st_dst = 0 + y_delta;
-        x_st_src = (x_st_src > 0) ? x_st_src : 0;
-        y_st_src = (y_st_src > 0) ? y_st_src : 0;
-        rect_dst = cv::Rect(x_st_dst * grid_size_,
-                            y_st_dst * grid_size_,
-                            (x_ed_src - x_st_src + 1) * grid_size_,
-                            (y_ed_src - y_st_src + 1) * grid_size_);
+        ya += (visible_radius_unit + 1) / 2;
     }
-    cv::Mat imageROI_dst = img_partial(rect_dst);
-    cv::Mat imageROI_src = img_in(rect_src);
-    imageROI_src.copyTo(imageROI_dst);
-    return img_partial;
+
+    int x_st = xa - visible_radius_unit / 2;
+    int y_st = ya - visible_radius_unit / 2;
+
+    return cv::Rect(x_st * grid_size_,
+                    y_st * grid_size_,
+                    visible_radius_unit * grid_size_,
+                    visible_radius_unit * grid_size_);
 }
 
 }}  // namespace simulator::xwd

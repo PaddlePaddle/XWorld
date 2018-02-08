@@ -94,14 +94,13 @@ struct Entity {
         loc = Vec3(boost::python::extract<double>(l[0]),
                    boost::python::extract<double>(l[1]),
                    boost::python::extract<double>(l[2]));
-        try {
-            yaw = boost::python::extract<double>(e["yaw"]);
-        } catch (...) {
-            yaw = 0.0;
-        }
+        yaw = boost::python::extract<double>(e["yaw"]);
+        scale = boost::python::extract<double>(e["scale"]);
+        offset = boost::python::extract<double>(e["offset"]);
         name = boost::python::extract<std::string>(e["name"]);
         asset_path = boost::python::extract<std::string>(e["asset_path"]);
         color = boost::python::extract<std::string>(e["color"]);
+        CHECK(offset >= 0 && offset <= 1 - scale);
     }
     boost::python::dict to_py_dict() const {
         boost::python::dict d;
@@ -109,18 +108,22 @@ struct Entity {
         d["id"] = id;
         d["loc"] = boost::python::make_tuple(loc.x, loc.y, loc.z);
         d["yaw"] = yaw;
+        d["scale"] = scale;
+        d["offset"] = offset;
         d["name"] = name;
         d["asset_path"] = asset_path;
         d["color"] = color;
         return d;
     }
     std::string type;
-    std::string id;
+    std::string id; // unique identifier of the object instance
     Vec3 loc;
-    double yaw;
-    std::string name;
-    std::string asset_path;
-    std::string color;
+    double yaw; // the heading orientation of the object
+    double scale;  // the scale to be rendered
+    double offset; // the offset in a grid
+    std::string name; // class name of the object without id
+    std::string asset_path;  // the actual asset path on the disk (icon or 3d model)
+    std::string color;  // mainly used by python scripts
 };
 
 }  // namespace simulator

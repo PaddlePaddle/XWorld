@@ -134,7 +134,6 @@ X3Simulator::X3Simulator(bool print, bool big_screen) :
         img_width_out_(FLAGS_x3_training_img_width),
         bird_view_(false),
         agent_received_sentences_(0),
-        agent_init_positions_(0),
         agent_prev_actions_(0) {
     impl_ = util::make_unique<X3SimulatorImpl>(
             FLAGS_x3_conf, print, big_screen);
@@ -153,12 +152,6 @@ void X3Simulator::reset_game() {
     height_ = impl_->height();
     width_ = impl_->width();
     game_events_ = "";
-
-    // reset the agent init positions
-    auto agents = impl_->get_agents();
-    for (size_t i = 0; i < agents.size(); i ++) {
-        agent_init_positions_[i] = agents[i]->location();
-    }
 
     history_messages_.clear();
     history_messages_.push_back("--------------- New Game --------------");
@@ -203,7 +196,7 @@ void X3Simulator::show_screen(float reward) {
     // so that it can be saved in save_screen
     cv::setMouseCallback("XWorld3D", util::save_screen, &screen_);
     cv::imshow("XWorld3D", screen_);
-    cv::waitKey(200);
+    cv::waitKey(250);
 }
 
 void X3Simulator::define_state_specs(StatePacket& state) {
@@ -211,17 +204,9 @@ void X3Simulator::define_state_specs(StatePacket& state) {
     state.add_key("reward");
     state.add_key("screen");
     state.add_key("sentence");
-    state.add_key("relative_position");
     // set the teacher's sentence
     state.get_buffer("sentence")->set_str(
         agent_received_sentences_[active_agent_id_]);
-
-    auto agents = impl_->get_agents();
-    auto pos = agents[active_agent_id_]->location() - agent_init_positions_[active_agent_id_];
-    pos = pos * (2.0 / (height_ + width_));  // normalize pos to [-1, 1]
-    std::vector<double> pos_buf = {pos.x, pos.y, pos.z};
-    state.get_buffer("relative_position")->set_value(
-        pos_buf.begin(), pos_buf.end());
 }
 
 void X3Simulator::get_extra_info(std::string& info) {
@@ -251,7 +236,6 @@ void X3Simulator::get_screen_out_dimensions(size_t& height,
 
 int X3Simulator::add_agent() {
     agent_received_sentences_.push_back("");
-    agent_init_positions_.push_back(Vec3());
     agent_prev_actions_.push_back(X3NavAction::NOOP);
     return GameSimulatorMulti::add_agent();
 }

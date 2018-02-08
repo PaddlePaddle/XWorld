@@ -10,6 +10,7 @@ if __name__ == "__main__":
         "context": 4
     }
     atari = Simulator.create("atari", options)
+    atari.reset_game()
 
     num_actions = atari.get_num_actions()
     act_rep = options["context"]

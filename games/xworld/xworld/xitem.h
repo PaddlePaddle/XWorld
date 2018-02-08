@@ -27,6 +27,17 @@
 namespace simulator {
 namespace xwd {
 
+enum XWorldAction {
+    MOVE_UP = 0,
+    MOVE_DOWN,
+    MOVE_LEFT,
+    MOVE_RIGHT,
+    MOVE_FORWARD,
+    MOVE_BACKWARD,
+    TURN_LEFT,
+    TURN_RIGHT
+};
+
 struct Loc {
     int x;
     int y;
@@ -111,6 +122,8 @@ class XItem {
     // get the location of the item
     Loc get_item_location() { return Loc(int(e_.loc.x), int(e_.loc.y)); }
 
+    double get_item_yaw() { return e_.yaw; }
+
     // set the location of the item
     void set_item_location(int x, int y) { e_.loc = Vec3(x, y, 0); }
 
@@ -138,7 +151,9 @@ class XItem {
 
     static std::shared_ptr<XItem> create_item(const Entity& e);
 
-  private:
+    static std::string get_item_facing_dir(double yaw);
+
+  protected:
     Entity e_;
 };
 
@@ -147,25 +162,17 @@ typedef std::shared_ptr<XItem> XItemPtr;
 class XAgent : public XItem {
   public:
     // constructor
-    XAgent(const Entity& e) : XItem(e) {
-        CHECK(e.type == "agent");
-    }
+    XAgent(const Entity& e);
 
     // perform action specified by action_id
-    Loc act(int action_id) override {
-        Loc cur_loc = get_item_location();
-        switch(action_id) {
-            case 0: return Loc(cur_loc.x, cur_loc.y - 1);
-            case 1: return Loc(cur_loc.x, cur_loc.y + 1);
-            case 2: return Loc(cur_loc.x - 1, cur_loc.y);
-            case 3: return Loc(cur_loc.x + 1, cur_loc.y);
-            default:
-                LOG(FATAL) << "unrecognized action for the agent";
-        }
-        return Loc();
+    Loc act(int action_id) override;
+
+    int get_num_actions() override {
+        return legal_actions_.size();
     }
 
-    int get_num_actions() override { return 4; }
+  private:
+    std::vector<size_t> legal_actions_;
 };
 
 }

@@ -19,30 +19,38 @@ import os
 import copy
 from itertools import groupby
 import itertools
-import pprint
+from py_gflags import get_flag
+from maze2d import spanning_tree_maze_generator
 
 """
 Entity:
   id         - unique str for this entity
   type       - "agent", "goal", "block"
   location   - (x, y)
+  yaw        - in radian
+  scale      - (0, 1.0]
+  offset     - [0, 1-scale]
   asset_path - the icon image path
   name       - name of the entity
   color      - color of the entity
 """
 class Entity:
-    def __init__(self, type, id=None, loc=None, name=None, asset_path=None, color=None, yaw=0.0):
+    def __init__(self, type, id=None, loc=None, name=None,
+                 asset_path=None, color=None, yaw=0.0, scale=1.0, offset=0.0):
         if not loc is None:
             assert isinstance(loc, tuple) and len(loc) == 2
         self.type = type
         self.id = id
         self.loc = loc
         self.yaw = yaw
+        self.scale = scale
+        self.offset = offset
         self.name = name
         self.asset_path = asset_path
         self.color = color
 
 class XWorldEnv(object):
+    PI_2 = 1.5707963
     def __init__(self, item_path, max_height=7, max_width=7):
         self.num_games = -1
         ## load all items from item_path
@@ -76,24 +84,16 @@ class XWorldEnv(object):
         self._configure()
         self.__instantiate_entities()
 
+    def get_current_usage(self):
+        usage = self.current_usage
+        self.current_usage = 0
+        return usage
+
     def get_num_games(self):
         """
         How many sessions the agent has played
         """
         return self.num_games
-
-    def draw_map(self):
-        """
-        Print a symbolic version of the environment map
-        """
-        map_ = [["." for j in range(self.max_width)] for i in range(self.max_height)]
-        for e in self.pad_blocks:
-            l = e.loc
-            map_[l[1]][l[0]] = 'b'
-        for e in self.entities:
-            l = e.loc
-            map_[l[1] + self.offset_h][l[0] + self.offset_w] = e.type[0]
-        pprint.pprint(map_)
 
     def set_dims(self, h, w):
         """
@@ -230,6 +230,9 @@ class XWorldEnv(object):
         self.current_usage = x
 
     ######################## interface with C++ #############################
+    def dump_curriculum_progress(self):
+        return self.current_level
+
     def env_changed(self):
         """
         Whether the environment has been changed by the teacher during the current
@@ -304,19 +307,46 @@ class XWorldEnv(object):
         after which its properties are set.
         The entities should have been set in _configure()
         """
-        self.current_usage = 0
+        Y, X = self.get_dims()
+
+        maze = spanning_tree_maze_generator(X, Y)
+        blocks = [(j, i) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
+        random.shuffle(blocks)
+
+        ## first remove all maze blocks
+        for b in blocks:
+            if b in self.available_grids:
+                self.available_grids.remove(b)
+
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
             if e.name is None:
                 e.name = random.choice(self.get_all_possible_names(e.type))
-            icons = self.items[e.type][e.name]
-            e.asset_path = random.choice(icons)
             e.id = "%s_%d" % (e.name, i)
+            if e.asset_path is None:
+                icons = self.items[e.type][e.name]
+                e.asset_path = random.choice(icons)
             e.color = self.color_table[e.asset_path]
-            if e.loc is None:
+            if e.loc is None and e.type != "block":
                 assert len(self.available_grids) > 0
-                e.loc = self.available_grids[0]
-                self.available_grids = self.available_grids[1:]
+                e.loc = self.available_grids.pop()
+            ## if partially observed, perturb the objects
+            if get_flag("visible_radius") and e.type != "block":
+                ## four orientations
+                e.yaw = random.randint(-1,2) * self.PI_2
+                if e.type == "goal":
+                    ## random scale
+                    e.scale = random.uniform(0.5, 1)
+                    ## random offset
+                    e.offset = random.uniform(0, 1 - e.scale)
+
+        ## add back some empty grids
+        self.available_grids += blocks[len(self.get_blocks()):]
+
+        ## use the remaining blocks
+        for e in self.get_blocks():
+            assert blocks, "too many blocks for a valid maze"
+            e.loc = blocks.pop()
 
     def __padding_walls(self):
         """

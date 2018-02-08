@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "simulator_interface.h"
 #include "games/arcade/arcade_simulator.h"
 
 using namespace simulator::arcade_game;
@@ -23,7 +24,7 @@ int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     FLAGS_ale_rom = "/tmp/breakout.bin";
-    std::shared_ptr<ArcadeGame> atari(ArcadeGame::create());
+    auto atari = std::make_shared<SimulatorInterface>("atari", false);
     atari->reset_game();
 
     auto num_actions = atari->get_num_actions();
@@ -42,12 +43,9 @@ int main(int argc, char** argv) {
             reward_per_game = 0;
             continue;
         }
-        atari->show_screen(reward_per_game);
+        atari->show_screen();
 
-        StatePacket state;
-        // You can choose to store the immediate reward r in the state
-        // Or you can just ignore the first argument
-        atari->get_state_data(r, state);
+        auto state = atari->get_state(r);
 
         StatePacket actions;
         actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});

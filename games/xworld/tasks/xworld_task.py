@@ -16,6 +16,7 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
 
 from context_free_grammar import CFG
 from py_gflags import get_flag
+from maze2d import bfs
 
 class XWorldTask(object):
     ## some static class variables
@@ -25,7 +26,7 @@ class XWorldTask(object):
     wrong_reward = -1.0
     failed_action_penalty = -0.2
 
-    record_env_usage_period = 100
+    record_env_usage_period = 1
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -332,27 +333,15 @@ class XWorldTask(object):
                  if (2, 0) == (g2.loc[0] - g1.loc[0], g2.loc[1] - g1.loc[1]) \
                 and not (g1.loc[0] + 1, g1.loc[1]) in blocks]
 
-    def _reachable(self, start, to):
+    def _reachable(self, start, end):
         """
-        Use BFS to determine that if location 'to' can be reached from location 'start'
+        Use BFS to determine that if location 'end' can be reached from location 'start'
         The obstacles are the wall blocks on the current map.
         """
         obstacles = set([b.loc for b in self._get_blocks()])
-        visited = {start}
-        ## TODO: use collections.deque if the map size is huge
-        que = [start]
-        while que:
-            cur = que.pop(0)
-            if cur == to:
-                return True
-            for d in self.directions.keys():
-                next = (cur[0] + d[0], cur[1] + d[1])
-                if self.__within_boundary(next) \
-                   and (not next in obstacles) \
-                   and (not next in visited):
-                    visited.add(next)
-                    que.append(next)
-        return False
+        assert not start in obstacles, "start pos should not be in obstacles"
+        Y, X = self.env.get_dims()
+        return (bfs(start, end, X, Y, obstacles) is not None)
 
     def _bind(self, binding_str):
         """

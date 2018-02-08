@@ -29,6 +29,8 @@
 
 #include "xworld3d.h"
 
+DECLARE_string(curriculum_stamp);
+
 namespace simulator {
 namespace xworld3d {
 
@@ -122,7 +124,13 @@ X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
 
         auto mod = py::import(map_.c_str());
         item_path_ = path + item_path_;
-        xwd_env_ = mod.attr(map_.c_str())(item_path_.c_str());
+        int start_level = 0;
+        // read the curriculum record if possible
+        if (FLAGS_curriculum_stamp != "") {
+            std::ifstream infile(FLAGS_curriculum_stamp);
+            infile >> start_level;
+        }
+        xwd_env_ = mod.attr(map_.c_str())(item_path_.c_str(), start_level);
     } catch (...) {
         PyErr_Print();
         LOG(FATAL) << "Error loading map: " << map_;
@@ -161,6 +169,14 @@ void X3World::reset_world(bool map_reset) {
         py::tuple dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
         height_ = py::extract<int>(dims[0]);
         width_ = py::extract<int>(dims[1]);
+
+        const int record_curriculum_period = 200;
+        static int n_games = 0;
+        if (FLAGS_curriculum_stamp != "" && (++n_games) % record_curriculum_period == 0) {
+            int level = py::extract<int>(xwd_env_.attr("dump_curriculum_progress")());
+            std::ofstream outfile(FLAGS_curriculum_stamp);
+            outfile << level;
+        }
 
         py::list py_entities = py::extract<py::list>(
                 xwd_env_.attr("cpp_get_entities")());

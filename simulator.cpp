@@ -23,6 +23,7 @@ DEFINE_int32(max_steps, 0, "maxinum steps for the game");
 DEFINE_bool(lock_step, false, "step-by-step inspection");
 DEFINE_bool(color, false, "whether the screen is grayscale or color");
 DEFINE_bool(pause_screen, false, "show screen continuously or paused by hand");
+DEFINE_string(curriculum_stamp, "", "the file that records the curriculum progress (an int)");
 
 namespace simulator {
 

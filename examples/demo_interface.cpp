@@ -45,7 +45,6 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
         StatePacket actions;
         int a = util::get_rand_ind(num_actions);
         actions.add_buffer_id("action", {a});
-        actions.add_buffer_str("pred_sentence", "hello");
 
         r = g->take_actions(actions, 1);
         reward += r;

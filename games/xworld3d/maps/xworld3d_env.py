@@ -18,29 +18,32 @@ import copy
 import itertools
 import numbers
 import os
-import pprint
 import random
+from maze2d import spanning_tree_maze_generator
 
 """
 Entity:
   id            - unique str for this entity
-  grid_types    - "agent", "goal", "block"
+  grid_types    - "agent", "goal", "block", "boundary"
   location      - (x, y, z)
   yaw           - in radian
+  scale         - (0, 1.0]
+  offset        - [0, 1-scale]
   name          - name of the entity
   asset_path    - the model path
   color         - color of the entity
 """
 class Entity:
-    def __init__(self, type, id=None, loc=None, yaw=None, name=None, asset_path=None, color=None):
+    def __init__(self, type, id=None, loc=None, yaw=0.0,
+                 scale=1.0, offset=0.0, name=None, asset_path=None, color=None):
         if not loc is None:
             assert isinstance(loc, tuple) and len(loc) == 3
-        if not yaw is None:
-            assert isinstance(yaw, numbers.Real)
         self.type = type
         self.id = id
         self.loc = loc
         self.yaw = yaw
+        self.scale = scale
+        self.offset = offset
         self.name = name
         self.asset_path = asset_path
         self.color = color
@@ -106,7 +109,7 @@ class XWorld3DEnv(object):
         random.shuffle(self.available_grids)
         self.changed = True
 
-    def set_entity(self, type, loc=None, yaw=None, name=None):
+    def set_entity(self, type, loc=None, name=None):
         """
         Add an entity of type to loc which must be currently empty
         """
@@ -239,29 +242,10 @@ class XWorld3DEnv(object):
         """
         self.current_usage = x
 
-    def print_env(self):
-        """
-        Print the current environment map for debugging purpose
-        """
-        Y, X = self.get_dims()
-        m = [[' ' for x in range(X)] for y in range(Y)]
-        for e in self.entities:
-            if e.type == "goal":
-                c = 'G'
-            elif e.type == "block":
-                c = 'B'
-            else:
-                assert e.type == "agent"
-                c = 'A'
-            x, y, _ = e.loc
-            x, y = int(x), int(y)
-            assert y < len(m)
-            assert x < len(m[y])
-            m[y][x] = c
-        print("Environment configure:")
-        pprint.pprint(m)
-
     ######################## interface with C++ #############################
+    def dump_curriculum_progress(self):
+        return self.current_level
+
     def env_changed(self):
         """
         Whether the environment has been changed by the teacher during the current
@@ -323,78 +307,6 @@ class XWorld3DEnv(object):
         """
         raise NotImplementedError()
 
-    ## compute paths from the start to the end
-    def bfs(self, start, end, X, Y, obstacles):
-        """
-        return a shortest path from start to end
-        """
-        que = [start]
-        prev = {start: None}
-        while len(que) > 0:
-            cur = que.pop(0)
-            if cur == end:
-                break
-            moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
-            random.shuffle(moves)
-            for m in moves:
-                next = (cur[0] + m[0], cur[1] + m[1], cur[2] + m[2])
-                if next[0] >= 0 and next[0] < X and next[1] >= 0 and next[1] < Y \
-                   and (not next in prev) and (not next in obstacles):
-                    prev[next] = cur
-                    que.append(next)
-        ## if end is not reachable
-        if cur != end:
-            return
-        ## backtrack
-        track = []
-        while cur is not None:
-            track.append(cur)
-            cur = prev[cur]
-        assert len(track) >= 2
-        return track[1:-1]
-
-    def __spanning_tree_maze_generator(self, X, Y):
-        """
-        Generate a maze that has no loop
-        """
-        assert X == Y, "only support square maps"
-        pad = False
-        if X % 2 == 0:
-            pad = True
-            X, Y = X - 1, Y - 1
-
-        visited = set([])
-        maze = [[(' ' if x % 2 == 0 and y % 2 ==0 else '#') \
-                 for x in range(X)] for y in range(Y)]
-        edges = set([])
-
-        x, y = (X + 1) / 2, (Y + 1) / 2
-        def dfs(cur):
-            visited.add(cur)
-            ## do not move moves outside
-            moves = [(-1, 0), (1, 0), (0, 1), (0, -1)]
-            random.shuffle(moves)
-            for m in moves:
-                next = (cur[0] + m[0], cur[1] + m[1])
-                if not next in visited and next[0] >= 0 \
-                   and next[0] < x and next[1] >= 0 and next[1] < y:
-                    edges.add((cur, next))
-                    dfs(next)
-
-        ## always start from (0, 0)
-        dfs((0, 0))
-        ## render the maze
-        for e in edges:
-            mid_x = e[0][0] + e[1][0]
-            mid_y = e[0][1] + e[1][1]
-            maze[mid_y][mid_x] = ' '
-
-        if pad: # for even sizes, we pad the maze
-            maze.append([' ' if i % 2 == 0 else '#' for i in range(X)])
-            for i, m in enumerate(maze):
-                m.append(' ' if i % 2 == 0 else '#')
-        return maze
-
     def __instantiate_entities(self):
         """
         For each entity, select an instance from the object class it belongs to,
@@ -403,15 +315,14 @@ class XWorld3DEnv(object):
         """
         Y, X = self.get_dims()
 
-        maze = self.__spanning_tree_maze_generator(X, Y)
+        maze = spanning_tree_maze_generator(X, Y)
         blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
-#        random.shuffle(blocks)
+        random.shuffle(blocks)
 
-        ## might create some empty grids surrounded by blocks
-        for e in self.get_blocks():
-            assert blocks, "too many blocks for a valid maze"
-            e.loc = blocks.pop()
-            self.available_grids.remove(e.loc)
+        ## first remove all maze blocks
+        for b in blocks:
+            if b in self.available_grids:
+                self.available_grids.remove(b)
 
         ## select a random object path for each non-block entity
         for i, e in enumerate(self.entities):
@@ -425,11 +336,19 @@ class XWorld3DEnv(object):
             if e.loc is None and e.type != "block":
                 assert len(self.available_grids) > 0
                 e.loc = self.available_grids.pop()
-            if e.yaw is None:
-                if e.type == "agent":
-                    e.yaw = random.uniform(-self.PI, self.PI)
-                else:
-                    e.yaw = random.randint(-1,2) * self.PI_2
+            if e.type == "agent":
+                e.yaw = random.uniform(-self.PI, self.PI)
+                self.init_agent_loc = e.loc
+            elif e.type == "goal":
+                e.yaw = random.randint(-1,2) * self.PI_2
+
+        ## add back some empty grids
+        self.available_grids += blocks[len(self.get_blocks()):]
+
+        ## use the remaining blocks
+        for e in self.get_blocks():
+            assert blocks, "too many blocks for a valid maze"
+            e.loc = blocks.pop()
 
     def __add_boundaries(self):
         """
@@ -441,7 +360,7 @@ class XWorld3DEnv(object):
         def add_blocks(range1, range2, id):
             for loc in itertools.product(range1, range2):
                 for k in range(wall_height):
-                    wall_blocks.append(Entity(type="boundary", loc=loc+(k,), yaw=0, id="wall_%d" % id,
+                    wall_blocks.append(Entity(type="boundary", loc=loc+(k,), id="wall_%d" % id,
                                               name="wall", color="na",
                                               asset_path=random.choice(self.items["boundary"]["wall"])))
                     id += 1

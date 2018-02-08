@@ -16,7 +16,7 @@ In XWorld2D, a virtual agent learns language and vision. The agent sees surround
 |```xwd_conf_path```|The JSON file for configuring XWorld2D. (Default: "")|
 |```task_mode```|This flag has three possible values (Default: "one_channel") <br> 1. "arxiv_lang_acquisition": replicate the environment used in arXiv:1703.09831 (used with conf file ```<xworld_path>/games/xworld/confs/navigation.json``` and dictionary ```<xworld_path>/games/xworld/dicts/nav_dict.txt```); <br> 2. "arxiv_interactive": replicate the environment used in arXiv:1705.09906 (used with conf file ```<xworld_path>/games/xworld/confs/lang.json``` and dictionary ```<xworld_path>/games/xworld/dicts/lang_dict.txt```); <br> 3. "one_channel": integrate the above two environments into a single one.|
 |```context```|How many consecutive frames are used to represent the current sensor input. (Default: 1)|
-|```ego_centric```|Whether the training image is ego-centric or not. If true, the actual world dimensions of the training image will be (2h-1) x (2w-1). (Default: true)|
+|```visible_radius```|The visible radius of the agent. If zero, the actual world dimensions of the training image will be (2h-1) x (2w-1). (Default: 0)|
 
 ## How to define your own XWorld2D tasks
 You can customize XWorld2D tasks in a flexible way. To define a new task, you need to follow three steps:

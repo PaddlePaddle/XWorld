@@ -3,7 +3,7 @@ import os
 import random
 
 class XWorldWalls(XWorldEnv):
-    def __init__(self, item_path):
+    def __init__(self, item_path, start_level=0):
         super(XWorldWalls, self).__init__(
             item_path=item_path,
             max_height=7,

@@ -1,7 +1,7 @@
 from xworld_env import XWorldEnv
 
 class XWorldLanguage(XWorldEnv):
-    def __init__(self, item_path):
+    def __init__(self, item_path, start_level=0):
         super(XWorldLanguage, self).__init__(
             item_path=item_path)
 
