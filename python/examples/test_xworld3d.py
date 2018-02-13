@@ -39,8 +39,10 @@ if __name__ == "__main__":
     num_actions = x3d.get_num_actions()
 
     reward = 0
+    print("\033[93mUse show_screen() to see the game. " \
+          + "However, X server must be used; otherwise the code crashes\033[0m")
     for i in range(100):
-        x3d.show_screen()
+#        x3d.show_screen()
 
         game_over_str = x3d.game_over()
         if game_over_str != "alive":

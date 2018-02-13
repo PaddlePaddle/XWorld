@@ -40,8 +40,10 @@ if __name__ == "__main__":
     num_actions = xworld.get_num_actions()
 
     reward = 0
+    print("\033[93mUse show_screen() to see the game. " \
+          + "However, X server must be used; otherwise the code crashes\033[0m")
     for i in range(100):
-        xworld.show_screen()
+#        xworld.show_screen()
 
         game_over_str = xworld.game_over()
         if game_over_str != "alive":
@@ -72,7 +74,7 @@ if __name__ == "__main__":
 
     reward = 0
     for i in range(100):
-        xworld.show_screen()
+#        xworld.show_screen()
 
         game_over_str = xworld.game_over()
         print(game_over_str)

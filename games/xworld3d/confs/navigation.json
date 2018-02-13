@@ -5,8 +5,8 @@
         "XWorld3DNav" : {
             "held_out" : [
             ],
-            "weight" : 0.5,
-            "schedule" : "random",  // optional, default "random"
+            "weight" : 1,
+            "schedule" : "random",
             "tasks" : {
                 "XWorld3DNavTarget" : 1
             }

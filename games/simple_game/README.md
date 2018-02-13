@@ -12,5 +12,4 @@ A synthetic simple game. The agent moves along a 1D array. The agent starts at t
 ## Flags
 |**Name**|**Description**|
 |:-------|:---------------|
-|```pause_screen```|Pause the screen when show_screen() is called, until any key is pressed. (Default: false)|
 |```array_size```|The array size. (Default: 0)|

@@ -15,6 +15,8 @@ if __name__ == "__main__":
     act_rep = options["context"]
 
     reward = 0
+    print("\033[93mUse show_screen() to see the game. " \
+          + "However, X server must be used; otherwise the code crashes\033[0m")
     for i in range(100):
         game_over_str = atari.game_over()
         if game_over_str != "alive" and game_over_str != "lost_life":
@@ -22,7 +24,7 @@ if __name__ == "__main__":
             atari.reset_game()
             continue
 
-        atari.show_screen()
+#        atari.show_screen()
 
         states = atari.get_state()
         action = randint(0, num_actions - 1)
