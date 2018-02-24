@@ -2,7 +2,7 @@
 <img src="../../doc/simple_race_2.png"> <img src="../../doc/simple_race_1.png">
 
 ## Game description
-A car drives on a track which can be either straight or circular. For the straight track, the car needs to drive from top to bottom without hitting the left and right boundaries of the track. For the circular track, the car needs to stay alive as long as possible.
+A car drives on a track which can be either straight or circular. For the straight track, the car needs to drive from top to bottom without hitting the left or right boundaries of the track. For the circular track, the car needs to stay alive as long as possible.
 
 ## Create
 * Python name: ```simple_race```

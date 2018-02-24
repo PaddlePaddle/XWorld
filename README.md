@@ -8,16 +8,16 @@ This repository contains a collection of simulators for Reinforcement Learning r
 |**Difficulty**|**Name**|**Description**|**Thread-compatible?***|**Optional?**|**Policy**|**Teacher?**|
 |:-----|:--------------|:---------------|:---------------|:---------------|:------|:------|
 |Easy|[**SimpleGame**](games/simple_game/README.md)|A simple 1D array-walking game.|Yes|No|Discrete|No|
-|Easy,Medium|[**SimpleRace**](games/simple_race/README.md)|A simple synthetic car racing game.|Yes|No|Discrete|No|
-|Medium,Hard|[**Atari**](games/arcade/README.md)|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|Discrete|No|
-|Medium,Hard|[**XWorld2D**](games/xworld/README.md)|A 2D world for an agent to learn vision and language abilities.|No|No|Discrete<br>Continuous|Yes|
+|Easy, Medium|[**SimpleRace**](games/simple_race/README.md)|A simple synthetic car racing game.|Yes|No|Discrete|No|
+|Medium, Hard|[**Atari**](games/arcade/README.md)|Wrappers for the Arcade Learning Environment ([ALE](http://www.arcadelearningenvironment.org/)) environment. For stability, we use a fork version.|Yes|Yes|Discrete|No|
+|Medium, Hard|[**XWorld2D**](games/xworld/README.md)|A 2D world for an agent to learn vision and language abilities.|No|No|Discrete<br>Continuous|Yes|
 |Hard|[**XWorld3D**](games/xworld3d/README.md)|A 3D world for an agent to learn vision and language abilities. (*WIP; a preliminary version without documentation is available.*)|No|Yes|Discrete<br>Continuous|Yes|
 
 
 (*If yes, then multithreading can be used; otherwise multiprocessing is needed.)
 
 # Architecture
-XWorld features a *teacher* infrastructure implemented as a scheduler of multiple Finite State Machines (FSMs). The idea is that given the environment, the teacher can propose a task sampled (by some heuristics) from a task set. Each task - formulated as an FSM - has several stages, and the teacher does different things in different stages. The transition from one stage to another is determined by the envionment state, e.g., whehter the agent is idle or whether it has achieved the goal. Each stage returns several things including the next stage and the teacher's action. Currently, we define language (strings) as the teacher's sole action. However, the teacher is able to change the environment (e.g., adding/deleting objects, changing the map size, etc) within each stage.
+XWorld features a *teacher* infrastructure implemented as a scheduler of multiple Finite State Machines (FSMs). The idea is that given the environment, the teacher can propose a task sampled (by some heuristics) from a task set. Each task - formulated as an FSM - has several stages, and the teacher does different things in different stages. The transition from one stage to another is determined by the envionment state, e.g., whehter the agent is idle or whether it has achieved the goal. Each stage returns several things including the next stage and the teacher's action. Currently, we define language (strings) as the teacher's sole action. However, the teacher is able to change the environment (e.g., adding/deleting objects, changing the map size, etc.) within each stage.
 
 <img src="doc/xworld_arch.png">
 
