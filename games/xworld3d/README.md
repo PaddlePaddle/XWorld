@@ -12,7 +12,7 @@ Install [FFmpeg](https://www.ffmpeg.org/) and [TinyXML](http://www.grinninglizar
 sudo apt install ffmpeg libtinyxml-dev
 ```
 
-Roboschool requires gcc 5.x. On Ubuntu 16.04, this requirement is already satisfied. On Ubuntu 14.04, you need do
+Roboschool requires gcc 5.x. On Ubuntu 16.04, this requirement is already satisfied. On Ubuntu 14.04, you need to do
 ```bash
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test
 sudo apt-get update
