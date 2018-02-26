@@ -41,11 +41,15 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
     std::string flag_name = c_name;
     if (flag_name == "task_mode") {
         return PyString_FromString(FLAGS_task_mode.c_str());
-    } else if (flag_name == "x3_task_mode") {
+    } 
+    #ifdef XWORLD3D
+    else if (flag_name == "x3_task_mode") {
         return PyString_FromString(FLAGS_x3_task_mode.c_str());
     } else if (flag_name == "x3_reaching_distance") {
         return Py_BuildValue("d", FLAGS_x3_reaching_distance);
-    } else if (flag_name == "curriculum") {
+    }
+    #endif
+    else if (flag_name == "curriculum") {
         return Py_BuildValue("d", FLAGS_curriculum);
     } else {
         throw PyException("GFlag '" + flag_name + "' is not recognized");
