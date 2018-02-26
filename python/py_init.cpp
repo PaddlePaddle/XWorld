@@ -24,9 +24,19 @@
 
 DECLARE_string(task_mode);            // default "one_channel"
 DECLARE_double(curriculum);
+#ifdef XWORLD3D
 DECLARE_string(x3_task_mode);
 DECLARE_double(x3_reaching_distance);
-
+#else
+DEFINE_double(x3_reaching_distance, -1,
+              "dummy x3_reaching_distance variable for python interface"
+              "when XWORLD3D is not defined");
+DEFINE_string(
+    x3_task_mode,
+    "dummy_mode",
+    "dummy x3_task_mode variable for python interface"
+    "when XWORLD3D is not defined");
+#endif
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
     std::string error() const throw() { return msg_; }
