@@ -45,7 +45,6 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
         StatePacket actions;
         int a = util::get_rand_ind(num_actions);
         actions.add_buffer_id("action", {a});
-        actions.add_buffer_str("pred_sentence", "hello");
 
         r = g->take_actions(actions, 1);
         reward += r;
@@ -60,6 +59,10 @@ int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     std::string name = FLAGS_game;
+    CHECK(name != "xworld" || name != "xworld3d")
+            << " This program is for demostration of multiprocesses. It does"
+            << " not support games with more than one type of actions.";
+
 
     int client_id = -1;
     const int num_agents = 1;
