@@ -44,11 +44,6 @@ if(NOT GFLAGS_LIBRARIES)
   # user can set GFLAGS_ROOT_DIR to help find_package
   find_package(Gflags REQUIRED)
 endif()
-## user can directly set GTEST_INCLUDE_DIRS and GTEST_BOTH_LIBRARIES
-if(NOT GTEST_LIBRARIES)
-  # user can set GTEST_ROOT to help find_package
-  find_package(GTest REQUIRED)
-endif()
 
 ## user can set OPENCV_LIBS and OpenCV_INCLUDE_DIRS
 if(NOT OPENCV_LIBS)
@@ -61,7 +56,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${GFLAGS_INCLUDE_DIRS})
 include_directories(${GLOG_INCLUDE_DIRS})
-include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SIMULATOR_SOURCES
@@ -108,10 +102,18 @@ add_library(simulator SHARED
   ${OBJECT_LIBS_LIST})
 
 if(WITH_TESTING)
+  ## user can directly set GTEST_INCLUDE_DIRS and GTEST_BOTH_LIBRARIES
+  if(NOT GTEST_LIBRARIES)
+    # user can set GTEST_ROOT to help find_package
+    find_package(GTest REQUIRED)
+  endif()
+  include_directories(${GTEST_INCLUDE_DIRS})
   enable_testing()
+  add_subdirectory(tests)
+else()
+  message("Warning: GTEST turned off")
 endif()
 
-add_subdirectory(tests)
 add_subdirectory(python)
 add_subdirectory(examples)
 
