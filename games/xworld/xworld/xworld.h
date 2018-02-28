@@ -34,17 +34,12 @@ class XWorld {
     void reset(bool map_reset = true);
 
     // get an image representation of the world
-    // flag_item_centric=true: get an egocentric view image representation of
     // the world for the specified item
     // flag_active_goal=true: generate an image with the specified goal
     // highlighted
-    cv::Mat to_image(bool flag_ego_centric = false,
-                     int agent_id = 0,
-                     int pad_size = 0,
+    cv::Mat to_image(int agent_id = 0,
                      bool flag_illustration = true,
-                     int success = 0,
-                     int visible_radius_unit = 0,
-                     bool flag_crop_receiptive_field = false);
+                     int visible_radius_unit = 0);
 
     // agent specified by agent_ptr takes action action_id
     // return whether the action is successful or not

@@ -36,14 +36,8 @@ class XMap {
 
     /**
     *  Function to get an image representation of all the items in map.
-    *  @param flag_item_centric: flag for item centric view or not (item
-    * specified
-    * by item_id)
-    *  @param item_loc:  the location of the item for centering the view if
-    * flag_item_centric is true
-    *  @param flag_grid_lines: flag for drawing the grid lines in xworld
-    *  @param success: draw a success sign if positive and failure sign
-    * otherwise
+    *  @param item_loc:  the location of the item for centering the view
+    *  @param flag_illustration: whether for visualisation or training
     *  @param visible_radius_unit: radius of the visible range for the agent in
     * terms of xworld unit;
     *                      zero for full observation
@@ -53,12 +47,10 @@ class XMap {
     * (for
     * visualization)
     */
-    cv::Mat to_image(bool flag_item_centric,
-                     const Loc& item_loc,
+    cv::Mat to_image(const Loc& item_loc,
+                     double yaw,
                      bool flag_illustration,
-                     int success,
-                     int visible_radius_unit,
-                     bool flag_crop_receiptive_field);
+                     int visible_radius_unit);
 
     /**
     *  Function to generate a partially observed view for an input image
@@ -66,17 +58,11 @@ class XMap {
     *  @param item_loc: the location of the item that specifies the center of the
     * mask
     *  @param visible_radius_unit: radius of the visible range for the agent
-    *  @param mask_value: value to be filled for the invisible region
-    *  @param flag_crop_receipt_field: flag for whether to crop only the visible
-    * region (for learning)
-    *                          or keep the full image uncropped but masked (for
-    * visualization)
     */
-    cv::Mat image_masking(cv::Mat img_in,
-                          const Loc& item_loc,
-                          int visible_radius_unit,
-                          int mask_value,
-                          bool flag_crop_receiptive_filed = false);
+    cv::Rect image_masking(cv::Mat img_in,
+                           const Loc& item_loc,
+                           double yaw,
+                           int visible_radius_unit);
 
     // add an item to the map
     void add_item(XItemPtr item_ptr);

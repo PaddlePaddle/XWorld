@@ -22,10 +22,11 @@
 //// These gflags are first passed in by c++ binary
 //// Here we expose them to Python module py_gflags
 
-DECLARE_string(task_mode);            // default "one_channel"
+DECLARE_int32(visible_radius);
+DECLARE_string(task_mode);
 DECLARE_double(curriculum);
-DECLARE_string(x3_task_mode);
-DECLARE_double(x3_reaching_distance);
+//DECLARE_string(x3_task_mode);
+//DECLARE_double(x3_reaching_distance);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -39,17 +40,15 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
         throw PyException("get_gflag args incorrect");
     }
     std::string flag_name = c_name;
-    if (flag_name == "task_mode") {
+    if (flag_name == "visible_radius") {
+        return Py_BuildValue("i", FLAGS_visible_radius);
+    } else if (flag_name == "task_mode") {
         return PyString_FromString(FLAGS_task_mode.c_str());
-    } 
-    #ifdef XWORLD3D
-    else if (flag_name == "x3_task_mode") {
-        return PyString_FromString(FLAGS_x3_task_mode.c_str());
-    } else if (flag_name == "x3_reaching_distance") {
-        return Py_BuildValue("d", FLAGS_x3_reaching_distance);
-    }
-    #endif
-    else if (flag_name == "curriculum") {
+        //    } else if (flag_name == "x3_task_mode") {
+        //        return PyString_FromString(FLAGS_x3_task_mode.c_str());
+        //    } else if (flag_name == "x3_reaching_distance") {
+        //        return Py_BuildValue("d", FLAGS_x3_reaching_distance);
+    } else if (flag_name == "curriculum") {
         return Py_BuildValue("d", FLAGS_curriculum);
     } else {
         throw PyException("GFlag '" + flag_name + "' is not recognized");

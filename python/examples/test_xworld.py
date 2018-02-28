@@ -25,17 +25,18 @@ def compute_speak_action(states, num_actions):
 
 if __name__ == "__main__":
 
-    print "Example 1: Navigation with language instruction"
+    print "Example 1: Navigation with language instruction (with curriculum)"
     options = {
         "xwd_conf_path": "../../confs/walls.json",
-        "curriculum": 0,
+        "curriculum": 0.1,
         "task_mode": "arxiv_lang_acquisition",
         "context": 1,
         "pause_screen": True,
         "task_groups_exclusive": False,
-        "ego_centric" : True
+        "visible_radius" : 0
     }
     xworld = Simulator.create("xworld", options)
+    xworld.reset_game()
 
     num_actions = xworld.get_num_actions()
 
@@ -62,13 +63,13 @@ if __name__ == "__main__":
     print "Example 2: Interactive language learning"
     options = {
         "xwd_conf_path": "../../confs/lang.json",
-        "curriculum": 0,
         "task_mode": "arxiv_interactive",
         "context": 1,
         "pause_screen": True,
         "task_groups_exclusive": True
     }
     xworld = Simulator.create("xworld", options)
+    xworld.reset_game()
 
     num_actions = xworld.get_num_actions()
 

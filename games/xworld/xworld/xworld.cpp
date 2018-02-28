@@ -23,6 +23,8 @@
 #include <limits>
 #include <utility>
 
+DECLARE_string(curriculum_stamp);
+
 namespace simulator {
 namespace xwd {
 
@@ -87,7 +89,13 @@ XWorld::XWorld(const std::string& conf, bool print_conf) : conf_(conf) {
 
         auto mod = py::import(map.c_str());
         item_path = path + "../" + item_path;
-        xwd_env_ = mod.attr(map.c_str())(item_path.c_str());
+        int start_level = 0;
+        // read the curriculum record if possible
+        if (FLAGS_curriculum_stamp != "") {
+            std::ifstream infile(FLAGS_curriculum_stamp);
+            infile >> start_level;
+        }
+        xwd_env_ = mod.attr(map.c_str())(item_path.c_str(), start_level);
     } catch (...) {
         PyErr_Print();
         LOG(FATAL) << "Error loading map: " << map;
@@ -112,6 +120,14 @@ void XWorld::reset(bool map_reset) {
         width_ = py::extract<int>(dims[1]);
         map_ = XMap(height_, width_);
 
+        const int record_curriculum_period = 200;
+        static int n_games = 0;
+        if (FLAGS_curriculum_stamp != "" && (++n_games) % record_curriculum_period == 0) {
+            int level = py::extract<int>(xwd_env_.attr("dump_curriculum_progress")());
+            std::ofstream outfile(FLAGS_curriculum_stamp);
+            outfile << level;
+        }
+
         py::list entities = py::extract<py::list>(xwd_env_.attr("cpp_get_entities")());
         for (int i = 0; i < py::len(entities); i ++) {
             py::dict e = py::extract<py::dict>(entities[i]);
@@ -128,28 +144,13 @@ void XWorld::reset(bool map_reset) {
     }
 }
 
-cv::Mat XWorld::to_image(bool flag_item_centric, /* false */
-                         int agent_id,
-                         int pad_size, /* 0 */
+cv::Mat XWorld::to_image(int agent_id,
                          bool flag_illustration, /* true */
-                         int success,
-                         int visible_radius_unit, /*0*/
-                         bool flag_crop_receiptive_field /*false*/) {
-    cv::Mat img = map_.to_image(flag_item_centric,
-                                agent_list_[agent_id]->get_item_location(),
-                                flag_illustration,
-                                success,
-                                visible_radius_unit,
-                                flag_crop_receiptive_field);
-    copyMakeBorder(img,
-                   img,
-                   pad_size,
-                   pad_size,
-                   pad_size,
-                   pad_size,
-                   cv::BORDER_CONSTANT,
-                   cv::Scalar(0, 0, 0));
-    return img;
+                         int visible_radius_unit /*0*/) {
+    return map_.to_image(agent_list_[agent_id]->get_item_location(),
+                         agent_list_[agent_id]->get_item_yaw(),
+                         flag_illustration,
+                         visible_radius_unit);
 }
 
 bool XWorld::act(int agent_id, int action_id) {

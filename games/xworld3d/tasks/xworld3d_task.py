@@ -18,9 +18,11 @@ from math import acos
 from math import sin
 from math import asin
 from math import copysign
+from math import sqrt
+import itertools
 from context_free_grammar import CFG
 from py_gflags import get_flag
-import itertools
+from maze2d import bfs
 
 class XWorld3DTask(object):
     ## some static class variables
@@ -29,6 +31,10 @@ class XWorld3DTask(object):
     correct_reward = 10.0
     wrong_reward = -10.0
     collision_penalty = 0.00
+
+    ## If the agent is near the target, we increase the penalty
+    ## to prevent a trivial TargetSide solution
+    target_side_penalty = time_penalty * 3
 
     failed_action_penalty = -0.1
 #    max_steps = 500
@@ -40,8 +46,8 @@ class XWorld3DTask(object):
     PI_4 = PI / 4
     PI_2 = PI / 2
 
-    # how often we should record the environment usage for the curriculum learning
-    record_env_usage_period = 200
+    ## the window size for recording the performance
+    performance_window_size = 200
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -49,25 +55,25 @@ class XWorld3DTask(object):
             ( self.PI_2-self.PI_8,  self.PI_2+self.PI_8)    : "right",
             (-self.PI_2-self.PI_8, -self.PI_2+self.PI_8)    : "left",
             (          -self.PI_8,            self.PI_8)    : "front",
-            # two intervals of "back" cannot be merged, so we need to specify
+            # two intervals of "behind" cannot be merged, so we need to specify
             # them separately
-            (   self.PI-self.PI_8,              self.PI)    : "back",
-            (            -self.PI,   -self.PI+self.PI_8)    : "back",
+            (   self.PI-self.PI_8,              self.PI)    : "behind",
+            (            -self.PI,   -self.PI+self.PI_8)    : "behind",
             (           self.PI_8,  self.PI_4+self.PI_8)    : "front-right",
-            ( self.PI_2+self.PI_8,    self.PI-self.PI_8)    : "back-right",
+            ( self.PI_2+self.PI_8,    self.PI-self.PI_8)    : "behind-right",
             (-self.PI_2+self.PI_8,           -self.PI_8)    : "front-left",
-            (  -self.PI+self.PI_8, -self.PI_2-self.PI_8)    : "back-left"
+            (  -self.PI+self.PI_8, -self.PI_2-self.PI_8)    : "behind-left"
         }
-        self.distance_threshold = get_flag("x3_reaching_distance")
+#        self.distance_threshold = get_flag("x3_reaching_distance")
         self.orientation_threshold = self.PI_4
         self.env = env
         self.event = ""
+        self.success_seq = []
         self.num_successes = 0
         self.num_failures = 0
         self.reset()
         self.cfg = CFG(*self._define_grammar())
         self.sentence = ""
-        self.failure_recorded = False
 
     ################ internal functions ####################
     def _define_grammar(self):
@@ -92,19 +98,20 @@ class XWorld3DTask(object):
         """
         return self.env.get_all_colors()
 
-    def _get_direction_and_distance(self, p1, yaw, p2):
+    def _get_direction_and_distance(self, p1, p2, p1_yaw=None):
         """
-        Get the direciton of p2 wrt p1's orientation, and the distance from p1
-        to l2.
+        Get the direciton of p2 wrt p1's yaw, and the distance from p1 to p2.
         Return:
-        theta:      relative angle from p2 to p1 wrt p1's orientation
+        theta:      relative angle from p2 to p1 wrt p1's yaw
         dist:       distance from p1 to p2
         direction:  name of the direction
         """
         dx = p2[0] - p1[0]
         dy = p2[1] - p1[1]
-        dist = pow(pow(dx, 2) + pow(dy, 2), 0.5)
-        v1 = (cos(yaw), sin(yaw))
+        dist = sqrt(dx ** 2 + dy ** 2)
+        if p1_yaw is None:
+            return dist
+        v1 = (cos(p1_yaw), sin(p1_yaw))
         v2 = (dx / dist, dy / dist)
         # theta is the angle from p2 to p1 wrt p1's orientation
         cos_theta = max(-1, min(1, v1[0]*v2[0] + v1[1]*v2[1]))
@@ -117,24 +124,25 @@ class XWorld3DTask(object):
         return theta, dist, direction
 
     def _get_distance(self, p1, p2):
-        return pow(pow(p2[0]-p1[0], 2) + pow(p2[1]-p1[1], 2), 0.5)
+        return sqrt((p2[0]-p1[0]) ** 2 + (p2[1]-p1[1]) ** 2)
+
+    def __record_result(self, res):
+        self.success_seq.append(res)
+        if len(self.success_seq) > XWorld3DTask.performance_window_size:
+            self.success_seq.pop(0)
+        self._record_env_usage()
 
     def _record_success(self):
+        self.__record_result(1)
         self.num_successes += 1
-        self._record_env_usage()
 
     def _record_failure(self):
+        self.__record_result(0)
         self.num_failures += 1
-        self._record_env_usage()
 
     def _record_env_usage(self):
-        ## wait until sufficient data
-        if self.num_successes + self.num_failures == XWorld3DTask.record_env_usage_period:
-            ## env usage is decided by the task success rate
-            self.env.record_environment_usage(
-                float(self.num_successes) / XWorld3DTask.record_env_usage_period)
-            self.num_successes = 0
-            self.num_failures = 0
+        self.env.record_environment_usage(
+            self.__class__.__name__, self.success_seq)
 
     def _record_answer(self, answer):
         """
@@ -188,10 +196,6 @@ class XWorld3DTask(object):
 
     def obtain_performance(self):
         return (self.num_successes, self.num_failures)
-
-    def reset_performance(self):
-        self.num_successes = 0
-        self.num_failures = 0
 
     def print_grammar(self):
         self.cfg.show()
@@ -278,36 +282,45 @@ class XWorld3DTask(object):
 #        self.sentence = ""
 
         def reach_object(agent, yaw, object):
-            theta, _, _ = self._get_direction_and_distance(agent, yaw, object.loc)
+            theta, _, _ = self._get_direction_and_distance(agent, object.loc, yaw)
             return abs(theta) < self.orientation_threshold and object.id in collisions
+
+        def successful_goal(reward):
+            self._record_success()
+            self._record_event("correct_goal")
+            reward += XWorld3DTask.correct_reward
+            self._bind("S -> correct")
+            self.sentence = self._generate()
+            return reward
 
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
             self._record_failure()
             self._bind("S -> timeup")
-            self._record_event("time_up")
             self.sentence = self._generate()
-            self.failure_recorded = False
+            self._record_event("time_up")
         else:
-            objects_reach_test = [(g.id, reach_object(agent.loc, agent.yaw, g)) \
-                                  for g in self._get_goals()]
-            if (self.target.id, True) in objects_reach_test:
-                self._record_success()
-                self._record_event("correct_goal")
-                reward += XWorld3DTask.correct_reward
-                self._bind("S -> correct")
-                self.sentence = self._generate()
-                self.failure_recorded = False
-            elif (not self.failure_recorded) and [t for t in objects_reach_test if t[1]]: # other objects
+            objects_reach_test = [g.id for g in self._get_goals() \
+                                  if reach_object(agent.loc, agent.yaw, g)]
+
+            if isinstance(self.target, tuple):
+                assert len(self.target) == 3
+                o, dist_thresold, direction = self.target
+                _, dist, dir = self._get_direction_and_distance(agent.loc, o, agent.yaw)
+                if dist < dist_thresold:
+                    if dir == direction:
+                        reward = successful_goal(reward)
+                    else:
+                        reward += XWorld3DTask.target_side_penalty
+            elif self.target.id in objects_reach_test:
+                reward = successful_goal(reward)
+            elif objects_reach_test: # other objects
                 reward += XWorld3DTask.wrong_reward
                 self._record_failure()
-                if False:
-                    self.failure_recorded = True
-                else:
-                    self._bind("S -> wrong")
-                    self.sentence = self._generate()
-                    self._record_event("wrong_goal")
+                self._bind("S -> wrong")
+                self.sentence = self._generate()
+                self._record_event("wrong_goal")
 
         # game_over will reset the stage to "idle" so we don't bother here
         return ["simple_navigation_reward", reward, self.sentence]
@@ -386,28 +399,36 @@ class XWorld3DTask(object):
         x, y = loc
         return y >= 0 and y < h and x >= 0 and x < w
 
-    def _get_surrounding_goals(self, refer_loc=None):
+    def _get_surrounding_goals(self, distance_threshold=1.0, refer=None):
         """
-        Given a reference location, return all goals within a circular neighborhood
-        with a radius of self.distance_threshold
+        Given a reference, return all goals within a circular neighborhood
+        with a radius of distance_threshold.
+        Note that distance_threshold is inclusive
         """
         goals = self._get_goals()
-        agent, _, _ = self._get_agent()
-        if refer_loc is None:
-            refer_loc = agent.loc
+        if refer is None:
+            refer, _, _ = self._get_agent()
         ret = []
         for g in goals:
-            _, dist, dir_name = self._get_direction_and_distance(refer_loc, agent.yaw, g.loc)
-            if dist < self.distance_threshold:
-                ret.append((g, dir_name))
+            if g.id == refer.id:
+                continue
+            dist = self._get_direction_and_distance(refer.loc, g.loc)
+            if dist < distance_threshold + 1e-3:
+                ret.append(g)
         return ret
 
-    def _get_surrounding_empty_grids(self, refer_loc=None):
+    def _get_surrounding_empty_grids(self, distance_threshold=1.0, refer=None):
         """
-        Given a reference location, return all empty grids in its 3x3 neighborhood
+        Given a reference location, return all empty grids in its neighborhood
         """
-        # TODO
-        raise NotImplementedError()
+        if refer is None:
+            refer, _, _ = self._get_agent()
+        ret = []
+        for g in self.env.get_available_grids():
+            dist = self._get_direction_and_distance(refer.loc, g)
+            if dist < distance_threshold + 1e-3:
+                ret.append(g)
+        return ret
 
     def _get_between_pair_goals(self):
         """
@@ -422,6 +443,8 @@ class XWorld3DTask(object):
         Use BFS to determine that if location 'end' can be reached from location 'start'
         The obstacles are the wall blocks and goals on the current map.
         """
+        if start == end:
+            return True
         blocks = [b.loc for b in self._get_blocks()]
         goals = [g.loc for g in self._get_goals()]
         obstacles = blocks + goals
@@ -429,7 +452,7 @@ class XWorld3DTask(object):
         if end in obstacles: # end could be occupied by a goal
             obstacles.remove(end)
         Y, X = self.env.get_dims()
-        return (self.env.bfs(start, end, X, Y, obstacles) is not None)
+        return (bfs(start, end, X, Y, obstacles) is not None)
 
     def _bind(self, binding_str):
         """

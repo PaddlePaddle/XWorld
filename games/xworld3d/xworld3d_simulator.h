@@ -111,7 +111,6 @@ private:
     cv::Mat screen_;
 
     std::vector<std::string> agent_received_sentences_;
-    std::vector<Vec3> agent_init_positions_;  // the init position of the current session
     std::vector<size_t> agent_prev_actions_;  // the agent's action in the previous time step
     static const int n_history_ =
         25;  // how many history messages to display in the message box

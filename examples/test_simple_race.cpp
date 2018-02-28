@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "simulator_interface.h"
 #include "games/simple_race/simple_race_simulator.h"
 
 using namespace simulator::simple_race;
@@ -22,7 +23,7 @@ DECLARE_int32(context);
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    auto race = std::make_shared<SimpleRaceGame>();
+    auto race = std::make_shared<SimulatorInterface>("simple_race", false);
     race->reset_game();
 
     auto num_actions = race->get_num_actions();
@@ -40,12 +41,9 @@ int main(int argc, char** argv) {
             reward_per_game = 0;
             continue;
         }
-        race->show_screen(reward_per_game);
+        race->show_screen();
 
-        StatePacket state;
-        // You can choose to store the immediate reward r in the state
-        // Or you can just ignore the first argument
-        race->get_state_data(r, state);
+        auto state = race->get_state(r);
 
         StatePacket actions;
         actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});

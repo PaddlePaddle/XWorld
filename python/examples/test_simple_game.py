@@ -8,6 +8,7 @@ if __name__ == "__main__":
         "array_size": 7
     }
     simple = Simulator.create("simple_game", options)
+    simple.reset_game()
 
     num_actions = simple.get_num_actions()
 

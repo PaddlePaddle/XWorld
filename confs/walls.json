@@ -1,6 +1,6 @@
 {
     "item_path" : "images",
-    "map" : "XWorldWalls",
+    "map" : "XWorldNav",
     "task_groups" : {
         "XWorldNav" : {
             "held_out" : [

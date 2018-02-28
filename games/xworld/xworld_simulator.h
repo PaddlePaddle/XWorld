@@ -24,10 +24,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 DECLARE_string(xwd_conf_path);
-DECLARE_int32(visible_radius_unit);
+DECLARE_int32(visible_radius);
 DECLARE_string(task_mode);
 DECLARE_bool(task_groups_exclusive);
-DECLARE_bool(ego_centric);
 
 namespace simulator {
 namespace xwd {
@@ -87,8 +86,6 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
                                    size_t& channels);
 
     std::string conf_file() { return xworld_.conf_file(); }
-
-    static const int block_size_ = 12;  // how many pixels each block has
 
   private:
     void init();

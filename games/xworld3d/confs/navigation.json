@@ -6,9 +6,11 @@
             "held_out" : [
             ],
             "weight" : 1,
-            "schedule" : "random",
+            "schedule" : "weighted",
             "tasks" : {
-                "XWorld3DNavTarget" : 1
+                "XWorld3DNavTarget" : 1,
+                "XWorld3DNavTargetNear" : 3,
+                "XWorld3DNavTargetSide" : 1
             }
         }
     }

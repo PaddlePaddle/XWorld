@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "simulator_interface.h"
 #include "games/xworld3d/xworld3d_simulator.h"
 #include "games/xworld3d/xworld3d_flags.h"
 
@@ -20,63 +21,45 @@ using namespace simulator;
 
 DECLARE_bool(task_groups_exclusive);
 
-void game_reset_with_teacher(SimulatorPtr game, TeacherPtr teacher) {
-    game->reset_game();
-    teacher->reset_after_game_reset();
-    teacher->teach();
-}
-
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     FLAGS_x3_conf = "../games/xworld3d/confs/navigation.json";
+    FLAGS_x3_big_screen = true;
 
-    auto xwd = std::make_shared<X3Simulator>(true /*print*/, true /*big_screen*/);
-
-    int agent_id = xwd->add_agent();
-    auto game = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
-    auto teacher = std::make_shared<Teacher>(
-            xwd->conf_file(), xwd, false /*print*/);
-    game_reset_with_teacher(game, teacher);
-
-    auto num_actions = game->get_num_actions();
+    auto xwd = std::make_shared<SimulatorInterface>("xworld3d", false);
+    xwd->reset_game();
+    auto num_actions = xwd->get_num_actions();
     int act_rep = FLAGS_context;
-
-    teacher->print_total_possible_sentences();
 
     double reward = 0;
     double reward_per_game = 0;
     double r = 0;
     while (true) {
-        game->show_screen(reward_per_game);
+        // xwd->show_screen();
 
         auto game_over_str =
-            GameSimulator::decode_game_over_code(game->game_over());
+            GameSimulator::decode_game_over_code(xwd->game_over());
         if (game_over_str != "alive") {
             LOG(INFO) << "game over because of " + game_over_str;
-            game_reset_with_teacher(game, teacher);
+            xwd->reset_game();
             reward_per_game = 0;
             continue;
         }
 
-        StatePacket state;
-        // You can choose to store the immediate reward r in the state
-        // Or you can just ignore the first argument
-        game->get_state_data(r, state);
+        auto state = xwd->get_state(r);
 
         StatePacket actions;
         actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});
         actions.add_buffer_str("pred_sentence", "");
-        r = game->take_actions(actions, act_rep);
-        teacher->teach();
-        r += teacher->give_reward();
+        r = xwd->take_actions(actions, act_rep);
 
         reward_per_game += r;
         reward += r;
         LOG(INFO) << r;
     }
 
-    teacher->report_task_performance();
+    xwd->teacher_report_task_performance();
 
     LOG(INFO) << "total reward " << reward;
     return 0;

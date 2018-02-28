@@ -124,13 +124,14 @@ void init_simple_race_gflags(const py::dict& args) {
 void init_xworld_gflags(const py::dict& args) {
     FLAGS_xwd_conf_path =
             extract_py_dict_val(args, "xwd_conf_path", true, "");
+    FLAGS_curriculum = extract_py_dict_val(args, "curriculum", false, 0.0f);
     std::string task_mode =
             extract_py_dict_val(args, "task_mode", false, "one_channel");
     FLAGS_task_mode = task_mode;
     FLAGS_task_groups_exclusive =
             extract_py_dict_val(args, "task_groups_exclusive", false, true);
     FLAGS_context = extract_py_dict_val(args, "context", false, 1);
-    FLAGS_ego_centric = extract_py_dict_val(args, "ego_centric", false, true);
+    FLAGS_visible_radius = extract_py_dict_val(args, "visible_radius", false, 0);
 }
 
 ///////////////////// pass flags in python dict to GFlags ///////////////////
@@ -138,6 +139,7 @@ void init_xworld_gflags(const py::dict& args) {
 void init_xworld3d_gflags(const py::dict& args) {
 #ifdef XWORLD3D
     FLAGS_context = extract_py_dict_val(args, "context", false, 1);
+    FLAGS_curriculum = extract_py_dict_val(args, "curriculum", false, 0.0f);
     FLAGS_x3_conf = extract_py_dict_val(args, "x3_conf", true, "");
     FLAGS_x3_training_img_width
             = extract_py_dict_val(args, "x3_training_img_width", false, 64);
@@ -146,7 +148,6 @@ void init_xworld3d_gflags(const py::dict& args) {
     FLAGS_x3_move_speed = extract_py_dict_val(args, "x3_move_speed", false, 25.0f);
     FLAGS_x3_turning_rad = extract_py_dict_val(args, "x3_turning_rad", false, M_PI / 8);
     FLAGS_x3_big_screen = extract_py_dict_val(args, "x3_big_screen", false, false);
-    FLAGS_pause_screen = extract_py_dict_val(args, "pause_screen", false, false);
 #endif
 }
 
@@ -182,7 +183,6 @@ PySimulatorInterface* PySimulatorInterface::create_simulator(
     }
 
     auto g = new PySimulatorInterface(name);
-    g->reset_game();
     return g;
 }
 

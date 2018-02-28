@@ -35,6 +35,7 @@ if __name__ == "__main__":
         "x3_big_screen" : True,
     }
     x3d = Simulator.create("xworld3d", options)
+    x3d.reset_game()
 
     num_actions = x3d.get_num_actions()
 

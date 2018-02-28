@@ -18,6 +18,7 @@ if __name__ == "__main__":
         "context": 1
     }
     sr = Simulator.create("simple_race", options)
+    sr.reset_game()
 
     num_actions = sr.get_num_actions()
     act_rep = options["context"]

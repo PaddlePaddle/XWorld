@@ -24,6 +24,8 @@
 #include "simulator.h"
 #include "teaching_task.h"
 
+DECLARE_double(curriculum);
+
 namespace simulator {
 
 namespace pt = boost::property_tree;
@@ -31,14 +33,11 @@ namespace pt = boost::property_tree;
 /**
    A teacher is able to get the true, unambiguous state of the world.
    A teacher will not learn anything but only communicate with agents according
-to a
-   predefined set of rules,
-   It can raise questions, give instructions, teach concepts, make statements,
-etc.
+   to a predefined set of rules,
+   It can raise questions, give instructions, teach concepts, make statements, etc.
    A teacher maintains a list of task groups.
    Each task group contains a collection of tasks that are exclusive to each
-other but
-   of the same type
+   other but of the same type
    The task groups are parallel to each other.
 **/
 class Teacher {
