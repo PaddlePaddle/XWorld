@@ -36,6 +36,7 @@ if __name__ == "__main__":
         "visible_radius" : 0
     }
     xworld = Simulator.create("xworld", options)
+    xworld.reset_game()
 
     num_actions = xworld.get_num_actions()
 

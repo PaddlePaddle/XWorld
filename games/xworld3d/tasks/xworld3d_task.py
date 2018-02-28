@@ -32,6 +32,10 @@ class XWorld3DTask(object):
     wrong_reward = -10.0
     collision_penalty = 0.00
 
+    ## If the agent is near the target, we increase the penalty
+    ## to prevent a trivial TargetSide solution
+    target_side_penalty = time_penalty * 3
+
     failed_action_penalty = -0.1
 #    max_steps = 500
 
@@ -42,8 +46,8 @@ class XWorld3DTask(object):
     PI_4 = PI / 4
     PI_2 = PI / 2
 
-    # how often we should record the environment usage for the curriculum learning
-    record_env_usage_period = 200
+    ## the window size for recording the performance
+    performance_window_size = 200
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -51,7 +55,7 @@ class XWorld3DTask(object):
             ( self.PI_2-self.PI_8,  self.PI_2+self.PI_8)    : "right",
             (-self.PI_2-self.PI_8, -self.PI_2+self.PI_8)    : "left",
             (          -self.PI_8,            self.PI_8)    : "front",
-            # two intervals of "back" cannot be merged, so we need to specify
+            # two intervals of "behind" cannot be merged, so we need to specify
             # them separately
             (   self.PI-self.PI_8,              self.PI)    : "behind",
             (            -self.PI,   -self.PI+self.PI_8)    : "behind",
@@ -64,6 +68,7 @@ class XWorld3DTask(object):
         self.orientation_threshold = self.PI_4
         self.env = env
         self.event = ""
+        self.success_seq = []
         self.num_successes = 0
         self.num_failures = 0
         self.reset()
@@ -121,22 +126,23 @@ class XWorld3DTask(object):
     def _get_distance(self, p1, p2):
         return sqrt((p2[0]-p1[0]) ** 2 + (p2[1]-p1[1]) ** 2)
 
-    def _record_success(self):
-        self.num_successes += 1
+    def __record_result(self, res):
+        self.success_seq.append(res)
+        if len(self.success_seq) > XWorld3DTask.performance_window_size:
+            self.success_seq.pop(0)
         self._record_env_usage()
+
+    def _record_success(self):
+        self.__record_result(1)
+        self.num_successes += 1
 
     def _record_failure(self):
+        self.__record_result(0)
         self.num_failures += 1
-        self._record_env_usage()
 
     def _record_env_usage(self):
-        ## wait until sufficient data
-        if self.num_successes + self.num_failures == XWorld3DTask.record_env_usage_period:
-            ## env usage is decided by the task success rate
-            self.env.record_environment_usage(
-                float(self.num_successes) / XWorld3DTask.record_env_usage_period)
-            self.num_successes = 0
-            self.num_failures = 0
+        self.env.record_environment_usage(
+            self.__class__.__name__, self.success_seq)
 
     def _record_answer(self, answer):
         """
@@ -190,10 +196,6 @@ class XWorld3DTask(object):
 
     def obtain_performance(self):
         return (self.num_successes, self.num_failures)
-
-    def reset_performance(self):
-        self.num_successes = 0
-        self.num_failures = 0
 
     def print_grammar(self):
         self.cfg.show()
@@ -310,7 +312,7 @@ class XWorld3DTask(object):
                     if dir == direction:
                         reward = successful_goal(reward)
                     else:
-                        reward += XWorld3DTask.time_penalty * 3
+                        reward += XWorld3DTask.target_side_penalty
             elif self.target.id in objects_reach_test:
                 reward = successful_goal(reward)
             elif objects_reach_test: # other objects

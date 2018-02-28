@@ -47,6 +47,8 @@ cv::Mat XItem::get_item_image() {
         auto icon = item_imgs_[img_name].clone();
         cv::Point2f center(icon.cols / 2.0, icon.rows / 2.0);
         auto rot_mat = cv::getRotationMatrix2D(center, e_.yaw * 180 / M_PI, e_.scale);
+        // e_.offset + e_.scale / 2 - 0.5 computes the translation of the icon image
+        // inside the grid
         rot_mat.at<double>(0, 2) += (e_.offset + e_.scale / 2 - 0.5) * icon.cols;
         rot_mat.at<double>(1, 2) += (e_.offset + e_.scale / 2 - 0.5) * icon.rows;
         cv::warpAffine(icon, icon, rot_mat, icon.size(),

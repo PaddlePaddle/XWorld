@@ -26,7 +26,8 @@ class XWorldTask(object):
     wrong_reward = -1.0
     failed_action_penalty = -0.2
 
-    record_env_usage_period = 1
+    ## the window size for recording the performance
+    performance_window_size = 200
 
     def __init__(self, env):
         ## define all the spatial relations
@@ -42,6 +43,7 @@ class XWorldTask(object):
         }
         self.env = env
         self.event = ""
+        self.success_seq = []
         self.num_successes = 0
         self.num_failures = 0
         self.reset()
@@ -82,22 +84,23 @@ class XWorldTask(object):
         else:
             return self.directions[diff]
 
-    def _record_success(self):
-        self.num_successes += 1
+    def __record_result(self, res):
+        self.success_seq.append(res)
+        if len(self.success_seq) > XWorldTask.performance_window_size:
+            self.success_seq.pop(0)
         self._record_env_usage()
+
+    def _record_success(self):
+        self.__record_result(1)
+        self.num_successes += 1
 
     def _record_failure(self):
+        self.__record_result(0)
         self.num_failures += 1
-        self._record_env_usage()
 
     def _record_env_usage(self):
-        ## wait until sufficient data
-        if self.num_successes + self.num_failures == XWorldTask.record_env_usage_period:
-            ## env usage is decided by the task success rate
-            self.env.record_environment_usage(
-                float(self.num_successes) / XWorldTask.record_env_usage_period)
-            self.num_successes = 0
-            self.num_failures = 0
+        self.env.record_environment_usage(
+            self.__class__.__name__, self.success_seq)
 
     def _record_answer(self, answer):
         """
@@ -138,10 +141,6 @@ class XWorldTask(object):
 
     def obtain_performance(self):
         return (self.num_successes, self.num_failures)
-
-    def reset_performance(self):
-        self.num_successes = 0
-        self.num_failures = 0
 
     def print_grammar(self):
         self.cfg.show()

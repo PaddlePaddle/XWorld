@@ -54,6 +54,8 @@ void XWorldSimulator::init() {
         img_width_out_ = (width_ * 2 - 1) * block_size;
     } else {
         int block_size = 28; // for partially observed, we can use larger grids
+        FLAGS_visible_radius = std::max(FLAGS_visible_radius,
+                                        std::max(height_, width_));
         img_height_out_ = FLAGS_visible_radius * block_size;
         img_width_out_ = FLAGS_visible_radius * block_size;
     }

@@ -51,8 +51,11 @@ class Entity:
 class XWorld3DEnv(object):
     PI_2 = 1.5707963
     PI = 3.1415926
+
+    curriculum_check_period = 100
+
     def __init__(self, asset_path, max_height=10, max_width=10):
-        self.current_usage = 0
+        self.current_usage = {}
         self.action_successful = False
         self.grid_types = ["goal", "block", "agent", "boundary"]
         ## init dimensions
@@ -63,6 +66,8 @@ class XWorld3DEnv(object):
         self.action_successful = False
         self.agent_sent = ""
         self.game_event = ""
+
+        self.curriculum_check_counter = 0
 
         ## load all items from asset_path
         self.asset_path = asset_path
@@ -90,8 +95,13 @@ class XWorld3DEnv(object):
         self.__instantiate_entities()
 
     def get_current_usage(self):
-        usage = self.current_usage
-        self.current_usage = 0
+        self.curriculum_check_counter += 1
+        if self.curriculum_check_counter < XWorld3DEnv.curriculum_check_period \
+           or not self.current_usage:
+            return 0
+        ## we take the min usage across all the tasks
+        usage = min([sum(l) / float(len(l)) for l in self.current_usage.values()])
+        self.curriculum_check_counter = 0
         return usage
 
     def set_dims(self, h, w):
@@ -233,14 +243,14 @@ class XWorld3DEnv(object):
         """
         return self.entities
 
-    def record_environment_usage(self, x):
+    def record_environment_usage(self, task_name, x):
         """
         Update the current environment usage
         The higher the usage is, the better the agent handles the environment (so
         it might be a good time now to move to more difficult scenarios)
         This quantity can be used to generate a curriculum of the world
         """
-        self.current_usage = x
+        self.current_usage[task_name] = x
 
     ######################## interface with C++ #############################
     def dump_curriculum_progress(self):
@@ -317,9 +327,11 @@ class XWorld3DEnv(object):
 
         maze = spanning_tree_maze_generator(X, Y)
         blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
+
+        ## maybe not all blocks of the maze will be used later
         random.shuffle(blocks)
 
-        ## first remove all maze blocks
+        ## first remove all maze blocks from the available set
         for b in blocks:
             if b in self.available_grids:
                 self.available_grids.remove(b)
