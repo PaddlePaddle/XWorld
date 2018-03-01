@@ -1,0 +1,15 @@
+{
+    "item_path" : "images",
+
+    "map" : "XWorldDialogMap",
+
+    "task_groups" : {
+        "XWorldDia" : {
+            "schedule" : "weighted",
+            "weight" : 1,
+            "tasks" : {
+                "XWorldDialog" : 1
+            }
+        }
+    }
+}

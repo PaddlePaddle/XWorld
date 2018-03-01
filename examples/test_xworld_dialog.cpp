@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Baidu Inc. All Rights Reserved.
+// Copyright (c) 2018 Baidu Inc. All Rights Reserved.
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
         FLAGS_task_groups_exclusive = false;
     }
 
-    FLAGS_xwd_conf_path = "../confs/walls.json";
+    FLAGS_xwd_conf_path = "../confs/dialog.json";
 
     auto xwd = std::make_shared<SimulatorInterface>("xworld", false);
     xwd->reset_game();

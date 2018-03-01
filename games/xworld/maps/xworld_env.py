@@ -54,13 +54,16 @@ class XWorldEnv(object):
 
     curriculum_check_period = 100
 
-    def __init__(self, item_path, max_height=7, max_width=7):
+    def __init__(self, item_path, max_height=7, max_width=7, class_per_session=-1):
         self.num_games = -1
         ## load all items from item_path
         self.grid_types = ["goal", "block", "agent"]
         self.item_path = item_path
         self.max_height = max_height
         self.max_width = max_width
+        self.class_per_session = class_per_session # max number of classes in a session
+                                                   # value < 1 denotes all classes are used
+        self.sel_classes = {} # selected classes for a session
         self.current_usage = {}
         self.curriculum_check_counter = 0
         self.all_icon_paths = []
@@ -69,6 +72,7 @@ class XWorldEnv(object):
                 if f.endswith(".jpg") or f.endswith(".png"):
                     self.all_icon_paths.append(os.path.join(dirpath, f))
         self.set_goal_subtrees([])
+        self.select_classes()
         ## init dimensions
         self.__clean_env()
         ## read item colors
@@ -80,12 +84,23 @@ class XWorldEnv(object):
                             for l in lines if not l.startswith("//") and not l == ""}
 
     ############################ interface with Python tasks ############################
-    def reset(self):
+    def reset(self, same_session=False):
         """
         Reset the map.
+        same_session: whether the scene after resetting is still in the same session
+                      e.g., the selected set of classes is the same
         """
-        self.__clean_env()
-        self._configure()
+        if not same_session: # reset completely after a session ends
+            self.__clean_env()
+            self._configure()
+            self.select_classes() # re-select class if session ends and
+                                  # do this before instantiation
+        else: # re-instantiate within the same session
+            # re-load from map config with the same set of sampled classes
+            self.available_grids = []
+            self.entities = []
+            self._configure()
+
         self.__instantiate_entities()
 
     def get_current_usage(self):
@@ -171,6 +186,21 @@ class XWorldEnv(object):
             type = [t for t in k.split("/") if t in self.grid_types][0]
             assert type in self.items
             self.items[type][os.path.basename(k)] = list(g)
+
+    def select_classes(self):
+        """
+        Sample a number of classes (class_per_session) for interaction within a session
+        """
+        if self.class_per_session > 1:
+            self.sel_classes = random.sample(self.items["goal"].keys(), self.class_per_session)
+        else:
+            self.sel_classes = self.items["goal"].keys()
+
+    def get_selected_classes(self):
+        """
+        Get the selected classes for a session
+        """
+        return self.sel_classes
 
     def get_max_dims(self):
         """
@@ -332,11 +362,15 @@ class XWorldEnv(object):
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
             if e.name is None:
-                e.name = random.choice(self.get_all_possible_names(e.type))
+                if e.type != 'goal':
+                    e.name = random.choice(self.get_all_possible_names(e.type))
+                else:
+                    e.name = random.choice(self.get_selected_classes())
             e.id = "%s_%d" % (e.name, i)
             if e.asset_path is None:
                 icons = self.items[e.type][e.name]
                 e.asset_path = random.choice(icons)
+
             e.color = self.color_table[e.asset_path]
             if e.loc is None and e.type != "block":
                 assert len(self.available_grids) > 0

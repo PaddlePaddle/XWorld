@@ -155,7 +155,6 @@ int XWorldSimulator::game_over() {
 float XWorldSimulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action();
     last_action_ = "";
-
     //// speak
     if (FLAGS_task_mode == "arxiv_interactive" ||
         FLAGS_task_mode == "one_channel") {
@@ -297,6 +296,8 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
         } else if (type.find("XWorldRecBetween") == 0) {
             return pink;
         } else if (type.find("XWorldLan") == 0) {
+            return white;
+        } else if (type.find("XWorldDia") == 0) {
             return white;
         } else {
             LOG(FATAL) << "unrecognized message type: " + type;
