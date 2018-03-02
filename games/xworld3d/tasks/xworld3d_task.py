@@ -293,6 +293,14 @@ class XWorld3DTask(object):
             self.sentence = self._generate()
             return reward
 
+        def failed_goal(reward):
+            self._record_failure()
+            self._record_event("wrong_goal")
+            reward += XWorld3DTask.wrong_reward
+            self._bind("S -> wrong")
+            self.sentence = self._generate()
+            return reward
+
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
@@ -306,6 +314,10 @@ class XWorld3DTask(object):
 
             if isinstance(self.target, tuple):
                 assert len(self.target) == 3
+
+                if objects_reach_test: ## touching any object will fail
+                    reward = failed_goal(reward)
+
                 o, dist_thresold, direction = self.target
                 _, dist, dir = self._get_direction_and_distance(agent.loc, o, agent.yaw)
                 if dist < dist_thresold:
@@ -313,14 +325,12 @@ class XWorld3DTask(object):
                         reward = successful_goal(reward)
                     else:
                         reward += XWorld3DTask.target_side_penalty
+
             elif self.target.id in objects_reach_test:
                 reward = successful_goal(reward)
+
             elif objects_reach_test: # other objects
-                reward += XWorld3DTask.wrong_reward
-                self._record_failure()
-                self._bind("S -> wrong")
-                self.sentence = self._generate()
-                self._record_event("wrong_goal")
+                reward = failed_goal(reward)
 
         # game_over will reset the stage to "idle" so we don't bother here
         return ["simple_navigation_reward", reward, self.sentence]
