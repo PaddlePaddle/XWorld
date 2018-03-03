@@ -57,7 +57,7 @@ set(ROBOSCHOOL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/roboschool)
 ## roboschool
 ExternalProject_Add(roboschool
   GIT_REPOSITORY "https://github.com/skylian/roboschool"
-  GIT_TAG "cpp_api"
+  GIT_TAG "remove_qt"
   SOURCE_DIR ${ROBOSCHOOL_DIR}
   DEPENDS assimp bullet
   LOG_DOWNLOAD ON
@@ -79,14 +79,6 @@ add_custom_command(TARGET roboschool POST_BUILD
 
 set(ROBOSCHOOL_INCLUDE_PATH "${ROBOSCHOOL_DIR}/roboschool/cpp-household")
 set(ROBOSCHOOL_LIBRARIES "${ROBOSCHOOL_DIR}/roboschool/libroboschool.so")
-
-## export Qt5 libs
-pkg_check_modules(Qt5 REQUIRED Qt5Widgets>=5.5 Qt5OpenGL>=5.5)
-append_libraries(QT5_LIBS "${Qt5_LIBRARY_DIRS}" "${Qt5_LIBRARIES}")
-set(ROBOSCHOOL_LIB_DEPS
-  ${ROBOSCHOOL_LIB_DEPS}
-  ${QT5_LIBS}
-)
 
 ## export libs to the upper level
 set(DEP_LIBS ${DEP_LIBS} ${ROBOSCHOOL_LIB_DEPS} ${ROBOSCHOOL_LIBRARIES})
