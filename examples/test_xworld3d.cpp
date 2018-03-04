@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
     double reward_per_game = 0;
     double r = 0;
     while (true) {
-        xwd->show_screen();
+//        xwd->show_screen();
 
         auto game_over_str =
             GameSimulator::decode_game_over_code(xwd->game_over());
