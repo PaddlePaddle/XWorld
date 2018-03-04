@@ -23,6 +23,18 @@ ExternalProject_Get_Property(assimp SOURCE_DIR)
 set(ASSIMP_INCLUDE_PATH "${SOURCE_DIR}/include")
 set(ASSIMP_LIBRARIES "${SOURCE_DIR}/lib/libassimp.so.4")
 
+# glm
+ExternalProject_Add(glm
+  GIT_REPOSITORY "https://github.com/g-truc/glm.git"
+  GIT_TAG "0.9.8"
+  LOG_DOWNLOAD ON
+  CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX=<SOURCE_DIR>
+)
+
+ExternalProject_Get_Property(glm SOURCE_DIR)
+set(GLM_INCLUDE_PATH "${SOURCE_DIR}/include")
+
 ## bullet physics
 ExternalProject_Add(bullet
   GIT_REPOSITORY "https://github.com/skylian/bullet3"
@@ -67,7 +79,7 @@ ExternalProject_Add(roboschool
 )
 
 ## make roboschool
-set(ROBOSCHOOL_INCLUDE_DEPS ${ASSIMP_INCLUDE_PATH} ${BULLET_INCLUDE_PATHS})
+set(ROBOSCHOOL_INCLUDE_DEPS ${ASSIMP_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${BULLET_INCLUDE_PATHS})
 set(ROBOSCHOOL_LIB_DEPS ${ASSIMP_LIBRARIES} ${BULLET_LIBRARIES})
 
 ## custom make
