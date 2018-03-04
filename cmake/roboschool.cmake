@@ -28,12 +28,15 @@ ExternalProject_Add(glm
   GIT_REPOSITORY "https://github.com/g-truc/glm.git"
   GIT_TAG "0.9.8"
   LOG_DOWNLOAD ON
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+  CONFIGURE_COMMAND ""
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<SOURCE_DIR>
 )
 
 ExternalProject_Get_Property(glm SOURCE_DIR)
-set(GLM_INCLUDE_PATH "${SOURCE_DIR}/include")
+set(GLM_INCLUDE_PATH "${SOURCE_DIR}")
 
 ## bullet physics
 ExternalProject_Add(bullet
