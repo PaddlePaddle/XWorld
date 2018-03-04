@@ -134,7 +134,8 @@ X3Simulator::X3Simulator(bool print, bool big_screen) :
         img_width_out_(FLAGS_x3_training_img_width),
         bird_view_(false),
         agent_received_sentences_(0),
-        agent_prev_actions_(0) {
+        agent_prev_actions_(0),
+        keyboard_action_(-1) {
     impl_ = util::make_unique<X3SimulatorImpl>(
             FLAGS_x3_conf, print, big_screen);
 }
@@ -196,7 +197,12 @@ void X3Simulator::show_screen(float reward) {
     // so that it can be saved in save_screen
     cv::setMouseCallback("XWorld3D", util::save_screen, &screen_);
     cv::imshow("XWorld3D", screen_);
-    cv::waitKey(250);
+    if (FLAGS_pause_screen) {
+        // The screen will pause at every step waiting for keyboard
+        keyboard_action_ = cv::waitKey(-1) % 256;
+    } else {
+        cv::waitKey(250);
+    }
 }
 
 void X3Simulator::define_state_specs(StatePacket& state) {
@@ -294,16 +300,9 @@ float X3Simulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action();
     last_action_ = "";
 
-    int key = -1;
     // show screen
-    if (FLAGS_pause_screen) {
-        // The screen will pause at every step waiting for keyboard
-        key = cv::waitKey(-1) % 256;
-        // for some reason, ctrl+C in the terminal won't kill the program
-        if (key == 27) {
-            // ESC
-            exit(EXIT_SUCCESS);
-        }
+    if (keyboard_action_ == 27) {
+        exit(EXIT_SUCCESS);
     }
 
     //// speak
@@ -330,40 +329,38 @@ float X3Simulator::take_action(const StatePacket& actions) {
         size_t action_idx = *(actions.get_buffer("action")->get_id());
         CHECK_LT(action_idx, get_num_actions());
         auto action = legal_actions_[action_idx];
-        if (FLAGS_pause_screen) {
-            switch (key) {
-                case 'w':
-                    action = X3NavAction::MOVE_FORWARD;
-                    break;
-                case 's':
-                    action = X3NavAction::MOVE_BACKWARD;
-                    //                    action = X3NavAction::STOP;
-                    break;
-                case 'a':
-                    action = X3NavAction::MOVE_LEFT;
-                    break;
-                case 'd':
-                    action = X3NavAction::MOVE_RIGHT;
-                    break;
-                case 'q':
-                    action = X3NavAction::TURN_LEFT;
-                    break;
-                case 'e':
-                    action = X3NavAction::TURN_RIGHT;
-                    break;
-                case 'j':
-                    action = X3NavAction::JUMP;
-                    break;
-                case 'c':
-                    action = X3NavAction::COLLECT;
-                    break;
-                case 'z':
-                    bird_view_ = !bird_view_;
-                    break;
-                default:
-                    //                    action = X3NavAction::NOOP;
-                    break;
-            }
+        switch (keyboard_action_) {
+            case 'w':
+                action = X3NavAction::MOVE_FORWARD;
+                break;
+            case 's':
+                action = X3NavAction::MOVE_BACKWARD;
+                //                    action = X3NavAction::STOP;
+                break;
+            case 'a':
+                action = X3NavAction::MOVE_LEFT;
+                break;
+            case 'd':
+                action = X3NavAction::MOVE_RIGHT;
+                break;
+            case 'q':
+                action = X3NavAction::TURN_LEFT;
+                break;
+            case 'e':
+                action = X3NavAction::TURN_RIGHT;
+                break;
+            case 'j':
+                action = X3NavAction::JUMP;
+                break;
+            case 'c':
+                action = X3NavAction::COLLECT;
+                break;
+            case 'z':
+                bird_view_ = !bird_view_;
+                break;
+            default:
+                //                    action = X3NavAction::NOOP;
+                break;
         }
         CHECK(std::find(legal_actions_.begin(), legal_actions_.end(), action)
               != legal_actions_.end()) << "action invalid!";

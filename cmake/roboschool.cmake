@@ -14,26 +14,28 @@ endfunction(append_libraries)
 ExternalProject_Add(assimp
   GIT_REPOSITORY "https://github.com/yu239/assimp"
   GIT_TAG "master"
+  INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/assimp"
   LOG_DOWNLOAD ON
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX=<SOURCE_DIR>
+    -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 )
 
-ExternalProject_Get_Property(assimp SOURCE_DIR)
-set(ASSIMP_INCLUDE_PATH "${SOURCE_DIR}/include")
-set(ASSIMP_LIBRARIES "${SOURCE_DIR}/lib/libassimp.so.4")
+ExternalProject_Get_Property(assimp INSTALL_DIR)
+set(ASSIMP_INCLUDE_PATH "${INSTALL_DIR}/include")
+set(ASSIMP_LIBRARIES "${INSTALL_DIR}/lib/libassimp.so.4")
 
 # glm
 ExternalProject_Add(glm
   GIT_REPOSITORY "https://github.com/g-truc/glm.git"
-  GIT_TAG "0.9.8"
+  GIT_TAG "0.9.8.4"
+  INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/glm"
   LOG_DOWNLOAD ON
   CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX=<SOURCE_DIR>
+    -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 )
 
-ExternalProject_Get_Property(glm SOURCE_DIR)
-set(GLM_INCLUDE_PATH "${SOURCE_DIR}/include")
+ExternalProject_Get_Property(glm INSTALL_DIR)
+set(GLM_INCLUDE_PATH "${INSTALL_DIR}/include")
 
 ## bullet physics
 ExternalProject_Add(bullet
@@ -71,7 +73,7 @@ ExternalProject_Add(roboschool
   GIT_REPOSITORY "https://github.com/skylian/roboschool"
   GIT_TAG "remove_qt"
   SOURCE_DIR ${ROBOSCHOOL_DIR}
-  DEPENDS assimp bullet
+  DEPENDS assimp bullet glm
   LOG_DOWNLOAD ON
   BUILD_COMMAND ""
   INSTALL_COMMAND ""

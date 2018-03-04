@@ -119,6 +119,7 @@ private:
     std::deque<std::string>
         history_messages_;  // history message buffer for showing in the GUI
     std::string game_events_;
+    int keyboard_action_;
 };
 
 }} // simulator::xworld3d
