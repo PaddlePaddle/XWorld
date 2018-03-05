@@ -84,7 +84,8 @@ class GameSimulator {
     virtual int get_lives() = 0;
 
     /**
-     * @brief visualize the current screen
+     * @brief Visualize the current screen *with* the current reward provided.
+     *        The reward can be shown on the screen.
      */
     virtual void show_screen(float reward) = 0;
 
@@ -147,7 +148,7 @@ class GameSimulator {
      *
      * screens_ will be updated after taking actions.
      */
-    float take_actions(const StatePacket& actions, int actrep);
+    float take_actions(const StatePacket& actions, int actrep, bool show_screen, float acc_reward);
 
     int64_t get_num_steps() { return num_steps_; }
 

@@ -186,7 +186,8 @@ void X3Simulator::show_screen(float reward) {
     cv::Mat img;
     impl_->get_screen_rgb(active_agent_id_, img, bird_view_);
 
-    cv::Mat img_wo_msg = concat_images(img, get_reward_image(reward), true);
+    cv::Mat reward_img = get_reward_image(reward);
+    cv::Mat img_wo_msg = concat_images(img, reward_img, true);
     prev_screen_ = img_wo_msg;
     screen_ = concat_images(img_wo_msg,
                             get_message_image(history_messages_),
@@ -201,7 +202,7 @@ void X3Simulator::show_screen(float reward) {
         // The screen will pause at every step waiting for keyboard
         keyboard_action_ = cv::waitKey(-1) % 256;
     } else {
-        cv::waitKey(250);
+        cv::waitKey(100);
     }
 }
 

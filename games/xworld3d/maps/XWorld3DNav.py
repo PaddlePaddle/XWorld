@@ -14,7 +14,6 @@ class XWorld3DNav(XWorld3DEnv):
 
     def _configure(self):
         self.set_goal_subtrees(["animal", "others", "furniture"])
-        self.set_entity(type="agent")
 
         ## these are all the object classes
         goal_names = self.get_all_possible_names("goal")
@@ -25,9 +24,9 @@ class XWorld3DNav(XWorld3DEnv):
         n_levels = max_h - min_dim + 1
 
         #### define curriculum #########
-        num_goals_seq = [2, 2, 3, 3, 3]
+        num_goals_seq = [3, 3, 3, 3, 3]
         goal_classes_seq = [len(goal_names)] * n_levels
-        num_blocks_seq = [1, 3, 5, 7, 10]
+        num_blocks_seq = [0, 2, 4, 7, 10]
         assert len(num_goals_seq) == n_levels \
             and len(goal_classes_seq) == n_levels \
             and len(num_blocks_seq) == n_levels
@@ -73,3 +72,4 @@ class XWorld3DNav(XWorld3DEnv):
         ## set blocks
         for i in range(num_blocks):
             self.set_entity(type="block", name=random.choice(["brick"]))
+        self.set_entity(type="agent")

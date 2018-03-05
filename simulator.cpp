@@ -94,10 +94,13 @@ void GameSimulator::fill_in_reward_and_screen(float reward,
     state.copy_from_by_key(screens_, "screen");
 }
 
-float GameSimulator::take_actions(const StatePacket& actions, int actrep) {
+float GameSimulator::take_actions(const StatePacket& actions, int actrep, bool screen, float acc_reward) {
     float reward = 0;
     num_steps_++;
     for (int i = 0; i < actrep; i++) {
+        if (screen) {
+            show_screen(acc_reward + reward);
+        }
         reward += take_action(actions);
     }
     make_context_screens();

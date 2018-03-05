@@ -17,6 +17,26 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
 import random
 import pprint
 
+
+def flood_fill(seeds, obstacles, X, Y):
+    """
+    Starting from seeds, return a list of places that can be flooded
+    """
+    assert seeds
+    visited = set(seeds)
+    que = [s for s in seeds]  # deep copy
+    while que:
+        cur = que.pop(0)
+        moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
+        for m in moves:
+            next = tuple([cur[i] + m[i] for i in range(len(cur))])
+            if next[0] >= 0 and next[0] < X and next[1] >= 0 and next[1] < Y \
+               and (not next in visited) and (not next in obstacles):
+                visited.add(next)
+                que.append(next)
+    return list(visited - set(seeds))
+
+
 ## compute paths from the start to the end
 def bfs(start, end, X, Y, obstacles):
     """
@@ -25,7 +45,7 @@ def bfs(start, end, X, Y, obstacles):
     assert start != end
     que = [start]
     prev = {start: None}
-    while len(que) > 0:
+    while que:
         cur = que.pop(0)
         if cur == end:
             break

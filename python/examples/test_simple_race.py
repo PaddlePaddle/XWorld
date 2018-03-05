@@ -24,20 +24,17 @@ if __name__ == "__main__":
     act_rep = options["context"]
 
     reward = 0
-    print("\033[93mUse show_screen() to see the game. " \
-          + "However, X server must be used; otherwise the code crashes\033[0m")
     for i in range(100):
         game_over_str = sr.game_over()
+        states = sr.get_state()
+        action = randint(0, num_actions - 1)
+        r = sr.take_actions({"action": action}, act_rep, False)
+
         if game_over_str != "alive":
             print "game over because of ", game_over_str
             sr.reset_game()
             continue
 
-#        sr.show_screen()
-
-        states = sr.get_state()
-        action = randint(0, num_actions - 1)
-        r = sr.take_actions({"action": action}, act_rep)
         print r
         reward += r
 

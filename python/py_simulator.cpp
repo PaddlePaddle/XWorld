@@ -73,14 +73,12 @@ class PySimulatorInterface {
 
     int get_lives() { return interface_.get_lives(); }
 
-    void show_screen() { interface_.show_screen(); }
-
     // return [h, w, c]
     py::list get_screen_out_dimensions();
 
-    float take_actions(const py::dict& actions, int act_rep);
+    float take_actions(const py::dict& actions, int act_rep, bool show_screen);
 
-    float take_action(const py::dict& actions);
+    float take_action(const py::dict& actions, bool show_screen);
 
     py::dict get_state();
 
@@ -208,14 +206,14 @@ void convert_py_act_to_state_packet(const py::dict& actions, StatePacket& act) {
     }
 }
 
-float PySimulatorInterface::take_actions(const py::dict& actions, int act_rep) {
+float PySimulatorInterface::take_actions(const py::dict& actions, int act_rep, bool show_screen) {
     StatePacket act;
     convert_py_act_to_state_packet(actions, act);
-    return interface_.take_actions(act, act_rep);
+    return interface_.take_actions(act, act_rep, show_screen);
 }
 
-float PySimulatorInterface::take_action(const py::dict& actions) {
-    return take_actions(actions, 1);
+float PySimulatorInterface::take_action(const py::dict& actions, bool show_screen) {
+    return take_actions(actions, 1, show_screen);
 }
 
 void parse_extra_sim_info(std::string info, int& pid,
@@ -301,7 +299,6 @@ void help() {
            "  from py_simulator import Simulator\n"
            "  simple_game = Simulator.create(\"simple_game\", "
            "{\"array_size\":6})\n"
-           "  simple_game.show_screen()\n"
            "For more help on how to create games, call Simulator.help()\n";
 }
 
@@ -317,7 +314,6 @@ BOOST_PYTHON_MODULE(py_simulator) {
         .def("game_over", &PySimulatorInterface::game_over)
         .def("get_num_actions", &PySimulatorInterface::get_num_actions)
         .def("get_lives", &PySimulatorInterface::get_lives)
-        .def("show_screen", &PySimulatorInterface::show_screen)
         // intentionally bind take_actions to two functions so that it has
         // optional args
         .def("take_actions", &PySimulatorInterface::take_actions)

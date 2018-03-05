@@ -62,12 +62,10 @@ public:
     virtual void get_screen_out_dimensions(
             size_t& height, size_t& width, size_t& channels);
 
-    virtual void show_screen();
+    virtual float take_actions(const StatePacket& actions, int act_rep, bool show_screen);
 
-    virtual float take_actions(const StatePacket& actions, int act_rep);
-
-    float take_action(const StatePacket& actions) {
-        return take_actions(actions, 1);
+    float take_action(const StatePacket& actions, bool show_screen) {
+        return take_actions(actions, 1, show_screen);
     }
 
     virtual StatePacket get_state(const float reward);
@@ -83,8 +81,8 @@ public:
     virtual void get_world_dimensions(double& X, double& Y, double& Z);
 
 protected:
-    float reward_;
     bool running_;
+    float acc_reward_;
     SimulatorPtr game_;
     TeachingEnvPtr teaching_env_;
     TeacherPtr teacher_;
@@ -103,7 +101,6 @@ typedef std::shared_ptr<SimulatorInterface> SimInterfacePtr;
  *
  * Functions executed on server side:
  * - reset_game
- * - show_screen
  * - take_actions (and hence take_action)
  * - get_state
  * - teacher_report_task_performance
@@ -186,17 +183,12 @@ public:
             size_t& height, size_t& width, size_t& channels) override;
 
     /**
-     * Request client to show current screens in the game.
-     */
-    void show_screen() override;
-
-    /**
      * Request client to take actions. Client will also return:
      * 1. number of steps taken so far
      * 2. game over code
      * 3. number of lives remaining
      */
-    float take_actions(const StatePacket& actions, int act_rep) override;
+    float take_actions(const StatePacket& actions, int act_rep, bool show_screen) override;
     /**
      * Request client to return the current state of the game.
      */
@@ -259,8 +251,6 @@ private:
     void simulation_loop();
 
     void reset_game() override;
-
-    void show_screen() override;
 
     void take_actions();
 
