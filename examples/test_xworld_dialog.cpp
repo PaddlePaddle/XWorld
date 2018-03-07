@@ -18,18 +18,12 @@
 using namespace simulator::xwd;
 using namespace simulator;
 
-DECLARE_int32(context);
 DECLARE_bool(task_groups_exclusive);
 DECLARE_string(task_mode);
 DECLARE_bool(pause_screen);
 
-
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-
-    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
-        FLAGS_task_groups_exclusive = false;
-    }
 
     FLAGS_xwd_conf_path = "../confs/dialog.json";
 
@@ -37,13 +31,15 @@ int main(int argc, char** argv) {
     xwd->reset_game();
 
     auto num_actions = xwd->get_num_actions();
-    int act_rep = FLAGS_context;
+    int act_rep = 1;
 
     double reward = 0;
     double reward_per_game = 0;
     double r = 0;
     for (int i = 0; i < 100; i++) {
-        xwd->show_screen();
+        if (FLAGS_pause_screen) {
+            xwd->show_screen();
+        }
 
         auto game_over_str =
             GameSimulator::decode_game_over_code(xwd->game_over());

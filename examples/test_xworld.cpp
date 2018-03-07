@@ -23,7 +23,6 @@ DECLARE_bool(task_groups_exclusive);
 DECLARE_string(task_mode);
 DECLARE_bool(pause_screen);
 
-
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 

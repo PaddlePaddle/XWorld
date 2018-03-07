@@ -62,6 +62,8 @@ void XWorldSimulator::init() {
     // default
     if (FLAGS_task_mode == "arxiv_lang_acquisition") {
         FLAGS_max_steps = (height_ + width_ ) * 2;
+    } else if (FLAGS_task_mode == "arxiv_interactive") {
+        FLAGS_max_steps = (height_ + width_ ) * 10;
     } else {
         FLAGS_max_steps = height_ * width_ * 2;
     }
@@ -155,6 +157,7 @@ int XWorldSimulator::game_over() {
 float XWorldSimulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action();
     last_action_ = "";
+
     //// speak
     if (FLAGS_task_mode == "arxiv_interactive" ||
         FLAGS_task_mode == "one_channel") {

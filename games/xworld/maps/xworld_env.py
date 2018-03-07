@@ -54,16 +54,13 @@ class XWorldEnv(object):
 
     curriculum_check_period = 100
 
-    def __init__(self, item_path, max_height=7, max_width=7, class_per_session=-1):
+    def __init__(self, item_path, max_height=7, max_width=7):
         self.num_games = -1
         ## load all items from item_path
         self.grid_types = ["goal", "block", "agent"]
         self.item_path = item_path
         self.max_height = max_height
         self.max_width = max_width
-        self.class_per_session = class_per_session # max number of classes in a session
-                                                   # value < 1 denotes all classes are used
-        self.sel_classes = {} # selected classes for a session
         self.current_usage = {}
         self.curriculum_check_counter = 0
         self.all_icon_paths = []
@@ -72,7 +69,6 @@ class XWorldEnv(object):
                 if f.endswith(".jpg") or f.endswith(".png"):
                     self.all_icon_paths.append(os.path.join(dirpath, f))
         self.set_goal_subtrees([])
-        self.select_classes()
         ## init dimensions
         self.__clean_env()
         ## read item colors
@@ -84,23 +80,12 @@ class XWorldEnv(object):
                             for l in lines if not l.startswith("//") and not l == ""}
 
     ############################ interface with Python tasks ############################
-    def reset(self, same_session=False):
+    def reset(self):
         """
         Reset the map.
-        same_session: whether the scene after resetting is still in the same session
-                      e.g., the selected set of classes is the same
         """
-        if not same_session: # reset completely after a session ends
-            self.__clean_env()
-            self._configure()
-            self.select_classes() # re-select class if session ends and
-                                  # do this before instantiation
-        else: # re-instantiate within the same session
-            # re-load from map config with the same set of sampled classes
-            self.available_grids = []
-            self.entities = []
-            self._configure()
-
+        self.__clean_env()
+        self._configure()
         self.__instantiate_entities()
 
     def get_current_usage(self):
@@ -125,7 +110,7 @@ class XWorldEnv(object):
         self.max_width, then walls will be automatically padded. The python user should
         use coordinates in [0, h) and [0, w).
         """
-        assert h > 1 and w > 1
+        assert h >= 1 and w >= 1
         assert h <= self.max_height and w <= self.max_width
         self.height = h
         self.width = w
@@ -138,16 +123,50 @@ class XWorldEnv(object):
         random.shuffle(self.available_grids)
         self.changed = True
 
-    def set_entity(self, type, loc=None, name=None):
+    def set_entity(self, type, loc=None, name=None, force_occupy=False):
         """
-        Add an entity of type to loc which must be currently empty
+        Add an entity instance of type to loc which must be currently empty if 
+        force_occupy is False. If force_occupy is True, then omit the location
+        based availability check.
         """
         if not loc is None:
-            assert loc in self.available_grids, \
-                "set_dims correctly before setting a location"
-            self.available_grids.remove(loc)
+            if not force_occupy:
+                assert loc in self.available_grids, \
+                    "set_dims correctly before setting a location"
+            if loc in self.available_grids:
+                self.available_grids.remove(loc)
         self.entity_nums[type] += 1
         self.entities.append(Entity(type=type, loc=loc, name=name))
+        self.changed = True
+
+    def set_entity_instance(self, type, loc=None, name=None,
+                            asset_path=None, force_occupy=False):
+        """
+        Add an entity instance of type to loc which must be currently empty if 
+        force_occupy is False. If force_occupy is True, then omit the location
+        based availability check. Insance properties will be randomly sampled
+        from the avaible set if not specified.
+        """
+        if loc is None:
+            assert len(self.available_grids) > 0
+            loc = self.available_grids.pop()
+        elif not loc is None:
+            if not force_occupy:
+                assert loc in self.available_grids, \
+                    "set_dims correctly before setting a location"
+            if loc in self.available_grids:
+                self.available_grids.remove(loc)
+        if name is None:
+            name = random.choice(self.get_all_possible_names(type))
+        if asset_path is None:
+                icons = self.items[type][name]
+                asset_path = random.choice(icons)
+        color = self.color_table[asset_path]
+        id = "%s_%d" % (name, self.entity_nums[type])
+
+        self.entities.append(Entity(type=type, id=id, loc=loc, name=name,
+                                    asset_path=asset_path, color=color))
+        self.entity_nums[type] += 1
         self.changed = True
 
     def delete_entity(self, loc=None, id=None):
@@ -186,21 +205,6 @@ class XWorldEnv(object):
             type = [t for t in k.split("/") if t in self.grid_types][0]
             assert type in self.items
             self.items[type][os.path.basename(k)] = list(g)
-
-    def select_classes(self):
-        """
-        Sample a number of classes (class_per_session) for interaction within a session
-        """
-        if self.class_per_session > 1:
-            self.sel_classes = random.sample(self.items["goal"].keys(), self.class_per_session)
-        else:
-            self.sel_classes = self.items["goal"].keys()
-
-    def get_selected_classes(self):
-        """
-        Get the selected classes for a session
-        """
-        return self.sel_classes
 
     def get_max_dims(self):
         """
@@ -315,7 +319,8 @@ class XWorldEnv(object):
         self.available_grids = set(itertools.product(range(self.width), range(self.height)))
         occupied = set([e.loc for e in self.entities])
         self.available_grids -= occupied
-        random.shuffle(list(self.available_grids))
+        self.available_grids = list(self.available_grids)
+        random.shuffle(self.available_grids)
 
     def update_agent_sentence_from_cpp(self, sent):
         """
@@ -362,15 +367,11 @@ class XWorldEnv(object):
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
             if e.name is None:
-                if e.type != 'goal':
-                    e.name = random.choice(self.get_all_possible_names(e.type))
-                else:
-                    e.name = random.choice(self.get_selected_classes())
+                e.name = random.choice(self.get_all_possible_names(e.type))
             e.id = "%s_%d" % (e.name, i)
             if e.asset_path is None:
                 icons = self.items[e.type][e.name]
                 e.asset_path = random.choice(icons)
-
             e.color = self.color_table[e.asset_path]
             if e.loc is None and e.type != "block":
                 assert len(self.available_grids) > 0

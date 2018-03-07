@@ -28,7 +28,8 @@ class XWorldDialog(XWorldTask):
 
         ## first generate all candidate answers
         self._bind("S -> statement")
-        self._bind("G -> '%s'" % sel_goal.name)
+        #self._bind("G -> '%s'" % sel_goal.name)
+        self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
         self.answers = self._generate_all()
 
         ## then generate the question
@@ -58,16 +59,16 @@ class XWorldDialog(XWorldTask):
                        qa_stage_prev
         # in this case, move to the next object for interaction
         if not extend_step:
-            self.env.reset(True)
+            self.env.within_session_reinstantiation()
 
         goals = self._get_goals()
         sel_goal = random.choice(goals)
         # update answers
-        self._bind("G -> '%s'" % sel_goal.name)
+        #self._bind("G -> '%s'" % sel_goal.name)
+        self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
         self.answers = self._generate_all()
 
         self.steps_in_cur_task += 1
-
         # decide reward and next stage
         if self.steps_in_cur_task + 1 < self.max_steps:
             if self.steps_in_cur_task > self.max_steps / 2:
@@ -82,7 +83,8 @@ class XWorldDialog(XWorldTask):
                         self.behavior_flags += [False]
                     # sentence feedback (answer/statement)
                     self._bind("S -> statement")
-                    self._bind("G -> '%s'" % sel_goal.name)
+                    #self._bind("G -> '%s'" % sel_goal.name)
+                    self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
                     teacher_sent = self._generate_and_save()
                 elif is_reply_correct:
                     # switch to more regorous criteria
@@ -151,7 +153,7 @@ class XWorldDialog(XWorldTask):
 
     def _define_grammar(self):
         #all_directions = self._get_all_directions_as_rhs()
-        all_goal_names = self._get_all_goal_names_as_rhs()
+        #all_goal_names = self._get_all_goal_names_as_rhs()
         grammar_str = """
         S --> question | statement
         question -> E | Q
@@ -171,10 +173,9 @@ class XWorldDialog(XWorldTask):
         A6 -> 'i' 'observe' G
         A7 -> 'i' 'can' 'see' G
         A8 -> 'i' 'can' 'observe' G
-        G --> %s
-        """ % (all_goal_names)
+        G  -> 'dummy'
+        """
         return grammar_str, "S"
-
 
     def _generate_and_save(self, teacher_sent = []):
         """
@@ -190,5 +191,6 @@ class XWorldDialog(XWorldTask):
         """
         get the sentence from teacher in the last time step
         """
+        assert self.teacher_sent_prev_, "make sure the previous sentence set is non-empty"
         sent = self.teacher_sent_prev_[-1]
         return sent
