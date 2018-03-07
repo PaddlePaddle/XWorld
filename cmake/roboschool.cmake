@@ -73,7 +73,7 @@ ExternalProject_Add(roboschool
   GIT_REPOSITORY "https://github.com/skylian/roboschool"
   GIT_TAG "remove_qt"
   SOURCE_DIR ${ROBOSCHOOL_DIR}
-  DEPENDS assimp bullet glm
+  DEPENDS assimp bullet glm opencv
   LOG_DOWNLOAD ON
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -81,8 +81,8 @@ ExternalProject_Add(roboschool
 )
 
 ## make roboschool
-set(ROBOSCHOOL_INCLUDE_DEPS ${ASSIMP_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${BULLET_INCLUDE_PATHS})
-set(ROBOSCHOOL_LIB_DEPS ${ASSIMP_LIBRARIES} ${BULLET_LIBRARIES})
+set(ROBOSCHOOL_INCLUDE_DEPS ${ASSIMP_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${BULLET_INCLUDE_PATHS} ${OPENCV_INCLUDE_PATH})
+set(ROBOSCHOOL_LIB_DEPS ${ASSIMP_LIBRARIES} ${BULLET_LIBRARIES} ${OPENCV_LIBS})
 
 ## custom make
 add_custom_command(TARGET roboschool POST_BUILD
