@@ -283,6 +283,7 @@ class XWorld3DTask(object):
 
         def reach_object(agent, yaw, object):
             theta, _, _ = self._get_direction_and_distance(agent, object.loc, yaw)
+
             return abs(theta) < self.orientation_threshold and object.id in collisions
 
         def successful_goal(reward):
