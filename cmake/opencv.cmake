@@ -1,9 +1,11 @@
 message("External project - OpenCV 3.2.0")
 
 ExternalProject_Add(opencv
+  PREFIX ${EXTERNAL_PROJECT_PREFIX}
   GIT_REPOSITORY "https://github.com/opencv/opencv.git"
   GIT_TAG 3.2.0
-  INSTALL_DIR "${CMAKE_SOURCE_DIR}/external/opencv"
+  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/opencv"
+  INSTALL_DIR "${EXTERNAL_PROJECT_PREFIX}/opencv"
   LOG_DOWNLOAD ON
   UPDATE_COMMAND ""
   CMAKE_ARGS

@@ -12,9 +12,11 @@ endfunction(append_libraries)
 
 ## assimp
 ExternalProject_Add(assimp
+  PREFIX ${EXTERNAL_PROJECT_PREFIX}
   GIT_REPOSITORY "https://github.com/yu239/assimp"
   GIT_TAG "master"
-  INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/assimp"
+  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/assimp"
+  INSTALL_DIR "${EXTERNAL_PROJECT_PREFIX}/assimp"
   LOG_DOWNLOAD ON
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
@@ -26,9 +28,11 @@ set(ASSIMP_LIBRARIES "${INSTALL_DIR}/lib/libassimp.so.4")
 
 # glm
 ExternalProject_Add(glm
+  PREFIX ${EXTERNAL_PROJECT_PREFIX}
   GIT_REPOSITORY "https://github.com/g-truc/glm.git"
   GIT_TAG "0.9.8.4"
-  INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/glm"
+  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/glm"
+  INSTALL_DIR "${EXTERNAL_PROJECT_PREFIX}/glm"
   LOG_DOWNLOAD ON
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
@@ -39,9 +43,11 @@ set(GLM_INCLUDE_PATH "${INSTALL_DIR}/include")
 
 ## bullet physics
 ExternalProject_Add(bullet
+  PREFIX ${EXTERNAL_PROJECT_PREFIX}
   GIT_REPOSITORY "https://github.com/skylian/bullet3"
   GIT_TAG "master"
-  INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/bullet"
+  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/bullet"
+  INSTALL_DIR "${EXTERNAL_PROJECT_PREFIX}/bullet"
   LOG_DOWNLOAD ON
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
@@ -66,13 +72,13 @@ set(BULLET_LIBRARIES
   "${INSTALL_DIR}/lib/libBulletInverseDynamics.so"
   "${INSTALL_DIR}/lib/libPhysicsClientC_API.so")
 
-set(ROBOSCHOOL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/roboschool)
-
 ## roboschool
 ExternalProject_Add(roboschool
+  PREFIX ${EXTERNAL_PROJECT_PREFIX}
   GIT_REPOSITORY "https://github.com/skylian/roboschool"
   GIT_TAG "remove_qt"
-  SOURCE_DIR ${ROBOSCHOOL_DIR}
+  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/roboschool"
+  INSTALL_DIR "${EXTERNAL_PROJECT_PREFIX}/roboschool"
   DEPENDS assimp bullet glm opencv
   LOG_DOWNLOAD ON
   BUILD_COMMAND ""
@@ -80,8 +86,10 @@ ExternalProject_Add(roboschool
   CONFIGURE_COMMAND ""
 )
 
+ExternalProject_Get_Property(roboschool SOURCE_DIR)
+set(ROBOSCHOOL_DIR ${SOURCE_DIR})
 ## make roboschool
-set(ROBOSCHOOL_INCLUDE_DEPS ${ASSIMP_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${BULLET_INCLUDE_PATHS} ${OPENCV_INCLUDE_PATH})
+set(ROBOSCHOOL_INCLUDE_DEPS ${ASSIMP_INCLUDE_PATH} ${GLM_INCLUDE_PATH} ${BULLET_INCLUDE_PATHS} ${OpenCV_INCLUDE_DIRS})
 set(ROBOSCHOOL_LIB_DEPS ${ASSIMP_LIBRARIES} ${BULLET_LIBRARIES} ${OPENCV_LIBS})
 
 ## custom make

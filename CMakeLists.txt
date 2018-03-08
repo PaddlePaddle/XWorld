@@ -28,6 +28,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declara
 include(ExternalProject)
 include(simulator_util)
 
+set(EXTERNAL_PROJECT_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external")
+
 find_package(Threads REQUIRED)
 find_package(PythonLibs 2.7 EXACT REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python system)
