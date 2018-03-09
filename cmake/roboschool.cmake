@@ -79,12 +79,16 @@ ExternalProject_Add(roboschool
   GIT_TAG "remove_qt"
   BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/roboschool"
   INSTALL_DIR "${EXTERNAL_PROJECT_PREFIX}/roboschool"
-  DEPENDS assimp bullet glm opencv
+  DEPENDS assimp bullet glm
   LOG_DOWNLOAD ON
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   CONFIGURE_COMMAND ""
 )
+
+if (NOT OPENCV_FOUND)
+  add_dependencies(roboschool opencv)
+endif()
 
 ExternalProject_Get_Property(roboschool SOURCE_DIR)
 set(ROBOSCHOOL_DIR ${SOURCE_DIR})

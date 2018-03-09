@@ -36,7 +36,7 @@ ExternalProject_Add(opencv
 )
 
 ExternalProject_Get_Property(opencv INSTALL_DIR)
-set(OPENCV_INCLUDE_PATH "${INSTALL_DIR}/include")
+set(OpenCV_INCLUDE_DIRS "${INSTALL_DIR}/include")
 set(OPENCV_LIBS "")
 set(LIB_NAMES opencv_core opencv_highgui opencv_imgproc opencv_imgcodecs)
 foreach(LIB ${LIB_NAMES})
@@ -44,4 +44,3 @@ foreach(LIB ${LIB_NAMES})
 endforeach()
 
 set(OPENCV_INSTALL_DIR ${INSTALL_DIR})
-include_directories(${OPENCV_INCLUDE_PATH})
