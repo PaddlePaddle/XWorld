@@ -49,10 +49,12 @@ endif()
 
 ## user can set OPENCV_LIBS and OpenCV_INCLUDE_DIRS
 if(NOT OPENCV_LIBS)
+  set(OPENCV_FOUND FALSE)
   include(opencv)
 else()
-  include_directories(${OpenCV_INCLUDE_DIRS})
+  set(OPENCV_FOUND TRUE)
 endif()
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${PYTHON_INCLUDE_DIRS})
@@ -82,7 +84,8 @@ add_subdirectory(games/simple_game)
 add_subdirectory(games/simple_race)
 add_subdirectory(games/xworld)
 
-if(NOT OpenCV_DIR)
+# if we need to compile OpenCV, we need to set the dependencies
+if(NOT OPENCV_FOUND)
   add_dependencies(simple_race opencv)
   add_dependencies(xworld opencv)
 endif()
