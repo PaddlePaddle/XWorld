@@ -19,6 +19,7 @@ import os
 import copy
 from itertools import groupby
 import itertools
+from collections import OrderedDict
 from py_gflags import get_flag
 from maze2d import spanning_tree_maze_generator
 
@@ -139,34 +140,73 @@ class XWorldEnv(object):
         self.entities.append(Entity(type=type, loc=loc, name=name))
         self.changed = True
 
-    def set_entity_instance(self, type, loc=None, name=None,
-                            asset_path=None, force_occupy=False):
+    def reinstantiate_entity_property(self, entity, \
+                                      property_value_dict=OrderedDict.fromkeys(["name", \
+                                                                                "asset_path", \
+                                                                                "yaw", \
+                                                                                "scale", \
+                                                                                "offset"])):
         """
-        Add an entity instance of type to loc which must be currently empty if 
-        force_occupy is False. If force_occupy is True, then omit the location
-        based availability check. Insance properties will be randomly sampled
-        from the avaible set if not specified.
+        Reinstantiate the specified properties of an existing entity.
+        Properties and corresponding values are specified by the property_value_dict.
+        If no property is specified, some default properties will be reinstantiated.
+        If no value is provided for a specified property, a valid random value will be
+        used for the specified property and all the rest properties remain unchanged.
         """
-        if loc is None:
-            assert len(self.available_grids) > 0
-            loc = self.available_grids.pop()
-        elif not loc is None:
-            if not force_occupy:
-                assert loc in self.available_grids, \
-                    "set_dims correctly before setting a location"
-            if loc in self.available_grids:
-                self.available_grids.remove(loc)
-        if name is None:
-            name = random.choice(self.get_all_possible_names(type))
-        if asset_path is None:
-                icons = self.items[type][name]
-                asset_path = random.choice(icons)
-        color = self.color_table[asset_path]
-        id = "%s_%d" % (name, self.entity_nums[type])
+        def check_or_get_value(valid_value_set, is_continuous=False):
+            """
+            Check if the given value of the specified property is a valid one, or randomly
+            select one from the valid value set if value is None, and return the value.
+            is_continuous denotes whenther the value is continuous (True) or discrete (False).
+            """
+            if not is_continuous:
+                if value is None:
+                    assert len(valid_value_set) > 0, \
+                        "invalid value set for property %s is provided" % property
+                    return random.choice(valid_value_set)
+                else:
+                    assert value in valid_value_set, \
+                        "invalid value for property %s is provided" % property
+                    return value
+            else:
+                if value is None:
+                    assert len(valid_value_set) == 2 and valid_value_set[0] < valid_value_set[1], \
+                        "invalid value range for property %s is provided" % property
+                    return random.uniform(valid_value_set)
+                else:
+                    assert value >= valid_value_set[0] and value <= valid_value_set[1], \
+                        "invalid value for property %s is provided" % property
+                    return value
 
-        self.entities.append(Entity(type=type, id=id, loc=loc, name=name,
-                                    asset_path=asset_path, color=color))
-        self.entity_nums[type] += 1
+        for property in property_value_dict:
+            assert property in entity.__dict__.keys(), \
+                "invalid property name: %s is provided" % property
+            value = property_value_dict[property]
+            if property == "loc": # no change to the location unless specified
+                entity.loc = check_or_get_value(self.available_grids)
+                # remove used locations
+                self.available_grids.remove(loc)
+            if property == "name":
+                entity.name = check_or_get_value(self.get_all_possible_names(entity.type))
+                print entity.name
+                # update id once name is changed
+                entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
+            if property == "asset_path" or property == "name":
+                # update the asset_path once the name is changed
+                entity.asset_path = check_or_get_value(self.items[entity.type][entity.name])
+                # color is coupled with asset_path
+                entity.color = self.color_table[entity.asset_path]
+            if property == "yaw" and get_flag("visible_radius") and e.type != "block":
+                ## if partially observed, perturb the objects
+                yaw_range = range(-1, 3)
+                entity.yaw = check_or_get_value(yaw_range) * self.PI_2
+            if property == "scale" and get_flag("visible_radius") and e.type == "goal":
+                scale_range = [0.5, 1]
+                entity.scale = check_or_get_value(scale_range, is_continuous=True)
+            if property == "offset" and get_flag("visible_radius") and e.type == "goal":
+                offset_range = [0, 1 - (entity.scale if hasattr(entity, 'scale') else 0.5)]
+                entity.offset = check_or_get_value(offset_range, is_continuous=True)
+
         self.changed = True
 
     def delete_entity(self, loc=None, id=None):
@@ -366,25 +406,7 @@ class XWorldEnv(object):
 
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
-            if e.name is None:
-                e.name = random.choice(self.get_all_possible_names(e.type))
-            e.id = "%s_%d" % (e.name, i)
-            if e.asset_path is None:
-                icons = self.items[e.type][e.name]
-                e.asset_path = random.choice(icons)
-            e.color = self.color_table[e.asset_path]
-            if e.loc is None and e.type != "block":
-                assert len(self.available_grids) > 0
-                e.loc = self.available_grids.pop()
-            ## if partially observed, perturb the objects
-            if get_flag("visible_radius") and e.type != "block":
-                ## four orientations
-                e.yaw = random.randint(-1,2) * self.PI_2
-                if e.type == "goal":
-                    ## random scale
-                    e.scale = random.uniform(0.5, 1)
-                    ## random offset
-                    e.offset = random.uniform(0, 1 - e.scale)
+            e = self.reinstantiate_entity_property(e)
 
         ## add back some empty grids
         self.available_grids += blocks[len(self.get_blocks()):]

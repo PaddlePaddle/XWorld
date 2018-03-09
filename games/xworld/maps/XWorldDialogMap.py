@@ -26,7 +26,7 @@ class XWorldDialogMap(XWorldEnv):
         'agent' - all agent names
         """
         if type == "goal":
-            return self.get_selected_classes()
+            return self.get_selected_goal_classes()
         else:
             return self.items[type].keys()
 
@@ -39,7 +39,7 @@ class XWorldDialogMap(XWorldEnv):
         else:
             self.sel_classes = self.items["goal"].keys()
 
-    def get_selected_classes(self):
+    def get_selected_goal_classes(self):
         """
         Get the selected classes for a session
         """
@@ -51,7 +51,4 @@ class XWorldDialogMap(XWorldEnv):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
         for e in self.get_goals():
-            self.delete_entity(id=e.id) # do not use loc as the agent can move onto an object
-            self.set_entity_instance(type=e.type, loc=e.loc,
-                                     name=random.choice(self.get_all_possible_names(e.type)),
-                                     force_occupy=True)
+            self.reinstantiate_entity_property(e, property_value_dict={"name" : None})
