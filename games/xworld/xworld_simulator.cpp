@@ -62,6 +62,8 @@ void XWorldSimulator::init() {
     // default
     if (FLAGS_task_mode == "arxiv_lang_acquisition") {
         FLAGS_max_steps = (height_ + width_ ) * 2;
+    } else if (FLAGS_task_mode == "arxiv_interactive") {
+        FLAGS_max_steps = (height_ + width_ ) * 10;
     } else {
         FLAGS_max_steps = height_ * width_ * 2;
     }
@@ -297,6 +299,8 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
         } else if (type.find("XWorldRecBetween") == 0) {
             return pink;
         } else if (type.find("XWorldLan") == 0) {
+            return white;
+        } else if (type.find("XWorldDia") == 0) {
             return white;
         } else {
             LOG(FATAL) << "unrecognized message type: " + type;
