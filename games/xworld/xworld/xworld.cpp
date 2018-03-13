@@ -89,13 +89,15 @@ XWorld::XWorld(const std::string& conf, bool print_conf) : conf_(conf) {
 
         auto mod = py::import(map.c_str());
         item_path = path + "../" + item_path;
-        int start_level = 0;
         // read the curriculum record if possible
         if (FLAGS_curriculum_stamp != "") {
+            int start_level = 0;
             std::ifstream infile(FLAGS_curriculum_stamp);
             infile >> start_level;
+            xwd_env_ = mod.attr(map.c_str())(item_path.c_str(), start_level);
+        } else { // default start_level
+            xwd_env_ = mod.attr(map.c_str())(item_path.c_str());
         }
-        xwd_env_ = mod.attr(map.c_str())(item_path.c_str(), start_level);
     } catch (...) {
         PyErr_Print();
         LOG(FATAL) << "Error loading map: " << map;

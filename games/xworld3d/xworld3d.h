@@ -166,7 +166,6 @@ private:
     int img_height_;     // size for opengl rendering (used for show and debug)
     int img_width_;      // size for opengl rendering (used for show and debug)
     std::string item_path_;
-    std::string map_;
 
     // large sizes will crash in camera render
     static const int IMG_HEIGHT_SHOW = 512;

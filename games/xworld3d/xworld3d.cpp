@@ -109,7 +109,7 @@ X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
     CHECK_GT(tree->count("item_path"), 0);
     CHECK_GT(tree->count("map"), 0);
     item_path_ = tree->get<std::string>("item_path");
-    map_ = tree->get<std::string>("map");
+    std::string map = tree->get<std::string>("map");
 
     CHECK(Py_IsInitialized());
 
@@ -122,18 +122,20 @@ X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
         std::string cmd = "sys.path.append(\"" + path + "maps\")";
         py::exec(cmd.c_str(), main_namespace);
 
-        auto mod = py::import(map_.c_str());
+        auto mod = py::import(map.c_str());
         item_path_ = path + item_path_;
-        int start_level = 0;
         // read the curriculum record if possible
         if (FLAGS_curriculum_stamp != "") {
+            int start_level = 0;
             std::ifstream infile(FLAGS_curriculum_stamp);
             infile >> start_level;
+            xwd_env_ = mod.attr(map.c_str())(item_path_.c_str(), start_level);
+        } else { // default start_level
+            xwd_env_ = mod.attr(map.c_str())(item_path_.c_str());
         }
-        xwd_env_ = mod.attr(map_.c_str())(item_path_.c_str(), start_level);
     } catch (...) {
         PyErr_Print();
-        LOG(FATAL) << "Error loading map: " << map_;
+        LOG(FATAL) << "Error loading map: " << map;
     }
 
     world_ = util::make_unique<roboschool::World>(

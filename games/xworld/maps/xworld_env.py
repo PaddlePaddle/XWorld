@@ -94,8 +94,9 @@ class XWorldEnv(object):
         if self.curriculum_check_counter < XWorldEnv.curriculum_check_period \
            or not self.current_usage:
             return 0
-        ## we take the min usage across all the tasks
-        usage = min([sum(l) / float(len(l)) for l in self.current_usage.values()])
+        ## we take the average usage across all the tasks
+        usage = sum([sum(l) / float(len(l)) for l in self.current_usage.values()]) \
+                / len(self.current_usage)
         self.curriculum_check_counter = 0
         return usage
 
