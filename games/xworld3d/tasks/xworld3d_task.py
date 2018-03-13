@@ -154,10 +154,7 @@ class XWorld3DTask(object):
 
     def _record_target(self, target):
         """
-        Record the target for later evaluation and rewarding
-        The target should be a pair tuple, where the first element is
-        a string indicating which task's target is recorded, and the
-        second element is anything to be recorded
+        Record the navigation target
         """
         self.target = target
 

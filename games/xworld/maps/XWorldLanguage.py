@@ -8,9 +8,7 @@ class XWorldLanguage(XWorldEnv):
     def _configure(self):
         self.set_dims(5, 5)
         ## one agent in the center of the map
-        self.set_entity(type="agent", loc=(2, 2))
+        self.set_entity(type="agent")
         ## the agent is surrounded by four abitary goals
-        self.set_entity(type="goal", loc=(3, 2))
-        self.set_entity(type="goal", loc=(1, 2))
-        self.set_entity(type="goal", loc=(2, 1))
-        self.set_entity(type="goal", loc=(2, 3))
+        for i in range(4):
+            self.set_entity(type="goal")

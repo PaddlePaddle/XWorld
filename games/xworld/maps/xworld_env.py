@@ -126,7 +126,7 @@ class XWorldEnv(object):
 
     def set_entity(self, type, loc=None, name=None, force_occupy=False):
         """
-        Add an entity instance of type to loc which must be currently empty if 
+        Add an entity instance of type to loc which must be currently empty if
         force_occupy is False. If force_occupy is True, then omit the location
         based availability check.
         """
@@ -140,12 +140,13 @@ class XWorldEnv(object):
         self.entities.append(Entity(type=type, loc=loc, name=name))
         self.changed = True
 
-    def reinstantiate_entity_property(self, entity, \
-                                      property_value_dict=OrderedDict.fromkeys(["name", \
-                                                                                "asset_path", \
-                                                                                "yaw", \
-                                                                                "scale", \
-                                                                                "offset"])):
+    def set_property(self, entity, \
+                     property_value_dict=OrderedDict.fromkeys(["name", \
+                                                               "loc", \
+                                                               "asset_path", \
+                                                               "yaw", \
+                                                               "scale", \
+                                                               "offset"])):
         """
         Reinstantiate the specified properties of an existing entity.
         Properties and corresponding values are specified by the property_value_dict.
@@ -184,11 +185,8 @@ class XWorldEnv(object):
             value = property_value_dict[property]
             if property == "loc": # no change to the location unless specified
                 entity.loc = check_or_get_value(self.available_grids)
-                # remove used locations
-                self.available_grids.remove(loc)
             if property == "name":
                 entity.name = check_or_get_value(self.get_all_possible_names(entity.type))
-                print entity.name
                 # update id once name is changed
                 entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
             if property == "asset_path" or property == "name":
@@ -209,14 +207,18 @@ class XWorldEnv(object):
 
         self.changed = True
 
-    def delete_entity(self, loc=None, id=None):
+    def set_entity_inst(self, e):
+        if not e.loc is None:
+            assert e.loc in self.available_grids
+            self.available_grids.remove(e.loc)
+        self.entity_nums[e.type] += 1
+        self.entities.append(e)
+        self.changed = True
+
+    def delete_entity(self, x):
         """
         Delete an entity on the current map either by its location or id
         """
-        assert not (loc is None and id is None), "must specify what to delete"
-        xe = [e for e in self.entities if e.loc == loc or e.id == id]
-        assert len(xe) == 1
-        x = xe[0]
         self.entities.remove(x)
         self.entity_nums[x.type] -= 1
         self.available_grids.append(x.loc)
@@ -406,7 +408,7 @@ class XWorldEnv(object):
 
         ## select a random img path for each entity
         for i, e in enumerate(self.entities):
-            e = self.reinstantiate_entity_property(e)
+            self.set_property(e)
 
         ## add back some empty grids
         self.available_grids += blocks[len(self.get_blocks()):]
