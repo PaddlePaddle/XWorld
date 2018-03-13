@@ -13,13 +13,16 @@ def compute_action(states, num_actions):
     return action
 
 
-def compute_speak_action(states, num_actions):
+def compute_speak_action(states, num_actions, keep_silent = False):
     """
     A bad speak action computation method
     """
     screen = states["screen"]
     sentence = states["sentence"]
-    action = sentence # repeat teacher's sentence
+    if keep_silent:
+        action = ""
+    else:
+        action = sentence # repeat teacher's sentence
     return action
 
 
@@ -74,6 +77,37 @@ if __name__ == "__main__":
         game_over_str = xworld.game_over()
         states = xworld.get_state()
         action = compute_speak_action(states, num_actions)
+        r = xworld.take_actions({"pred_sentence": action}, 1, False)
+
+        if game_over_str != "alive":
+            print "game over because of ", game_over_str
+            xworld.reset_game()
+            continue
+
+        print r
+        reward += r
+
+    print "total reward ", reward
+
+
+    print "Example 3: Dialogue-based language and concept learning"
+    options = {
+        "xwd_conf_path": "../../confs/dialog.json",
+        "task_mode": "arxiv_interactive",
+        "context": 1,
+        "pause_screen": True,
+        "task_groups_exclusive": True
+    }
+    xworld = Simulator.create("xworld", options)
+    xworld.reset_game()
+
+    num_actions = xworld.get_num_actions()
+
+    reward = 0
+    for i in range(100):
+        game_over_str = xworld.game_over()
+        states = xworld.get_state()
+        action = compute_speak_action(states, num_actions, True)
         r = xworld.take_actions({"pred_sentence": action}, 1, False)
 
         if game_over_str != "alive":
