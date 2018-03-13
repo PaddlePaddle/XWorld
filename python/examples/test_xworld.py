@@ -41,11 +41,7 @@ if __name__ == "__main__":
     num_actions = xworld.get_num_actions()
 
     reward = 0
-    print("\033[93mUse show_screen() to see the game. " \
-          + "However, X server must be used; otherwise the code crashes\033[0m")
     for i in range(100):
-#        xworld.show_screen()
-
         game_over_str = xworld.game_over()
         if game_over_str != "alive":
             print "game over because of ", game_over_str
@@ -54,7 +50,7 @@ if __name__ == "__main__":
 
         states = xworld.get_state()
         action = compute_action(states, num_actions)
-        r = xworld.take_actions({"action": action, "pred_sentence" : ""})
+        r = xworld.take_actions({"action": action, "pred_sentence" : ""}, 1, False)
         print r
         reward += r
 
@@ -75,18 +71,16 @@ if __name__ == "__main__":
 
     reward = 0
     for i in range(100):
-#        xworld.show_screen()
-
         game_over_str = xworld.game_over()
-        print(game_over_str)
+        states = xworld.get_state()
+        action = compute_speak_action(states, num_actions)
+        r = xworld.take_actions({"pred_sentence": action}, 1, False)
+
         if game_over_str != "alive":
             print "game over because of ", game_over_str
             xworld.reset_game()
             continue
 
-        states = xworld.get_state()
-        action = compute_speak_action(states, num_actions)
-        r = xworld.take_actions({"pred_sentence": action})
         print r
         reward += r
 

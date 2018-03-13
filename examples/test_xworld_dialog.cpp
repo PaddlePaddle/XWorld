@@ -20,7 +20,6 @@ using namespace simulator;
 
 DECLARE_bool(task_groups_exclusive);
 DECLARE_string(task_mode);
-DECLARE_bool(pause_screen);
 
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -34,30 +33,24 @@ int main(int argc, char** argv) {
     int act_rep = 1;
 
     double reward = 0;
-    double reward_per_game = 0;
     double r = 0;
+    bool show_screen = false;
     for (int i = 0; i < 100; i++) {
-        if (FLAGS_pause_screen) {
-            xwd->show_screen();
-        }
-
         auto game_over_str =
             GameSimulator::decode_game_over_code(xwd->game_over());
-        if (game_over_str != "alive") {
-            LOG(INFO) << "game over because of " + game_over_str;
-            xwd->reset_game();
-            reward_per_game = 0;
-            continue;
-        }
-
         auto state = xwd->get_state(r);
 
         StatePacket actions;
         actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});
         actions.add_buffer_str("pred_sentence", "");
-        r = xwd->take_actions(actions, act_rep);
+        r = xwd->take_actions(actions, act_rep, show_screen);
 
-        reward_per_game += r;
+        if (game_over_str != "alive") {
+            LOG(INFO) << "game over because of " + game_over_str;
+            xwd->reset_game();
+            continue;
+        }
+
         reward += r;
         LOG(INFO) << r;
     }

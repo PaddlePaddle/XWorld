@@ -35,7 +35,7 @@ typedef std::shared_ptr<BinaryBuffer> BinaryBufferPtr;
 
 /***************************** SimulatorInterface *****************************/
 SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
-        : reward_(0), running_(false), game_(nullptr),
+        : running_(false), acc_reward_(0), game_(nullptr),
           teaching_env_(nullptr), teacher_(nullptr) {
     if (!server) {
         if (name == "simple_game") {
@@ -88,7 +88,7 @@ void SimulatorInterface::stop() {
 }
 
 void SimulatorInterface::reset_game() {
-    reward_ = 0;
+    acc_reward_ = 0;
     game_->reset_game();
     // teacher should be reset after the game because it needs to update the
     // game scanning results.
@@ -117,19 +117,15 @@ void SimulatorInterface::get_screen_out_dimensions(
     game_->get_screen_out_dimensions(height, width, channels);
 }
 
-void SimulatorInterface::show_screen() {
-    game_->show_screen(reward_);
-}
-
-float SimulatorInterface::take_actions(const StatePacket& actions, int act_rep) {
+float SimulatorInterface::take_actions(const StatePacket& actions, int act_rep, bool show_screen) {
     float r = 0;
-    r += game_->take_actions(actions, act_rep);
+    r += game_->take_actions(actions, act_rep, show_screen, acc_reward_);
     if (teacher_) {
         teacher_->teach();  // teacher reacts to agent's action and evaluate the
                             // reward
         r += teacher_->give_reward();
     }
-    reward_ += r;  // accumulate for record
+    acc_reward_ += r;
     return r;
 }
 
@@ -264,15 +260,11 @@ void SimulatorServer::get_screen_out_dimensions (
     channels = channels_;
 }
 
-void SimulatorServer::show_screen() {
-    call_remote_func("show_screen", NULL);
-}
-
-float SimulatorServer::take_actions(const StatePacket& actions, int act_rep) {
+float SimulatorServer::take_actions(const StatePacket& actions, int act_rep, bool show_screen) {
     float r;
     decltype(num_steps_) num_steps_from_client;
 
-    call_remote_func("take_actions", &actions, act_rep);
+    call_remote_func("take_actions", &actions, act_rep, show_screen);
 
     num_steps_++;
     read_msg(r, num_steps_from_client, game_over_code_,
@@ -367,8 +359,6 @@ void SimulatorClient::simulation_loop() {
         read_msg(cmd);
         if (cmd == "reset") {
             reset_game();
-        } else if (cmd == "show_screen") {
-            show_screen();
         } else if (cmd == "take_actions") {
             take_actions();
         } else if (cmd == "get_state") {
@@ -406,17 +396,13 @@ void SimulatorClient::reset_game() {
                 X, Y, Z);
 }
 
-void SimulatorClient::show_screen() {
-    SimulatorInterface::show_screen();
-    compose_msg(std::string("show_screen"));
-}
-
 void SimulatorClient::take_actions() {
     int act_rep;
     StatePacket actions;
-    read_msg(actions, act_rep);
+    bool show_screen;
+    read_msg(actions, act_rep, show_screen);
 
-    float reward = SimulatorInterface::take_actions(actions, act_rep);
+    float reward = SimulatorInterface::take_actions(actions, act_rep, show_screen);
     bool last_action_success = SimulatorInterface::last_action_success();
     auto last_action = SimulatorInterface::last_action();
     compose_msg(std::string("take_actions"),

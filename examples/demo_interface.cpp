@@ -28,6 +28,7 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
     double reward = 0;
     double r = 0;
     size_t cnt = 0;
+    bool show_screen = false;
     while (cnt < 100) {
         auto game_over_str = g->game_over_string();
         if (game_over_str != "alive") {
@@ -35,7 +36,6 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
             g->reset_game();
             continue;
         }
-        g->show_screen();
 
         StatePacket state;
         // You can choose to store the immediate reward r in the state
@@ -46,7 +46,7 @@ void run_simulation(std::shared_ptr<SimulatorInterface> g) {
         int a = util::get_rand_ind(num_actions);
         actions.add_buffer_id("action", {a});
 
-        r = g->take_actions(actions, 1);
+        r = g->take_actions(actions, 1, show_screen);
         reward += r;
         cnt ++;
     }

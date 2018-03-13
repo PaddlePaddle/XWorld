@@ -16,7 +16,7 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
 
 from context_free_grammar import CFG
 from py_gflags import get_flag
-from maze2d import bfs
+from maze2d import bfs, print_env
 
 class XWorldTask(object):
     ## some static class variables
@@ -285,6 +285,15 @@ class XWorldTask(object):
         """
         return self.env.get_agent()
 
+    def _set_entity_inst(self, e):
+        self.env.set_entity_inst(e)
+
+    def _delete_entity(self, e):
+        self.env.delete_entity(e)
+
+    def _set_property(self, e, property_value_dict):
+        self.env.set_property(e, property_value_dict)
+
     def __within_boundary(self, loc):
         """
         Determine if a location is out of boundary of the map
@@ -337,6 +346,8 @@ class XWorldTask(object):
         Use BFS to determine that if location 'end' can be reached from location 'start'
         The obstacles are the wall blocks on the current map.
         """
+        if start == end:
+            return True
         obstacles = set([b.loc for b in self._get_blocks()])
         assert not start in obstacles, "start pos should not be in obstacles"
         Y, X = self.env.get_dims()

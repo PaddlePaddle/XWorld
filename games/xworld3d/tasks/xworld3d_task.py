@@ -19,10 +19,11 @@ from math import sin
 from math import asin
 from math import copysign
 from math import sqrt
+import random
 import itertools
 from context_free_grammar import CFG
 from py_gflags import get_flag
-from maze2d import bfs
+from maze2d import bfs, flood_fill
 
 class XWorld3DTask(object):
     ## some static class variables
@@ -42,9 +43,10 @@ class XWorld3DTask(object):
     navigation_max_steps_factor = 10
 
     PI = 3.1415926
-    PI_8 = PI / 8
-    PI_4 = PI / 4
-    PI_2 = PI / 2
+    PI_2 = PI / 2    # 90
+    PI_4 = PI / 4    # 45
+    PI_8 = PI / 8    # 22.5
+    PI_12 = PI / 12  # 15
 
     ## the window size for recording the performance
     performance_window_size = 200
@@ -152,7 +154,7 @@ class XWorld3DTask(object):
 
     def _record_target(self, target):
         """
-        Record the target for later evaluation and rewarding
+        Record the navigation target
         """
         self.target = target
 
@@ -178,6 +180,180 @@ class XWorld3DTask(object):
 
         return hits
 
+    def __within_boundary(self, loc):
+        """
+        Determine if a location is out of boundary of the map
+        """
+        h, w = self.env.get_dims()
+        x, y = loc
+        return y >= 0 and y < h and x >= 0 and x < w
+
+    def _get_surrounding_goals(self, distance_threshold=1.5, refer=None):
+        """
+        Given a reference, return all goals within a circular neighborhood
+        with a radius of distance_threshold (excluding the refer itself)
+        Note that distance_threshold is inclusive
+        """
+        goals = self._get_goals()
+        if refer is None:
+            refer, _, _ = self._get_agent()
+            refer = refer.loc
+        ret = []
+        for g in goals:
+            if g.loc == refer:
+                continue
+            dist = self._get_direction_and_distance(refer, g.loc)
+            if dist < distance_threshold + 1e-3:
+                ret.append(g)
+        return ret
+
+    def _get_surrounding_empty_grids(self, distance_threshold=1.5, refer=None):
+        """
+        Given a reference location, return all empty grids in its neighborhood
+        (excluding the refer itself)
+        """
+        if refer is None:
+            refer, _, _ = self._get_agent()
+            refer = refer.loc
+        ret = []
+        for g in self.env.get_available_grids():
+            if g == refer: ## refer itself might be empty
+                continue
+            dist = self._get_direction_and_distance(refer, g)
+            if dist < distance_threshold + 1e-3:
+                ret.append(g)
+        return ret
+
+    def _get_p_tiles(self):
+        """
+        Return all the "pair" tiles (length=2) on the map.
+        """
+        Y, X = self.env.get_dims()
+        p_tiles = []
+        available = set(self.env.get_available_grids())
+
+        def test_pair(p1, p2):
+            if p1 in available and p2 in available:
+                around_p2 = self._get_surrounding_empty_grids(
+                    distance_threshold=1.0, refer=p2)
+                if set(around_p2) - set([p1]):
+                    p_tiles.append((p1, p2))
+                around_p1 = self._get_surrounding_empty_grids(
+                    distance_threshold=1.0, refer=p1)
+                if set(around_p1) - set([p2]):
+                    p_tiles.append((p2, p1))
+
+        for y in range(Y):
+            for x in range(X):
+                test_pair((x, y, 0), (x + 1, y, 0))
+                test_pair((x, y, 0), (x, y + 1, 0))
+                test_pair((x, y, 0), (x + 1, y + 1, 0))
+
+        return p_tiles
+
+    def _get_t_tiles(self):
+        """
+        Return all the empty T-shaped tiles on the map. For our purpose, only return
+        the two ends of the longer segment (length=3).
+        """
+        Y, X = self.env.get_dims()
+        t_tiles = []
+        available = set(self.env.get_available_grids())
+        for y in range(Y):
+            for x in range(X):
+                if (x, y, 0) in available:
+                    ## horizontal
+                    if (x - 1, y, 0) in available \
+                       and (x + 1, y, 0) in available \
+                       and ((x, y - 1, 0) in available \
+                            or (x, y + 1, 0) in available):
+                        t_tiles.append(((x - 1, y, 0), (x + 1, y, 0)))
+                    ## vertical
+                    if (x, y - 1, 0) in available \
+                       and (x, y + 1, 0) in available \
+                       and ((x - 1, y, 0) in available \
+                            or (x + 1, y, 0) in available):
+                        t_tiles.append(((x, y - 1, 0), (x, y + 1, 0)))
+        return t_tiles
+
+    def _get_s_tiles(self):
+        """
+        Return all the square tiles (area=4) no the map.
+        """
+        Y, X = self.env.get_dims()
+        s_tiles = []
+        available = set(self.env.get_available_grids())
+        neighbors = [(0, 0), (1, 0), (0, 1), (1, 1)]
+        for y in range(Y):
+            for x in range(X):
+                flag = True
+                for n in neighbors:
+                    nx = x + n[0]
+                    ny = y + n[1]
+                    if not (nx, ny, 0) in available:
+                        flag = False
+                        break
+                if flag: # the whole square is empty
+                    s_tiles.append(((x, y, 0), (x + 1, y, 0)))
+                    s_tiles.append(((x, y + 1, 0), (x + 1, y + 1, 0)))
+                    s_tiles.append(((x, y, 0), (x + 1, y + 1, 0)))
+                    s_tiles.append(((x + 1, y, 0), (x, y + 1, 0)))
+        return s_tiles
+
+    def _get_l_tiles(self):
+        """
+        Return all the l-shaped tiles (length=3) no the map
+        """
+        Y, X = self.env.get_dims()
+        l_tiles = []
+        available = set(self.env.get_available_grids())
+
+        def test_triple(p1, p2, p3):
+            if p1 in available:
+                if p2 in available and p3 in available:
+                    l_tiles.append((p1, p2))
+                    l_tiles.append((p2, p3))
+
+        for y in range(Y):
+            for x in range(X):
+                test_triple((x, y, 0), (x, y + 1, 0), (x, y + 2, 0))
+                test_triple((x, y, 0), (x + 1, y, 0), (x + 2, y, 0))
+                test_triple((x, y, 0), (x + 1, y + 1, 0), (x + 2, y + 2, 0))
+
+        return l_tiles
+
+    def _middle_loc(self, l1, l2, fl=False):
+        half = 2.0 if fl else 2
+        return ((l1[0]+l2[0])/half, (l1[1]+l2[1])/half, (l1[2]+l2[2])/half)
+
+    def _reachable(self, start, end):
+        """
+        Use BFS to determine that if location 'end' can be reached from location 'start'
+        The obstacles are the wall blocks and goals on the current map.
+        """
+        if start == end:
+            return True
+        blocks = [b.loc for b in self._get_blocks()]
+        goals = [g.loc for g in self._get_goals()]
+        if end in goals: # end could be occupied by a goal
+            goals.remove(end)
+        obstacles = blocks + goals
+        assert not start in obstacles, "start pos should not be in obstacles"
+        Y, X = self.env.get_dims()
+        return (bfs(start, end, X, Y, obstacles) is not None)
+
+    def _propagate_agent(self, seeds, inclusive=False):
+        """
+        Given a list of goals, propagate them through the maze to find possible agent
+        positions
+        """
+        obstacles = [b.loc for b in self._get_blocks()]
+        goals = [g.loc for g in self._get_goals()]
+        Y, X = self.env.get_dims()
+        filled = flood_fill(seeds, obstacles + goals, X, Y)
+        if inclusive:
+            filled += seeds
+        return filled
 
     ############# public APIs #############
     def reset(self):
@@ -260,48 +436,29 @@ class XWorld3DTask(object):
 
         return [next_stage, reward, self.sentence]
 
-    def simple_navigation_reward(self):
-        """
-        A simple navigation reward stage. If the agent reaches the correct
-        goal, it gets a positive reward. If it steps on an incorrect goal,
-        it gets a negative reward. There will also be penalties if it has
-        a failed action. The task returns to 'idle' stage when the correct
-        goal is reached or the time is up for this task. The time-up setting
-        is only for "one_channel" mode.
-        """
-        reward = XWorld3DTask.time_penalty
-
-        agent, _, _ = self._get_agent()
-
-        ## even though the collided object might be the goal, we still have a penalty
-        ## hopefully the huge positive reward will motivate it
+    def _reach_object(self, agent, yaw, object):
         collisions = self._parse_collision_event(self.env.game_event)
-        if collisions:
-            reward += XWorld3DTask.collision_penalty
+        theta, _, _ = self._get_direction_and_distance(agent, object.loc, yaw)
+        return abs(theta) < self.orientation_threshold and object.id in collisions
 
-#        self.sentence = ""
+    def _successful_goal(self, reward):
+        self._record_success()
+        self._record_event("correct_goal")
+        reward += XWorld3DTask.correct_reward
+        self._bind("S -> correct")
+        self.sentence = self._generate()
+        return reward
 
-        def reach_object(agent, yaw, object):
-            theta, _, _ = self._get_direction_and_distance(agent, object.loc, yaw)
+    def _failed_goal(self, reward):
+        self._record_failure()
+        self._record_event("wrong_goal")
+        reward += XWorld3DTask.wrong_reward
+        self._bind("S -> wrong")
+        self.sentence = self._generate()
+        return reward
 
-            return abs(theta) < self.orientation_threshold and object.id in collisions
-
-        def successful_goal(reward):
-            self._record_success()
-            self._record_event("correct_goal")
-            reward += XWorld3DTask.correct_reward
-            self._bind("S -> correct")
-            self.sentence = self._generate()
-            return reward
-
-        def failed_goal(reward):
-            self._record_failure()
-            self._record_event("wrong_goal")
-            reward += XWorld3DTask.wrong_reward
-            self._bind("S -> wrong")
-            self.sentence = self._generate()
-            return reward
-
+    def _time_reward(self):
+        reward = XWorld3DTask.time_penalty
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if self.steps_in_cur_task >= h * w * XWorld3DTask.navigation_max_steps_factor:
@@ -309,32 +466,8 @@ class XWorld3DTask(object):
             self._bind("S -> timeup")
             self.sentence = self._generate()
             self._record_event("time_up")
-        else:
-            objects_reach_test = [g.id for g in self._get_goals() \
-                                  if reach_object(agent.loc, agent.yaw, g)]
-
-            if isinstance(self.target, tuple):
-                assert len(self.target) == 3
-
-                if objects_reach_test: ## touching any object will fail
-                    reward = failed_goal(reward)
-
-                o, dist_thresold, direction = self.target
-                _, dist, dir = self._get_direction_and_distance(agent.loc, o, agent.yaw)
-                if dist < dist_thresold:
-                    if dir == direction:
-                        reward = successful_goal(reward)
-                    else:
-                        reward += XWorld3DTask.target_side_penalty
-
-            elif self.target.id in objects_reach_test:
-                reward = successful_goal(reward)
-
-            elif objects_reach_test: # other objects
-                reward = failed_goal(reward)
-
-        # game_over will reset the stage to "idle" so we don't bother here
-        return ["simple_navigation_reward", reward, self.sentence]
+            return (reward, True)
+        return (reward, False)
 
     ############ functions that wrap self.env and self.cfg #############
     def _list_of_strs_to_rhs(self, strs):
@@ -399,71 +532,14 @@ class XWorld3DTask(object):
         """
         return self.env.get_agent()
 
+    def _set_entity_inst(self, e):
+        self.env.set_entity_inst(e)
+
     def _move_entity(self, e, loc):
         self.env.move_entity(e, loc)
 
-    def __within_boundary(self, loc):
-        """
-        Determine if a location is out of boundary of the map
-        """
-        h, w = self.env.get_dims()
-        x, y = loc
-        return y >= 0 and y < h and x >= 0 and x < w
-
-    def _get_surrounding_goals(self, distance_threshold=1.0, refer=None):
-        """
-        Given a reference, return all goals within a circular neighborhood
-        with a radius of distance_threshold.
-        Note that distance_threshold is inclusive
-        """
-        goals = self._get_goals()
-        if refer is None:
-            refer, _, _ = self._get_agent()
-        ret = []
-        for g in goals:
-            if g.id == refer.id:
-                continue
-            dist = self._get_direction_and_distance(refer.loc, g.loc)
-            if dist < distance_threshold + 1e-3:
-                ret.append(g)
-        return ret
-
-    def _get_surrounding_empty_grids(self, distance_threshold=1.0, refer=None):
-        """
-        Given a reference location, return all empty grids in its neighborhood
-        """
-        if refer is None:
-            refer, _, _ = self._get_agent()
-        ret = []
-        for g in self.env.get_available_grids():
-            dist = self._get_direction_and_distance(refer.loc, g)
-            if dist < distance_threshold + 1e-3:
-                ret.append(g)
-        return ret
-
-    def _get_between_pair_goals(self):
-        """
-        Return all pairs of goals that are separated horizontally by exactly
-        one grid that is not a wall block
-        """
-        # TODO
-        raise NotImplementedError()
-
-    def _reachable(self, start, end):
-        """
-        Use BFS to determine that if location 'end' can be reached from location 'start'
-        The obstacles are the wall blocks and goals on the current map.
-        """
-        if start == end:
-            return True
-        blocks = [b.loc for b in self._get_blocks()]
-        goals = [g.loc for g in self._get_goals()]
-        obstacles = blocks + goals
-        assert not start in obstacles, "start pos should not be in obstacles"
-        if end in obstacles: # end could be occupied by a goal
-            obstacles.remove(end)
-        Y, X = self.env.get_dims()
-        return (bfs(start, end, X, Y, obstacles) is not None)
+    def _delete_entity(self, e):
+        self.env.delete_entity(e)
 
     def _bind(self, binding_str):
         """

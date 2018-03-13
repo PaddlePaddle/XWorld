@@ -30,25 +30,24 @@ int main(int argc, char** argv) {
     int act_rep = FLAGS_context;
 
     double reward = 0;
-    double reward_per_game = 0;
     double r = 0;
+    bool show_screen = false;
     for (int i = 0; i < 100; i++) {
         auto game_over_str =
             GameSimulator::decode_game_over_code(race->game_over());
-        if (game_over_str != "alive") {
-            LOG(INFO) << "game over because of " + game_over_str;
-            race->reset_game();
-            reward_per_game = 0;
-            continue;
-        }
-        race->show_screen();
 
         auto state = race->get_state(r);
 
         StatePacket actions;
         actions.add_buffer_id("action", {util::get_rand_ind(num_actions)});
-        r = race->take_actions(actions, act_rep);
-        reward_per_game += r;
+        r = race->take_actions(actions, act_rep, show_screen);
+
+        if (game_over_str != "alive") {
+            LOG(INFO) << "game over because of " + game_over_str;
+            race->reset_game();
+            continue;
+        }
+
         reward += r;
         LOG(INFO) << r;
     }

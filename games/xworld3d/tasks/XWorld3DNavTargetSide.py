@@ -1,4 +1,5 @@
 import random
+import math
 from xworld3d_task import XWorld3DTask
 from maze2d import print_env
 
@@ -19,7 +20,7 @@ This task asks the agent to navigate to a position so that it puts a certain obj
 in front of, behind, to the left of, or to the right of, the agent (from the agent's perspective).
 
 Example:
-Please put the apple to the left of you.
+Please move so that apple is left of chair.
 """
 
 class XWorld3DNavTargetSide(XWorld3DTask):
@@ -27,57 +28,133 @@ class XWorld3DNavTargetSide(XWorld3DTask):
         super(XWorld3DNavTargetSide, self).__init__(env)
 
     def idle(self):
-        dt = 1.5 # eight connected neighborhood
         goals = self._get_goals()
-        ## because agent loc is continuous, we have to rely on its init position for path search
-        init_agent_loc = self.env.init_agent_loc
+        agent, _, _ = self._get_agent()
 
-        goals = [g for g in goals if \
-                 [e for e in self._get_surrounding_empty_grids(distance_threshold=dt, refer=g) if \
-                  self._reachable(init_agent_loc, e)]]
+        assert len(goals) >= 2, "This task must have at least two goals"
 
-        if goals:
-            goal = random.choice(goals)
-            direction = random.choice(['left', 'right', 'front', 'behind'])
-            self._record_target((goal.loc, dt, direction));
-            self._bind("S -> start")
-            self._bind("P -> %s" % direction.upper())
-            self._bind("G -> '" + goal.name + "'")
-            self.sentence = self._generate()
-            return ["simple_navigation_reward", 0.0, self.sentence]
+        self._delete_entity(agent)
+        random.shuffle(goals)
+        g1, g2 = goals[:2]
+        # delete goals to make space
+        self._delete_entity(g1)
+        self._delete_entity(g2)
 
-        return ["idle", 0.0, ""]
+        l_tiles = self._get_l_tiles()
+        s_tiles = self._get_s_tiles()
+        tiles = l_tiles + s_tiles
+        assert tiles, "map too crowded?"
+
+        random.shuffle(tiles)
+        g1.loc, g2.loc = tiles[0]
+        self._set_entity_inst(g1)
+        self._set_entity_inst(g2)
+
+        ## compute a direction for command
+        empty_grids1 = self._get_surrounding_empty_grids(refer=g1.loc)
+        empty_grids2 = self._get_surrounding_empty_grids(refer=g2.loc)
+        empty_grids = set(empty_grids1 + empty_grids2)
+
+        valid_empty_grids = [e for e in empty_grids \
+                             if self.__compute_triple_direction(g1, g2, e)]
+
+        assert valid_empty_grids, "get_l_tiles and get_s_tiles are buggy"
+        empty_grid = random.choice(valid_empty_grids)
+        direction = self.__compute_triple_direction(g1, g2, empty_grid)
+
+        new_a = self._propagate_agent([empty_grid], inclusive=True)
+        assert new_a, "This shouldn't happen because empty_grid is already empty!"
+        new_a = random.choice(new_a)
+
+        ## move agent to the new position
+        agent.loc = new_a
+        self._set_entity_inst(agent)
+
+        self._record_target((g1, g2, direction));
+        self._bind("S -> start")
+        self._bind("G1 -> '" + g1.name + "'")
+        self._bind("G2 -> '" + g2.name + "'")
+        self._bind("P -> " + direction.upper())
+        self.sentence = self._generate()
+        return ["navigation_reward", 0.0, self.sentence]
+
+    def navigation_reward(self):
+        threshold = 1.5
+        reward, time_out = self._time_reward()
+        if not time_out:
+            agent, _, _ = self._get_agent()
+            objects_reach_test = [g.id for g in self._get_goals() \
+                                  if self._reach_object(agent.loc, agent.yaw, g)]
+            if objects_reach_test:
+                reward = self._failed_goal(reward)
+            else:
+                g1, g2, target_direction = self.target
+                direction = self.__compute_triple_direction(g1, g2, agent.loc, agent.yaw)
+                if direction == target_direction \
+                   and min(self._get_direction_and_distance(agent.loc, g1.loc),
+                           self._get_direction_and_distance(agent.loc, g2.loc)) < threshold:
+                    reward = self._successful_goal(reward)
+
+        return ["navigation_reward", reward, self.sentence]
+
+    def __compute_triple_direction(self, g1, g2, a, view_yaw=None):
+        """
+        Compute the direction of g1 to g2 in the agent's view
+        """
+        mid = self._middle_loc(g1.loc, g2.loc, fl=True)
+        if view_yaw is None:
+            view_yaw = math.atan2(mid[1] - a[1], mid[0] - a[0])
+
+        # agent must look at the two objects
+        if abs(self._get_direction_and_distance(
+                a, mid, view_yaw)[0]) > XWorld3DTask.PI_8:
+            return False
+
+        theta, _, _ = self._get_direction_and_distance(g1.loc, g2.loc, view_yaw)
+        sign = True if theta > 0 else False
+        flag = False # g2 is far
+        theta = abs(theta)
+        if theta > XWorld3DTask.PI_2:
+            flag = True # g1 is far
+            theta = XWorld3DTask.PI - theta
+
+        if theta < XWorld3DTask.PI_12 + 1e-3: # front or behind
+            if flag:
+                return "front"
+            else:
+                return "behind"
+        elif XWorld3DTask.PI_2 - theta < XWorld3DTask.PI_4 + 1e-3: # left or right
+            if sign:
+                return "left"
+            else:
+                return "right"
+        return False
 
     def get_stage_names(self):
         """
         return all the stage names; does not have to be in order
         """
-        return ["idle", "simple_navigation_reward"]
+        return ["idle", "navigation_reward"]
 
     def _define_grammar(self):
         all_goal_names = self._get_all_goal_names_as_rhs()
         grammar_str = """
         S --> start | timeup | correct | wrong
-        start -> I0 | I1 | I2 | I3
+        start -> I0 | I1
         correct -> 'Well' 'done' '!'
         wrong -> 'Wrong' '!'
         timeup -> 'Time' 'up' '.'
-        I0 -> A LL G NP '.'
-        I1 -> M G NP '.'
-        I2 -> Y A LL G NP '?'
-        I3 -> Y M G NP '?'
-        A -> 'go' 'to' | 'navigate' 'to' | 'reach' | 'move' 'to'
-        LL -> L C
-        L -> 'the' 'location' | 'the' 'grid' | 'the' 'place'
+        I0 -> M G1 'is' P G2 '.'
+        I1 -> Y M G1 'is' P G2 '?'
         M -> 'move' C | 'navigate' C
         C -> 'so' 'that' | 'such' 'that'
-        NP -> 'is' P 'you'
         P --> LEFT | RIGHT | BEHIND | FRONT
         LEFT -> 'left' 'of' | 'to' 'the' 'left' 'of'
         RIGHT -> 'right' 'of' | 'to' 'the' 'right' 'of'
         BEHIND -> 'behind'
         FRONT -> 'in' 'the' 'front' 'of' | 'front' 'of'
         Y -> 'Could' 'you' 'please' | 'Can' 'you' | 'Will' 'you'
-        G --> %s
-        """ % all_goal_names
+        G1 --> %s
+        G2 --> %s
+        """ % (all_goal_names, all_goal_names)
         return grammar_str, "S"

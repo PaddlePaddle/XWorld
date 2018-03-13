@@ -123,39 +123,32 @@ class XWorld3DEnv(object):
         """
         Add an entity of type to loc which must be currently empty
         """
-        self.__set_entity(Entity(type=type, loc=loc, name=name))
+        self.set_entity_inst(Entity(type=type, loc=loc, name=name))
 
-    def __set_entity(self, e):
-        ## agent has continuous loc, so we don't check
-        if not e.loc is None and e.type != "agent":
-            assert e.loc in self.available_grids, \
-                "set_dims correctly before setting a location"
+    def set_entity_inst(self, e):
+        if not e.loc is None:
+            assert e.loc in self.available_grids
             self.available_grids.remove(e.loc)
         self.entity_nums[e.type] += 1
         self.entities.append(e)
         self.changed = True
 
-    def delete_entity(self, id):
+    def delete_entity(self, x):
         """
-        Delete an entity on the current map either by its id
+        Delete an entity on the current map
         """
-        xe = [e for e in self.entities if e.id == id]
-        assert len(xe) == 1
-        x = xe[0]
         self.entities.remove(x)
         self.entity_nums[x.type] -= 1
-        ## agent has continuous loc, so we don't restore
-        if x.type != "agent":
-            self.available_grids.append(x.loc)
+        self.available_grids.append(x.loc)
         self.changed = True
 
     def move_entity(self, e, loc):
         """
         Move entity e from its current location to loc
         """
-        self.delete_entity(id=e.id)
+        self.delete_entity(e)
         e.loc = loc
-        self.__set_entity(e)
+        self.set_entity_inst(e)
 
     def set_goal_subtrees(self, subtrees):
         """
@@ -350,7 +343,6 @@ class XWorld3DEnv(object):
                 e.loc = self.available_grids.pop()
             if e.type == "agent":
                 e.yaw = random.uniform(-self.PI, self.PI)
-                self.init_agent_loc = e.loc
             elif e.type == "goal":
                 e.yaw = random.randint(-1,2) * self.PI_2
 

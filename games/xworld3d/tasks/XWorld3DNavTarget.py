@@ -27,28 +27,38 @@ class XWorld3DNavTarget(XWorld3DTask):
 
     def idle(self):
         goals = self._get_goals()
-        init_agent_loc = self.env.init_agent_loc
-        targets = [g for g in goals if self._reachable(init_agent_loc, g.loc)]
+        agent, _, _ = self._get_agent()
+        targets = [g for g in goals if self._reachable(agent.loc, g.loc)]
 
-        if len(targets) == 0:
-            Y, X = self.env.get_dims()
-            print_env(X, Y, self._get_entities())
-            print([g.loc for g in goals])
-            print(init_agent_loc)
-            assert False, "There must be some targets"
-
+        assert targets, "map too crowded?"
         sel_goal = random.choice(targets)
-        self._record_target(sel_goal);
+
+        ## set all goals that have the same name
+        targets = [g for g in goals if g.name == sel_goal.name]
+
+        self._record_target(targets);
         self._bind("S -> start")
         self._bind("G -> '" + sel_goal.name + "'")
         self.sentence = self._generate()
-        return ["simple_navigation_reward", 0.0, self.sentence]
+        return ["navigation_reward", 0.0, self.sentence]
+
+    def navigation_reward(self):
+        reward, time_out = self._time_reward()
+        if not time_out:
+            agent, _, _ = self._get_agent()
+            objects_reach_test = [g.id for g in self._get_goals() \
+                                  if self._reach_object(agent.loc, agent.yaw, g)]
+            if [t for t in self.target if t.id in objects_reach_test]:
+                reward = self._successful_goal(reward)
+            elif objects_reach_test:
+                reward = self._failed_goal(reward)
+        return ["navigation_reward", reward, self.sentence]
 
     def get_stage_names(self):
         """
         return all the stage names; does not have to be in order
         """
-        return ["idle", "simple_navigation_reward"]
+        return ["idle", "navigation_reward"]
 
     def _define_grammar(self):
         all_goal_names = self._get_all_goal_names_as_rhs()
