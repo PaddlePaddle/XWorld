@@ -100,7 +100,7 @@ class XWorldDialog(XWorldTask):
                     return ["conversation_wrapup", reward, teacher_sent]
                 else:
                     self.behavior_flags += [False]
-                    reward = speak_incorrect_reward
+                    reward = self.speak_incorrect_reward
                     sent = self.sentence_selection_with_ratio()
                     self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
                     teacher_sent = self._generate_and_save([sent])

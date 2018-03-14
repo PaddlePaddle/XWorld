@@ -141,19 +141,19 @@ class XWorldEnv(object):
         self.entities.append(Entity(type=type, loc=loc, name=name))
         self.changed = True
 
-    def set_property(self, entity, \
-                     property_value_dict=OrderedDict.fromkeys(["name", \
-                                                               "loc", \
-                                                               "asset_path", \
-                                                               "yaw", \
-                                                               "scale", \
-                                                               "offset"])):
+    def set_property(self, entity, property_value_dict={}):
         """
         Reinstantiate the specified properties of an existing entity.
         Properties and corresponding values are specified by the property_value_dict.
-        If no property is specified, some default properties will be reinstantiated.
-        If no value is provided for a specified property, a valid random value will be
-        used for the specified property and all the rest properties remain unchanged.
+        There are three use cases:
+        1) if no property is specified (e.g. property_value_dict={}), all properties will
+           be reinstantiated.
+        2) If None value is provided for a specified property (e.g. {"name" : None}),
+           a valid random value will be sampled for the specified property and all the rest 
+           properties will be reinstantiated randomly.
+        3) If False value is provided for a specified property (e.g. {"loc" : False}),
+           this property remains unchanged while other properties will be reinstantiated.
+        Mode 2) and 3) can be used together (e.g. {"name" : None, "loc" : False})).
         """
         def check_or_get_value(valid_value_set, is_continuous=False):
             """
@@ -180,11 +180,23 @@ class XWorldEnv(object):
                         "invalid value for property %s is provided" % property
                     return value
 
-        for property in property_value_dict:
-            assert property in entity.__dict__.keys(), \
+        default_dict = OrderedDict.fromkeys(["name", \
+                                             "loc", \
+                                             "asset_path", \
+                                             "yaw", \
+                                             "scale", \
+                                             "offset"])
+        context_dict = default_dict.copy()
+        context_dict.update(property_value_dict)
+
+        for property in context_dict:
+            assert property in entity.__dict__.keys() and property in default_dict.keys(), \
                 "invalid property name: %s is provided" % property
-            value = property_value_dict[property]
-            if property == "loc": # no change to the location unless specified
+            value = context_dict[property]
+            if value == False: # should only be used for properties with values
+                assert entity.__dict__[property], "no existing value for property %s" % property
+                continue
+            if property == "loc":
                 entity.loc = check_or_get_value(self.available_grids)
             if property == "name":
                 entity.name = check_or_get_value(self.get_all_possible_names(entity.type))
@@ -195,14 +207,14 @@ class XWorldEnv(object):
                 entity.asset_path = check_or_get_value(self.items[entity.type][entity.name])
                 # color is coupled with asset_path
                 entity.color = self.color_table[entity.asset_path]
-            if property == "yaw" and get_flag("visible_radius") and e.type != "block":
+            if property == "yaw" and get_flag("visible_radius") and entity.type != "block":
                 ## if partially observed, perturb the objects
                 yaw_range = range(-1, 3)
                 entity.yaw = check_or_get_value(yaw_range) * self.PI_2
-            if property == "scale" and get_flag("visible_radius") and e.type == "goal":
+            if property == "scale" and get_flag("visible_radius") and entity.type == "goal":
                 scale_range = [0.5, 1]
                 entity.scale = check_or_get_value(scale_range, is_continuous=True)
-            if property == "offset" and get_flag("visible_radius") and e.type == "goal":
+            if property == "offset" and get_flag("visible_radius") and entity.type == "goal":
                 offset_range = [0, 1 - (entity.scale if hasattr(entity, 'scale') else 0.5)]
                 entity.offset = check_or_get_value(offset_range, is_continuous=True)
 
