@@ -1,15 +1,23 @@
 import random
 from xworld_task import XWorldTask
+from py_util import overrides
 
 class XWorldDialog(XWorldTask):
     def __init__(self, env):
         super(XWorldDialog, self).__init__(env)
         self.max_steps = 7 # maximum number of steps, should be related to number of sel classes
-        self.speak_correct_reward = 1;
-        self.speak_incorrect_reward = -1;
-        self.question_ask_reward = 0.1;
-        self.nothing_said_reward = -1;
+        self.speak_correct_reward = 1
+        self.speak_incorrect_reward = -1
+        self.question_ask_reward = 0.1
+        self.nothing_said_reward = -1
+
         self.reset_dialog_setting()
+        ## some config para
+        self.stepwise_reward = True
+        self.success_reward = 1
+        self.failure_reward = -0.1
+        self.step_penalty = -0.01
+        self.sentence_level_task = True # False: word level task
 
     def reset_dialog_setting(self):
         self.question_ratio = 0.5 # the chance of asking a question or making a statement
@@ -22,13 +30,10 @@ class XWorldDialog(XWorldTask):
         """
         agent, _, _ = self._get_agent()
         goals = self._get_goals()
-
         assert len(goals) > 0, "there is no goal on the map!"
         sel_goal = random.choice(goals)
-
         ## first generate all candidate answers
         self._bind("S -> statement")
-        #self._bind("G -> '%s'" % sel_goal.name)
         self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
         self.answers = self._generate_all()
 
@@ -46,6 +51,22 @@ class XWorldDialog(XWorldTask):
         """
         Giving reward to the agent
         """
+        def get_reward(reward, success=None):
+            """
+            Internal function for compute reward based on the stepwise_reward flag.
+            reward is the current step reward
+            success: None: not an ending step, True: success, False: failure
+            """
+            if self.stepwise_reward:
+                return reward
+            elif success is None:
+                # only step_penalty for intermediate steps in non-stepwise rewarding case
+                return self.step_penalty
+            elif success is True: #final stage
+                return self.success_reward
+            elif success is False:
+                return self.failure_reward
+
         # get agent's sentence (response to previous sentence from teacher)
         _, agent_sent, _ = self._get_agent()
         # get teacher's sentence
@@ -55,6 +76,7 @@ class XWorldDialog(XWorldTask):
         is_question_asked = agent_sent in self.questions
         is_reply_correct = agent_sent in self.answers
         is_nothing_said = agent_sent == ""
+        # extend_step is for provding answer by teacher
         extend_step = (is_nothing_said or is_question_asked) and \
                        qa_stage_prev
         # in this case, move to the next object for interaction
@@ -63,6 +85,7 @@ class XWorldDialog(XWorldTask):
 
         goals = self._get_goals()
         sel_goal = random.choice(goals)
+
         # update answers
         self._bind("S -> statement") # first bind S to statement
         #self._bind("G -> '%s'" % sel_goal.name)
@@ -88,16 +111,10 @@ class XWorldDialog(XWorldTask):
                     self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
                     teacher_sent = self._generate_and_save()
                 elif is_reply_correct:
-                    # switch to more regorous criteria
                     self.behavior_flags += [True]
-                    if all(self.behavior_flags):
-                        self._record_success()
-                    else:
-                        self._record_failure()
-                    self._record_event("correct_reply", next=True)
                     reward = self.speak_correct_reward
+                    reward = get_reward(reward, all(self.behavior_flags))
                     teacher_sent = ""
-                    self.reset_dialog_setting()
                     return ["conversation_wrapup", reward, teacher_sent]
                 else:
                     self.behavior_flags += [False]
@@ -120,31 +137,36 @@ class XWorldDialog(XWorldTask):
                 sent = self.sentence_selection_with_ratio()
                 self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
                 teacher_sent = self._generate_and_save([sent])
-
+            reward = get_reward(reward)
             return ["reward", reward, teacher_sent]
         else:
             if qa_stage_prev and is_reply_correct:
                 self.behavior_flags += [True]
-                self._record_event("correct_reply", next=True)
                 reward= self.speak_correct_reward
             else:
                 self.behavior_flags += [False]
                 reward = self.speak_incorrect_reward
-                self._record_event("wrong_reply", next=True)
-
-            if all(self.behavior_flags):
-                self._record_success()
-            else:
-                self._record_failure()
             teacher_sent = ""
-            self.reset_dialog_setting()
+            reward = get_reward(reward, all(self.behavior_flags))
             return ["conversation_wrapup", reward, teacher_sent]
 
-    def sentence_selection_with_ratio(self):
-        if random.randint(0, 1) > self.question_ratio: # proceed with statement
-            return random.choice(self.answers)
+    @overrides(XWorldTask)
+    def conversation_wrapup(self):
+        """
+        This dummpy stage simply adds an additional time step after the
+        conversation is over, which enables the agent to learn language model
+        from teacher's last sentence.
+        """
+        if all(self.behavior_flags):
+            self._record_success()
+            self._record_event("correct_reply", next=True)
         else:
-            return random.choice(self.questions)
+            self._record_failure()
+            self._record_event("wrong_reply", next=True)
+        self._record_event(self.prev_event)
+        self.prev_event = None
+        self.reset_dialog_setting()
+        return ["idle", 0, ""]
 
     def get_stage_names(self):
         """
@@ -153,8 +175,12 @@ class XWorldDialog(XWorldTask):
         return ["idle", "reward", "conversation_wrapup"]
 
     def _define_grammar(self):
-        #all_directions = self._get_all_directions_as_rhs()
-        #all_goal_names = self._get_all_goal_names_as_rhs()
+        if False:
+            return self.get_sentence_level_grammar()
+        else:
+            return self.get_word_level_grammar()
+
+    def get_sentence_level_grammar(self):
         grammar_str = """
         S --> question | statement
         question -> E | Q
@@ -177,6 +203,23 @@ class XWorldDialog(XWorldTask):
         G  -> 'dummy'
         """
         return grammar_str, "S"
+
+    def get_word_level_grammar(self):
+        grammar_str = """
+        S --> question | statement
+        question -> E | Q
+        statement-> G
+        E -> ''
+        Q -> 'what'
+        G -> 'dummy'
+        """
+        return grammar_str, "S"
+
+    def sentence_selection_with_ratio(self):
+        if random.uniform(0,1) > self.question_ratio: # proceed with statement
+            return random.choice(self.answers)
+        else:
+            return random.choice(self.questions)
 
     def _generate_and_save(self, teacher_sent = []):
         """
