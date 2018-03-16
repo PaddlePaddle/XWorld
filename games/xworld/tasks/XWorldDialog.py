@@ -64,6 +64,7 @@ class XWorldDialog(XWorldTask):
         goals = self._get_goals()
         sel_goal = random.choice(goals)
         # update answers
+        self._bind("S -> statement") # first bind S to statement
         #self._bind("G -> '%s'" % sel_goal.name)
         self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
         self.answers = self._generate_all()
