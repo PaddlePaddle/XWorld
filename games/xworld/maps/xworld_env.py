@@ -206,7 +206,10 @@ class XWorldEnv(object):
                 # update the asset_path once the name is changed
                 entity.asset_path = check_or_get_value(self.items[entity.type][entity.name])
                 # color is coupled with asset_path
-                entity.color = self.color_table[entity.asset_path]
+                if entity.asset_path in self.color_table.keys():
+                    entity.color = self.color_table[entity.asset_path]
+                else:
+                    entity.color = "na"
             if property == "yaw" and get_flag("visible_radius") and entity.type != "block":
                 ## if partially observed, perturb the objects
                 yaw_range = range(-1, 3)
