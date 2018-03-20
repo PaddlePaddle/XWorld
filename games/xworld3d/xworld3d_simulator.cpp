@@ -211,7 +211,6 @@ void X3Simulator::show_screen(float reward) {
     cv::Mat img_wo_msg = concat_images(command_img,
                                        concat_images(img, reward_img, true),
                                        true);
-
     prev_screen_ = img_wo_msg;
     screen_ = concat_images(img_wo_msg,
                             get_message_image(history_messages_),

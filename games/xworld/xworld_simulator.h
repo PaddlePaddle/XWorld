@@ -74,6 +74,8 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
 
     void get_world_dimensions(double& X, double& Y, double& Z) override;
 
+    std::string get_events_of_game() override;
+
     // get the information for all the entities
     void get_all_entities(std::vector<Entity>& entities) override;
 
@@ -90,6 +92,8 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
 
   private:
     void init();
+
+    void record_collision_events(const std::vector<std::string>& collision_list);
 
     std::string get_teacher_sentence_for_agent();
 
@@ -135,6 +139,7 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
 
     cv::Mat prev_screen_;  // previous screen for display
     cv::Mat screen_;
+    std::string game_events_;
     int keyboard_action_;
 };
 }

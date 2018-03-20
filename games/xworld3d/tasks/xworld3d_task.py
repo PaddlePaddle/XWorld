@@ -28,19 +28,15 @@ from maze2d import bfs, flood_fill
 class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
-    time_penalty = -0.05
-    correct_reward = 10.0
-    wrong_reward = -10.0
-    collision_penalty = 0.00
-
-    ## If the agent is near the target, we increase the penalty
-    ## to prevent a trivial TargetSide solution
-    target_side_penalty = time_penalty * 3
+    time_penalty = -0.02  # -0.05
+    correct_reward = 2.0  # 10.0
+    wrong_reward = -2.0   # -10.0
+    collision_penalty = 0.0
 
     failed_action_penalty = -0.1
 #    max_steps = 500
 
-    navigation_max_steps_factor = 10
+    navigation_max_steps_factor = get_flag("max_steps_factor")
 
     PI = 3.1415926
     PI_2 = PI / 2    # 90
@@ -113,17 +109,20 @@ class XWorld3DTask(object):
         dist = sqrt(dx ** 2 + dy ** 2)
         if p1_yaw is None:
             return dist
-        v1 = (cos(p1_yaw), sin(p1_yaw))
-        v2 = (dx / dist, dy / dist)
-        # theta is the angle from p2 to p1 wrt p1's orientation
-        cos_theta = max(-1, min(1, v1[0]*v2[0] + v1[1]*v2[1]))
-        sin_theta = max(-1, min(1, v1[1]*v2[0] - v1[0]*v2[1]))
-        theta = acos(cos_theta) * copysign(1, asin(sin_theta))
-        direction = ""
-        for r in self.directions.keys():
-            if (theta >= r[0] and theta < r[1]):
-                direction = self.directions[r]
-        return theta, dist, direction
+        if dist == 0:
+            return 0, 0, ""
+        else:
+            v1 = (cos(p1_yaw), sin(p1_yaw))
+            v2 = (dx / dist, dy / dist)
+            # theta is the angle from p2 to p1 wrt p1's orientation
+            cos_theta = max(-1, min(1, v1[0]*v2[0] + v1[1]*v2[1]))
+            sin_theta = max(-1, min(1, v1[1]*v2[0] - v1[0]*v2[1]))
+            theta = acos(cos_theta) * copysign(1, asin(sin_theta))
+            direction = ""
+            for r in self.directions.keys():
+                if (theta >= r[0] and theta < r[1]):
+                    direction = self.directions[r]
+            return theta, dist, direction
 
     def _get_distance(self, p1, p2):
         return sqrt((p2[0]-p1[0]) ** 2 + (p2[1]-p1[1]) ** 2)
@@ -318,7 +317,7 @@ class XWorld3DTask(object):
             for x in range(X):
                 test_triple((x, y, 0), (x, y + 1, 0), (x, y + 2, 0))
                 test_triple((x, y, 0), (x + 1, y, 0), (x + 2, y, 0))
-                test_triple((x, y, 0), (x + 1, y + 1, 0), (x + 2, y + 2, 0))
+#                test_triple((x, y, 0), (x + 1, y + 1, 0), (x + 2, y + 2, 0))
 
         return l_tiles
 
@@ -352,8 +351,19 @@ class XWorld3DTask(object):
         Y, X = self.env.get_dims()
         filled = flood_fill(seeds, obstacles + goals, X, Y)
         if inclusive:
-            filled += seeds
-        return filled
+            filled += [(s, 0) for s in seeds]
+        return sorted(filled, key=lambda f: f[1])
+
+    def _find_curriculum_agent_pos(self, targets, max_dist, inclusive=False):
+        new_a = self._propagate_agent(targets, inclusive=inclusive)
+        assert new_a
+        if max_dist > 0:
+            for i, na in enumerate(new_a):
+                if na[1] >= max_dist:
+                    break
+            new_a = new_a[:i + 1]
+        new_a, _ = random.choice(new_a)
+        return new_a
 
     ############# public APIs #############
     def reset(self):

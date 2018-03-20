@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "xitem.h"
+#include <cmath>
 
 DECLARE_int32(visible_radius);
 
@@ -29,7 +30,7 @@ XItemPtr XItem::create_item(const Entity& e) {
     }
 }
 
-cv::Mat XItem::get_item_image() {
+cv::Mat XItem::get_item_image(const Loc& agent_loc) {
     auto img_name = e_.asset_path;
     if (!img_name.empty()) {
         if (item_imgs_.count(img_name) == 0) {
@@ -46,11 +47,26 @@ cv::Mat XItem::get_item_image() {
         // transform the icon
         auto icon = item_imgs_[img_name].clone();
         cv::Point2f center(icon.cols / 2.0, icon.rows / 2.0);
-        auto rot_mat = cv::getRotationMatrix2D(center, e_.yaw * 180 / M_PI, e_.scale);
-        // e_.offset + e_.scale / 2 - 0.5 computes the translation of the icon image
+
+        double scale = e_.scale;
+        double offset = e_.offset;
+        if (agent_loc != Loc() && FLAGS_visible_radius > 0) {
+            // if the agent loc is provided, then we compute the scale inversely
+            // proportional to the distance from the agent to the item
+            // The offset needs also to be adjusted
+            double distance = sqrt(agent_loc.square_distance(get_item_location()));
+            scale = std::min(1.0, std::max(0.3, 1.0 / sqrt(distance)));
+            // if (offset > 1 - scale) { // overwrite the user's setting; it won't be set next time
+            //     offset = util::get_rand_range_val(1 - scale);
+            // }
+            offset = 0.5 - scale / 2; // always centering
+        }
+
+        auto rot_mat = cv::getRotationMatrix2D(center, 90 - e_.yaw * 180 / M_PI, scale);
+        // offset + scale / 2 - 0.5 computes the translation of the icon image
         // inside the grid
-        rot_mat.at<double>(0, 2) += (e_.offset + e_.scale / 2 - 0.5) * icon.cols;
-        rot_mat.at<double>(1, 2) += (e_.offset + e_.scale / 2 - 0.5) * icon.rows;
+        rot_mat.at<double>(0, 2) += (offset + scale / 2 - 0.5) * icon.cols;
+        rot_mat.at<double>(1, 2) += (offset + scale / 2 - 0.5) * icon.rows;
         cv::warpAffine(icon, icon, rot_mat, icon.size(),
                        cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(255, 255, 255));
         return icon;
@@ -62,13 +78,13 @@ std::string XItem::get_item_facing_dir(double yaw) {
     std::string dir = "";
     double eps = 1e-4;
     if (fabs(yaw) < eps) {
-        dir = "down";
-    } else if (fabs(yaw - M_PI / 2) < eps) {
         dir = "right";
+    } else if (fabs(yaw - M_PI / 2) < eps) {
+        dir = "down";
     } else if (fabs(yaw - M_PI) < eps) {
-        dir = "up";
-    } else {
         dir = "left";
+    } else {
+        dir = "up";
     }
     return dir;
 }
@@ -132,13 +148,13 @@ Loc XAgent::act(int action_id) {
             } else {
                 return Loc(cur_loc.x - 1, cur_loc.y);
             }
-        case TURN_LEFT:
+        case TURN_RIGHT:
             e_.yaw += M_PI / 2;
             if (e_.yaw > M_PI + 1e-4) {
                 e_.yaw -= 2 * M_PI;
             }
             return cur_loc;
-        case TURN_RIGHT:
+        case TURN_LEFT:
             e_.yaw -= M_PI / 2;
             if (e_.yaw < -M_PI / 2 - 1e-4) {
                 e_.yaw += 2 * M_PI;

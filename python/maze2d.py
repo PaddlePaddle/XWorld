@@ -24,17 +24,19 @@ def flood_fill(seeds, obstacles, X, Y):
     """
     assert seeds
     visited = set(seeds)
-    que = [s for s in seeds]  # deep copy
+    que = [(s, 0) for s in seeds]
+    ret = []
     while que:
-        cur = que.pop(0)
+        cur, step = que.pop(0)
         moves = [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0)]
         for m in moves:
             next = tuple([cur[i] + m[i] for i in range(len(cur))])
             if next[0] >= 0 and next[0] < X and next[1] >= 0 and next[1] < Y \
                and (not next in visited) and (not next in obstacles):
                 visited.add(next)
-                que.append(next)
-    return list(visited - set(seeds))
+                que.append((next, step + 1))
+                ret.append((next, step + 1))
+    return ret
 
 
 ## compute paths from the start to the end

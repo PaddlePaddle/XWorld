@@ -7,21 +7,25 @@ class XWorldNav(XWorldEnv):
     def __init__(self, item_path, start_level=0):
         super(XWorldNav, self).__init__(
             item_path=item_path,
-            max_height=7,
-            max_width=7)
+            max_height=8,
+            max_width=8,
+            start_level=start_level,
+            maze_generation=True)
         self.curriculum = get_flag("curriculum")
-        self.current_level = start_level
 
     def _configure(self):
-        self.set_goal_subtrees(["animal", "fruit", "shape"])
-        self.set_entity(type="agent")
+        self.set_goal_subtrees(["animal", "fruit", "furniture", "vegetable"])
+
+        ## these are all the object classes
+        goal_names = self.get_all_possible_names("goal")
 
         ## compute world dims
         min_dim = 3
         max_h, max_w = self.get_max_dims()
         n_levels = max_h - min_dim + 1
-        num_goals_seq = [2, 2, 2, 2, 2]
-        num_blocks_seq = [0, 2, 5, 7, 10]
+
+        num_goals_seq = [2, 2, 2, 4, 4, 4]
+        num_blocks_seq = [0, 3, 6, 9, 12, 16]
         assert len(num_goals_seq) == n_levels and len(num_blocks_seq) == n_levels
 
         def compute(current_level):
@@ -53,8 +57,11 @@ class XWorldNav(XWorldEnv):
 
         self.set_dims(current_dim, current_dim)
         ## set goals
+        random.shuffle(goal_names)
         for i in range(num_goals):
-            self.set_entity(type="goal")
+            self.set_entity(type="goal", name=goal_names.pop())
         ## set blocks
         for i in range(num_blocks):
             self.set_entity(type="block")
+        ## set agent
+        self.set_entity(type="agent")

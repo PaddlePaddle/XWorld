@@ -119,7 +119,7 @@ class XItem {
     std::string get_item_color() { return e_.color; }
 
     // get the icon image of the item
-    cv::Mat get_item_image();
+    cv::Mat get_item_image(const Loc& agent_loc = Loc());
 
     // get the location of the item
     Loc get_item_location() { return Loc(int(e_.loc.x), int(e_.loc.y)); }
@@ -133,7 +133,8 @@ class XItem {
     void set_item_type(const std::string& item_type) { e_.type = item_type; }
 
     // whether the item is reachable
-    bool is_reachable() { return get_item_type() != "block"; }
+    // Any item is not reachable
+    bool is_reachable() { return false; }
 
     Entity entity() { return e_; }
 

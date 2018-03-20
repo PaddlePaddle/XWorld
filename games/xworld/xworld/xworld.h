@@ -43,7 +43,7 @@ class XWorld {
 
     // agent specified by agent_ptr takes action action_id
     // return whether the action is successful or not
-    bool act(int agent_id, int action_id);
+    bool act(int agent_id, int action_id, std::vector<std::string>& contact_list);
 
     // get number of actions
     int get_num_actions();
@@ -56,16 +56,22 @@ class XWorld {
 
     int width() { return width_; }
 
+    int actual_height() { return actual_height_; }
+
+    int actual_width() { return actual_width_; }
+
     std::string conf_file() { return conf_; }
 
   private:
     std::string conf_;
     XMap map_;
-    int height_;
-    int width_;
+    int height_;          // the total height including padded walls
+    int width_;           // the total width including padded walls
+    int actual_height_;   // the actual height without padded walls
+    int actual_width_;    // the actual width without padded walls
     boost::python::object xwd_env_;
     std::vector<std::shared_ptr<XItem>> item_list_;    // list of all items, including agents
-    std::vector<std::shared_ptr<XItem>> agent_list_;   // list of all agents,
+    std::vector<std::shared_ptr<XItem>> agent_list_;   // list of all agents
 };
 }
 }  // namespace simulator::xwd

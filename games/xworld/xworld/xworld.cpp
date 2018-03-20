@@ -122,7 +122,11 @@ void XWorld::reset(bool map_reset) {
         width_ = py::extract<int>(dims[1]);
         map_ = XMap(height_, width_);
 
-        const int record_curriculum_period = 200;
+        dims = py::extract<py::tuple>(xwd_env_.attr("get_dims")());
+        actual_height_ = py::extract<int>(dims[0]);
+        actual_width_ = py::extract<int>(dims[1]);
+
+        const int record_curriculum_period = 500;
         static int n_games = 0;
         if (FLAGS_curriculum_stamp != "" && (++n_games) % record_curriculum_period == 0) {
             int level = py::extract<int>(xwd_env_.attr("dump_curriculum_progress")());
@@ -155,10 +159,10 @@ cv::Mat XWorld::to_image(int agent_id,
                          visible_radius_unit);
 }
 
-bool XWorld::act(int agent_id, int action_id) {
+bool XWorld::act(int agent_id, int action_id, std::vector<std::string>& contact_list) {
     auto agent_ptr = agent_list_[agent_id];
     Loc target = agent_ptr->act(action_id);
-    return map_.move_item(agent_ptr, target);
+    return map_.move_item(agent_ptr, target, contact_list);
 }
 
 }

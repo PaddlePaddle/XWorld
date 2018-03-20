@@ -25,7 +25,9 @@
 DECLARE_int32(visible_radius);
 DECLARE_string(task_mode);
 DECLARE_double(curriculum);
-DECLARE_string(x3_task_mode);
+DECLARE_int32(max_steps_factor);
+//DECLARE_string(x3_task_mode);
+//DECLARE_double(x3_reaching_distance);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -41,6 +43,8 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
     std::string flag_name = c_name;
     if (flag_name == "visible_radius") {
         return Py_BuildValue("i", FLAGS_visible_radius);
+    } else if (flag_name == "max_steps_factor") {
+        return Py_BuildValue("i", FLAGS_max_steps_factor);
     } else if (flag_name == "task_mode") {
         return PyString_FromString(FLAGS_task_mode.c_str());
     } else if (flag_name == "x3_task_mode") {

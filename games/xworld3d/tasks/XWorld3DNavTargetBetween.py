@@ -42,6 +42,7 @@ class XWorld3DNavTargetBetween(XWorld3DTask):
 
         ## else the teacher then has the chance to change the map
         t_tiles = self._get_t_tiles()
+
         assert t_tiles, "map too crowded?"
 
         random.shuffle(t_tiles)
@@ -51,9 +52,7 @@ class XWorld3DNavTargetBetween(XWorld3DTask):
 
         new_a = self._propagate_agent([self._middle_loc(g1.loc, g2.loc)])
         assert new_a, "get_t_tiles() is buggy"
-        new_a = random.choice(new_a)
-
-        agent.loc = new_a
+        agent.loc, _ = random.choice(new_a)
         self._set_entity_inst(agent)
 
         self._record_target((g1.loc, g2.loc));
@@ -74,12 +73,18 @@ class XWorld3DNavTargetBetween(XWorld3DTask):
             else:
                 o1, o2 = self.target
                 threshold = 1.0
-                theta, dist, _ = self._get_direction_and_distance(
-                    agent.loc, self._middle_loc(o1, o2), agent.yaw)
-                if abs(theta) < self.orientation_threshold \
-                   and dist < threshold \
-                   and dist > threshold / 2:
+                # alpha, dist, _ = self._get_direction_and_distance(
+                #     agent.loc, self._middle_loc(o1, o2), agent.yaw)
+                # theta, _, _ = self._get_direction_and_distance(o1, o2, agent.yaw)
+                # theta = abs(theta)
+                # if dist < threshold and dist > threshold / 2 \
+                #    and abs(theta - XWorld3DTask.PI_2) < XWorld3DTask.PI_4 \
+                #    and abs(alpha) < XWorld3DTask.PI_8:
+                #     reward = self._successful_goal(reward)
+                dist = self._get_distance(agent.loc, self._middle_loc(o1, o2))
+                if dist < threshold / 2:
                     reward = self._successful_goal(reward)
+
         return ["navigation_reward", reward, self.sentence]
 
     def get_stage_names(self):

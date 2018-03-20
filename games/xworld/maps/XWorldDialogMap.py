@@ -8,6 +8,7 @@ class XWorldDialogMap(XWorldEnv):
             item_path=item_path,
             max_height=1,
             max_width=1,
+            start_level=start_level,
             maze_generation=False)
         self.class_per_session = 2 # max number of classes in a session
                                    # value < 1 denotes all classes are used
@@ -18,8 +19,8 @@ class XWorldDialogMap(XWorldEnv):
 
     def _configure(self, select_class=True):
         self.set_goal_subtrees(["animal"])
-        self.set_entity(type="agent", loc=(0, 0), force_occupy=True)
-        self.set_entity(type="goal", loc=(0, 0), force_occupy=True)
+        self.set_entity(type="agent", loc=(0, 0, 0), force_occupy=True)
+        self.set_entity(type="goal", loc=(0, 0, 0), force_occupy=True)
         if select_class:
             self.select_goal_classes() # re-select goal class for a new session
         self.learned_classes = {} # clear the learned classes at the beginning of each session
