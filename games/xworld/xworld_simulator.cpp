@@ -33,7 +33,7 @@ DECLARE_bool(color);
 DEFINE_bool(log_hist, false, "log dialogue history");
 DEFINE_string(
     task_mode,
-    "one_channel",
+    "arxiv_lang_acquisition",
     "arxiv_lang_acquisition|arxiv_interactive|one_channel");
 
 namespace simulator {
@@ -60,19 +60,19 @@ void XWorldSimulator::init() {
         img_height_out_ = (height_ * 2 - 1) * block_size;
         img_width_out_ = (width_ * 2 - 1) * block_size;
     } else {
-        int block_size = 28; // for partially observed, we can use larger grids
         FLAGS_visible_radius = std::min(FLAGS_visible_radius,
                                         std::max(height_, width_));
+        int block_size = 84 / FLAGS_visible_radius;
         img_height_out_ = FLAGS_visible_radius * block_size;
         img_width_out_ = FLAGS_visible_radius * block_size;
     }
-    // default
+    // WARNING: FLAGS_max_steps is depraved; max_steps logic should be handled by teacher
     if (FLAGS_task_mode == "arxiv_lang_acquisition") {
-        FLAGS_max_steps = (height_ + width_ ) * 2;
+        // do nothing
     } else if (FLAGS_task_mode == "arxiv_interactive") {
         FLAGS_max_steps = (height_ + width_ ) * 10;
     } else {
-        FLAGS_max_steps = height_ * width_ * 2;
+        // do nothing
     }
 }
 
@@ -115,6 +115,27 @@ void XWorldSimulator::get_all_entities(std::vector<Entity>& entities) {
     xworld_.get_entities(entities);
 }
 
+std::string XWorldSimulator::get_events_of_game() {
+    auto ret = game_events_;
+    game_events_ = "";
+    return ret;
+}
+
+void XWorldSimulator::record_collision_events(
+    const std::vector<std::string>& collision_list) {
+    if (!collision_list.empty()) {
+        game_events_ += "collision:";
+        for (auto& s : collision_list) {
+            if (game_events_.back() == ':') {
+                game_events_ += s;
+            } else {
+                game_events_ += "|" + s;
+            }
+        }
+        game_events_ += "\n";
+    }
+}
+
 boost::python::object XWorldSimulator::get_py_env() {
     return xworld_.get_py_env();
 }
@@ -123,6 +144,8 @@ void XWorldSimulator::reset_game() {
     TeachingEnvironment::reset_game();
     xworld_.reset();
     init();  // update dimensions
+    game_events_ = "";
+
     history_messages_.clear();
     history_messages_.push_back("--------------- New Game --------------");
     if(FLAGS_log_hist) {
@@ -145,8 +168,12 @@ int XWorldSimulator::game_over() {
         // asked
         // The answer is appended after each question
         auto event = get_event_from_buffer();
-        if (event == "correct_goal") {
+        if (event.find("correct") != std::string::npos) {
             return SUCCESS;
+        } else if (event.find("wrong") != std::string::npos) {
+            return DEAD;
+        } else if (event == "time_up") {
+            return MAX_STEP;
         }
     } else if (FLAGS_task_mode == "arxiv_interactive") {
         // Each session has a language task; there is no navigation
@@ -225,10 +252,18 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
                 break;
         }
         CHECK_LT(action_idx, get_num_actions()) << "action invalid: " << action_idx;
+
+        if (FLAGS_pause_screen) {
+            LOG(INFO) << "action: " << action_idx;
+        }
+
         // take one step in the game
-        last_action_success_ = xworld_.act(active_agent_id_, action_idx);
+        std::vector<std::string> contact_list;
+        last_action_success_ = xworld_.act(active_agent_id_, action_idx, contact_list);
         last_action_ += std::to_string(action_idx);
         record_agent_action_successful_in_buffer(last_action_success_);
+        // record collision ids
+        record_collision_events(contact_list);
     }
     return 0;  // xworld rewards are given by the teacher
 }
@@ -376,8 +411,6 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
             return white;
         } else if (type == "Reply") {
             return green;
-        } else {
-            LOG(FATAL) << "unrecognized message type: " + type;
         }
         return white;
     };
@@ -453,7 +486,7 @@ void XWorldSimulator::show_screen(float reward) {
         keyboard_action_ = cv::waitKey(-1) % 256;
     } else {
         // Default mode: the screen will display continuously
-        cv::waitKey(200);
+        cv::waitKey(150);
     }
 }
 
@@ -472,7 +505,9 @@ void XWorldSimulator::get_extra_info(std::string& info) {
         get_teacher_sent_type_from_buffer();  // task type related to a sentence
     auto event = get_event_from_buffer();     // current event happending in env
     info += "task:" + type + ",";
-    info += "event:" + event;
+    info += "event:" + event + ",";
+    info += "height:" + std::to_string(xworld_.actual_height()) + ",";
+    info += "width:" + std::to_string(xworld_.actual_width());
 }
 
 int XWorldSimulator::get_lives() { return game_over() ? 0 : 1; }

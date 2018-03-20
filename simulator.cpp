@@ -20,6 +20,7 @@
 // 1)
 DEFINE_int32(context, 1, "Use so many frames as input");
 DEFINE_int32(max_steps, 0, "maxinum steps for the game");
+DEFINE_int32(max_steps_factor, 10, "max step factor for tasks");
 DEFINE_bool(lock_step, false, "step-by-step inspection");
 DEFINE_bool(color, false, "whether the screen is grayscale or color");
 DEFINE_bool(pause_screen, false, "show screen continuously or paused by hand");

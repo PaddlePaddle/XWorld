@@ -77,13 +77,10 @@ class XMap {
     void remove_items(const std::vector<XItemPtr>& item_list);
 
     // move an item to a target location
-    bool move_item(XItemPtr item, const Loc& target);
+    bool move_item(XItemPtr item, const Loc& target, std::vector<std::string>& contact_list);
 
     // get the location for the item
     Loc get_item_location(std::string item_id);
-
-    // check if the specified location is reachable
-    bool is_reachable(int x, int y) const;
 
     // check if the specified location is empty (no item)
     bool is_empty(int x, int y);

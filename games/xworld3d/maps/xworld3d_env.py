@@ -56,11 +56,12 @@ class XWorld3DEnv(object):
 
     curriculum_check_period = 100
 
-    def __init__(self, asset_path, max_height=10, max_width=10, maze_generation=True):
+    def __init__(self, asset_path, max_height, max_width, start_level, maze_generation=True):
         self.current_usage = {}
         self.action_successful = False
         self.grid_types = ["goal", "block", "agent", "boundary"]
         ## init dimensions
+        self.current_level = start_level
         self.max_height = max_height
         self.max_width = max_width
         self.maze_generation = maze_generation
@@ -103,9 +104,7 @@ class XWorld3DEnv(object):
         if self.curriculum_check_counter < XWorld3DEnv.curriculum_check_period \
            or not self.current_usage:
             return 0
-        ## we take the average usage across all the tasks
-        usage = sum([sum(l) / float(len(l)) for l in self.current_usage.values()]) \
-                / len(self.current_usage)
+        usage = min([sum(l) / float(len(l)) for l in self.current_usage.values()])
         self.curriculum_check_counter = 0
         return usage
 
@@ -394,7 +393,7 @@ class XWorld3DEnv(object):
                     yaw_range = [-self.PI, self.PI]
                     entity.yaw = check_or_get_value(value, yaw_range, is_continuous=True)
                 elif entity.type == "goal":
-                    yaw_range = range(-1, 3)
+                    yaw_range = [-self.PI_2, 0, self.PI_2, self.PI]
                     entity.yaw = check_or_get_value(value, yaw_range)
         self.changed = True
 

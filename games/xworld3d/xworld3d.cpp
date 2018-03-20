@@ -172,7 +172,7 @@ void X3World::reset_world(bool map_reset) {
         height_ = py::extract<int>(dims[0]);
         width_ = py::extract<int>(dims[1]);
 
-        const int record_curriculum_period = 200;
+        const int record_curriculum_period = 500;
         static int n_games = 0;
         if (FLAGS_curriculum_stamp != "" && (++n_games) % record_curriculum_period == 0) {
             int level = py::extract<int>(xwd_env_.attr("dump_curriculum_progress")());

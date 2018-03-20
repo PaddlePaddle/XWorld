@@ -16,6 +16,8 @@
 #include "xitem.h"
 #include <cmath>
 
+DEFINE_bool(wall_shadow, true, "whether render shadow behind walls");
+
 namespace simulator {
 namespace xwd {
 
@@ -71,7 +73,24 @@ void XMap::remove_item(XItemPtr item_ptr) {
     }
 }
 
-bool XMap::move_item(XItemPtr item, const Loc& target) {
+bool XMap::move_item(XItemPtr item, const Loc& target, std::vector<std::string>& contact_list) {
+    contact_list.clear();
+
+    auto is_reachable = [&] (int x, int y) {
+        if (x < 0 || y < 0 || x >= width_ || y >= height_) {
+            return false;
+        }
+        bool is_reachable_flag = true;
+        for (auto i : item_ptr_cube_[y][x]) {
+            bool reachable = i->is_reachable();
+            if (!reachable && item->get_item_id() != i->get_item_id()) {
+                contact_list.push_back(i->get_item_id());
+            }
+            is_reachable_flag &= reachable;
+        }
+        return is_reachable_flag;
+    };
+
     if (is_reachable(target.x, target.y)) {
         remove_item(item);
         item->set_item_location(target.x, target.y);
@@ -79,17 +98,6 @@ bool XMap::move_item(XItemPtr item, const Loc& target) {
         return true;
     }
     return false;
-}
-
-bool XMap::is_reachable(int x, int y) const {
-    if (x < 0 || y < 0 || x >= width_ || y >= height_) return false;
-
-    bool is_reachable_flag = true;
-    for (unsigned int i = 0; i < item_ptr_cube_[y][x].size(); i++) {
-        is_reachable_flag =
-            is_reachable_flag && item_ptr_cube_[y][x][i]->is_reachable();
-    }
-    return is_reachable_flag;
 }
 
 bool XMap::is_empty(int x, int y) {
@@ -126,7 +134,7 @@ cv::Mat XMap::to_image(const Loc& item_loc,
     for (int i = 0; i < height_; i++) {
         for (int j = 0; j < width_; j++) {
             for (unsigned int k = 0; k < item_ptr_cube_[i][j].size(); k++) {
-                cv::Mat item_image = item_ptr_cube_[i][j][k]->get_item_image();
+                cv::Mat item_image = item_ptr_cube_[i][j][k]->get_item_image(item_loc);
 
                 cv::Mat imageROI = world(cv::Rect(j * grid_size_,
                                                   i * grid_size_,
@@ -159,15 +167,18 @@ cv::Mat XMap::to_image(const Loc& item_loc,
         world(roi).copyTo(view);
 
         // render shadow in the agent's view
-        for (int x = 0; x < roi_ori.width; x ++) {
-            for (int y = 0; y < roi_ori.height; y ++) {
-                if (shadow[y * roi_ori.width + x]) {
-                    cv::Mat black(grid_size_, grid_size_, CV_8UC3, cv::Scalar(0, 0, 0));
-                    auto grid = view(cv::Rect(x * grid_size_, y * grid_size_, grid_size_, grid_size_));
-                    if (flag_illustration) {
-                        cv::addWeighted(black, 0.7, grid, 0.3, 0.0, grid);
-                    } else {
-                        black.copyTo(grid);
+        if (FLAGS_wall_shadow) {
+            for (int x = 0; x < roi_ori.width; x ++) {
+                for (int y = 0; y < roi_ori.height; y ++) {
+                    if (shadow[y * roi_ori.width + x]) {
+                        cv::Mat black(grid_size_, grid_size_, CV_8UC3, cv::Scalar(0, 0, 0));
+                        auto grid = view(
+                            cv::Rect(x * grid_size_, y * grid_size_, grid_size_, grid_size_));
+                        if (flag_illustration) {
+                            cv::addWeighted(black, 0.7, grid, 0.3, 0.0, grid);
+                        } else {
+                            black.copyTo(grid);
+                        }
                     }
                 }
             }
@@ -180,7 +191,7 @@ cv::Mat XMap::to_image(const Loc& item_loc,
             view = world;
         } else { // rotate the image according to the agent's yaw
             cv::Point2f center(view.cols / 2.0, view.rows / 2.0);
-            cv::Mat rot_mat = cv::getRotationMatrix2D(center, 180 - yaw * 180 / M_PI, 1.0);
+            cv::Mat rot_mat = cv::getRotationMatrix2D(center, 90 + yaw * 180 / M_PI, 1.0);
             cv::warpAffine(view, view, rot_mat, view.size());
         }
     } else {
@@ -273,21 +284,21 @@ cv::Rect XMap::image_masking(const Loc& item_loc,
 
     auto dir = XItem::get_item_facing_dir(yaw);
     if (dir == "right") {
-        xa += (visible_radius_unit + 1) / 2;
+        xa += visible_radius_unit / 2;
         major_inc_y = 1;
         minor_inc_x = 1;
     } else if (dir == "up") { //
-        ya -= (visible_radius_unit + 1) / 2;
+        ya -= visible_radius_unit / 2;
         major_inc_x = 1;
         minor_inc_y = -1;
         scan_y = visible_radius_unit - 1;
     } else if (dir == "left") { //
-        xa -= (visible_radius_unit + 1) / 2;
+        xa -= visible_radius_unit / 2;
         major_inc_y = 1;
         minor_inc_x = -1;
         scan_x = visible_radius_unit - 1;
     } else {
-        ya += (visible_radius_unit + 1) / 2;
+        ya += visible_radius_unit / 2;
         major_inc_x = 1;
         minor_inc_y = 1;
     }
@@ -304,13 +315,13 @@ cv::Rect XMap::image_masking(const Loc& item_loc,
         for (int k = 1; k <= visible_radius_unit / 2; k ++) {
             ray_x += o * major_inc_x;
             ray_y += o * major_inc_y;
+            if (block) {
+                ray_starts[ray_starts.size() / 2 + o * k] = false;
+            }
             if (ray_x >= 0 && ray_x < width_ && ray_y >= 0 && ray_y < height_
                 && item_ptr_cube_[ray_y][ray_x].size()
                 && item_ptr_cube_[ray_y][ray_x][0]->get_item_type() == "block") {
                 block = true;
-            }
-            if (block) {
-                ray_starts[ray_starts.size() / 2 + o * k] = false;
             }
         }
     }

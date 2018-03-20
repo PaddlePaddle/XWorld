@@ -16,22 +16,23 @@ class XWorldNavStaticObj(XWorldEnv):
             item_path=item_path,
             max_height=7,
             max_width=7,
+            start_level=start_level,
             maze_generation=False)
 
     def _configure(self):
         self.set_goal_subtrees(["animal", "fruit", "shape"])
-        self.set_entity(type="agent", loc=(0, 0))
-        self.set_entity(type="goal", loc=(5, 5))
+        self.set_entity(type="agent", loc=(0, 0, 0))
+        self.set_entity(type="goal", loc=(5, 5, 0))
 
         ## set blocks  with fixed locations
         for i in range(2):
-            self.set_entity(type="block", loc=(3, i))
+            self.set_entity(type="block", loc=(3, i, 0))
         for i in range(5, 7):
-            self.set_entity(type="block", loc=(3, i))
+            self.set_entity(type="block", loc=(3, i, 0))
         for i in range(2):
-            self.set_entity(type="block", loc=(i, 3))
+            self.set_entity(type="block", loc=(i, 3, 0))
         for i in range(5, 7):
-            self.set_entity(type="block", loc=(i, 3))
+            self.set_entity(type="block", loc=(i, 3, 0))
 
         ## set some random blocks
         for i in range(2):

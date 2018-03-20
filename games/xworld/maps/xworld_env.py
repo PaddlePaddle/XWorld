@@ -29,7 +29,7 @@ from py_util import check_or_get_value
 Entity:
   id         - unique str for this entity
   type       - "agent", "goal", "block"
-  location   - (x, y)
+  location   - (x, y, 0)
   yaw        - in radian
   scale      - (0, 1.0]
   offset     - [0, 1-scale]
@@ -39,9 +39,9 @@ Entity:
 """
 class Entity:
     def __init__(self, type, id=None, loc=None, name=None,
-                 asset_path=None, color=None, yaw=0.0, scale=1.0, offset=0.0):
+                 asset_path=None, color=None, yaw=1.5707963, scale=1.0, offset=0.0):
         if not loc is None:
-            assert isinstance(loc, tuple) and len(loc) == 2
+            assert isinstance(loc, tuple) and len(loc) == 3
         self.type = type
         self.id = id
         self.loc = loc
@@ -57,7 +57,7 @@ class XWorldEnv(object):
 
     curriculum_check_period = 100
 
-    def __init__(self, item_path, max_height=7, max_width=7, maze_generation=True):
+    def __init__(self, item_path, max_height, max_width, start_level, maze_generation):
         """
         item_path: path to the item images
         max_height/max_width: maximum height of the world; if a smaller world size
@@ -69,6 +69,7 @@ class XWorldEnv(object):
         ## load all items from item_path
         self.grid_types = ["goal", "block", "agent"]
         self.item_path = item_path
+        self.current_level = start_level
         self.max_height = max_height
         self.max_width = max_width
         self.maze_generation = maze_generation
@@ -104,9 +105,7 @@ class XWorldEnv(object):
         if self.curriculum_check_counter < XWorldEnv.curriculum_check_period \
            or not self.current_usage:
             return 0
-        ## we take the average usage across all the tasks
-        usage = sum([sum(l) / float(len(l)) for l in self.current_usage.values()]) \
-                / len(self.current_usage)
+        usage = min([sum(l) / float(len(l)) for l in self.current_usage.values()])
         self.curriculum_check_counter = 0
         return usage
 
@@ -159,73 +158,64 @@ class XWorldEnv(object):
         1) If None value is provided for a specified property (e.g. {"name" : None}), entity
            property will be reinstantiated regardless of its original value.
         2) otherwise, the value will be assigned to that property of the entity.
+
+        For the remaining not in property_value_dict:
         3) all unset entity properties will be instantiated.
+        4) the already set properties will keep the same.
         """
-        default_dict = OrderedDict.fromkeys(["name", \
-                                             "loc", \
-                                             "asset_path", \
-                                             "yaw", \
-                                             "scale", \
-                                             "offset"])
-        pv_dict = default_dict.copy()
+        pv_dict = entity.__dict__.copy()
+        ## let the user overwrite the specified
         pv_dict.update(property_value_dict)
 
-        # pre-processing for name and asset_path due to their dependency
-        path_value = property_value_dict.get("asset_path", "empty")
-        name_value = property_value_dict.get("name", "empty")
+        ## pre-processing for name and asset_path due to their dependency
+        path_value = pv_dict["asset_path"]
+        name_value = pv_dict["name"]
+        if path_value is not None:
+            assert name_value is None, "With asset_path, you don't have to set name"
+            names = [n for n in self.items[entity.type] \
+                     if path_value in self.items[entity.type][n]]
+            assert len(names) == 1, \
+                "each asset_path corresponds to only one name: %s" % (path_value)
+            pv_dict["name"] = names[0]
+        # else: do nothing; asset_path will be set later
 
-        # if name is specified by user but asset_path is unspecified
-        if name_value != "empty" and path_value == "empty":
-            property_value_dict["asset_path"] = None
-
-        # if asset_path is specified
-        if path_value != "empty":
-            # if name is not specified then derive name from asset_path
-            if name_value == "empty":
-                names = [n for n in self.items[entity.type] if path_value in set(self.items[entity.type][n])]
-                assert len(names) == 1, "there should be only one name corresponding to the asset_path: %s" % (path_value)
-                property_value_dict["name"] = names[0]
-                pv_dict.update(property_value_dict)
-            else:
-                # if both name and asset_path are specified, check consistency
-                assert path_value in self.items[entity.type][name_value], \
-                    "specified name: %s and asset_path: %s mis-match" % (name_value, path_value)
-
-        for property in pv_dict:
-            assert property in entity.__dict__.keys() and property in default_dict.keys(), \
-                "invalid property name: %s is provided" % property
-            value = pv_dict[property]
-
-            # skip unspecified and non-empty entity properties
-            if property not in property_value_dict.keys() and entity.__dict__[property] is not None:
-                continue
-
-            if property == "loc":
-                if entity.loc is not None:
-                    self.available_grids.append(entity.loc)
-                entity.loc = check_or_get_value(value, self.available_grids)
-                self.available_grids.remove(entity.loc)
-            if property == "name":
-                entity.name = check_or_get_value(value, self.get_all_possible_names(entity.type))
-                # update id once name is changed
-                entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
-            if property == "asset_path":
-                entity.asset_path = check_or_get_value(value, self.items[entity.type][entity.name])
-                # color is coupled with asset_path
-                if entity.asset_path in self.color_table.keys():
-                    entity.color = self.color_table[entity.asset_path]
-                else:
-                    entity.color = "na"
-            if property == "yaw" and get_flag("visible_radius") and entity.type != "block":
+        ## set each key in entity.__dict__.keys()
+        if entity.loc is not None:
+            self.available_grids.append(entity.loc)
+        entity.loc = check_or_get_value(pv_dict["loc"], self.available_grids)
+        self.available_grids.remove(entity.loc)
+        ##
+        entity.name = check_or_get_value(
+            pv_dict["name"], self.get_all_possible_names(entity.type))
+        entity.id = "%s_%d" % (entity.name, self.running_id)
+        self.running_id += 1
+        ##
+        entity.asset_path = check_or_get_value(
+            pv_dict["asset_path"], self.items[entity.type][entity.name])
+        # color is coupled with asset_path
+        if entity.asset_path in self.color_table.keys():
+            entity.color = self.color_table[entity.asset_path]
+        else:
+            entity.color = "na"
+        ##
+        if get_flag("visible_radius"):
+            if entity.type == "agent":
                 ## if partially observed, perturb the objects
                 yaw_range = range(-1, 3)
-                entity.yaw = check_or_get_value(value, yaw_range) * self.PI_2
-            if property == "scale" and get_flag("visible_radius") and entity.type == "goal":
+                entity.yaw = check_or_get_value(pv_dict["yaw"], yaw_range) * self.PI_2
+            if entity.type == "goal":
+                ## if partially observed, perturb the objects
+                yaw_range = [0, self.PI_2]
+                entity.yaw = check_or_get_value(
+                    pv_dict["yaw"], yaw_range, is_continuous=True)
+                ##
                 scale_range = [0.5, 1]
-                entity.scale = check_or_get_value(value, scale_range, is_continuous=True)
-            if property == "offset" and get_flag("visible_radius") and entity.type == "goal":
-                offset_range = [0, 1 - (entity.scale if hasattr(entity, 'scale') else 0.5)]
-                entity.offset = check_or_get_value(value, offset_range, is_continuous=True)
+                entity.scale = check_or_get_value(
+                    pv_dict["scale"], scale_range, is_continuous=True)
+                ##
+                offset_range = [0, 1 - entity.scale]
+                entity.offset = check_or_get_value(
+                    pv_dict["offset"], offset_range, is_continuous=True)
 
         self.changed = True
 
@@ -321,6 +311,12 @@ class XWorldEnv(object):
         """
         return [e for e in self.entities if e.type == "block"]
 
+    def get_available_grids(self):
+        """
+        Return all the available grids on the current map
+        """
+        return self.available_grids
+
     def get_entities(self):
         """
         Return all the entities on the current map
@@ -360,8 +356,6 @@ class XWorldEnv(object):
         for e in actual_entities:
             e["loc"] = (e["loc"][0] + self.offset_w, e["loc"][1] + self.offset_h, 0)
         pad_entities = [e.__dict__ for e in self.pad_blocks]
-        for e in pad_entities:
-            e["loc"] = (e["loc"][0], e["loc"][1], 0)
         ## pad with walls
         return actual_entities + pad_entities
 
@@ -373,14 +367,12 @@ class XWorldEnv(object):
         We only keep the first two dimensions of a C++ entity.
         """
         self.entity_nums = {t : 0 for t in self.grid_types}
-        for e in entities:
-            e["loc"] = e["loc"][:2]  ## remove the third dimension 'z'
         self.entities = [Entity(**i) for i in entities if not self.__is_padding_block(i["loc"])]
         for e in self.entities:
-            e.loc = (e.loc[0] - self.offset_w, e.loc[1] - self.offset_h)
+            e.loc = (e.loc[0] - self.offset_w, e.loc[1] - self.offset_h, 0)
             self.entity_nums[e.type] += 1
         # update available grids
-        self.available_grids = set(itertools.product(range(self.width), range(self.height)))
+        self.available_grids = set(self.__generate_all_grids(self.height, self.width, shuffle=False))
         occupied = set([e.loc for e in self.entities])
         self.available_grids -= occupied
         self.available_grids = list(self.available_grids)
@@ -399,7 +391,10 @@ class XWorldEnv(object):
         self.action_successful = successful
 
     def update_game_event_from_cpp(self, event):
-        pass
+        """
+        Update the game event from CPP simulator
+        """
+        self.game_event = event
 
     ######################## private or protected #########################
     def _configure(self):
@@ -418,32 +413,34 @@ class XWorldEnv(object):
         if self.maze_generation:
             Y, X = self.get_dims()
             maze = spanning_tree_maze_generator(X, Y)
-            blocks = [(j, i) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
+            blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
 
             ## maybe not all blocks of the maze will be used later
             random.shuffle(blocks)
 
             ## first remove all maze blocks from the available set
+            ## do not only remove part of them, because agent/goal might get stuck in a closed room
             for b in blocks:
                 if b in self.available_grids:
                     self.available_grids.remove(b)
+
             ## instantiate properties for each entity
-            for i, e in enumerate(self.entities):
+            for e in self.entities:
                 if e.loc is not None:
                     warnings.warn("Maze generation is on! Overwriting pre-specified location %s!" % (e.loc,))
                     e.loc = None # remove the pre-set location when maze_generation is on
                 ## skip setting loc for block here and set it later
                 if e.type != "block":
                     ## if non-block, randomize the yaw, scale, and offset
-                    self.set_property(e, {"yaw": None, "scale": None, "offset": None})
-            ## add back some empty grids
-            self.available_grids += blocks[len(self.get_blocks()):]
+                    self.set_property(
+                        e, property_value_dict={"yaw": None, "scale": None, "offset": None})
+                else:
+                    assert blocks, "too many blocks for a valid maze"
+                    e.loc = blocks.pop()
+                    self.set_property(e) ## still need to set other properties
 
-            ## use the remaining blocks
-            for e in self.get_blocks():
-                assert blocks, "too many blocks for a valid maze"
-                e.loc = blocks.pop()
-                self.set_property(e) ## still need to set other properties
+            ## add back the unused grids
+            self.available_grids += blocks
         else:
             ## instantiate properties for each entity
             for i, e in enumerate(self.entities):
@@ -457,7 +454,7 @@ class XWorldEnv(object):
         """
         wall_blocks = []
         def add_blocks(range1, range2, id):
-            for loc in itertools.product(range1, range2):
+            for loc in itertools.product(range1, range2, (0,)):
                 wall_blocks.append(Entity(type="block", loc=loc, id="block_%d" % id,
                                           name="brick", color="na",
                                           asset_path=self.items["block"]["brick"][0]))
@@ -474,7 +471,7 @@ class XWorldEnv(object):
         """
         Given a location, determine whether it's a padding block or not
         """
-        x, y = loc
+        x, y = loc[:2]
         return not (x >= self.offset_w and x < self.offset_w + self.width and \
                     y >= self.offset_h and y < self.offset_h + self.height)
 
@@ -485,7 +482,7 @@ class XWorldEnv(object):
         Return list of all the grids
         """
         assert height >= 1 and width >= 1
-        all_grids = list(itertools.product(range(width), range(height)))
+        all_grids = list(itertools.product(range(width), range(height), (0,)))
         if shuffle:
             random.shuffle(all_grids)
         return all_grids
@@ -496,6 +493,7 @@ class XWorldEnv(object):
         """
         self.num_games += 1
         self.agent_sent = ""
+        self.running_id = 0
         self.changed = False
         self.entities = []
         self.entity_nums = {t : 0 for t in self.grid_types}
