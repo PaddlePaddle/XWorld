@@ -105,6 +105,17 @@ class GameSimulator {
     virtual void get_screen(StatePacket& screen) = 0;
 
     /**
+     * @brief clear screens_ and initialize it using current screen.
+     */
+    void init_screen();
+
+    /**
+     * @brief update screens_ by adding current screen at the beginning and
+     * remove the oldest screen
+     */
+    void make_context_screens();
+
+    /**
      * @briefn pack all info into a StatePacket.
      *
      * Derived simulators should override `define_state_specss`
@@ -189,20 +200,9 @@ class GameSimulator {
     std::string get_screen_name();
 
     /**
-     * @brief clear screens_ and initialize it using current screen.
-     */
-    void init_screen();
-
-    /**
      * @brief allocate space for screens_
      */
     void init_context_screens(bool is_uint8);
-
-    /**
-     * @brief update screens_ by adding current screen at the beginning and
-     * remove the oldest screen
-     */
-    void make_context_screens();
 
     /**
      * @brief Shift the context by one screen of size screen_sz to right.
