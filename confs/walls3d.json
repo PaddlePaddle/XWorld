@@ -6,7 +6,7 @@
             "held_out" : [
             ],
             "weight" : 0.5,
-            "schedule" : "random",  // optional, default "random"
+            "schedule" : "random",
             "tasks" : {
                 "XWorld3DNavTarget" : 1
             }
