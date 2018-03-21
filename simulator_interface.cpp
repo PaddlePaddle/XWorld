@@ -43,7 +43,6 @@ SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
         } else if (name == "simple_race") {
             game_ = std::make_shared<SimpleRaceGame>();
         } else if (name == "xworld") {
-            FLAGS_color = true;
             if (FLAGS_task_mode == "arxiv_lang_acquisition") {
                 FLAGS_task_groups_exclusive = false;
             }
