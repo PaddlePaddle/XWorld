@@ -103,7 +103,6 @@ float GameSimulator::take_actions(const StatePacket& actions, int actrep, bool s
         }
         reward += take_action(actions);
     }
-    make_context_screens();
     return reward;
 }
 
@@ -114,7 +113,6 @@ void GameSimulator::init_screen() {
 
 void GameSimulator::reset_game() {
     num_steps_ = 0;
-    init_screen();
 }
 
 std::string GameSimulator::get_screen_name() {
