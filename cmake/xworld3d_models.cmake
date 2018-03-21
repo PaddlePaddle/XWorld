@@ -13,6 +13,7 @@ ExternalProject_Add(xworld3d_model_zoo
 ExternalProject_Get_Property(xworld3d_model_zoo SOURCE_DIR)
 
 add_custom_command(TARGET xworld3d_model_zoo POST_BUILD
+  COMMAND rm -rf models_3d
   COMMAND unzip -o -q ${SOURCE_DIR}/models_3d.zip
   COMMAND unzip -o -q ${SOURCE_DIR}/glsl.zip
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
