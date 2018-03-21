@@ -168,6 +168,17 @@ class GameSimulator {
 
     static std::string decode_game_over_code(int code);
 
+    /**
+     * @brief clear screens_ and initialize it using current screen.
+     */
+    void init_screen();
+
+    /**
+     * @brief update screens_ by adding current screen at the beginning and
+     * remove the oldest screen
+     */
+    void make_context_screens();
+
   protected:
     int64_t num_steps_;  // number of steps since the beginning of the game
 
@@ -189,20 +200,9 @@ class GameSimulator {
     std::string get_screen_name();
 
     /**
-     * @brief clear screens_ and initialize it using current screen.
-     */
-    void init_screen();
-
-    /**
      * @brief allocate space for screens_
      */
     void init_context_screens(bool is_uint8);
-
-    /**
-     * @brief update screens_ by adding current screen at the beginning and
-     * remove the oldest screen
-     */
-    void make_context_screens();
 
     /**
      * @brief Shift the context by one screen of size screen_sz to right.

@@ -96,6 +96,7 @@ void SimulatorInterface::reset_game() {
         teacher_->reset_after_game_reset();
         teacher_->teach();
     }
+    game_->init_screen();
 }
 
 std::string SimulatorInterface::game_over_string() {
@@ -125,6 +126,7 @@ float SimulatorInterface::take_actions(const StatePacket& actions, int act_rep, 
                             // reward
         r += teacher_->give_reward();
     }
+    game_->make_context_screens();
     acc_reward_ += r;
     return r;
 }
