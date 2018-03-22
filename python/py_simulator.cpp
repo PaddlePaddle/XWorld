@@ -130,6 +130,7 @@ void init_xworld_gflags(const py::dict& args) {
             extract_py_dict_val(args, "task_groups_exclusive", false, true);
     FLAGS_context = extract_py_dict_val(args, "context", false, 1);
     FLAGS_visible_radius = extract_py_dict_val(args, "visible_radius", false, 0);
+    FLAGS_color = extract_py_dict_val(args, "color", false, false);
 }
 
 ///////////////////// pass flags in python dict to GFlags ///////////////////
@@ -146,6 +147,7 @@ void init_xworld3d_gflags(const py::dict& args) {
     FLAGS_x3_move_speed = extract_py_dict_val(args, "x3_move_speed", false, 25.0f);
     FLAGS_x3_turning_rad = extract_py_dict_val(args, "x3_turning_rad", false, M_PI / 8);
     FLAGS_x3_big_screen = extract_py_dict_val(args, "x3_big_screen", false, false);
+    FLAGS_color = extract_py_dict_val(args, "color", false, false);
 #endif
 }
 
@@ -317,7 +319,7 @@ BOOST_PYTHON_MODULE(py_simulator) {
         // intentionally bind take_actions to two functions so that it has
         // optional args
         .def("take_actions", &PySimulatorInterface::take_actions)
-        .def("take_actions", &PySimulatorInterface::take_action)
+        .def("take_action", &PySimulatorInterface::take_action)
         .def("get_state", &PySimulatorInterface::get_state)
         .def("get_num_steps", &PySimulatorInterface::get_num_steps);
 }

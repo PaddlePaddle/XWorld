@@ -44,7 +44,7 @@ if __name__ == "__main__":
         game_over_str = x3d.game_over()
         states = x3d.get_state()
         action = compute_action(states, num_actions)
-        r = x3d.take_actions({"action": action, "pred_sentence" : ""}, 1, False)
+        r = x3d.take_actions({"action": action, "pred_sentence" : ""}, 1, True)
 
         if game_over_str != "alive":
             print "game over because of ", game_over_str
