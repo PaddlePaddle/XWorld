@@ -12,8 +12,8 @@ class XWorldDialogMap(XWorldEnv):
 
     def _configure(self, select_class=True):
         self.set_dims(1, 1)
-        self.set_entity(type="agent")
-        self.set_entity(type="goal")
+        self.set_entity(type="agent", loc=(0, 0), force_occupy=True)
+        self.set_entity(type="goal", loc=(0, 0), force_occupy=True)
         if select_class:
             self.select_goal_classes() # re-select goal class for a new session
 
@@ -51,4 +51,4 @@ class XWorldDialogMap(XWorldEnv):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
         for e in self.get_goals():
-            self.set_property(e, property_value_dict={"name" : None, "loc" : False})
+            self.set_property(e, property_value_dict={"name" : True})

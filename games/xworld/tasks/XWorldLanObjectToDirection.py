@@ -12,19 +12,6 @@ class XWorldLanObjectToDirection(XWorldTask):
         agent, _, _ = self._get_agent()
         goals = self._get_goals()
 
-        ## delete all the things first
-        for g in goals:
-            self._delete_entity(g)
-        self._delete_entity(agent)
-
-        self._set_property(agent, {"loc" : (2, 2)})
-        self._set_entity_inst(agent)
-
-        g_locs = [(3, 2), (1, 2), (2, 1), (2, 3)]
-        for i, g in enumerate(goals):
-            self._set_property(g, {"loc": g_locs[i]})
-            self._set_entity_inst(g)
-
         assert len(goals) > 0, "there is no goal on the map!"
         sel_goal = random.choice(goals)
         direction = self._get_direction(agent.loc, sel_goal.loc)

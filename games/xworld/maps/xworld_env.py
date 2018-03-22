@@ -146,14 +146,16 @@ class XWorldEnv(object):
         Reinstantiate the specified properties of an existing entity.
         Properties and corresponding values are specified by the property_value_dict.
         There are three use cases:
-        1) if no property is specified (e.g. property_value_dict={}), all properties will
-           be reinstantiated.
-        2) If None value is provided for a specified property (e.g. {"name" : None}),
-           a valid random value will be sampled for the specified property and all the rest 
-           properties will be reinstantiated randomly.
+        1) if no property is specified (e.g. property_value_dict={}), all unset properties
+           in entity will be reinstantiated.
+        2) If None value is provided for a specified property (e.g. {"name" : None}) and
+           the entity's property value is None, then a valid random value will be
+           sampled for the specified property and all the rest properties remain unchanged.
         3) If False value is provided for a specified property (e.g. {"loc" : False}),
            this property remains unchanged while other properties will be reinstantiated.
-        Mode 2) and 3) can be used together (e.g. {"name" : None, "loc" : False})).
+        4) if True value is provided for a specified property (e.g. {"loc" : True}), this
+           property will be reinstantiated regardless of its original value.
+        Mode 2), 3) and 4) can be used together (e.g. {"name" : True, "loc" : False})).
         """
         def check_or_get_value(valid_value_set, is_continuous=False):
             """
@@ -162,7 +164,7 @@ class XWorldEnv(object):
             is_continuous denotes whenther the value is continuous (True) or discrete (False).
             """
             if not is_continuous:
-                if value is None:
+                if value is True:
                     assert len(valid_value_set) > 0, \
                         "invalid value set for property %s is provided" % property
                     return random.choice(valid_value_set)
@@ -171,10 +173,10 @@ class XWorldEnv(object):
                         "invalid value for property %s is provided" % property
                     return value
             else:
-                if value is None:
+                if value is True:
                     assert len(valid_value_set) == 2 and valid_value_set[0] < valid_value_set[1], \
                         "invalid value range for property %s is provided" % property
-                    return random.uniform(valid_value_set)
+                    return random.uniform(*valid_value_set)
                 else:
                     assert value >= valid_value_set[0] and value <= valid_value_set[1], \
                         "invalid value for property %s is provided" % property
@@ -193,17 +195,26 @@ class XWorldEnv(object):
             assert property in entity.__dict__.keys() and property in default_dict.keys(), \
                 "invalid property name: %s is provided" % property
             value = context_dict[property]
-            if value == False: # should only be used for properties with values
+            if value is False: # should only be used for properties with values
                 assert entity.__dict__[property], "no existing value for property %s" % property
                 continue
+            elif value is None and entity.__dict__[property] is None:
+                #reinstantiate if property value doesn't exist
+                value = True
+            elif value is None:
+                continue
+
             if property == "loc":
+                assert entity.loc is None, "loc cannot be reset"
                 entity.loc = check_or_get_value(self.available_grids)
+                if entity.loc in self.available_grids:
+                    self.available_grids.remove(entity.loc)
             if property == "name":
                 entity.name = check_or_get_value(self.get_all_possible_names(entity.type))
                 # update id once name is changed
                 entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
-            if property == "asset_path" or property == "name":
-                # update the asset_path once the name is changed
+                entity.asset_path = None  # update the asset_path once the name is changed
+            if property == "asset_path":
                 entity.asset_path = check_or_get_value(self.items[entity.type][entity.name])
                 # color is coupled with asset_path
                 if entity.asset_path in self.color_table.keys():
