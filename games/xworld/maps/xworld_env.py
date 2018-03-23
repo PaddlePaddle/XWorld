@@ -23,6 +23,7 @@ import itertools
 from collections import OrderedDict
 from py_gflags import get_flag
 from maze2d import spanning_tree_maze_generator
+from py_util import check_or_get_value
 
 """
 Entity:
@@ -152,78 +153,68 @@ class XWorldEnv(object):
     def set_property(self, entity, property_value_dict={}):
         """
         Reinstantiate the specified properties of an existing entity.
-        Properties and corresponding values are specified by the property_value_dict.
-        There are three use cases:
-        1) if no property is specified (e.g. property_value_dict={}), all unset properties
-           in entity will be reinstantiated.
-        2) If None value is provided for a specified property (e.g. {"name" : None}) and
-           the entity's property value is None, then a valid random value will be
-           sampled for the specified property and all the rest properties remain unchanged.
-        3) If False value is provided for a specified property (e.g. {"loc" : False}),
-           this property remains unchanged while other properties will be reinstantiated.
-        4) if True value is provided for a specified property (e.g. {"loc" : True}), this
+        Properties and corresponding values are specified by the property_value_dict in the form
+        of {property : value, ...}, e.g. {"name" : "apple", "loc" : (0, 0)}. value could be True
+        (force reinstantiation), False (keep unchanged), or a valid value for that property.
+        1) True value is provided for a specified property (e.g. {"name" : True}), entity
            property will be reinstantiated regardless of its original value.
-        Mode 2), 3) and 4) can be used together (e.g. {"name" : True, "loc" : False})).
+        2) if a False value if provided for a specified property (e.g., {"loc : False"}), entity
+           property value will remain unchanged, regardless of whether it's None or not.
+        3) otherwise, the value will be assigned to that property of the entity; note
+           that loc can only be set once and cannot be reset through this function
+        4) all unset entity properties will be instantiated if not explicitly denoted with False.
         """
-        def check_or_get_value(valid_value_set, is_continuous=False):
-            """
-            Check if the given value of the specified property is a valid one, or randomly
-            select one from the valid value set if value is None, and return the value.
-            is_continuous denotes whenther the value is continuous (True) or discrete (False).
-            """
-            if not is_continuous:
-                if value is True:
-                    assert len(valid_value_set) > 0, \
-                        "invalid value set for property %s is provided" % property
-                    return random.choice(valid_value_set)
-                else:
-                    assert value in valid_value_set, \
-                        "invalid value for property %s is provided" % property
-                    return value
-            else:
-                if value is True:
-                    assert len(valid_value_set) == 2 and valid_value_set[0] < valid_value_set[1], \
-                        "invalid value range for property %s is provided" % property
-                    return random.uniform(*valid_value_set)
-                else:
-                    assert value >= valid_value_set[0] and value <= valid_value_set[1], \
-                        "invalid value for property %s is provided" % property
-                    return value
-
         default_dict = OrderedDict.fromkeys(["name", \
                                              "loc", \
                                              "asset_path", \
                                              "yaw", \
                                              "scale", \
                                              "offset"])
-        context_dict = default_dict.copy()
-        context_dict.update(property_value_dict)
+        pv_dict = default_dict.copy()
+        pv_dict.update(property_value_dict)
 
-        for property in context_dict:
+        # pre-processing for name and asset_path due to their dependency
+        path_value = pv_dict["asset_path"]
+        name_value = pv_dict["name"]
+        # if an asset_path value specified as input
+        if path_value is not None and path_value is not True:
+            # if name is not specified then derive value for it from asset_path
+            # derive name from asset_path
+            if name_value not in self.get_all_possible_names(entity.type):
+                names = [n for n in self.items[entity.type] if path_value in set(self.items[entity.type][n])]
+                assert len(names) == 1, "there should be only one name corresponding to the asset_path: %s" % (path_value)
+                pv_dict["name"] = names[0]
+            else:
+                assert path_value in self.items[entity.type][name_value], \
+                    "specified name: %s and asset_path: %s mis-match" % (name_value, path_value)
+
+        for property in pv_dict:
             assert property in entity.__dict__.keys() and property in default_dict.keys(), \
                 "invalid property name: %s is provided" % property
-            value = context_dict[property]
-            if value is False: # should only be used for properties with values
-                assert entity.__dict__[property], "no existing value for property %s" % property
-                continue
-            elif value is None and entity.__dict__[property] is None:
-                #reinstantiate if property value doesn't exist
-                value = True
-            elif value is None:
+            value = pv_dict[property]
+
+            if value is None:
+                if entity.__dict__[property] is None:
+                    #reinstantiate if property value doesn't exist
+                    value = True
+                else:
+                    continue
+            elif value is False:
+                warnings.warn("Skip setting values for property %s!" % (property))
                 continue
 
             if property == "loc":
                 assert entity.loc is None, "loc cannot be reset"
-                entity.loc = check_or_get_value(self.available_grids)
+                entity.loc = check_or_get_value(value, self.available_grids)
                 if entity.loc in self.available_grids:
                     self.available_grids.remove(entity.loc)
             if property == "name":
-                entity.name = check_or_get_value(self.get_all_possible_names(entity.type))
+                entity.name = check_or_get_value(value, self.get_all_possible_names(entity.type))
                 # update id once name is changed
                 entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
                 entity.asset_path = None  # update the asset_path once the name is changed
             if property == "asset_path":
-                entity.asset_path = check_or_get_value(self.items[entity.type][entity.name])
+                entity.asset_path = check_or_get_value(value, self.items[entity.type][entity.name])
                 # color is coupled with asset_path
                 if entity.asset_path in self.color_table.keys():
                     entity.color = self.color_table[entity.asset_path]
@@ -232,13 +223,13 @@ class XWorldEnv(object):
             if property == "yaw" and get_flag("visible_radius") and entity.type != "block":
                 ## if partially observed, perturb the objects
                 yaw_range = range(-1, 3)
-                entity.yaw = check_or_get_value(yaw_range) * self.PI_2
+                entity.yaw = check_or_get_value(value, yaw_range) * self.PI_2
             if property == "scale" and get_flag("visible_radius") and entity.type == "goal":
                 scale_range = [0.5, 1]
-                entity.scale = check_or_get_value(scale_range, is_continuous=True)
+                entity.scale = check_or_get_value(value, scale_range, is_continuous=True)
             if property == "offset" and get_flag("visible_radius") and entity.type == "goal":
                 offset_range = [0, 1 - (entity.scale if hasattr(entity, 'scale') else 0.5)]
-                entity.offset = check_or_get_value(offset_range, is_continuous=True)
+                entity.offset = check_or_get_value(value, offset_range, is_continuous=True)
 
         self.changed = True
 
@@ -443,21 +434,21 @@ class XWorldEnv(object):
             ## instantiate properties for each entity
             for i, e in enumerate(self.entities):
                 if e.loc is not None:
-                    warnings.warn("Maze generation is on! Over-writing pre-specified location %s!" % (e.loc,))
+                    warnings.warn("Maze generation is on! Overwriting pre-specified location %s!" % (e.loc,))
                     e.loc = None # remove the pre-set location when maze_generation is on
-                self.set_property(e)
+                # skip setting loc for block here and set it later
+                self.set_property(e, {"loc" : not e.type == "block"})
             ## add back some empty grids
             self.available_grids += blocks[len(self.get_blocks()):]
-        else:
-            ## instantiate properties for each entity
-            for i, e in enumerate(self.entities):
-                self.set_property(e)
 
-        if self.maze_generation:
             ## use the remaining blocks
             for e in self.get_blocks():
                 assert blocks, "too many blocks for a valid maze"
                 e.loc = blocks.pop()
+        else:
+            ## instantiate properties for each entity
+            for i, e in enumerate(self.entities):
+                self.set_property(e)
 
     def __padding_walls(self):
         """

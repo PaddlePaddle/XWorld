@@ -53,4 +53,6 @@ class XWorldDialogMap(XWorldEnv):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
         for e in self.get_goals():
+            # two equivalent way, the second way will trigger a warning message
             self.set_property(e, property_value_dict={"name" : True})
+            #self.set_property(e, property_value_dict={"name" : True, "loc" : False})
