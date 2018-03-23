@@ -5,13 +5,15 @@ from py_util import overrides
 class XWorldDialogMap(XWorldEnv):
     def __init__(self, item_path, start_level=0):
         super(XWorldDialogMap, self).__init__(
-            item_path=item_path, max_height=1, max_width=1)
+            item_path=item_path,
+            max_height=1,
+            max_width=1,
+            maze_generation=False)
         self.class_per_session = 2 # max number of classes in a session
                                    # value < 1 denotes all classes are used
         self.sel_classes = {} # selected classes for a session
 
     def _configure(self, select_class=True):
-        self.set_dims(1, 1)
         self.set_entity(type="agent", loc=(0, 0), force_occupy=True)
         self.set_entity(type="goal", loc=(0, 0), force_occupy=True)
         if select_class:

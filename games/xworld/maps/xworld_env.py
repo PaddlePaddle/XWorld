@@ -17,6 +17,7 @@ Copyright (c) 2017 Baidu Inc. All Rights Reserved.
 import random
 import os
 import copy
+import warnings
 from itertools import groupby
 import itertools
 from collections import OrderedDict
@@ -55,13 +56,21 @@ class XWorldEnv(object):
 
     curriculum_check_period = 100
 
-    def __init__(self, item_path, max_height=7, max_width=7):
+    def __init__(self, item_path, max_height=7, max_width=7, maze_generation=True):
+        """
+        item_path: path to the item images
+        max_height/max_width: maximum height of the world; if a smaller world size
+        is specified using set_dims, the extra space will be padded with wall blocks
+        maze_generattion: True: use maze generator for placing the blocks
+                          False: randomly assign available locations to blocks
+        """
         self.num_games = -1
         ## load all items from item_path
         self.grid_types = ["goal", "block", "agent"]
         self.item_path = item_path
         self.max_height = max_height
         self.max_width = max_width
+        self.maze_generation = maze_generation
         self.current_usage = {}
         self.curriculum_check_counter = 0
         self.all_icon_paths = []
@@ -121,8 +130,7 @@ class XWorldEnv(object):
         self.offset_w = (self.max_width - w) / 2
         self.pad_blocks = self.__padding_walls()
         existing_entities = [e.loc for e in self.entities]
-        self.available_grids = list(set(itertools.product(range(w), range(h))) - set(existing_entities))
-        random.shuffle(self.available_grids)
+        self.available_grids = list(set(self.__generate_all_grids(h, w))-set(existing_entities))
         self.changed = True
 
     def set_entity(self, type, loc=None, name=None, force_occupy=False):
@@ -134,7 +142,7 @@ class XWorldEnv(object):
         if not loc is None:
             if not force_occupy:
                 assert loc in self.available_grids, \
-                    "set_dims correctly before setting a location"
+                    "invalid or unavailable location %s; available grids %s" % (loc, self.available_grids)
             if loc in self.available_grids:
                 self.available_grids.remove(loc)
         self.entity_nums[type] += 1
@@ -420,30 +428,36 @@ class XWorldEnv(object):
         after which its properties are set.
         The entities should have been set in _configure()
         """
-        Y, X = self.get_dims()
+        if self.maze_generation:
+            Y, X = self.get_dims()
+            maze = spanning_tree_maze_generator(X, Y)
+            blocks = [(j, i) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
 
-        maze = spanning_tree_maze_generator(X, Y)
-        blocks = [(j, i) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
+            ## maybe not all blocks of the maze will be used later
+            random.shuffle(blocks)
 
-        ## maybe not all blocks of the maze will be used later
-        random.shuffle(blocks)
+            ## first remove all maze blocks from the available set
+            for b in blocks:
+                if b in self.available_grids:
+                    self.available_grids.remove(b)
+            ## instantiate properties for each entity
+            for i, e in enumerate(self.entities):
+                if e.loc is not None:
+                    warnings.warn("Maze generation is on! Over-writing pre-specified location %s!" % (e.loc,))
+                    e.loc = None # remove the pre-set location when maze_generation is on
+                self.set_property(e)
+            ## add back some empty grids
+            self.available_grids += blocks[len(self.get_blocks()):]
+        else:
+            ## instantiate properties for each entity
+            for i, e in enumerate(self.entities):
+                self.set_property(e)
 
-        ## first remove all maze blocks from the available set
-        for b in blocks:
-            if b in self.available_grids:
-                self.available_grids.remove(b)
-
-        ## select a random img path for each entity
-        for i, e in enumerate(self.entities):
-            self.set_property(e)
-
-        ## add back some empty grids
-        self.available_grids += blocks[len(self.get_blocks()):]
-
-        ## use the remaining blocks
-        for e in self.get_blocks():
-            assert blocks, "too many blocks for a valid maze"
-            e.loc = blocks.pop()
+        if self.maze_generation:
+            ## use the remaining blocks
+            for e in self.get_blocks():
+                assert blocks, "too many blocks for a valid maze"
+                e.loc = blocks.pop()
 
     def __padding_walls(self):
         """
@@ -474,6 +488,18 @@ class XWorldEnv(object):
         return not (x >= self.offset_w and x < self.offset_w + self.width and \
                     y >= self.offset_h and y < self.offset_h + self.height)
 
+    def __generate_all_grids(self, height, width, shuffle=True):
+        """
+        Given height and width, generate all the grids as the outer product of [0, h) x [0, w)]
+        Randomly shuffle all grids if shuffle is True
+        Return list of all the grids
+        """
+        assert height >= 1 and width >= 1
+        all_grids = list(itertools.product(range(width), range(height)))
+        if shuffle:
+            random.shuffle(all_grids)
+        return all_grids
+
     def __clean_env(self):
         """
         Reset members; preparing for the next session
@@ -484,3 +510,4 @@ class XWorldEnv(object):
         self.entities = []
         self.entity_nums = {t : 0 for t in self.grid_types}
         self.available_grids = []
+        self.set_dims(self.max_height, self.max_width)
