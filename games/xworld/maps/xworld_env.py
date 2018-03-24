@@ -154,15 +154,12 @@ class XWorldEnv(object):
         """
         Reinstantiate the specified properties of an existing entity.
         Properties and corresponding values are specified by the property_value_dict in the form
-        of {property : value, ...}, e.g. {"name" : "apple", "loc" : (0, 0)}. value could be True
-        (force reinstantiation), False (keep unchanged), or a valid value for that property.
-        1) True value is provided for a specified property (e.g. {"name" : True}), entity
+        of {property : value, ...}, e.g. {"name" : "apple", "loc" : (0, 0)}. value could be None
+        (force reinstantiation) or a valid value for that property.
+        1) If None value is provided for a specified property (e.g. {"name" : None}), entity
            property will be reinstantiated regardless of its original value.
-        2) if a False value if provided for a specified property (e.g., {"loc : False"}), entity
-           property value will remain unchanged, regardless of whether it's None or not.
-        3) otherwise, the value will be assigned to that property of the entity; note
-           that loc can only be set once and cannot be reset through this function
-        4) all unset entity properties will be instantiated if not explicitly denoted with False.
+        2) otherwise, the value will be assigned to that property of the entity.
+        3) all unset entity properties will be instantiated.
         """
         default_dict = OrderedDict.fromkeys(["name", \
                                              "loc", \
@@ -177,7 +174,11 @@ class XWorldEnv(object):
         path_value = pv_dict["asset_path"]
         name_value = pv_dict["name"]
         # if an asset_path value specified as input
-        if path_value is not None and path_value is not True:
+        if name_value is not None:
+            property_value_dict["asset_path"] = None
+            pv_dict.update(property_value_dict)
+            path_value = pv_dict["asset_path"]
+        if path_value is not None:
             # if name is not specified then derive value for it from asset_path
             # derive name from asset_path
             if name_value not in self.get_all_possible_names(entity.type):
@@ -193,21 +194,15 @@ class XWorldEnv(object):
                 "invalid property name: %s is provided" % property
             value = pv_dict[property]
 
-            if value is None:
-                if entity.__dict__[property] is None:
-                    #reinstantiate if property value doesn't exist
-                    value = True
-                else:
-                    continue
-            elif value is False:
-                warnings.warn("Skip setting values for property %s!" % (property))
+            # skip unspecified and non-empty entity properties
+            if property not in property_value_dict.keys() and entity.__dict__[property] is not None:
                 continue
 
             if property == "loc":
-                assert entity.loc is None, "loc cannot be reset"
+                if entity.loc is not None:
+                    self.available_grids.append(entity.loc)
                 entity.loc = check_or_get_value(value, self.available_grids)
-                if entity.loc in self.available_grids:
-                    self.available_grids.remove(entity.loc)
+                self.available_grids.remove(entity.loc)
             if property == "name":
                 entity.name = check_or_get_value(value, self.get_all_possible_names(entity.type))
                 # update id once name is changed
@@ -437,7 +432,8 @@ class XWorldEnv(object):
                     warnings.warn("Maze generation is on! Overwriting pre-specified location %s!" % (e.loc,))
                     e.loc = None # remove the pre-set location when maze_generation is on
                 # skip setting loc for block here and set it later
-                self.set_property(e, {"loc" : not e.type == "block"})
+                if e.type != "block":
+                    self.set_property(e)
             ## add back some empty grids
             self.available_grids += blocks[len(self.get_blocks()):]
 
