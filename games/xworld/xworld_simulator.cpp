@@ -209,10 +209,10 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
 // interface to get_state_data
 std::string XWorldSimulator::get_teacher_sentence_for_agent() {
     std::string sent = agent_received_sentences_[active_agent_id_];
-    
+
     if (sent.empty()) {
-        sent = "#";
-    } 
+        sent = "-";
+    }
     return sent;
 }
 
@@ -354,7 +354,7 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
                         cv::Point(300, i * line_height - 5),
                         cv::FONT_HERSHEY_SIMPLEX,
                         0.4,
-                        color,
+                        white,
                         1,
                         CV_AA);
         } else {
