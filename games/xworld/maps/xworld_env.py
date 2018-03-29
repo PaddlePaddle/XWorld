@@ -441,6 +441,7 @@ class XWorldEnv(object):
             for e in self.get_blocks():
                 assert blocks, "too many blocks for a valid maze"
                 e.loc = blocks.pop()
+                self.set_property(e) ## still need to set other properties
         else:
             ## instantiate properties for each entity
             for i, e in enumerate(self.entities):
