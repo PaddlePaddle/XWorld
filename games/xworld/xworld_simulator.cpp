@@ -40,7 +40,8 @@ namespace simulator {
 namespace xwd {
 
 XWorldSimulator::XWorldSimulator(bool print_xworld_config) :
-        xworld_(FLAGS_xwd_conf_path, print_xworld_config) {
+        xworld_(FLAGS_xwd_conf_path, print_xworld_config),
+        keyboard_action_(-1) {
     init();
 }
 
@@ -173,6 +174,10 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action();
     last_action_ = "";
 
+    if (keyboard_action_ == 27) {
+        exit(EXIT_SUCCESS);
+    }
+
     //// speak
     if (FLAGS_task_mode == "arxiv_interactive" ||
         FLAGS_task_mode == "one_channel") {
@@ -197,7 +202,29 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
         CHECK(actions.contain_key("action"))
             << "The agent has to take the move action.";
         int action_idx = *(actions.get_buffer("action")->get_id());
-        CHECK_LT(action_idx, get_num_actions());
+        switch (keyboard_action_) {
+            case 'w':
+                action_idx = 0;
+                break;
+            case 's':
+                action_idx = 1;
+                break;
+            case 'a':
+                action_idx = 2;
+                break;
+            case 'd':
+                action_idx = 3;
+                break;
+            case 'q':
+                action_idx = 4;
+                break;
+            case 'e':
+                action_idx = 5;
+                break;
+            default:
+                break;
+        }
+        CHECK_LT(action_idx, get_num_actions()) << "action invalid: " << action_idx;
         // take one step in the game
         last_action_success_ = xworld_.act(active_agent_id_, action_idx);
         last_action_ += std::to_string(action_idx);
@@ -389,19 +416,19 @@ void XWorldSimulator::show_screen(float reward) {
     prev_screen_ = img_wo_msg;
     screen_ = concat_images(img_wo_msg, get_message_image(history_messages_), false);
 
+    cv::namedWindow("XWorld2D");
+    // screen_ must still be valid after the end of this function
+    // so that it can be saved in save_screen
+    cv::setMouseCallback("XWorld2D", util::save_screen, &screen_);
+    cv::imshow("XWorld2D", screen_);
     // show screen
     if (FLAGS_pause_screen) {
         // The screen will pause at every step waiting for keyboard
-        cv::waitKey(-1);
+        keyboard_action_ = cv::waitKey(-1) % 256;
     } else {
         // Default mode: the screen will display continuously
         cv::waitKey(200);
     }
-    cv::namedWindow("XWorld Game");
-    // screen_ must still be valid after the end of this function
-    // so that it can be saved in save_screen
-    cv::setMouseCallback("XWorld Game", util::save_screen, &screen_);
-    cv::imshow("XWorld Game", screen_);
 }
 
 void XWorldSimulator::define_state_specs(StatePacket& state) {

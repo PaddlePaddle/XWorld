@@ -34,6 +34,8 @@ enum XWorldAction {
     MOVE_RIGHT,
     MOVE_FORWARD,
     MOVE_BACKWARD,
+    MOVE_LEFT_FPV,
+    MOVE_RIGHT_FPV,
     TURN_LEFT,
     TURN_RIGHT
 };

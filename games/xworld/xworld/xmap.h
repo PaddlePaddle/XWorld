@@ -59,10 +59,10 @@ class XMap {
     * mask
     *  @param visible_radius_unit: radius of the visible range for the agent
     */
-    cv::Rect image_masking(cv::Mat img_in,
-                           const Loc& item_loc,
+    cv::Rect image_masking(const Loc& item_loc,
                            double yaw,
-                           int visible_radius_unit);
+                           int visible_radius_unit,
+                           std::vector<bool>& shadow);
 
     // add an item to the map
     void add_item(XItemPtr item_ptr);
