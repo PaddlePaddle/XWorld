@@ -23,18 +23,18 @@ def check_or_get_value(value, valid_value_set, is_continuous=False):
     if not is_continuous:
         if value is None:
             assert len(valid_value_set) > 0, \
-                "invalid value set for property %s is provided" % property
+                "invalid value set %s is provided" % (valid_value_set, )
             return random.choice(valid_value_set)
         else:
             assert value in valid_value_set, \
-                "invalid value for property %s is provided" % property
+                "input value %s is not in valid value set %s" % (value, valid_value_set)
             return value
     else:
         if value is None:
             assert len(valid_value_set) == 2 and valid_value_set[0] < valid_value_set[1], \
-                "invalid value range for property %s is provided" % property
+                "invalid value range $s is provided" % (valid_value_set, )
             return random.uniform(*valid_value_set)
         else:
             assert value >= valid_value_set[0] and value <= valid_value_set[1], \
-                "invalid value for property %s is provided" % property
+                "input value %s is not in valid value set %s" % (value, valid_value_set)
             return value
