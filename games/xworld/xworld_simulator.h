@@ -133,6 +133,7 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
 
     cv::Mat prev_screen_;  // previous screen for display
     cv::Mat screen_;
+    int keyboard_action_;
 };
 }
 } /* namespace simulator::xwd */

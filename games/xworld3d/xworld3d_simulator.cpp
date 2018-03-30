@@ -301,7 +301,6 @@ float X3Simulator::take_action(const StatePacket& actions) {
     TeachingEnvironment::take_action();
     last_action_ = "";
 
-    // show screen
     if (keyboard_action_ == 27) {
         exit(EXIT_SUCCESS);
     }

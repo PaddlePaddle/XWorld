@@ -431,9 +431,10 @@ class XWorldEnv(object):
                 if e.loc is not None:
                     warnings.warn("Maze generation is on! Overwriting pre-specified location %s!" % (e.loc,))
                     e.loc = None # remove the pre-set location when maze_generation is on
-                # skip setting loc for block here and set it later
+                ## skip setting loc for block here and set it later
                 if e.type != "block":
-                    self.set_property(e)
+                    ## if non-block, randomize the yaw, scale, and offset
+                    self.set_property(e, {"yaw": None, "scale": None, "offset": None})
             ## add back some empty grids
             self.available_grids += blocks[len(self.get_blocks()):]
 

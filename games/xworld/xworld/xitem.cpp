@@ -78,7 +78,7 @@ XAgent::XAgent(const Entity& e) : XItem(e) {
     if (FLAGS_visible_radius == 0) {
         legal_actions_ = {MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT};
     } else {
-        legal_actions_ = {MOVE_FORWARD, MOVE_BACKWARD, TURN_LEFT, TURN_RIGHT};
+        legal_actions_ = {MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT_FPV, MOVE_RIGHT_FPV, TURN_LEFT, TURN_RIGHT};
     }
 }
 
@@ -111,6 +111,26 @@ Loc XAgent::act(int action_id) {
                 return Loc(cur_loc.x, cur_loc.y + 1);
             } else {
                 return Loc(cur_loc.x, cur_loc.y - 1);
+            }
+        case MOVE_LEFT_FPV:
+            if (dir == "right") {
+                return Loc(cur_loc.x, cur_loc.y - 1);
+            } else if (dir == "left") {
+                return Loc(cur_loc.x, cur_loc.y + 1);
+            } else if (dir == "up") {
+                return Loc(cur_loc.x - 1, cur_loc.y);
+            } else {
+                return Loc(cur_loc.x + 1, cur_loc.y);
+            }
+        case MOVE_RIGHT_FPV:
+            if (dir == "right") {
+                return Loc(cur_loc.x, cur_loc.y + 1);
+            } else if (dir == "left") {
+                return Loc(cur_loc.x, cur_loc.y - 1);
+            } else if (dir == "up") {
+                return Loc(cur_loc.x + 1, cur_loc.y);
+            } else {
+                return Loc(cur_loc.x - 1, cur_loc.y);
             }
         case TURN_LEFT:
             e_.yaw += M_PI / 2;
