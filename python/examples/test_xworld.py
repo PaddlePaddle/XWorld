@@ -20,7 +20,7 @@ def compute_speak_action(states, num_actions, keep_silent = False):
     screen = states["screen"]
     sentence = states["sentence"]
     if keep_silent:
-        action = ""
+        action = "what"
     else:
         action = sentence # repeat teacher's sentence
     return action

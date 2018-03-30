@@ -30,6 +30,7 @@ DEFINE_int32(
 DECLARE_int32(max_steps);
 DECLARE_bool(pause_screen);
 DECLARE_bool(color);
+DEFINE_bool(log_hist, false, "log dialogue history");
 DEFINE_string(
     task_mode,
     "one_channel",
@@ -49,7 +50,12 @@ void XWorldSimulator::init() {
     img_height_ = height_ * XItem::item_size_;
     img_width_ = width_ * XItem::item_size_;
     if (FLAGS_visible_radius == 0) { // fully observed
-        int block_size = 12;
+        int block_size;
+        if (FLAGS_task_mode == "arxiv_interactive") {
+            block_size = 32;
+        } else {
+            block_size = 12;
+        }
         img_height_out_ = (height_ * 2 - 1) * block_size;
         img_width_out_ = (width_ * 2 - 1) * block_size;
     } else {
@@ -77,14 +83,14 @@ int XWorldSimulator::add_agent() {
 void XWorldSimulator::apply_teacher_actions() {
     auto sentence = get_teacher_sent_from_buffer();
     auto type = get_teacher_sent_type_from_buffer();
-    // change empty sentence to "-"
-    if (sentence.empty()) {
-        sentence = "-";
-        type = "Silence";
-    }
     agent_received_sentences_[active_agent_id_] = sentence;
     auto message = "[" + type + "] Teacher: " + sentence;
     history_messages_.push_back(message);
+
+    if(FLAGS_log_hist) {
+        LOG(INFO) << history_messages_.back();
+    }
+
     if (history_messages_.size() > n_history_) {
         history_messages_.pop_front();
     }
@@ -118,6 +124,9 @@ void XWorldSimulator::reset_game() {
     init();  // update dimensions
     history_messages_.clear();
     history_messages_.push_back("--------------- New Game --------------");
+    if(FLAGS_log_hist) {
+        LOG(INFO) << history_messages_.back();
+    }
     if (history_messages_.size() > n_history_) {
         history_messages_.pop_front();
     }
@@ -142,8 +151,14 @@ int XWorldSimulator::game_over() {
         // Each session has a language task; there is no navigation
         auto event = get_event_from_buffer();
         if (event == "correct_reply") {
+            if(FLAGS_log_hist) {
+                LOG(INFO) << "CORRECT";
+            }
             return SUCCESS;
         } else if (event == "wrong_reply") {
+            if(FLAGS_log_hist) {
+                LOG(INFO) << "WRONG";
+            }
             return DEAD;
         }
     } else if (FLAGS_task_mode == "one_channel") {
@@ -170,6 +185,9 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
         // update message box
         history_messages_.push_back("[Reply] Learner: " +
                                     agent_sent);  // add token
+        if(FLAGS_log_hist) {
+            LOG(INFO) << history_messages_.back();
+        }
         update_message_box_on_screen();
     }
 
@@ -190,7 +208,12 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
 
 // interface to get_state_data
 std::string XWorldSimulator::get_teacher_sentence_for_agent() {
-    return agent_received_sentences_[active_agent_id_];
+    std::string sent = agent_received_sentences_[active_agent_id_];
+
+    if (sent.empty()) {
+        sent = "-";
+    }
+    return sent;
 }
 
 int XWorldSimulator::get_num_actions() { return xworld_.get_num_actions(); }
@@ -279,7 +302,7 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
     int line_height = message_image.rows / n_history_;
 
     auto get_message_color = [&](std::string type) {
-        if (type == "Silence" || type == "Reply") {
+        if (type == "Silence") {
             return black;
         } else if (type.find("XWorldNav") == 0) {
             return green;
@@ -302,6 +325,8 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
             return white;
         } else if (type.find("XWorldDia") == 0) {
             return white;
+        } else if (type == "Reply") {
+            return green;
         } else {
             LOG(FATAL) << "unrecognized message type: " + type;
         }
