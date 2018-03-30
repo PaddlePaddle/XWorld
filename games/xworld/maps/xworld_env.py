@@ -171,21 +171,23 @@ class XWorldEnv(object):
         pv_dict.update(property_value_dict)
 
         # pre-processing for name and asset_path due to their dependency
-        path_value = pv_dict["asset_path"]
-        name_value = pv_dict["name"]
-        # if an asset_path value specified as input
-        if name_value is not None:
+        path_value = property_value_dict.get("asset_path", "empty")
+        name_value = property_value_dict.get("name", "empty")
+
+        # if name is specified by user but asset_path is unspecified
+        if name_value != "empty" and path_value == "empty":
             property_value_dict["asset_path"] = None
-            pv_dict.update(property_value_dict)
-            path_value = pv_dict["asset_path"]
-        if path_value is not None:
-            # if name is not specified then derive value for it from asset_path
-            # derive name from asset_path
-            if name_value not in self.get_all_possible_names(entity.type):
+
+        # if asset_path is specified
+        if path_value != "empty":
+            # if name is not specified then derive name from asset_path
+            if name_value == "empty":
                 names = [n for n in self.items[entity.type] if path_value in set(self.items[entity.type][n])]
                 assert len(names) == 1, "there should be only one name corresponding to the asset_path: %s" % (path_value)
-                pv_dict["name"] = names[0]
+                property_value_dict["name"] = names[0]
+                pv_dict.update(property_value_dict)
             else:
+                # if both name and asset_path are specified, check consistency
                 assert path_value in self.items[entity.type][name_value], \
                     "specified name: %s and asset_path: %s mis-match" % (name_value, path_value)
 
@@ -207,7 +209,6 @@ class XWorldEnv(object):
                 entity.name = check_or_get_value(value, self.get_all_possible_names(entity.type))
                 # update id once name is changed
                 entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
-                entity.asset_path = None  # update the asset_path once the name is changed
             if property == "asset_path":
                 entity.asset_path = check_or_get_value(value, self.items[entity.type][entity.name])
                 # color is coupled with asset_path
