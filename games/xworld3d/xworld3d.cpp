@@ -228,7 +228,6 @@ void X3World::update_world(const std::vector<Entity>& entities) {
             remove_item(i.second);
         }
     }
-    items_ = tmp;
 
     for (auto const& e : entities) {
         if (items_.find(e.id) != items_.end()) {
