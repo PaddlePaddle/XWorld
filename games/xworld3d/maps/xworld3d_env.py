@@ -19,7 +19,9 @@ import itertools
 import numbers
 import os
 import random
+from collections import OrderedDict
 from maze2d import spanning_tree_maze_generator
+from py_util import check_or_get_value
 
 """
 Entity:
@@ -54,13 +56,14 @@ class XWorld3DEnv(object):
 
     curriculum_check_period = 100
 
-    def __init__(self, asset_path, max_height=10, max_width=10):
+    def __init__(self, asset_path, max_height=10, max_width=10, maze_generation=True):
         self.current_usage = {}
         self.action_successful = False
         self.grid_types = ["goal", "block", "agent", "boundary"]
         ## init dimensions
         self.max_height = max_height
         self.max_width = max_width
+        self.maze_generation = maze_generation
         self.__clean_env()
         ## event messages
         self.action_successful = False
@@ -311,49 +314,125 @@ class XWorld3DEnv(object):
         """
         raise NotImplementedError()
 
+    def set_property(self, entity, property_value_dict={}):
+        """
+        Reinstantiate the specified properties of an existing entity.
+        Properties and corresponding values are specified by the property_value_dict in the form
+        of {property : value, ...}, e.g. {"name" : "apple", "loc" : (0, 0)}. value could be None
+        (force reinstantiation) or a valid value for that property.
+        1) If None value is provided for a specified property (e.g. {"name" : None}), entity
+           property will be reinstantiated regardless of its original value.
+        2) otherwise, the value will be assigned to that property of the entity.
+        3) all unset entity properties will be instantiated.
+        """
+        default_dict = OrderedDict.fromkeys(["name", \
+                                             "id", \
+                                             "loc", \
+                                             "asset_path", \
+                                             "yaw"])
+        pv_dict = default_dict.copy()
+        pv_dict.update(property_value_dict)
+
+        # pre-processing for name and asset_path due to their dependency
+        path_value = property_value_dict.get("asset_path", "empty")
+        name_value = property_value_dict.get("name", "empty")
+
+        # if name is specified by user but asset_path is unspecified
+        if name_value != "empty" and path_value == "empty":
+            property_value_dict["asset_path"] = None
+            property_value_dict["id"] = property_value_dict.get("id")
+
+        # if asset_path is specified
+        if path_value != "empty":
+            # if name is not specified then derive name from asset_path
+            if name_value == "empty" and path_value != None:
+                names = [n for n in self.items[entity.type] if path_value in set(self.items[entity.type][n])]
+                assert len(names) == 1, "there should be only one name corresponding to the asset_path: %s" % (path_value)
+                property_value_dict["name"] = names[0]
+                property_value_dict["id"] = property_value_dict.get("id")
+                pv_dict.update(property_value_dict)
+            elif name_value == "empty" and path_value == None:
+                property_value_dict["name"] = None
+                property_value_dict["id"] = property_value_dict.get("id")
+            else:
+                # if both name and asset_path are specified, check consistency
+                assert path_value in self.items[entity.type][name_value], \
+                    "specified name: %s and asset_path: %s mis-match" % (name_value, path_value)
+
+        for property in pv_dict:
+            assert property in entity.__dict__.keys() and property in default_dict.keys(), \
+                "invalid property name: %s is provided" % property
+            value = pv_dict[property]
+
+            # skip unspecified and non-empty entity properties
+            if property not in property_value_dict.keys() and entity.__dict__[property] is not None:
+                continue
+
+            if property == "loc":
+                if entity.loc is not None:
+                    self.available_grids.append(entity.loc)
+                entity.loc = check_or_get_value(value, self.available_grids)
+                self.available_grids.remove(entity.loc)
+            if property == "name":
+                entity.name = check_or_get_value(value, self.get_all_possible_names(entity.type))
+                # update id once name is changed
+                # entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
+            if property == "id":
+                entity.id = "%s_%s" % (entity.name, check_or_get_value(value, range(0, 10000)))
+            if property == "asset_path":
+                entity.asset_path = check_or_get_value(value, self.items[entity.type][entity.name])
+                # color is coupled with asset_path
+                if entity.asset_path in self.color_table.keys():
+                    entity.color = self.color_table[entity.asset_path]
+                else:
+                    entity.color = "na"
+            if property == "yaw":
+                if entity.type == "agent":
+                    yaw_range = [-self.PI, self.PI]
+                    entity.yaw = check_or_get_value(value, yaw_range, is_continuous=True)
+                elif entity.type == "goal":
+                    yaw_range = range(-1, 3)
+                    entity.yaw = check_or_get_value(value, yaw_range)
+        self.changed = True
+
     def __instantiate_entities(self):
         """
         For each entity, select an instance from the object class it belongs to,
         after which its properties are set.
         The entities should have been set in _configure()
         """
-        Y, X = self.get_dims()
+        if self.maze_generation:
+            Y, X = self.get_dims()
+            maze = spanning_tree_maze_generator(X, Y)
+            blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
 
-        maze = spanning_tree_maze_generator(X, Y)
-        blocks = [(j, i, 0) for i,m in enumerate(maze) for j,b in enumerate(m) if b == '#']
+            ## maybe not all blocks of the maze will be used later
+            random.shuffle(blocks)
 
-        ## maybe not all blocks of the maze will be used later
-        random.shuffle(blocks)
+            ## first remove all maze blocks from the available set
+            for b in blocks:
+                if b in self.available_grids:
+                    self.available_grids.remove(b)
+            ## instantiate properties for each entity
+            for i, e in enumerate(self.entities):
+                if e.loc is not None:
+                    warnings.warn("Maze generation is on! Overwriting pre-specified location %s!" % (e.loc,))
+                    e.loc = None # remove the pre-set location when maze_generation is on
+                # skip setting loc for block here and set it later
+                if e.type != "block":
+                    self.set_property(e, property_value_dict={"id" : i})
+            ## add back some empty grids
+            self.available_grids += blocks[len(self.get_blocks()):]
 
-        ## first remove all maze blocks from the available set
-        for b in blocks:
-            if b in self.available_grids:
-                self.available_grids.remove(b)
-
-        ## select a random object path for each non-block entity
-        for i, e in enumerate(self.entities):
-            if e.name is None:
-                e.name = random.choice(self.get_all_possible_names(e.type))
-            e.id = "%s_%d" % (e.name, i)
-            if e.asset_path is None:
-                icons = self.items[e.type][e.name]
-                e.asset_path = random.choice(icons)
-            e.color = self.color_table[e.asset_path]
-            if e.loc is None and e.type != "block":
-                assert len(self.available_grids) > 0
-                e.loc = self.available_grids.pop()
-            if e.type == "agent":
-                e.yaw = random.uniform(-self.PI, self.PI)
-            elif e.type == "goal":
-                e.yaw = random.randint(-1,2) * self.PI_2
-
-        ## add back some empty grids
-        self.available_grids += blocks[len(self.get_blocks()):]
-
-        ## use the remaining blocks
-        for e in self.get_blocks():
-            assert blocks, "too many blocks for a valid maze"
-            e.loc = blocks.pop()
+            ## use the remaining blocks
+            for e in self.get_blocks():
+                assert blocks, "too many blocks for a valid maze"
+                e.loc = blocks.pop()
+                self.set_property(e, property_value_dict={"id" : i})
+        else:
+            ## instantiate properties for each entity
+            for i, e in enumerate(self.entities):
+                self.set_property(e, property_value_dict={"id" : i})
 
     def __add_boundaries(self):
         """

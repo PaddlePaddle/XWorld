@@ -140,6 +140,7 @@ void init_xworld3d_gflags(const py::dict& args) {
     FLAGS_context = extract_py_dict_val(args, "context", false, 1);
     FLAGS_curriculum = extract_py_dict_val(args, "curriculum", false, 0.0f);
     FLAGS_x3_conf = extract_py_dict_val(args, "x3_conf", true, "");
+    FLAGS_x3_task_mode = extract_py_dict_val(args, "x3_task_mode", false, "one_channel");
     FLAGS_x3_training_img_width
             = extract_py_dict_val(args, "x3_training_img_width", false, 64);
     FLAGS_x3_training_img_height

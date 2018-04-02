@@ -67,9 +67,10 @@ class XWorld3DNav(XWorld3DEnv):
         goal_names = sorted(goal_names)[:num_goal_classes]
         random.shuffle(goal_names)
         assert num_goal_classes >= num_goals
+        print num_goals
         for i in range(num_goals):
             self.set_entity(type="goal", name=goal_names.pop())
         ## set blocks
-        for i in range(num_blocks):
-            self.set_entity(type="block", name=random.choice(["brick"]))
+        #for i in range(num_blocks):
+        #    self.set_entity(type="block", name=random.choice(["brick"]))
         self.set_entity(type="agent")
