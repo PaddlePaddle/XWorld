@@ -318,12 +318,12 @@ class XWorld3DEnv(object):
         """
         Reinstantiate the specified properties of an existing entity.
         Properties and corresponding values are specified by the property_value_dict in the form
-        of {property : value, ...}, e.g. {"name" : "apple", "loc" : (0, 0)}. value could be None
+        of {property : value, ...}, e.g. {"name" : None, "loc" : (0, 0)}. value could be None
         (force reinstantiation) or a valid value for that property.
         1) If None value is provided for a specified property (e.g. {"name" : None}), entity
            property will be reinstantiated regardless of its original value.
         2) otherwise, the value will be assigned to that property of the entity.
-        3) all unset entity properties will be instantiated.
+        3) all unset entity properties (i.e., entity.property is None) will be instantiated.
         """
         default_dict = OrderedDict.fromkeys(["name", \
                                              "id", \
@@ -409,7 +409,7 @@ class XWorld3DEnv(object):
             ## maybe not all blocks of the maze will be used later
             random.shuffle(blocks)
 
-            ## first remove all maze blocks from the available set
+            ## remove locations of all blocks from available grid set
             for b in blocks:
                 if b in self.available_grids:
                     self.available_grids.remove(b)
@@ -425,8 +425,8 @@ class XWorld3DEnv(object):
             self.available_grids += blocks[len(self.get_blocks()):]
 
             ## use the remaining blocks
+            assert len(self.get_blocks()) <= len(blocks), "too many blocks for a valid maze"
             for e in self.get_blocks():
-                assert blocks, "too many blocks for a valid maze"
                 e.loc = blocks.pop()
                 self.set_property(e, property_value_dict={"id" : i})
         else:
