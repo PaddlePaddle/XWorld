@@ -71,6 +71,7 @@ class XWorld3DEnv(object):
         self.game_event = ""
 
         self.curriculum_check_counter = 0
+        self.running_id = 0
 
         ## load all items from asset_path
         self.asset_path = asset_path
@@ -378,7 +379,8 @@ class XWorld3DEnv(object):
                 # update id once name is changed
                 # entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
             if property == "id":
-                entity.id = "%s_%s" % (entity.name, check_or_get_value(value, range(0, 10000)))
+                entity.id = "%s_%s" % (entity.name, value if value is not None else self.running_id)
+                self.running_id += 1
             if property == "asset_path":
                 entity.asset_path = check_or_get_value(value, self.items[entity.type][entity.name])
                 # color is coupled with asset_path
@@ -470,3 +472,4 @@ class XWorld3DEnv(object):
         self.boundaries = []
         self.entity_nums = {t : 0 for t in self.grid_types}
         self.available_grids = []
+        self.running_id = 0
