@@ -1,0 +1,15 @@
+{
+    "item_path" : "models_3d",
+    "map" : "XWorld3DDialogMap",
+    "task_groups" : {
+        "XWorld3DDia" : {
+            "held_out" : [
+            ],
+            "weight" : 0.5,
+            "schedule" : "random",
+            "tasks" : {
+                "XWorld3DDialog" : 1
+            }
+        }
+    }
+}

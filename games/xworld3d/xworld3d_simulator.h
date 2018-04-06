@@ -80,6 +80,8 @@ public:
     std::string conf_file();
 
 private:
+    std::string get_teacher_sentence_for_agent();
+
     void record_collision_events(const std::set<std::string>& collision_list);
 
     cv::Mat get_reward_image(float reward);  // get the sub-image for reward

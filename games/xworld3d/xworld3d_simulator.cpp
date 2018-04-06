@@ -174,6 +174,15 @@ int X3Simulator::game_over() {
     return ALIVE;
 }
 
+// interface to get_state_data
+std::string X3Simulator::get_teacher_sentence_for_agent() {
+    std::string sent = agent_received_sentences_[active_agent_id_];
+    if (sent.empty()) {
+        sent = "-";
+    }
+    return sent;
+}
+
 int X3Simulator::get_num_actions() {
     return legal_actions_.size();
 }
@@ -212,8 +221,7 @@ void X3Simulator::define_state_specs(StatePacket& state) {
     state.add_key("screen");
     state.add_key("sentence");
     // set the teacher's sentence
-    state.get_buffer("sentence")->set_str(
-        agent_received_sentences_[active_agent_id_]);
+    state.get_buffer("sentence")->set_str(get_teacher_sentence_for_agent());
 }
 
 void X3Simulator::get_extra_info(std::string& info) {
@@ -250,11 +258,6 @@ int X3Simulator::add_agent() {
 void X3Simulator::apply_teacher_actions() {
     auto sentence = get_teacher_sent_from_buffer();
     auto type = get_teacher_sent_type_from_buffer();
-    // change empty sentence to "-"
-    if (sentence.empty()) {
-        sentence = "-";
-        type = "Silence";
-    }
     agent_received_sentences_[active_agent_id_] = sentence;
 
     auto message = "[" + type + "] Teacher: " + sentence;
@@ -314,10 +317,15 @@ float X3Simulator::take_action(const StatePacket& actions) {
                 *(actions.get_buffer("pred_sentence")->get_str());
         record_agent_sent_in_buffer(agent_sent);
         last_action_ += "speak(" + agent_sent + ")";
-        if (false) {
-            // update message box
-            history_messages_.push_back("[Reply] Learner: " + agent_sent);  // add token
-            update_message_box_on_screen();
+        // update message box
+        history_messages_.push_back("[Reply] Learner: " + agent_sent);  // add token
+        update_message_box_on_screen();
+        switch (keyboard_action_) {
+            case 'z':
+                bird_view_ = !bird_view_;
+                break;
+            default:
+                break;
         }
     }
 
@@ -457,6 +465,8 @@ cv::Mat X3Simulator::get_message_image(std::deque<std::string>& messages) {
         } else if (type.find("XWorld3DRecBetween") == 0) {
             return pink;
         } else if (type.find("XWorld3DLan") == 0) {
+            return white;
+        } else if (type.find("XWorld3DDia") == 0) {
             return white;
         } else {
             LOG(FATAL) << "unrecognized message type: " + type;
