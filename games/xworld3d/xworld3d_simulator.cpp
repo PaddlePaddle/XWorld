@@ -195,8 +195,12 @@ void X3Simulator::show_screen(float reward) {
     cv::Mat img;
     impl_->get_screen_rgb(active_agent_id_, img, bird_view_);
 
+    cv::Mat command_img = get_command_image(history_messages_.back());
     cv::Mat reward_img = get_reward_image(reward);
-    cv::Mat img_wo_msg = concat_images(img, reward_img, true);
+    cv::Mat img_wo_msg = concat_images(command_img,
+                                       concat_images(img, reward_img, true),
+                                       true);
+
     prev_screen_ = img_wo_msg;
     screen_ = concat_images(img_wo_msg,
                             get_message_image(history_messages_),
@@ -408,6 +412,28 @@ void X3Simulator::get_screen(StatePacket& screen) {
                           FLAGS_color);
     screen = StatePacket();
     screen.add_buffer_value("screen", screen_vec);
+}
+
+cv::Mat X3Simulator::get_command_image(const std::string& cmd) {
+    cv::Mat canvas(50, 500, CV_8UC3, cv::Scalar(0, 0, 0));
+    auto content = cmd.substr(cmd.find("]") + 1); // remove task type
+    cv::putText(canvas,
+                content.substr(0, content.find(":") + 1),
+                cv::Point(10, 20),
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.5,
+                cv::Scalar(150, 150, 150),
+                1,
+                CV_AA);
+    cv::putText(canvas,
+                content.substr(content.find(":") + 1),
+                cv::Point(10, 40),
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.4,
+                cv::Scalar(255, 255, 255),
+                1,
+                CV_AA);
+    return canvas;
 }
 
 cv::Mat X3Simulator::get_reward_image(float reward) {

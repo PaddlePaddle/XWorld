@@ -9,9 +9,7 @@
             "schedule" : "random",
             "tasks" : {
                 "XWorld3DNavTarget" : 1,
-                "XWorld3DNavTargetNear" : 1,
-                "XWorld3DNavTargetSide" : 1,
-                "XWorld3DNavTargetBetween" : 1
+                "XWorld3DNavTargetNear" : 1
             }
         }
     }

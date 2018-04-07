@@ -36,5 +36,5 @@ DEFINE_double(x3_time_step, 0.0066, "time step for one simulation step");
 //DEFINE_int32(x3_frame_skip, 1, "time step for one simulation step");
 DEFINE_string(
     x3_task_mode,
-    "one_channel",
+    "arxiv_lang_acquisition",
     "arxiv_lang_acquisition|arxiv_interactive|one_channel");

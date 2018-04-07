@@ -295,6 +295,28 @@ cv::Mat XWorldSimulator::concat_images(cv::Mat img1,
     return img_concat;
 }
 
+cv::Mat XWorldSimulator::get_command_image(const std::string& cmd) {
+    cv::Mat canvas(50, 500, CV_8UC3, cv::Scalar(0, 0, 0));
+    auto content = cmd.substr(cmd.find("]") + 1); // remove task type
+    cv::putText(canvas,
+                content.substr(0, content.find(":") + 1),
+                cv::Point(10, 20),
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.5,
+                cv::Scalar(150, 150, 150),
+                1,
+                CV_AA);
+    cv::putText(canvas,
+                content.substr(content.find(":") + 1),
+                cv::Point(10, 40),
+                cv::FONT_HERSHEY_SIMPLEX,
+                0.4,
+                cv::Scalar(255, 255, 255),
+                1,
+                CV_AA);
+    return canvas;
+}
+
 cv::Mat XWorldSimulator::get_reward_image(float reward) {
     cv::Mat canvas(200, 200, CV_8UC3, cv::Scalar(0, 0, 0));
     std::stringstream stream;
@@ -412,7 +434,11 @@ void XWorldSimulator::show_screen(float reward) {
     cv::Mat img = xworld_.to_image(active_agent_id_,
                                    /*flag_illustration=*/ true,
                                    FLAGS_visible_radius);
-    cv::Mat img_wo_msg = concat_images(img, get_reward_image(reward), true);
+    cv::Mat command_img = get_command_image(history_messages_.back());
+    cv::Mat img_wo_msg = concat_images(command_img,
+                                       concat_images(img, get_reward_image(reward), true),
+                                       true);
+
     prev_screen_ = img_wo_msg;
     screen_ = concat_images(img_wo_msg, get_message_image(history_messages_), false);
 

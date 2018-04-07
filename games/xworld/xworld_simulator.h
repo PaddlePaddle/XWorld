@@ -98,6 +98,8 @@ class XWorldSimulator : public GameSimulatorMulti, public TeachingEnvironment {
     void update_message_box_on_screen();  // reward msg box on the screen with
                                           // updated msgs
 
+    cv::Mat get_command_image(const std::string& cmd);
+
     cv::Mat get_reward_image(float reward);  // get the sub-image for reward
 
     cv::Mat get_message_image(
