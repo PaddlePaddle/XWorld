@@ -327,10 +327,11 @@ class XWorld3DEnv(object):
         3) all unset entity properties (i.e., entity.property is None) will be instantiated.
         """
         default_dict = OrderedDict.fromkeys(["name", \
-                                             "id", \
                                              "loc", \
                                              "asset_path", \
                                              "yaw"])
+        assert set(property_value_dict.keys()) < set(default_dict.keys()), "invalid property names provided"
+        default_dict["id"] = None
         pv_dict = default_dict.copy()
         pv_dict.update(property_value_dict)
 
@@ -422,7 +423,7 @@ class XWorld3DEnv(object):
                     e.loc = None # remove the pre-set location when maze_generation is on
                 # skip setting loc for block here and set it later
                 if e.type != "block":
-                    self.set_property(e, property_value_dict={"id" : i})
+                    self.set_property(e)
             ## add back some empty grids
             self.available_grids += blocks[len(self.get_blocks()):]
 
@@ -430,11 +431,11 @@ class XWorld3DEnv(object):
             assert len(self.get_blocks()) <= len(blocks), "too many blocks for a valid maze"
             for e in self.get_blocks():
                 e.loc = blocks.pop()
-                self.set_property(e, property_value_dict={"id" : i})
+                self.set_property(e)
         else:
             ## instantiate properties for each entity
             for i, e in enumerate(self.entities):
-                self.set_property(e, property_value_dict={"id" : i})
+                self.set_property(e)
 
     def __add_boundaries(self):
         """
