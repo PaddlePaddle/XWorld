@@ -75,4 +75,4 @@ class XWorld3DDialogMap(XWorld3DEnv):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
         for e in self.get_goals():
-            self.set_property(e, property_value_dict={"asset_path" : None, "yaw" : None, "id" : 1})
+            self.set_property(e, property_value_dict={"asset_path" : None, "yaw" : None})

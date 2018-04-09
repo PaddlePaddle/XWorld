@@ -426,7 +426,7 @@ void XWorldSimulator::update_message_box_on_screen() {
         cv::Mat img_all = concat_images(
             prev_screen_, get_message_image(history_messages_), false);
         cv::waitKey(1);
-        cv::imshow("XWorld Game", img_all);
+        cv::imshow("XWorld2D", img_all);
     }
 }
 
