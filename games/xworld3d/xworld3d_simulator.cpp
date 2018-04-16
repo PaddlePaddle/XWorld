@@ -120,6 +120,17 @@ void X3SimulatorImpl::get_screen_rgb(
             color[2] = render_str[p];
         }
     }
+    // render agent's direction of view under bird_view
+    if (bird_view) {
+        auto agent_ptr = xworld3d_.get_agent(agent_id);
+        double x;
+        double y;
+        agent_ptr->get_direction(x, y);
+        cv::Point pt1(25, 25);
+        cv::Point pt2(25 - 20 * y, 25 - 20 * x);
+        cv::Scalar colorScalar = cv::Scalar( 0, 200, 0);
+        cv::arrowedLine(screen, pt1, pt2, colorScalar, 2, 8, 0, 0.5);
+    }
 }
 
 std::set<std::string> X3SimulatorImpl::contact_list(const size_t agent_id) {
@@ -313,8 +324,7 @@ float X3Simulator::take_action(const StatePacket& actions) {
     }
 
     //// speak
-    if (FLAGS_x3_task_mode == "arxiv_interactive" ||
-        FLAGS_x3_task_mode == "one_channel") {
+    if (FLAGS_x3_task_mode == "arxiv_interactive") {
         CHECK(actions.contain_key("pred_sentence"))
                 << "The agent has to take the speak action.";
         std::string agent_sent =
