@@ -65,8 +65,6 @@ class XWorld3DNav(XWorld3DEnv):
             self.set_entity(type="goal", name=goal_names.pop())
         ## set blocks
         for i in range(num_blocks):
-            self.set_entity(type="block",
-#                            name=random.choice(["brick"])
-            )
+            self.set_entity(type="block")
         ## set agent
         self.set_entity(type="agent")

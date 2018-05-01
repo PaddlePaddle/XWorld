@@ -1,0 +1,22 @@
+# Blender MTL File: 'dog-house.blend'
+# Material Count: 2
+
+newmtl dark-frame
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.060719 0.044486 0.031060
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd dog-house-texture.jpg
+
+newmtl wood-texture
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd dog-house-texture.jpg

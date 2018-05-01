@@ -80,10 +80,11 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
         if not time_out:
             agent, _, _ = self._get_agent()
             referent, direction = self.target
-            objects_reach_test = [self.__compute_triple_direction(g, referent, agent.loc, agent.yaw) \
+            objects_reach_test = [(self.__compute_triple_direction(g, referent, agent.loc, agent.yaw),
+                                   self._get_distance(g.loc, referent.loc) < 1.0 + 1e-3)\
                                   for g in self._get_goals() \
                                   if self._reach_object(agent.loc, agent.yaw, g)]
-            if direction in objects_reach_test:
+            if (direction, True) in objects_reach_test:
                 reward = self._successful_goal(reward)
             elif objects_reach_test:
                 reward = self._failed_goal(reward)

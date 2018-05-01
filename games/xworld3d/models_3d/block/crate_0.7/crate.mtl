@@ -1,0 +1,13 @@
+# Blender MTL File: 'None'
+# Material Count: 1
+
+newmtl Crate
+Ns 37.254902
+Ka 0.000000 0.000000 0.000000
+Kd 0.465101 0.465101 0.465101
+Ks 0.090606 0.064909 0.048473
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd crate.jpg

@@ -1,0 +1,39 @@
+# Blender MTL File: 'RoomFlower.blend'
+# Material Count: 4
+
+newmtl Ceramic
+Ns 10
+Ka 0.000000 0.000000 0.000000
+Kd 0.33 0.18 0.05
+Ks 0.1 0.1 0.1
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Dirt
+Ns 1
+Ka 0.000000 0.000000 0.000000
+Kd 0.30 0.22 0.15
+Ks 0 0 0
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Leaf
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd spatifilumList.jpg
+
+newmtl Stalk
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.20 0.34 0.14
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2

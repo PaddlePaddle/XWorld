@@ -1,0 +1,21 @@
+# Blender MTL File: 'fountain.blend'
+# Material Count: 2
+
+newmtl Fountain
+Ns 10
+Ka 0.000000 0.000000 0.000000
+Kd 0.85 0.84 0.74
+Ks 0.1 0.1 0.1
+d 1.000000
+illum 2
+map_Kd white-marble.jpg
+
+newmtl Water
+Ns 50
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 0.5
+illum 2
+map_Kd swimming-pool-top-cyan.jpg

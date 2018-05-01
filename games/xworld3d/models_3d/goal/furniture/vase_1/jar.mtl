@@ -1,0 +1,24 @@
+# Blender3D MTL File: pottery.blend
+# Material Count: 2
+newmtl white_dibujo_jarron.jpg
+Ns 331.372549
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.821776 0.821776 0.821776
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd dibujo_jarron.jpg
+
+
+newmtl blue_dibujo_jarron.jpg
+Ns 125.490196
+Ka 0.000000 0.000000 0.000000
+Kd 0.221757 0.323571 0.495534
+Ks 0.470748 0.470748 0.470748
+Ni 1.250000
+d 1.000000
+illum 2
+map_Kd dibujo_jarron.jpg
+
+

@@ -20,7 +20,7 @@ DECLARE_string(x3_conf);
 DECLARE_double(x3_unit);
 DECLARE_int32(x3_training_img_width);
 DECLARE_int32(x3_training_img_height);
-DECLARE_double(x3_reaching_distance);
+DECLARE_double(x3_collect_distance);
 DECLARE_double(x3_move_speed);
 DECLARE_double(x3_jump_speed);
 DECLARE_double(x3_turning_rad);

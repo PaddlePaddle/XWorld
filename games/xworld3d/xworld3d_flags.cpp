@@ -25,8 +25,8 @@ DEFINE_double(x3_unit, 1.0, "unit scale in xworld 3d");
 //// (i.e., adjacent blocks have a distance of x3_unit).
 //// If you want to change the scale of the world, you need to change x3_unit.
 //// All the relevant quantities will automatically scale by it.
-DEFINE_double(x3_reaching_distance, 1.42,
-              "two objects are considered touched if the distance between them"
+DEFINE_double(x3_collect_distance, 1.42,
+              "the agent can collect an object if the distance between them"
               " is smaller than this value");
 DEFINE_double(x3_move_speed, 25.0, "magnitude of moving speed");
 DEFINE_double(x3_jump_speed, 20.0, "magnitude of jumping speed");

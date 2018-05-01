@@ -188,7 +188,11 @@ cv::Mat XMap::to_image(const Loc& item_loc,
             cv::Mat black(world.rows, world.cols, CV_8UC3, cv::Scalar(0, 0, 0));
             cv::addWeighted(black, 0.7, world, 0.3, 0.0, world);
             view.copyTo(world(roi));
-            view = world;
+            auto center = cv::Rect(visible_radius_unit * grid_size_,
+                                   visible_radius_unit * grid_size_,
+                                   world.cols - 2 * visible_radius_unit * grid_size_,
+                                   world.rows - 2 * visible_radius_unit * grid_size_);
+            view = world(center); // crop the padded border when visualization
         } else { // rotate the image according to the agent's yaw
             cv::Point2f center(view.cols / 2.0, view.rows / 2.0);
             cv::Mat rot_mat = cv::getRotationMatrix2D(center, 90 + yaw * 180 / M_PI, 1.0);

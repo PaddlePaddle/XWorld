@@ -1,0 +1,31 @@
+# wheelie_bin.obj
+#
+# Created by Ola-Kristian HOFF
+# http://sourceforge.net/p/sweethome3d/d-models/379/
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+#
+
+newmtl trim
+illum 1
+Ka 0.2 0.2 0.2
+Kd 0.25882354 0.25882354 0.25882354
+Ks 0.5390625 0.5390625 0.5390625
+Ns 64.0
+
+newmtl bin
+illum 3
+Ka 0.2 0.2 0.2
+Kd 0.16 0.18 0.055
+Ks 0.5 0.5 0.5
+Ns 50
+
+newmtl lid
+illum 3
+Ka 0.0 0.10980392 0.52156866
+Kd 0.0 0.10980392 0.52156866
+Ks 0.6 0.6 0.6
+Ns 60
+

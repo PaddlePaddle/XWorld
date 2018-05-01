@@ -1,0 +1,11 @@
+# Blender MTL File: 'Comb.blend'
+# Material Count: 1
+
+newmtl Material
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.503200 0.631846 0.640000
+Ks 0.277228 0.277228 0.277228
+Ni 1.000000
+d 1.000000
+illum 2

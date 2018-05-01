@@ -1,0 +1,29 @@
+# Blender MTL File: 'Gifts.blend'
+# Material Count: 3
+
+newmtl Material
+Ns 15
+Ka 0.000000 0.000000 0.000000
+Kd 0. 0.3 0.4 
+Ks 0.20 0.20 0.20
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Material.003
+Ns 15
+Ka 0.000000 0.000000 0.000000
+Kd 0. 0.3 0.4 
+Ks 0.20 0.20 0.20
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl gift5
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.2 0.6 0.7
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2

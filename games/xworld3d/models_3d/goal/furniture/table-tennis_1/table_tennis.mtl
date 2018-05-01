@@ -1,0 +1,22 @@
+# Blender MTL File: 'Table_tennice_board_backup.blend'
+# Material Count: 2
+
+newmtl color
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.000131 0.033620 0.000000
+Ks 0.250000 0.250000 0.250000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd TT_texture.jpg
+
+newmtl total
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd TT_texture.jpg

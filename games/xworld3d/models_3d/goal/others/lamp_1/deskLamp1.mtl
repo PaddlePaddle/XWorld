@@ -1,0 +1,43 @@
+# deskLamp1.mtl
+#
+# Copyrights (C) 2010  Peter Smolik
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+# 
+
+newmtl Object01_1_1
+illum 2
+Ka 0.0431373 0.0 0.0
+Kd 0.760784 0.666667 0.505882
+Ks 1.0 1.0 1.0
+Ns 128.0
+
+newmtl Object01616_2_2
+illum 2
+Ka 0.0 0.0 0.227451
+Kd 0.0 0.0 0.290196
+Ks 0.0 0.521569 0.933333
+Ns 3.35526
+
+newmtl Object011120_3_3
+illum 2
+Ka 0.384314 0.278431 0.121569
+Kd 0.458824 0.333333 0.152941
+Ks 0.713726 0.584314 0.396078
+Ns 25.5602
+
+newmtl Object013236_4_4
+illum 2
+Ka 0.117647 0.117647 0.117647
+Kd 0.752941 0.752941 0.752941
+Ks 0.752941 0.752941 0.752941
+Ns 3.4822
+
+newmtl Object013324_5_5
+illum 2
+Ka 1.0 1.0 1.0
+Kd 1.0 1.0 1.0
+Ks 1.0 1.0 1.0
+Ns 128.0

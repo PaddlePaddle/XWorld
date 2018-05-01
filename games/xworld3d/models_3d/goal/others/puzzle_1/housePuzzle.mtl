@@ -1,0 +1,29 @@
+# Blender MTL File: 'house puzzle.blend'
+# Material Count: 3
+
+newmtl puzzle_dark
+Ns 45.098039
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.234445 0.090767
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl puzzle_light
+Ns 45.098039
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.560235 0.246771
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl puzzle_medium
+Ns 45.098039
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.353095 0.145585
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2

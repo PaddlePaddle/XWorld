@@ -1,0 +1,10 @@
+<mujoco model="reacher">
+    <compiler angle="radian" inertiafromgeom="true"/>
+    <default>
+        <joint armature="1" damping="1" limited="true"/>
+        <!--<geom friction="1 0.1 1.0" rgba="0.7 0.7 0 1"/> -->
+    </default>
+    <worldbody>
+        <geom name="floor" type="plane" size="1 1 0.1" rgba=".9 0 0 0" pos="0 0 -0.5" friction="1.0 0.1 0.1"/>
+    </worldbody>
+</mujoco>

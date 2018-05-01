@@ -1,0 +1,48 @@
+# Blender MTL File: 'kalender.blend'
+# Material Count: 5
+
+newmtl back
+Ns 40
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.1 0.1 0.1
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl bottom
+Ns 1
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0 0 0 
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl front
+Ns 40
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.1 0.1 0.1
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd kalender.jpg
+
+newmtl material
+Ns 10
+Ka 0.000000 0.000000 0.000000
+Kd 0.3 0.3 0.33
+Ks 0.1 0.1 0.1
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl ring
+Ns 120
+Ka 0.000000 0.000000 0.000000
+Kd 0.7 0.7 0.72
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2

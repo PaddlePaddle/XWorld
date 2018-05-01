@@ -1,0 +1,39 @@
+# toilet_hang_round.obj
+#
+# Created by Ola-Kristian HOFF
+# http://sourceforge.net/p/sweethome3d/d-models/370/
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+# 
+
+newmtl Toilet
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.3828125 0.3828125 0.3828125
+Ns 48.0
+
+newmtl Water
+illum 3
+Ka 0.2 0.2 0.2
+Kd 0.4862745 0.6431373 0.7294118
+Ks 0.828125 0.828125 0.828125
+Ns 106.0
+Ni 1.0
+d 0.5
+
+newmtl Seat
+illum 2
+Ka 0.2 0.2 0.2
+Kd 0.8862745 0.8862745 0.8862745
+Ks 0.2421875 0.2421875 0.2421875
+Ns 32.0
+
+newmtl Flush
+illum 2
+Ka 0.6 0.6392157 0.6666667
+Kd 0.6 0.6392157 0.6666667
+Ks 1.0 1.0 1.0
+Ns 128.0

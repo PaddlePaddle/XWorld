@@ -83,7 +83,7 @@ X3Agent::X3Agent(const Entity& e, x3real scale, World& world) :
         X3Item(e, scale, world),
         move_speed_norm_(FLAGS_x3_move_speed * UNIT),
         jump_speed_norm_(FLAGS_x3_jump_speed * UNIT),
-        reaching_dist_(FLAGS_x3_reaching_distance * UNIT) {}
+        reaching_dist_(FLAGS_x3_collect_distance * UNIT) {}
 
 void X3Agent::move_forward() {
     Pose pose(object_.pose());
