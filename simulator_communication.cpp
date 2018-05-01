@@ -48,10 +48,10 @@ void Communicator::receive_msg() {
 }
 
 //// CommServer
-CommServer::CommServer(const int port_no) :
+CommServer::CommServer() :
         Communicator(),
-        port_(port_no),
-        acceptor_(io_service_, Endpoint(boost::asio::ip::tcp::v4(), port_)) {
+        acceptor_(io_service_, Endpoint(boost::asio::ip::tcp::v4(), 0)) {
+    port_ = acceptor_.local_endpoint().port();
 }
 
 bool CommServer::establish_connection() {

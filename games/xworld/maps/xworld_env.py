@@ -205,7 +205,7 @@ class XWorldEnv(object):
                 entity.yaw = check_or_get_value(pv_dict["yaw"], yaw_range) * self.PI_2
             if entity.type == "goal":
                 ## if partially observed, perturb the objects
-                yaw_range = [0, self.PI_2]
+                yaw_range = [0, self.PI_2 * 4]
                 entity.yaw = check_or_get_value(
                     pv_dict["yaw"], yaw_range, is_continuous=True)
                 ##

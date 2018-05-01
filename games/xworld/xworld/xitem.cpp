@@ -50,18 +50,6 @@ cv::Mat XItem::get_item_image(const Loc& agent_loc) {
 
         double scale = e_.scale;
         double offset = e_.offset;
-        if (agent_loc != Loc() && FLAGS_visible_radius > 0) {
-            // if the agent loc is provided, then we compute the scale inversely
-            // proportional to the distance from the agent to the item
-            // The offset needs also to be adjusted
-            double distance = sqrt(agent_loc.square_distance(get_item_location()));
-            scale = std::min(1.0, std::max(0.3, 1.0 / sqrt(distance)));
-            // if (offset > 1 - scale) { // overwrite the user's setting; it won't be set next time
-            //     offset = util::get_rand_range_val(1 - scale);
-            // }
-            offset = 0.5 - scale / 2; // always centering
-        }
-
         auto rot_mat = cv::getRotationMatrix2D(center, 90 - e_.yaw * 180 / M_PI, scale);
         // offset + scale / 2 - 0.5 computes the translation of the icon image
         // inside the grid

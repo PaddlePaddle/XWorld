@@ -60,7 +60,7 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
         e = random.choice(empty_grids)
         direction = self.__compute_triple_direction(target, referent, e)
 
-        assert direction != "front", "Impossible!"
+        assert direction != "behind", "Impossible!"
 
         ## move agent to the new position
         new_a = self._propagate_agent([e], inclusive=True)
@@ -68,7 +68,7 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
         agent.loc, _ = random.choice(new_a)
         self._set_entity_inst(agent)
 
-        self._record_target((target, referent, direction));
+        self._record_target((referent, direction));
         self._bind("S -> start")
         self._bind("G -> '" + referent.name + "'")
         self._bind("P -> " + direction.upper())
@@ -79,12 +79,11 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
         reward, time_out = self._time_reward()
         if not time_out:
             agent, _, _ = self._get_agent()
-            objects_reach_test = [g.id for g in self._get_goals() \
+            referent, direction = self.target
+            objects_reach_test = [self.__compute_triple_direction(g, referent, agent.loc, agent.yaw) \
+                                  for g in self._get_goals() \
                                   if self._reach_object(agent.loc, agent.yaw, g)]
-            target, referent, direction = self.target
-            reach_correct = (target.id in objects_reach_test)
-            dir = self.__compute_triple_direction(target, referent, agent.loc, agent.yaw)
-            if reach_correct and dir == direction:
+            if direction in objects_reach_test:
                 reward = self._successful_goal(reward)
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
@@ -97,7 +96,10 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
         if view_yaw is None:
             view_yaw = math.atan2(target.loc[1] - a[1], target.loc[0] - a[0])
 
-        theta, _, _ = self._get_direction_and_distance(target.loc, referent.loc, view_yaw)
+        theta, dist, _ = self._get_direction_and_distance(target.loc, referent.loc, view_yaw)
+        if dist == 0:
+            return False
+
         sign = True if theta > 0 else False
         flag = False # referent is far
         theta = abs(theta)
@@ -107,14 +109,15 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
 
         if theta < XWorld3DTask.PI_4 + 1e-3: # front or behind
             if flag:
-                return "front"
-            else:
                 return "behind"
+            else:
+                return "front"
         elif XWorld3DTask.PI_2 - theta < XWorld3DTask.PI_4 + 1e-3: # left or right
             if sign:
-                return "left"
+                ## xworld2d has opposite "left" and "right"
+                return ("left" if "3D" in self.env.__class__.__name__ else "right")
             else:
-                return "right"
+                return ("right" if "3D" in self.env.__class__.__name__ else "left")
         return False
 
     def get_stage_names(self):

@@ -28,9 +28,9 @@ from maze2d import bfs, flood_fill
 class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
-    time_penalty = -0.02  # -0.05
-    correct_reward = 2.0  # 10.0
-    wrong_reward = -2.0   # -10.0
+    time_penalty = -0.01  # -0.05
+    correct_reward = 1.0  # 10.0
+    wrong_reward = -1.0   # -10.0
     collision_penalty = 0.0
 
     failed_action_penalty = -0.1
@@ -69,6 +69,7 @@ class XWorld3DTask(object):
         self.success_seq = []
         self.num_successes = 0
         self.num_failures = 0
+        self.success_steps = 0
         self.reset()
         self.cfg = CFG(*self._define_grammar())
         self.sentence = ""
@@ -136,6 +137,7 @@ class XWorld3DTask(object):
     def _record_success(self):
         self.__record_result(1)
         self.num_successes += 1
+        self.success_steps += self.steps_in_cur_task
 
     def _record_failure(self):
         self.__record_result(0)
@@ -381,7 +383,7 @@ class XWorld3DTask(object):
         return ret
 
     def obtain_performance(self):
-        return (self.num_successes, self.num_failures)
+        return (self.num_successes, self.num_failures, self.success_steps)
 
     def print_grammar(self):
         self.cfg.show()
@@ -420,7 +422,6 @@ class XWorld3DTask(object):
 
         session_end = True
         if self.steps_in_cur_task >= XWorld3DTask.max_steps / 2:
-            self.steps_in_cur_task = 0
             self._record_failure()
             self._record_event("time_up", next=True)
         elif agent_sent != "-":  # if the agent answers

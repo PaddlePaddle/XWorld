@@ -161,9 +161,9 @@ void SimulatorInterface::get_world_dimensions(double& X, double& Y, double& Z) {
 }
 
 /******************************* SimulatorServer ******************************/
-SimulatorServer::SimulatorServer(const std::string& name, const int port_no) :
+SimulatorServer::SimulatorServer(const std::string& name) :
         SimulatorInterface(name, true),
-        CommServer(port_no),
+        CommServer(),
         name_(name),
         num_actions_(-1),
         num_steps_(-1),
@@ -194,14 +194,14 @@ void SimulatorServer::start() {
 }
 
 void SimulatorServer::stop() {
-    LOG(INFO) << "[server " << name_ << "] stopping";
+    LOG(INFO) << "[server " << port_ << "] stopping";
     // inform the client connected to itself to stop
     compose_msg(std::string("stop"));
     deliver_msg();
 
     close_connection();
     SimulatorInterface::stop();
-    LOG(INFO) << "[server " << name_ << "] stopped";
+    LOG(INFO) << "[server " << port_ << "] stopped";
 }
 
 bool SimulatorServer::establish_connection() {
@@ -215,16 +215,16 @@ bool SimulatorServer::establish_connection() {
             compose_msg(std::string("accepted"));
             deliver_msg();
         } else {
-            LOG(INFO) << "[server " << name_ << "] "
+            LOG(INFO) << "[server " << port_ << "] "
                       << "connection failed: name not matched";
             return false;
         }
     } else {
-        LOG(INFO) << "[server " << name_ << "] "
+        LOG(INFO) << "[server " << port_ << "] "
                   << "cannot establish connection";
         return false;
     }
-    LOG(INFO) << "[server " << name_ << "] connected to client";
+    LOG(INFO) << "[server " << port_ << "] connected to client";
     return true;
 }
 
@@ -315,7 +315,7 @@ SimulatorClient::SimulatorClient(const std::string& name, const int port_no) :
 
 void SimulatorClient::start() {
     if (!establish_connection()) {
-        LOG(INFO) << "[client " << name_ << "] "
+        LOG(INFO) << "[client " << port_ << "] "
                   << "stops due to connection error";
         return;
     }
@@ -324,9 +324,9 @@ void SimulatorClient::start() {
 }
 
 void SimulatorClient::stop() {
-    LOG(INFO) << "[client " << name_ << "] stopping";
+    LOG(INFO) << "[client " << port_ << "] stopping";
     close_connection();
-    LOG(INFO) << "[client " << name_ << "] stopped";
+    LOG(INFO) << "[client " << port_ << "] stopped";
     SimulatorInterface::stop();
 }
 
@@ -335,21 +335,20 @@ bool SimulatorClient::establish_connection() {
         // simple identification procedure
         compose_msg(name_);
         deliver_msg();
-        LOG(INFO) << "client establish_connection end";
         std::string reply;
         receive_msg();
         read_msg(reply);
         if (reply != "accepted") {
-            LOG(INFO) << "[client " << name_ << "] "
+            LOG(INFO) << "[client " << port_ << "] "
                       << "connection failed: name not matched";
             return false;
         }
     } else {
-        LOG(INFO) << "[client " << name_ << "] "
+        LOG(INFO) << "[client " << port_ << "] "
                   << "connection failed: cannot connect to server";
         return false;
     }
-    LOG(INFO) << "[client " << name_ << "] connected to server";
+    LOG(INFO) << "[client " << port_ << "] connected to server";
     return true;
 }
 

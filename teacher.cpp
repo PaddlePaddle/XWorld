@@ -175,20 +175,27 @@ void Teacher::print_total_possible_sentences() {
 void Teacher::report_task_performance() {
     // the key is task's name
     // the value is a pair of success and failure times
-    std::unordered_map<std::string, std::pair<size_t, size_t>> benchmark;
+    std::unordered_map<std::string, BenchmarkRes> benchmark;
     for (auto g : task_groups_) {
         g->report_task_performance(benchmark);
     }
     // print
     for (const auto& task : benchmark) {
         LOG(INFO) << "=== " << task.first << " ===";
-        size_t success = task.second.first;
-        size_t failure = task.second.second;
+        size_t success = task.second.successes;
+        size_t failure = task.second.failures;
+        size_t success_steps = task.second.success_steps;
         if (success + failure == 0) {  // skip task that did not occur
             continue;
         }
+        double steps_per_success = -1;  // an invalid default value
+        if (success > 0) {
+            steps_per_success = double(success_steps) / success;
+        }
         LOG(INFO) << "=== " << success << "(S)/" << failure << "(F) -> "
-                  << double(success) / (success + failure);
+                  << double(success) / (success + failure)
+                  << "@"
+                  << steps_per_success;
     }
 }
 
