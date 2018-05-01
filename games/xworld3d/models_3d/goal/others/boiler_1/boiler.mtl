@@ -1,0 +1,29 @@
+# Blender MTL File: 'Country-Kitchen.blend'
+# Material Count: 3
+
+newmtl Kettle-chrome
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Kettle-handle
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.010727 0.010727 0.010727
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Kettle-red-metal
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.000000 0.2 0.024
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2

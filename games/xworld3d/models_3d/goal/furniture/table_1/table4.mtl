@@ -1,0 +1,13 @@
+# Blender3D MTL File: 
+# Material Count: 1
+newmtl fusta_taula_tipical.j_tipical.jpg
+Ns 78.431373
+Ka 0.000000 0.000000 0.000000
+Kd 0.474353 0.386510 0.273569
+Ks 0.235353 0.235353 0.235353
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd tipical.jpg
+
+

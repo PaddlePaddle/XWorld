@@ -1,0 +1,20 @@
+# Blender MTL File: 'squeezer.blend'
+# Material Count: 2
+
+newmtl azul_exprimi.002
+Ns 186.274510
+Ka 0.000000 0.000000 0.000000
+Kd 0.210196 0.379608 0.668235
+Ks 1.116462 1.116462 1.116462
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl blanco_exprimi.001
+Ns 213.725490
+Ka 0.000000 0.000000 0.000000
+Kd 0.976576 0.976576 0.976576
+Ks 0.382179 0.382179 0.382179
+Ni 1.000000
+d 1.000000
+illum 2

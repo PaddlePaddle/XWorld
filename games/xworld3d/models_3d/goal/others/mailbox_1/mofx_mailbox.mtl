@@ -1,0 +1,27 @@
+# Blender MTL File: 'mofx_mailbox.blend'
+# Material Count: 3
+
+newmtl Metal
+illum 2
+Ka 0.0 0.0 0.0
+Kd 0.02328 0.02328 0.02328
+Ks 1.0 1.0 1.0
+Ns 128.0
+Ni 1.0
+
+newmtl Flag
+illum 2
+Ka 0.0 0.0 0.0
+Kd 0.64 0.0 0.021311
+Ks 0.5 0.5 0.5
+Ns 128.0
+Ni 1.0
+
+newmtl Wood
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.5 0.5 0.5
+Ns 96.07843
+Ni 1.0
+map_Kd wood11.jpg

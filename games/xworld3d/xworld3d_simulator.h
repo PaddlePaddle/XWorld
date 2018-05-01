@@ -84,7 +84,7 @@ private:
 
     void record_collision_events(const std::set<std::string>& collision_list);
 
-    cv::Mat get_command_image(const std::string& cmd);
+    cv::Mat get_command_image(const std::string& cmd); // get an image showing commands above video
 
     cv::Mat get_reward_image(float reward);  // get the sub-image for reward
 

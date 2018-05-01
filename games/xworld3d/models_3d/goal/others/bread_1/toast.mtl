@@ -1,0 +1,20 @@
+# toast.mtl produced by Art of Illusion 2.8.1, Tue Jun 25 10:45:58 CEST 2013
+#
+# Created by Thomas PUYBARET / eTeks for Sweet Home 3D
+# Copyright (c) 2013 Emmanuel PUYBARET / eTeks <info@eteks.com>
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+#
+newmtl toast
+Kd 1 1 1
+map_Kd toast.jpg
+Ks 0 0 0
+Ka 0 0 0
+illum 1
+newmtl marron
+Kd 0.55294 0.38824 0.25098
+Ks 0 0 0
+Ka 0 0 0
+illum 1

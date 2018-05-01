@@ -1,0 +1,21 @@
+# Blender MTL File: 'tetrapak.blend'
+# Material Count: 2
+
+newmtl cep
+Ns 20
+Ka 0.000000 0.000000 0.000000
+Kd 0.18 0.46 0.74
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl pak
+Ns 10
+Ka 0.000000 0.000000 0.000000
+Kd 0.95 0.95 0.95
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd label.jpg

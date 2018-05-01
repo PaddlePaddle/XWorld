@@ -1,0 +1,38 @@
+# Blender MTL File: 'slippers1.blend'
+# Material Count: 4
+
+newmtl base
+Ns 30
+Ka 0.000000 0.000000 0.000000
+Kd 0.12 0.12 0.18
+Ks 0.3 0.3 0.3
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl fabric1
+Ns 30
+Ka 0.000000 0.000000 0.000000
+Kd 0.12 0.12 0.18
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl line2
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.91 0.91 0.91
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl line1
+Ns 50
+Ka 0.000000 0.000000 0.000000
+Kd 0.91 0.91 0.91
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2

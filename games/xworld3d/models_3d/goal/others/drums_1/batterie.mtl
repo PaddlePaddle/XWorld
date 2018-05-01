@@ -1,0 +1,40 @@
+# batterie.mtl produced by Art of Illusion 2.8.1, Tue Aug 25 18:46:21 CEST 2015
+#
+# Created by Sophie PUYBARET / eTeks for Sweet Home 3D
+# Copyright (c) 2015 Emmanuel PUYBARET / eTeks <info@eteks.com>
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+#
+newmtl Metal
+Kd 0.9 0.9 0.9
+Ks 0.7 0.7 0.7
+Ns 80
+Ka 0 0 0
+illum 1
+
+newmtl Beige
+Kd 0.92 0.81954 0.7268
+Ks 0 0 0
+Ka 0 0 0
+illum 1
+
+newmtl Cuivre
+Kd 0.88 0.6915 0.3256
+Ks 0.4 0.4 0.4
+Ns 40
+Ka 0 0 0
+illum 1
+
+newmtl Noir
+Kd 0 0 0
+Ks 0 0 0
+Ka 0 0 0
+illum 1
+
+newmtl Rouge
+Kd 0.51 0.0867 0.0867
+Ks 0 0 0
+Ka 0 0 0
+illum 1

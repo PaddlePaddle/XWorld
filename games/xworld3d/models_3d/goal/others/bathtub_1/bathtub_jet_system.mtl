@@ -1,0 +1,54 @@
+# bathtub_jet_system.obj
+#
+# Created by Ola-Kristian HOFF
+# http://sourceforge.net/p/sweethome3d/d-models/370/
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+# 
+
+newmtl Tub
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.5078125 0.5078125 0.5078125
+Ns 64.0
+
+newmtl Legs
+illum 2
+Ka 1.0 0.98039216 0.98039216
+Kd 1.0 0.98039216 0.98039216
+Ks 0.5 0.5 0.5
+Ns 64.0
+
+newmtl Water
+illum 2
+Ka 0.2 0.2 0.2
+Kd 0.5490196 0.772549 0.9333333
+Ks 0.25 0.25 0.25
+Ns 32.0
+Ni 1.0
+d 0.5
+
+newmtl Side
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.5078125 0.5078125 0.5078125
+Ns 64.0
+map_Kd off_white_texture.png
+
+newmtl Drain
+illum 3
+Ka 0.2 0.2 0.2
+Kd 0.827451 0.827451 0.827451
+Ks 1.0 1.0 1.0
+Ns 128.0
+
+newmtl Jet_system
+illum 3
+Ka 0.2 0.2 0.2
+Kd 0.7098039 0.7098039 0.7098039
+Ks 1.0 1.0 1.0
+Ns 128.0

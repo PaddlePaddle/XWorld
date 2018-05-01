@@ -28,13 +28,12 @@ from maze2d import bfs, flood_fill
 class XWorld3DTask(object):
     ## some static class variables
     ## that shoule be shared by all derived classes
-    time_penalty = -0.01  # -0.05
-    correct_reward = 1.0  # 10.0
-    wrong_reward = -1.0   # -10.0
+    time_penalty = -0.01
+    correct_reward = 1.0
+    wrong_reward = -1.0
     collision_penalty = 0.0
 
     failed_action_penalty = -0.1
-#    max_steps = 500
 
     navigation_max_steps_factor = get_flag("max_steps_factor")
 
@@ -62,7 +61,6 @@ class XWorld3DTask(object):
             (-self.PI_2+self.PI_8,           -self.PI_8)    : "front-left",
             (  -self.PI+self.PI_8, -self.PI_2-self.PI_8)    : "behind-left"
         }
-#        self.distance_threshold = get_flag("x3_reaching_distance")
         self.orientation_threshold = self.PI_4
         self.env = env
         self.event = ""

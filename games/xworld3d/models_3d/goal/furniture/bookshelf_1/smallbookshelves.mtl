@@ -1,0 +1,28 @@
+#Produced by Art of Illusion 2.7.2, Wed Nov 18 12:30:54 PST 2009
+newmtl brown
+Kd 0.6314 0.42771 0.1886
+Ks 0.26 0.26 0.26
+Ka 0 0 0
+illum 2
+Ns 97
+newmtl red_book
+Kd 0.54 0 0
+Ks 0 0 0
+Ka 0 0 0
+illum 1
+newmtl green_book
+Kd 0.20323 0.4531 0.0069
+Ks 0 0 0
+Ka 0 0 0
+illum 1
+newmtl orange_book
+Kd 0.9265 0.54332 0.0935
+Ks 1 1 1
+Ka 0 0 0
+illum 2
+Ns 103
+newmtl white_book
+Kd 0.9164 0.90549 0.6436
+Ks 0 0 0
+Ka 0 0 0
+illum 1

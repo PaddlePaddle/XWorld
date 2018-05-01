@@ -14,5 +14,3 @@ target_include_directories(xworld3d
     PUBLIC
     ${ROBOSCHOOL_INCLUDE_PATH}
 )
-
-include(xworld3d_models)

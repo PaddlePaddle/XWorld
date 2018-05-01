@@ -1,0 +1,81 @@
+# livres.mtl 
+#
+# Created by Thomas PUYBARET & Emmanuel PUYBARET / eTeks under Art of Illusion & Blender for SweetHome3D
+# Copyright (c) 2013 Emmanuel PUYBARET / eTeks <info@eteks.com>
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+#
+newmtl book1
+Ns 7.843137
+Ka 0.000000 0.000000 0.000000
+Kd 0.422175 0.081523 0.129990
+Ks 0.100000 0.100000 0.100000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl book2
+Ns 7.843137
+Ka 0.000000 0.000000 0.000000
+Kd 0.422175 0.081523 0.129990
+Ks 0.100000 0.100000 0.100000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl book3
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.000000 0.256000 0.464000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl book4
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.048000 0.080000 0.216000
+Ks 0.322486 0.322486 0.322486
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl book5
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.352000 0.504000 0.112000
+Ks 0.119503 0.119503 0.119503
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl book6
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.567984 0.567984 0.567984
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl paper
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.768000 0.728000 0.632000
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl titles
+Ns 47.058824
+Ka 0.000000 0.000000 0.000000
+Kd 0.6 0.6 0.6
+Ks 0.567984 0.567984 0.567984
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd titles.png

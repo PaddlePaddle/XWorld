@@ -1,0 +1,20 @@
+# Blender MTL File: 'teapot_set.blend'
+# Material Count: 2
+
+newmtl beige_with_flowers
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.5 0.5 0.5
+Ns 96.07843
+Ni 1.0
+map_Kd cup_texture.jpg
+
+newmtl beige_circle
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.5 0.5 0.5
+Ns 96.07843
+Ni 1.0
+map_Kd circle_texture.jpg

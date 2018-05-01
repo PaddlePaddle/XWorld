@@ -27,7 +27,6 @@ DECLARE_string(task_mode);
 DECLARE_double(curriculum);
 DECLARE_int32(max_steps_factor);
 //DECLARE_string(x3_task_mode);
-//DECLARE_double(x3_reaching_distance);
 
 struct PyException : std::exception {
     PyException(const std::string& msg) : msg_(msg) {}
@@ -47,10 +46,8 @@ PyObject* get_gflag(PyObject* self, PyObject* args) {
         return Py_BuildValue("i", FLAGS_max_steps_factor);
     } else if (flag_name == "task_mode") {
         return PyString_FromString(FLAGS_task_mode.c_str());
-    } else if (flag_name == "x3_task_mode") {
-        return PyString_FromString(FLAGS_x3_task_mode.c_str());
-        //    } else if (flag_name == "x3_reaching_distance") {
-        //        return Py_BuildValue("d", FLAGS_x3_reaching_distance);
+        //    } else if (flag_name == "x3_task_mode") {
+        //        return PyString_FromString(FLAGS_x3_task_mode.c_str());
     } else if (flag_name == "curriculum") {
         return Py_BuildValue("d", FLAGS_curriculum);
     } else {

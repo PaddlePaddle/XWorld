@@ -1,0 +1,41 @@
+# mobileAzzurro.mtl 3D model
+#
+# Created by LucaPresidente
+#
+# This file is distributed under Free Art License, see http://artlibre.org/licence/lal/en for more informations
+# and under CC-BY Creative Commons Attribution 3.0 Unported license, see http://creativecommons.org/licenses/by/3.0/
+# at your choice
+# 
+
+newmtl Box08_1
+illum 2
+Ka 0.2 0.2 0.2
+Kd 1.0 1.0 1.0
+Ks 0.351 0.351 0.351
+Ns 10.0
+Ni 1.5
+map_Kd lightWood.jpg
+
+newmtl ChamferBox07_2
+illum 2
+Ka 0.1922 0.1804 0.4353
+Kd 0.1137 0.3294 0.7765
+Ks 0.405 0.405 0.405
+Ns 10.0
+Ni 1.5
+
+newmtl Box09_3
+illum 2
+Ka 0.1922 0.1804 0.4353
+Kd 0.0 0.6471 0.8863
+Ks 0.405 0.405 0.405
+Ns 10.0
+Ni 1.5
+
+newmtl Line11_14
+illum 2
+Ka 0.588 0.588 0.588
+Kd 0.588 0.588 0.588
+Ks 0.819 0.819 0.819
+Ns 34.0
+Ni 1.5

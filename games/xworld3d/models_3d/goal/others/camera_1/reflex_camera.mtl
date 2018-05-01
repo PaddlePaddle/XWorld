@@ -1,0 +1,22 @@
+# Blender MTL File: 'reflex_camera_sharp.blend'
+# Material Count: 2
+
+newmtl camera
+Ns 11.764706
+Ka 0.000000 0.000000 0.000000
+Kd 0.281009 0.281009 0.281009
+Ks 0.154639 0.154639 0.154639
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd reflex_camera_map.jpg
+
+newmtl objective
+Ns 72.549020
+Ka 0.000000 0.000000 0.000000
+Kd 0.041774 0.041774 0.041774
+Ks 0.190323 0.190323 0.190323
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd reflex_camera_objective.jpg

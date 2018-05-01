@@ -1,0 +1,12 @@
+# Blender MTL File: 'lowPolyHorse.blend'
+# Material Count: 1
+
+newmtl Material
+Ns 20
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd horse.jpg

@@ -1,0 +1,20 @@
+# Blender MTL File: 'japanese_style_screen.blend'
+# Material Count: 2
+
+newmtl paper
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 0.989414 0.947000
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+
+newmtl wood
+Ns 0.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.613142 0.283575
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1

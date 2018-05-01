@@ -1,0 +1,62 @@
+# Blender MTL File: 'hamburger_BlenderSwap.blend'
+# Material Count: 6
+
+newmtl hamburger.vegetable
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0 0.640000 0
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd hamburger.vegetable.jpg
+
+newmtl hamburger.Tomato
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd hamburger.tomato.jpg
+
+newmtl hamburger.beef
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd hamburger.beef.jpg
+
+newmtl hamburger.chees.001
+Ns 5
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.2 0.2 0.2
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd hamburger.chees.jpg
+
+newmtl hamburger.pawn.Top
+Ns 2
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.1 0.1 0.1
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd hamburger.pawn.top.jpg
+
+newmtl hamburger.pawn.button
+Ns 2
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.1 0.1 0.1
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd hamburger.pawn.down.jpg

@@ -467,10 +467,10 @@ void XWorldSimulator::show_screen(float reward) {
                                    /*flag_illustration=*/ true,
                                    FLAGS_visible_radius);
     cv::Mat command_img = get_command_image(history_messages_.back());
+    cv::Mat reward_img = get_reward_image(reward);
     cv::Mat img_wo_msg = concat_images(command_img,
-                                       concat_images(img, get_reward_image(reward), true),
+                                       concat_images(img, reward_img, true),
                                        true);
-
     prev_screen_ = img_wo_msg;
     screen_ = concat_images(img_wo_msg, get_message_image(history_messages_), false);
 
