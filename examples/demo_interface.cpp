@@ -64,38 +64,34 @@ int main(int argc, char** argv) {
             << " not support games with more than one type of actions.";
 
 
-    int client_id = -1;
-    const int num_agents = 1;
-    const int base_port = 50000;
+    const int num_agents = 5;
+    std::vector<std::thread> server_threads;
+    std::vector<std::shared_ptr<SimulatorServer>> servers;
     for (int i = 0; i < num_agents; ++i) {
+        auto g = std::make_shared<SimulatorServer>(name);
+        int port = g->port();
+
+        LOG(INFO) << port;
+
+        servers.push_back(g);
+
         if (fork() == 0) { // child process
-            client_id = i;
-            break;
+            LOG(INFO) << "client process id " << getpid();
+            auto client = std::make_shared<SimulatorClient>(name, port);
+            client->start(); // forever
+            _Exit(0); // this will only terminate the child
         }
         // parent process will continue
     }
 
-    if (client_id < 0) {
-        LOG(INFO) << "server process id " << getpid();
-
-        std::vector<std::thread> server_threads;
-        for (int i = 0; i < num_agents; ++i) {
-            int port = (base_port < 0) ? -1 : base_port + i;
-            server_threads.emplace_back(
-                [&](int port) {
-                    auto g = std::make_shared<SimulatorServer>(name, port);
-                    run_simulation(g);
-                },
-                port
-            );
-        }
-        for (auto& t : server_threads) { t.join(); }
-    } else {
-        int port = base_port + client_id;
-        LOG(INFO) << "client process id " << getpid();
-        auto client = std::make_shared<SimulatorClient>(name, port);
-        client->start();
+    for (auto& s : servers) {
+        server_threads.emplace_back(
+            [](std::shared_ptr<SimulatorServer> s) {
+                run_simulation(s);
+            }, s);
     }
-
+    for (auto& t : server_threads) {
+        t.join();
+    }
     return 0;
 }

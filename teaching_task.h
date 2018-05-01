@@ -19,6 +19,22 @@
 
 namespace simulator {
 
+struct BenchmarkRes {
+    int successes;
+    int failures;
+    int success_steps;
+    BenchmarkRes()
+            : successes(0), failures(0), success_steps(0) {}
+    BenchmarkRes(int succ, int fail, int succ_steps)
+            : successes(succ), failures(fail), success_steps(succ_steps) {}
+    BenchmarkRes& operator+=(const BenchmarkRes& br) {
+        successes += br.successes;
+        failures += br.failures;
+        success_steps += br.success_steps;
+        return *this;
+    }
+};
+
 /**
    A task is a Finite State Machine (FSM) that has several stages (states).
    Each stage can be programmed to jump to another stage.
@@ -57,8 +73,7 @@ class Task {
     // run the current stage
     void run_stage();
 
-    void obtain_performance(size_t& num_successes_since_simulation,
-                            size_t& num_failures_since_simulation);
+    void obtain_performance(BenchmarkRes& br);
 
     size_t total_possible_sentences();
 
@@ -129,7 +144,7 @@ class TaskGroup {
 
     // fill in benchmark with task performance
     void report_task_performance(
-        std::unordered_map<std::string, std::pair<size_t, size_t>>& benchmark);
+        std::unordered_map<std::string, BenchmarkRes>& benchmark);
 
     static std::unordered_map<
         std::string,

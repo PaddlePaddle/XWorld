@@ -271,7 +271,6 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
 // interface to get_state_data
 std::string XWorldSimulator::get_teacher_sentence_for_agent() {
     std::string sent = agent_received_sentences_[active_agent_id_];
-
     if (sent.empty()) {
         sent = "-";
     }

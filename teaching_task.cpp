@@ -132,12 +132,12 @@ void Task::run_stage() {
     current_stage_ = stages_[current_stage_]();
 }
 
-void Task::obtain_performance(size_t& num_successes_since_simulation,
-                              size_t& num_failures_since_simulation) {
+void Task::obtain_performance(BenchmarkRes& br) {
     try {
         py::tuple perf = py::extract<py::tuple>(py_task_.attr("obtain_performance")());
-        num_successes_since_simulation = py::extract<int>(perf[0]);
-        num_failures_since_simulation = py::extract<int>(perf[1]);
+        br.successes = py::extract<int>(perf[0]);
+        br.failures = py::extract<int>(perf[1]);
+        br.success_steps = py::extract<int>(perf[2]);
     } catch (...) {
         PyErr_Print();
         LOG(FATAL) << "Error obtaining performance";
@@ -159,18 +159,16 @@ void TaskGroup::add_task(const std::string& task, double weight) {
 }
 
 void TaskGroup::report_task_performance(
-    std::unordered_map<std::string, std::pair<size_t, size_t>>& benchmark) {
+    std::unordered_map<std::string, BenchmarkRes>& benchmark) {
     for (auto task : task_list_) {
         auto task_name = task->name();
-        size_t success = 0;
-        size_t failure = 0;
-        task->obtain_performance(success, failure);
+        BenchmarkRes br;
+        task->obtain_performance(br);
         auto& p = benchmark[task_name];
         if (benchmark.count(task_name) == 0) {
-            p = std::make_pair(success, failure);
+            p = br;
         } else {
-            p.first += success;
-            p.second += failure;
+            p += br;
         }
     }
 }

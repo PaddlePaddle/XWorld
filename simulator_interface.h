@@ -116,7 +116,7 @@ typedef std::shared_ptr<SimulatorInterface> SimInterfacePtr;
 class SimulatorServer : public SimulatorInterface,
                         public communication::CommServer {
 public:
-    SimulatorServer(const std::string& name, const int port_no);
+    SimulatorServer(const std::string& name);
 
     void start() override;
 
@@ -259,8 +259,6 @@ private:
     void get_extra_info();
 
     std::string name_;
-    std::string host_;
-    int port_;
 };
 
 } // namespace simulator

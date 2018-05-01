@@ -198,7 +198,9 @@ class CommServer : public Communicator {
     using Endpoint = boost::asio::ip::tcp::endpoint;
 
 public:
-    CommServer(const int port_no);
+    CommServer();
+
+    int port() const { return port_; }
 
     ~CommServer() {}
 
@@ -207,6 +209,7 @@ protected:
      * Set up listening port and wait for connection from client side.
      */
     virtual bool establish_connection() override;
+
     /**
      * Initiate a remote function call.
      *
@@ -242,8 +245,10 @@ protected:
         CHECK_EQ(reply, func_name);
     }
 
-private:
+protected:
     int port_; // listening port
+
+private:
     Acceptor acceptor_;
 };
 
@@ -268,6 +273,8 @@ protected:
 
     std::string host_; // Address of server
     int port_; // port of server
+
+private:
     Resolver resolver_;
     static const int MAX_ATTEMPTS;
 };
