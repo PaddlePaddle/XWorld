@@ -62,21 +62,26 @@ class XWorld3DNavTargetNear(XWorld3DTask):
 
     def navigation_reward(self):
         reward, time_out = self._time_reward()
+        next_stage = "navigation_reward"
         if not time_out:
             agent, _, _ = self._get_agent()
             objects_reach_test = [g.id for g in self._get_goals() \
                                   if self._reach_object(agent.loc, agent.yaw, g)]
             if [t for t in self.target if t.id in objects_reach_test]:
                 reward = self._successful_goal(reward)
+                next_stage = "terminal"
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
-        return ["navigation_reward", reward, self.sentence]
+                next_stage = "terminal"
+        else:
+            next_stage = "terminal"
+        return [next_stage, reward, self.sentence]
 
     def get_stage_names(self):
         """
         return all the stage names; does not have to be in order
         """
-        return ["idle", "navigation_reward"]
+        return ["idle", "navigation_reward", "terminal"]
 
     def _define_grammar(self):
         all_goal_names = self._get_all_goal_names_as_rhs()

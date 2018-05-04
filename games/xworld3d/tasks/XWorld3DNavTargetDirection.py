@@ -77,6 +77,7 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
 
     def navigation_reward(self):
         reward, time_out = self._time_reward()
+        next_stage = "navigation_reward"
         if not time_out:
             agent, _, _ = self._get_agent()
             referent, direction = self.target
@@ -86,9 +87,13 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
                                   if self._reach_object(agent.loc, agent.yaw, g)]
             if (direction, True) in objects_reach_test:
                 reward = self._successful_goal(reward)
+                next_stage = "terminal"
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
-        return ["navigation_reward", reward, self.sentence]
+                next_stage = "terminal"
+        else:
+            next_stage = "terminal"
+        return [next_stage, reward, self.sentence]
 
     def __compute_triple_direction(self, target, referent, a, view_yaw=None):
         """
@@ -125,7 +130,7 @@ class XWorld3DNavTargetDirection(XWorld3DTask):
         """
         return all the stage names; does not have to be in order
         """
-        return ["idle", "navigation_reward"]
+        return ["idle", "navigation_reward", "terminal"]
 
     def _define_grammar(self):
         all_goal_names = self._get_all_goal_names_as_rhs()

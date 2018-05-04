@@ -404,6 +404,9 @@ class XWorld3DTask(object):
         self.prev_event = None
         return ["idle", 0, ""]
 
+    def terminal(self):
+        return ["terminal", 0, ""]
+
     def simple_recognition_reward(self):
         """
         A simple recognition reward stage. It gives reward according to the
