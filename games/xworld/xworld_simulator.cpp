@@ -57,8 +57,8 @@ void XWorldSimulator::init() {
         } else {
             block_size = 12;
         }
-        img_height_out_ = (height_ * 2 - 1) * block_size;
-        img_width_out_ = (width_ * 2 - 1) * block_size;
+        img_height_out_ = height_ * block_size;
+        img_width_out_ = width_ * block_size;
     } else {
         FLAGS_visible_radius = std::min(FLAGS_visible_radius,
                                         std::max(height_, width_));
@@ -252,10 +252,6 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
                 break;
         }
         CHECK_LT(action_idx, get_num_actions()) << "action invalid: " << action_idx;
-
-        if (FLAGS_pause_screen) {
-            LOG(INFO) << "action: " << action_idx;
-        }
 
         // take one step in the game
         std::vector<std::string> contact_list;

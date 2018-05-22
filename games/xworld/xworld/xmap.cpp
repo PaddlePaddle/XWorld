@@ -199,9 +199,9 @@ cv::Mat XMap::to_image(const Loc& item_loc,
             cv::warpAffine(view, view, rot_mat, view.size());
         }
     } else {
-        view = image_centering(world, item_loc);
+        //        view = image_centering(world, item_loc);
+        view = world;
     }
-
     return view;
 }
 
