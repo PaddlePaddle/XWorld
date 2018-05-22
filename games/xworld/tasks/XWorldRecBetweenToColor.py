@@ -23,7 +23,7 @@ class XWorldRecBetweenToColor(XWorldTask):
             self._bind("O -> '%s'" % g1_name)
             self._bind("T -> '%s'" % g2_name)
             sentence = self._generate()
-            if get_flag("task_mode") == "arxiv_lang_acquisition":
+            if get_flag("task_mode") == "lang_acquisition":
                 return ["idle", 0, sentence + " " + color]
             else:
                 self._record_answer(color)

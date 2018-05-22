@@ -18,7 +18,7 @@ class XWorldRecDirectionAndObjectToColor(XWorldTask):
             self._bind("D -> '%s'" % direction)
             self._bind("O -> '%s'" % goal.name)
             sentence = self._generate()
-            if get_flag("task_mode") == "arxiv_lang_acquisition":
+            if get_flag("task_mode") == "lang_acquisition":
                 # supervised; forward compatible
                 return ["idle", 0, sentence + " " + color_goal.color]
             else:

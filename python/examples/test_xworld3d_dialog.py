@@ -35,7 +35,7 @@ if __name__ == "__main__":
         "x3_training_img_width" : 64,
         "x3_training_img_height" : 64,
         "x3_big_screen" : True,
-        "x3_task_mode" : "arxiv_interactive"
+        "x3_task_mode" : "interactive"
     }
     x3d = Simulator.create("xworld3d", options)
     x3d.reset_game()

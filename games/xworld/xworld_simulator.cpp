@@ -33,8 +33,8 @@ DECLARE_bool(color);
 DEFINE_bool(log_hist, false, "log dialogue history");
 DEFINE_string(
     task_mode,
-    "arxiv_lang_acquisition",
-    "arxiv_lang_acquisition|arxiv_interactive|one_channel");
+    "lang_acquisition",
+    "lang_acquisition|interactive|one_channel");
 
 namespace simulator {
 namespace xwd {
@@ -52,7 +52,7 @@ void XWorldSimulator::init() {
     img_width_ = width_ * XItem::item_size_;
     if (FLAGS_visible_radius == 0) { // fully observed
         int block_size;
-        if (FLAGS_task_mode == "arxiv_interactive") {
+        if (FLAGS_task_mode == "interactive") {
             block_size = 32;
         } else {
             block_size = 12;
@@ -67,9 +67,9 @@ void XWorldSimulator::init() {
         img_width_out_ = FLAGS_visible_radius * block_size;
     }
     // WARNING: FLAGS_max_steps is depraved; max_steps logic should be handled by teacher
-    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
+    if (FLAGS_task_mode == "lang_acquisition") {
         // do nothing
-    } else if (FLAGS_task_mode == "arxiv_interactive") {
+    } else if (FLAGS_task_mode == "interactive") {
         FLAGS_max_steps = (height_ + width_ ) * 10;
     } else {
         // do nothing
@@ -163,7 +163,7 @@ void XWorldSimulator::update_environment() {
 }
 
 int XWorldSimulator::game_over() {
-    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
+    if (FLAGS_task_mode == "lang_acquisition") {
         // Each session has a navigation task, during which some questions are
         // asked
         // The answer is appended after each question
@@ -175,7 +175,7 @@ int XWorldSimulator::game_over() {
         } else if (event == "time_up") {
             return MAX_STEP;
         }
-    } else if (FLAGS_task_mode == "arxiv_interactive") {
+    } else if (FLAGS_task_mode == "interactive") {
         // Each session has a language task; there is no navigation
         auto event = get_event_from_buffer();
         if (event == "correct_reply") {
@@ -206,7 +206,7 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
     }
 
     //// speak
-    if (FLAGS_task_mode == "arxiv_interactive" ||
+    if (FLAGS_task_mode == "interactive" ||
         FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("pred_sentence"))
             << "The agent has to take the speak action.";
@@ -224,7 +224,7 @@ float XWorldSimulator::take_action(const StatePacket& actions) {
     }
 
     //// move
-    if (FLAGS_task_mode == "arxiv_lang_acquisition" ||
+    if (FLAGS_task_mode == "lang_acquisition" ||
         FLAGS_task_mode == "one_channel") {
         CHECK(actions.contain_key("action"))
             << "The agent has to take the move action.";
@@ -400,8 +400,6 @@ cv::Mat XWorldSimulator::get_message_image(std::deque<std::string>& messages) {
             return cyan;
         } else if (type.find("XWorldRecBetween") == 0) {
             return pink;
-        } else if (type.find("XWorldLan") == 0) {
-            return white;
         } else if (type.find("XWorldDia") == 0) {
             return white;
         } else if (type == "Reply") {

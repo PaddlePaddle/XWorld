@@ -14,7 +14,7 @@ class XWorldRecDirectionToColor(XWorldTask):
             self._bind("S -> question")
             self._bind("D -> '%s'" % direction)
             sentence = self._generate()
-            if get_flag("task_mode") == "arxiv_lang_acquisition":
+            if get_flag("task_mode") == "lang_acquisition":
                 return ["idle", 0, sentence + " " + goal.color]
             else:
                 self._record_answer(goal.color)
