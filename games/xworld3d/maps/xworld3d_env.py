@@ -36,8 +36,8 @@ Entity:
   color         - color of the entity
 """
 class Entity:
-    def __init__(self, type, id=None, loc=None, yaw=0.0,
-                 scale=1.0, offset=0.0, name=None, asset_path=None, color=None):
+    def __init__(self, type, id=None, loc=None, name=None,
+                 asset_path=None, color=None, yaw=0.0, scale=1.0, offset=0.0):
         if not loc is None:
             assert isinstance(loc, tuple) and len(loc) == 3
         self.type = type
@@ -318,83 +318,64 @@ class XWorld3DEnv(object):
         """
         Reinstantiate the specified properties of an existing entity.
         Properties and corresponding values are specified by the property_value_dict in the form
-        of {property : value, ...}, e.g. {"name" : None, "loc" : (0, 0)}. value could be None
+        of {property : value, ...}, e.g. {"name" : "apple", "loc" : (0, 0)}. value could be None
         (force reinstantiation) or a valid value for that property.
         1) If None value is provided for a specified property (e.g. {"name" : None}), entity
            property will be reinstantiated regardless of its original value.
         2) otherwise, the value will be assigned to that property of the entity.
-        3) all unset entity properties (i.e., entity.property is None) will be instantiated.
+
+        For the remaining not in property_value_dict:
+        3) all unset entity properties will be instantiated.
+        4) the already set properties will keep the same.
+
+        Because name and asset_path have a dependency, we require that at most one of them
+        is not None.
+        a. When name is None but asset_path is not, then name will be uniquely determined from the path;
+        b. When asset_path is None but name is not, then path will be randomly selected for the name;
+        c. When both are None, both are randomly selected.
         """
-        default_dict = OrderedDict.fromkeys(["name", \
-                                             "loc", \
-                                             "asset_path", \
-                                             "yaw"])
-        assert set(property_value_dict.keys()) < set(default_dict.keys()), "invalid property names provided"
-        default_dict["id"] = None
-        pv_dict = default_dict.copy()
+        pv_dict = entity.__dict__.copy()
+        ## let the user overwrite the specified
         pv_dict.update(property_value_dict)
 
-        # pre-processing for name and asset_path due to their dependency
-        path_value = property_value_dict.get("asset_path", "empty")
-        name_value = property_value_dict.get("name", "empty")
+        ## pre-processing for name and asset_path due to their dependency
+        path_value = pv_dict["asset_path"]
+        name_value = pv_dict["name"]
+        if path_value is not None:
+            assert name_value is None, "With asset_path, you don't have to set name"
+            names = [n for n in self.items[entity.type] \
+                     if path_value in self.items[entity.type][n]]
+            assert len(names) == 1, \
+                "each asset_path corresponds to only one name: %s" % (path_value)
+            pv_dict["name"] = names[0]
+        # else: do nothing; asset_path will be set later
 
-        # if name is specified by user but asset_path is unspecified
-        if name_value != "empty" and path_value == "empty":
-            property_value_dict["asset_path"] = None
-            property_value_dict["id"] = property_value_dict.get("id")
+        ## set each key in entity.__dict__.keys()
+        if entity.loc is not None:
+            self.available_grids.append(entity.loc)
+        entity.loc = check_or_get_value(pv_dict["loc"], self.available_grids)
+        self.available_grids.remove(entity.loc)
+        ##
+        entity.name = check_or_get_value(
+            pv_dict["name"], self.get_all_possible_names(entity.type))
+        entity.id = "%s_%d" % (entity.name, self.running_id)
+        self.running_id += 1
+        ##
+        entity.asset_path = check_or_get_value(
+            pv_dict["asset_path"], self.items[entity.type][entity.name])
+        # color is coupled with asset_path
+        if entity.asset_path in self.color_table.keys():
+            entity.color = self.color_table[entity.asset_path]
+        else:
+            entity.color = "na"
+        ##
+        if entity.type == "agent":
+            yaw_range = [-self.PI, self.PI]
+            entity.yaw = check_or_get_value(pv_dict["yaw"], yaw_range, is_continuous=True)
+        if entity.type == "goal":
+            yaw_range = [-self.PI_2, 0, self.PI_2, self.PI]
+            entity.yaw = check_or_get_value(pv_dict["yaw"], yaw_range)
 
-        # if asset_path is specified
-        if path_value != "empty":
-            # if name is not specified then derive name from asset_path
-            if name_value == "empty" and path_value != None:
-                names = [n for n in self.items[entity.type] if path_value in set(self.items[entity.type][n])]
-                assert len(names) == 1, "there should be only one name corresponding to the asset_path: %s" % (path_value)
-                property_value_dict["name"] = names[0]
-                property_value_dict["id"] = property_value_dict.get("id")
-                pv_dict.update(property_value_dict)
-            elif name_value == "empty" and path_value == None:
-                property_value_dict["name"] = None
-                property_value_dict["id"] = property_value_dict.get("id")
-            else:
-                # if both name and asset_path are specified, check consistency
-                assert path_value in self.items[entity.type][name_value], \
-                    "specified name: %s and asset_path: %s mis-match" % (name_value, path_value)
-
-        for property in pv_dict:
-            assert property in entity.__dict__.keys() and property in default_dict.keys(), \
-                "invalid property name: %s is provided" % property
-            value = pv_dict[property]
-
-            # skip unspecified and non-empty entity properties
-            if property not in property_value_dict.keys() and entity.__dict__[property] is not None:
-                continue
-
-            if property == "loc":
-                if entity.loc is not None:
-                    self.available_grids.append(entity.loc)
-                entity.loc = check_or_get_value(value, self.available_grids)
-                self.available_grids.remove(entity.loc)
-            if property == "name":
-                entity.name = check_or_get_value(value, self.get_all_possible_names(entity.type))
-                # update id once name is changed
-                # entity.id = "%s_%s" % (entity.name, self.entity_nums[entity.type])
-            if property == "id":
-                entity.id = "%s_%s" % (entity.name, value if value is not None else self.running_id)
-                self.running_id += 1
-            if property == "asset_path":
-                entity.asset_path = check_or_get_value(value, self.items[entity.type][entity.name])
-                # color is coupled with asset_path
-                if entity.asset_path in self.color_table.keys():
-                    entity.color = self.color_table[entity.asset_path]
-                else:
-                    entity.color = "na"
-            if property == "yaw":
-                if entity.type == "agent":
-                    yaw_range = [-self.PI, self.PI]
-                    entity.yaw = check_or_get_value(value, yaw_range, is_continuous=True)
-                elif entity.type == "goal":
-                    yaw_range = [-self.PI_2, 0, self.PI_2, self.PI]
-                    entity.yaw = check_or_get_value(value, yaw_range)
         self.changed = True
 
     def __instantiate_entities(self):

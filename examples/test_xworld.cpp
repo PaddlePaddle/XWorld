@@ -25,7 +25,7 @@ DECLARE_string(task_mode);
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    if (FLAGS_task_mode == "arxiv_lang_acquisition") {
+    if (FLAGS_task_mode == "lang_acquisition") {
         FLAGS_task_groups_exclusive = false;
     }
 

@@ -13,7 +13,7 @@ class XWorldRecObjectToColor(XWorldTask):
             self._bind("S -> question")
             self._bind("G -> '%s'" % goal.name)
             sentence = self._generate()
-            if get_flag("task_mode") == "arxiv_lang_acquisition":
+            if get_flag("task_mode") == "lang_acquisition":
                 # supervised; forward compatible
                 return ["idle", 0, sentence + " " + goal.color]
             else:

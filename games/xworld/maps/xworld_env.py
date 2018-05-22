@@ -162,6 +162,12 @@ class XWorldEnv(object):
         For the remaining not in property_value_dict:
         3) all unset entity properties will be instantiated.
         4) the already set properties will keep the same.
+
+        Because name and asset_path have a dependency, we require that at most one of them
+        is not None.
+        a. When name is None but asset_path is not, then name will be uniquely determined from the path;
+        b. When asset_path is None but name is not, then path will be randomly selected for the name;
+        c. When both are None, both are randomly selected.
         """
         pv_dict = entity.__dict__.copy()
         ## let the user overwrite the specified
@@ -200,7 +206,6 @@ class XWorldEnv(object):
         ##
         if get_flag("visible_radius"):
             if entity.type == "agent":
-                ## if partially observed, perturb the objects
                 yaw_range = range(-1, 3)
                 entity.yaw = check_or_get_value(pv_dict["yaw"], yaw_range) * self.PI_2
             if entity.type == "goal":

@@ -2,7 +2,7 @@
 ## <img src="../../doc/xworld2d.png">
 
 ## Game description
-In XWorld2D, a virtual agent learns language and vision. The agent sees surrounding environment images, listens to a virtual teacher, and takes actions to receive rewards. It should interactively learn the teacher’s language from scratch based on two language use cases: sentence-directed navigation and question answering. It should learn simultaneously the visual representations of the world, the language, and the action control.
+In XWorld2D, a virtual agent learns language and vision abilities. The agent sees environment images, listens to a virtual teacher, and takes actions to receive rewards. It should interactively learn the teacher’s language from scratch based on two language use cases: sentence-directed navigation and question answering. It should learn simultaneously the visual representations of the world, the language, and the action control.
 
 ## Create
 * Python name: ```xworld```
@@ -14,9 +14,11 @@ In XWorld2D, a virtual agent learns language and vision. The agent sees surround
 |:-------|:---------------|
 |```pause_screen```|Pause the screen when show_screen() is called, until any key is pressed. (Default: false)|
 |```xwd_conf_path```|The JSON file for configuring XWorld2D. (Default: "")|
-|```task_mode```|This flag has three possible values (Default: "one_channel") <br> 1. "arxiv_lang_acquisition": replicate the environment used in arXiv:1703.09831 (used with conf file ```<xworld_path>/games/xworld/confs/navigation.json``` and dictionary ```<xworld_path>/games/xworld/dicts/nav_dict.txt```); <br> 2. "arxiv_interactive": replicate the environment used in arXiv:1705.09906 (used with conf file ```<xworld_path>/games/xworld/confs/lang.json``` and dictionary ```<xworld_path>/games/xworld/dicts/lang_dict.txt```); <br> 3. "one_channel": integrate the above two environments into a single one.|
+|```curriculum```|A scalar flag reserved for the purpose of curriculum learning; the user can decide what to do with it.|
+|```task_mode```|This flag has two possible values (Default: "lang_acquisition") <br> 1. "lang_acquisition": replicate the environment used in Yu et al. ICLR 2018 (used with conf file ```<xworld_path>/games/xworld/confs/navigation.json``` and dictionary ```<xworld_path>/games/xworld/dicts/nav_2d.txt```); <br> 2. "interactive": replicate the environment used in Zhang et al. ACL 2018 (used with conf file ```<xworld_path>/games/xworld/confs/dialog.json``` and dictionary ```<xworld_path>/games/xworld/dicts/dialog.txt```)|
 |```context```|How many consecutive frames are used to represent the current sensor input. (Default: 1)|
-|```visible_radius```|The visible radius of the agent. If zero, the actual world dimensions of the training image will be (2h-1) x (2w-1). (Default: 0)|
+|```visible_radius```|The visible radius of the agent. For a visible radius of N>1, the agent sees an NxN area in front of it. If a visible radius of 0, the whole environment map will be the training input image. (Default: 0)|
+|```color```|Whether use color (1) or grayscale (0) images for training. (Default: 1)|
 
 ## How to define your own XWorld2D tasks
 You can customize XWorld2D tasks in a flexible way. To define a new task, you need to follow three steps:
@@ -35,21 +37,16 @@ You can customize XWorld2D tasks in a flexible way. To define a new task, you ne
   The class has to inherit from the base class ```XWorldTask``` (defined in ```xworld_task.py```). For an example, please take a look at ```XWorldNavTarget.py```.
 
 3. Write a JSON conf file. This file specifies three aspects of the world:
-  * ```item_path```: where the icon images are stored. Change this variable if you have new icons.
+  * ```item_path```: where the icon images are stored. Change this variable if you have new icons stored in other places.
   * ```map``` : the name of the Python class that defines the map. It should be one of the Python defined maps.
   * ```task_groups``` : how the teacher assigns multiple tasks to the agent. Each task should be one of the Python defined tasks.
 
   For an example, please take a look at ```<xworld_path>/confs/walls.json```.
 
+## How to add new objects
+Each object in XWorld2D is just an image icon. You can download new image icons and put them in ```<xworld_path>/games/xworld/images```. By default, the new objects will be randomly sampled, together with the existing objects, when initializing environment maps. You can also specify the object image path in your Python class that defines the environment map.
+
 ## XWorld2D is flexible
-With an embedded Python implementation, it is easy for the teacher to dynamically change the environment at every time step, potentially according to the agent's performance and/or behaviors, which is important if you want to implement curriculum learning.
+As a Python interface embedded in C++, it is easy for the teacher to dynamically change the environment at every time step, potentially according to the agent's performance and/or behaviors, which is important if you want to implement curriculum learning.
 
 The teacher's sentences can be generated by a context-free grammar (```<xworld_path>/python/context_free_grammar.py```) at each time step of each task. You can define the grammar in an easy way and decide when to generate what sentence in a task.
-
-## Example code for training XWorld2D tasks
-
-Currently there is a PyTorch implementation (by [@zihangdai](https://github.com/zihangdai)) of the model in
-
-* Haonan Yu, Haichao Zhang, Wei Xu, [*A Deep Compositional Framework for Human-like Language Acquisition in Virtual Environment*](https://arxiv.org/abs/1703.09831), arXiv:1703.09831, 2017.
-
-The code runs on the whole vocabulary and does not include the zero-shot experiments, but you can choose to do so according to the zero-shot setups discussed in the paper.

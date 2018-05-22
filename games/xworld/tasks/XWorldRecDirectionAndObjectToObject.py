@@ -31,7 +31,7 @@ class XWorldRecDirectionAndObjectToObject(XWorldTask):
             self._bind("D -> '%s'" % direction)
             self._bind("Z -> '%s'" % goal.name)
             sentence = self._generate()
-            if get_flag("task_mode") == "arxiv_lang_acquisition":
+            if get_flag("task_mode") == "lang_acquisition":
                 return ["idle", 0, sentence + " " + grid]
             else:
                 self._record_answer(grid)

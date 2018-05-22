@@ -77,10 +77,10 @@ class XWorldDialogMap(XWorldEnv):
                 name = goals[0]
                 # check whether this class has been learned before or not
                 if name not in self.learned_classes.keys():
-                    self.set_property(e, property_value_dict={"name" : name})
+                    self.set_property(e, property_value_dict={"name" : name, "asset_path" : None})
                     self.learned_classes[name] = e.asset_path
                 else:
-                    self.set_property(e, property_value_dict={"name" : name, \
-                                                              "asset_path" : self.learned_classes[name]})
+                    self.set_property(e, property_value_dict={"asset_path" : self.learned_classes[name],
+                                                              "name" : None})
             else:
-                self.set_property(e, property_value_dict={"name" : None})
+                self.set_property(e, property_value_dict={"name" : None, "asset_path" : None})
