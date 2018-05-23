@@ -118,9 +118,14 @@ For descriptions of the flags of a game, please take a look at the README file u
 # Citations
 If you use XWorld2D for research, consider citing
 
-* Haichao Zhang, Haonan Yu, Wei Xu, [*Interactive Language Acquisition with One-shot Visual Concept Learning through a Conversational Game*](https://arxiv.org/abs/1805.00462), ACL, 2018.
-* Haonan Yu, Haichao Zhang, Wei Xu, [*Interactive Grounded Language Acquisition and Generalization in a 2D World*](https://arxiv.org/abs/1802.01433), ICLR, 2018.
+* Haichao Zhang, Haonan Yu, Wei Xu, [*Interactive Language Acquisition with One-shot Visual Concept Learning through a Conversational Game*](https://arxiv.org/abs/1805.00462), ACL 2018.
+* Haonan Yu, Haichao Zhang, Wei Xu, [*Interactive Grounded Language Acquisition and Generalization in a 2D World*](https://arxiv.org/abs/1802.01433), ICLR 2018.
 * Haichao Zhang, Haonan Yu, Wei Xu, [*Listen, Interact and Talk: Learning to Speak via Interaction*](https://arxiv.org/abs/1705.09906), NIPS workshop on Visually-Grounded Interaction and Language, 2017.
+
+If you use XWorld3D for research, consider citing
+
+* Haonan Yu, Xiaochen Lian, Haichao Zhang, Wei Xu, [*Guided Feature Transformation (GFT): A Neural Language Grounding Module
+  for Embodied Agents*](https://arxiv.org/abs/1805.08329), arXiv preprint 2018.
 
 If you use our wrappers of the third-party simulators, please follow their original guide for citation.
 
