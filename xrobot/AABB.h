@@ -36,10 +36,6 @@
 
 namespace xrobot {
 
-class AABBTree;
-
-typedef AABBTree Boardphase;
-
 struct AABB
 {
     float minX, maxX, minY, maxY, minZ, maxZ;
@@ -493,6 +489,8 @@ public:
     
 };
     
+typedef AABBTree Boardphase;
+
 }
 
 #endif // AABB_H

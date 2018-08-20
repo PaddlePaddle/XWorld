@@ -1,10 +1,10 @@
 #ifndef WORLD_H_
 #define WORLD_H_
 
-#include <unistd.h>
-
 #include <map>
+#include <string>
 #include <vector>
+#include <unistd.h>
 #include <utility>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -15,10 +15,14 @@
 #include "bullet/LinearMath/btTransform.h"
 #include "bullet/PhysicsClientC_API.h"
 
-#include "model.h"
-#include "camera.h"
+#include "render_engine/camera.h"
+#include "render_engine/model.h"
+#include "render_engine/render_world.h"
 
-using namespace glm;
+// TODO:
+// - too many public attributes
+// - move Camera parts of World to RenderWorld
+// - what happens to Camera attached to a deleted Robot
 
 namespace xrobot {
 
@@ -91,50 +95,8 @@ inline btTransform TransformFromDoubles(const double* position, const double* or
 
 class Robot;
 class World;
-class Object
-{
-public:
-    Object();
-    ~Object();
 
-    void Sleep();
-    void Wake();
-    void EnableSleeping();
-    void DisableSleeping();
-    void ChangeMass(const float mass);
-    void ChangeLinearDamping(const float damping);
-    void ChangeAngularDamping(const float damping);
-    void ChangeLateralFriction(const float friction);
-    void ChangeSpinningFriction(const float friction);
-    void ChangeRollingFriction(const float friction);
-    void ApplyForce(const float x, const float y, const float z,
-                    const int flags = EF_LINK_FRAME);
-    void ApplyTorque(const float x, const float y, const float z, 
-                     const int flags = EF_LINK_FRAME);
-    void GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max);
-    void GetMass(float& mass);
-    float GetMassOriginal();
-    void SetMassOriginal(const float mass);
-
-    World * bullet_world_;
-    std::string object_name_;
-    std::vector<ModelData *> model_list_;
-    std::vector<OriginTransformation *> transformation_list_;
-
-    btTransform object_position_;
-    btTransform object_link_position_;
-    btTransform object_local_inertial_frame_;
-    btVector3   object_speed_;
-    btVector3   object_angular_speed_;
-    int bullet_handle_;
-    int bullet_link_id_;
-
-protected:
-    float object_mass_original_;
-};
-
-class Joint
-{
+class Joint {
 public:
     Joint();
     ~Joint();
@@ -162,46 +124,101 @@ public:
     bool joint_has_limits_;
 };
 
-class Robot
-{
+class Object : public render_engine::RenderPart {
+public:
+    Object();
+    ~Object();
+
+    void Sleep();
+    void Wake();
+    void EnableSleeping();
+    void DisableSleeping();
+    void ChangeMass(const float mass);
+    void ChangeLinearDamping(const float damping);
+    void ChangeAngularDamping(const float damping);
+    void ChangeLateralFriction(const float friction);
+    void ChangeSpinningFriction(const float friction);
+    void ChangeRollingFriction(const float friction);
+    void ApplyForce(const float x, const float y, const float z,
+                    const int flags = EF_LINK_FRAME);
+    void ApplyTorque(const float x, const float y, const float z, 
+                     const int flags = EF_LINK_FRAME);
+    void GetMass(float& mass);
+    float GetMassOriginal();
+    void SetMassOriginal(const float mass);
+
+public:
+    World * bullet_world_;
+    std::string object_name_;
+    
+    int bullet_handle_;
+    int bullet_link_id_;
+
+    btTransform object_position_;
+    btTransform object_link_position_;
+    btTransform object_local_inertial_frame_;
+    btVector3   object_speed_;
+    btVector3   object_angular_speed_;
+
+protected:
+    float object_mass_original_;
+
+// xrobot::render_engine::RenderPart
+public:
+    int id() const override { return bullet_handle_; }
+    void GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max) override;
+    glm::mat4 position() const override;
+    glm::mat4 local_inertial_frame() const override;
+};
+
+class Robot : public render_engine::RenderBody {
+    using RenderPart = render_engine::RenderPart;
 public:
     Robot();
+
     ~Robot();
 
     void DisableSleeping();
-    void RemoveRobotFromBullet();
-    void CalculateInverseKinematics(
-        const int end_index, 
-        const btVector3 target_position,
-        const btQuaternion target_orientation,
-        double* joint_damping,
-        double* ik_output_joint_pos,
-        int &num_poses
-    );
 
-    World * bullet_world_;
+    void RemoveRobotFromBullet();
+
+    void CalculateInverseKinematics(
+            const int end_index, 
+            const btVector3 target_position,
+            const btQuaternion target_orientation,
+            double* joint_damping,
+            double* ik_output_joint_pos,
+            int &num_poses);
+
+    World* bullet_world_;
     std::string urdf_name_;
-    bool recycle_;
     int bullet_handle_;
     Object* root_part_;
-    std::vector<Object *> other_parts_list_;
+    std::vector<Object*> other_parts_;
     std::vector<Joint *> joints_list_;
+
+// xrobot::render_engine::RenderBody
+public:
+    size_t size() const override { return other_parts_.size(); }
+    RenderPart* render_root_ptr() override;
+    const RenderPart* render_root_ptr() const override;
+    const RenderPart* render_part_ptr(const size_t i) const override;
+    RenderPart* render_part_ptr(const size_t i) override;
 };
 
-
-class World
-{
+class World : public render_engine::RenderWorld {
+    using Camera = xrobot::render_engine::Camera;
+    using RenderBody = render_engine::RenderBody;
 public:
     World();
     ~World();
 
     b3PhysicsClientHandle client_;
-    std::vector<Camera *> camera_list_;
-    std::map<Camera *, Robot *> attached_camera_to_robot_map_;
     std::vector<Robot*> robot_list_;
+    std::map<Camera*, Robot*> attached_camera_to_robot_map_;
     std::map<int, Robot*> bullet_handle_to_robot_map_;
     std::map<std::string, std::vector<Robot *>> recycle_robot_map_;
-    std::map<std::string, ModelData *> model_cache_;
+    std::map<std::string, render_engine::ModelData *> model_cache_;
 
     float bullet_gravity_;
     float bullet_timestep_;
@@ -209,8 +226,8 @@ public:
     float bullet_skip_frames_sent_;
     double bullet_ts_;
 
-    ModelData * FindInCache(const std::string &key,
-        std::vector<ModelData *> &model_list, bool& reset);
+    render_engine::ModelData * FindInCache(const std::string &key,
+        std::vector<render_engine::ModelData*> &model_list, bool& reset);
     void ClearCache();
     void PrintCacheInfo();
     void BulletInit(const float gravity = 9.81f, const float timestep = 1.0/100.0);
@@ -219,20 +236,23 @@ public:
     void QueryPosition(const Robot* robot);
     void LoadRobotShape(Robot* robot, const float scale);
     void LoadRobotJoint(Robot* robot, const std::string &filename);
-    void RemoveRobot(Robot * robot);
-    void RemoveRobot2(Robot * robot);
+    void RemoveRobot(Robot* robot);
+    void RemoveRobot2(Robot* robot);
     void CleanEverything();
     void CleanEverything2();
     void ResetSimulation();
-    Camera* AddCamera(vec3 position, vec3 offset = vec3(0),
-        float aspect_ratio = 4.0f / 3.0f, float fov = 90.0f,
-        float near = 0.01f, float far = 10.0f);
-    void AttachCameraToRoot(Camera * camera, Robot * robot);
-    void AttachCamera(Camera *camera, Robot * robot);
-    void DeattachCamera(Camera *camera);
-    void RemoveCamera(Camera * camera);
-    void RotateCamera(Camera * camera, const float pitch);
-    int RayTest(const vec3 ray_from_position, const vec3 ray_to_position);
+    Camera* AddCamera(glm::vec3 position,
+                      glm::vec3 offset = glm::vec3(0),
+                      float aspect_ratio = 4.0f / 3.0f,
+                      float fov = 90.0f,
+                      float near = 0.01f,
+                      float far = 10.0f);
+    void AttachCameraToRoot(Camera* camera, Robot* robot);
+    void AttachCamera(Camera* camera, Robot* robot);
+    void DeattachCamera(Camera* camera);
+    void RemoveCamera(Camera* camera);
+    void RotateCamera(Camera* camera, const float pitch);
+    int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
     void SetTransformation(const Robot* robot, const btTransform& tranform);
     void SetVelocity(const Robot* robot, const btVector3& velocity);
 
@@ -285,6 +305,11 @@ public:
         const bool flip = false,
         const bool concave = false
     );
+    
+public:
+    size_t size() const override { return robot_list_.size(); }
+    const RenderBody* render_body_ptr(const size_t i) const override;
+    RenderBody* render_body_ptr(const size_t i) override;
 };
 
 }

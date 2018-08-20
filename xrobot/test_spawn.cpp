@@ -1,21 +1,19 @@
 #define USE_GLFW
-#include "gl_context.h"
-#include "render.h"
+#include "render_engine/gl_context.h"
+#include "render_engine/render.h"
 #include "utils.h"
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <string>
 #include <thread>
 #include <unistd.h>
 #include <ios>
 #include <iomanip>
 
 #include "map.h"
-#include "render2d.h"
+#include "render_engine/render2d.h"
 
 using namespace xrobot;
 
@@ -23,28 +21,28 @@ static int w = 480;
 static int h = 320;
 static int frame = 0;
 
-static string door0 = "./door0/door.urdf";
-static string door1 = "./door1/door.urdf";
-static string door2 = "./door2/door.urdf";
-static string wall0 = "./wall0/floor.urdf";
-static string wall1 = "./wall1/floor.urdf";
-static string wall2 = "./wall2/floor.urdf";
-static string floor0 = "./floor0/floor.urdf";
-static string floor1 = "./floor1/floor.urdf";
-static string floor2 = "./floor2/floor.urdf";
-static string bed1 = "./bed_1/bed.urdf";
-static string chair1 = "./chair_1/chair.urdf";
-static string crate1 = "./crate_1/crate.urdf";
-static string crate03 = "./crate_0.3/crate.urdf";
-static string apple = "./apple/apple.urdf";
-static string cat = "./cat_1/cat.urdf";
-static string pooltable = "./pool-table_1/pool-table.urdf";
+static std::string door0 = "./door0/door.urdf";
+static std::string door1 = "./door1/door.urdf";
+static std::string door2 = "./door2/door.urdf";
+static std::string wall0 = "./wall0/floor.urdf";
+static std::string wall1 = "./wall1/floor.urdf";
+static std::string wall2 = "./wall2/floor.urdf";
+static std::string floor0 = "./floor0/floor.urdf";
+static std::string floor1 = "./floor1/floor.urdf";
+static std::string floor2 = "./floor2/floor.urdf";
+static std::string bed1 = "./bed_1/bed.urdf";
+static std::string chair1 = "./chair_1/chair.urdf";
+static std::string crate1 = "./crate_1/crate.urdf";
+static std::string crate03 = "./crate_0.3/crate.urdf";
+static std::string apple = "./apple/apple.urdf";
+static std::string cat = "./cat_1/cat.urdf";
+static std::string pooltable = "./pool-table_1/pool-table.urdf";
 
 
 int main()
 {
-	GLContext * ctx = CreateContext(h, w * 3);
-	Render * renderer = new Render(w, h, 1, ctx);
+    render_engine::GLContext * ctx = render_engine::CreateContext(h, w * 3);
+    render_engine::Render * renderer = new render_engine::Render(w, h, 1, ctx);
     Map * scene = new Map();
 
     glm::vec3 startPosition;
@@ -72,7 +70,7 @@ int main()
     endBenchmark();
 
     Robot * husky;
-    Camera * c0;
+    render_engine::Camera * c0;
     scene->CreateSpawnOnFloor(bed1);
     scene->CreateSpawnOnFloor(chair1);
     scene->CreateSpawnOnFloor(crate1);
@@ -325,7 +323,7 @@ int main()
         usleep(1000);
 
         scene->world_->BulletStep();   
-    	renderer->StepRender(scene);
+    	renderer->StepRender(scene->world_);
 
         ctx->SwapBuffer();
         ctx->PollEvent();
