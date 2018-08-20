@@ -1,0 +1,33 @@
+# Blender3D MTL File: apple_yafaray.blend
+# Material Count: 3
+newmtl redapple_Apple_large22.jpg
+Ns 27.450980
+Ka 0.000000 0.000000 0.000000
+Kd 0.696471 0.699608 0.050196
+Ks 0.321911 0.321911 0.321911
+Ni 1.350000
+d 1.000000
+illum 2
+map_Kd Apple_large22.jpg
+
+
+newmtl darkblue_pottery
+Ns 90.196078
+Ka 0.000000 0.000000 0.000000
+Kd 0.060816 0.114334 0.182448
+Ks 0.997737 0.997737 0.997737
+Ni 1.500000
+d 1.000000
+illum 2
+
+
+newmtl pal
+Ns 37.254902
+Ka 0.000000 0.000000 0.000000
+Kd 0.317669 0.225016 0.046327
+Ks 0.085274 0.085274 0.085274
+Ni 1.000000
+d 1.000000
+illum 2
+
+
