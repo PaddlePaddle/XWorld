@@ -448,26 +448,12 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 	return random_center;
 }
 
-void Map::GenerateCeiling(const float x, const float y, const float z, const string& st)
+void Map::GenerateCeiling(const float x, const float y, const float z, const std::string& st)
 {
 
 }
 
-void Map::GenerateDoor(const float x, const float y, const float z, const int face, const string st)
-{
-	const int dir[4] = {0, 0, 1, 1};
-
-	world_->LoadURDF2(
-		st,
-		btVector3(x,y,z),
-		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
-		1.0f,
-		true
-	);
-}
-
-
-void Map::GenerateWall(const float x, const float y, const float z, const int face, const string st)
+void Map::GenerateDoor(const float x, const float y, const float z, const int face, const std::string st)
 {
 	const int dir[4] = {0, 0, 1, 1};
 
@@ -480,7 +466,21 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 	);
 }
 
-void Map::GenerateFloor(const float x, const float y, const float z, const string& st)
+
+void Map::GenerateWall(const float x, const float y, const float z, const int face, const std::string st)
+{
+	const int dir[4] = {0, 0, 1, 1};
+
+	world_->LoadURDF2(
+		st,
+		btVector3(x,y,z),
+		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
+		1.0f,
+		true
+	);
+}
+
+void Map::GenerateFloor(const float x, const float y, const float z, const std::string& st)
 {
 	Robot * floor = world_->LoadURDF2(
 		st,
@@ -492,7 +492,7 @@ void Map::GenerateFloor(const float x, const float y, const float z, const strin
 }
 
 
-void Map::CreateSpawnOnFloor(const string name)
+void Map::CreateSpawnOnFloor(const std::string name)
 {
 	if(!name.empty() &&
 	 std::find(on_floor_list_.begin(), on_floor_list_.end(), name) == on_floor_list_.end())
@@ -501,7 +501,7 @@ void Map::CreateSpawnOnFloor(const string name)
 	}
 }
 
-void Map::CreateSpawnOnObject(const string name)
+void Map::CreateSpawnOnObject(const std::string name)
 {
 	if(!name.empty() &&
 	 std::find(on_object_list_.begin(), on_object_list_.end(), name) == on_object_list_.end())
@@ -510,7 +510,7 @@ void Map::CreateSpawnOnObject(const string name)
 	}
 }
 
-void Map::CreateSpawnEither(const string name)
+void Map::CreateSpawnEither(const std::string name)
 {
 	if(!name.empty() &&
 	 std::find(either_list_.begin(), either_list_.end(), name) == either_list_.end())
@@ -530,7 +530,7 @@ void Map::CreateSectionWithSize(const float min_x, const float max_x, const floa
 
 }
 
-void Map::CreateSpawnConstraint(const string cannot_be_topped)
+void Map::CreateSpawnConstraint(const std::string cannot_be_topped)
 {
 	if(!cannot_be_topped.empty() &&
 	 cannot_be_topped_list.find(cannot_be_topped) == cannot_be_topped_list.end())
@@ -551,7 +551,7 @@ void Map::CreateEmptyVolume(const float min_x, const float max_x, const float mi
 }
 
 void Map::CreateObjectAtTransform(
-	const string name, 
+	const std::string name, 
 	const float tx, const float ty, const float tz,
 	const float rx, const float ry, const float rz, const float rw,
 	const float s
@@ -667,7 +667,7 @@ void Map::SpawnOnFloor(const int num)
 
 		int object_index = rand() % on_floor_list_.size();
 		int room_index = rand() % sections_AABB_.size();
-		const string object = on_floor_list_[object_index];
+		const std::string object = on_floor_list_[object_index];
 		const AABB * room_AABB = sections_AABB_[room_index];
 
 		glm::vec3 rand_position_on_tile = glm::vec3(
@@ -740,7 +740,7 @@ void Map::SpawnOnObject(const int num)
 	{
 		int object_index = rand() % on_object_list_.size();
 		int first_layer_index = rand() % first_layer_AABB_.size();
-		const string object = on_object_list_[object_index];
+		const std::string object = on_object_list_[object_index];
 		const AABB * object_AABB = first_layer_AABB_[first_layer_index];
 
 		if(first_layer_map_[first_layer_index] < 0 ||
@@ -823,7 +823,7 @@ void Map::SpawnEither(const int n)
 		{
 			int objIdx = rand() % either_list_.size();
 
-			const string object = either_list_[objIdx];
+			const std::string object = either_list_[objIdx];
 
 			int roomIdx = rand() % sections_AABB_.size();
 
@@ -893,7 +893,7 @@ void Map::SpawnEither(const int n)
 
 			int firstIdx = rand() % first_layer_AABB_.size();
 
-			const string object = either_list_[objIdx];
+			const std::string object = either_list_[objIdx];
 
 			const AABB * rAABB = first_layer_AABB_[firstIdx];
 

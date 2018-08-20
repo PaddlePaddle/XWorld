@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 #include <set>
+#include <string>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/matrix_decompose.hpp"
@@ -11,7 +12,7 @@
 #include "world.h"
 #include "AABB.h"
 #include "utils.h"
-#include "json.h"
+#include "vendor/json.h"
 #include "room_generator.cpp"
 
 using namespace glm;
@@ -86,10 +87,10 @@ namespace xrobot
 		);
 		
 
-		void GenerateDoor(const float x, const float y, const float z, const int face, const string st);
-		void GenerateWall(const float x, const float y, const float z, const int face, const string st);
-		void GenerateFloor(const float x = 0, const float y = 0, const float z = 0, const string& st = "");
-		void GenerateCeiling(const float x = 0, const float y = 0, const float z = 0, const string& st = "");
+		void GenerateDoor(const float x, const float y, const float z, const int face, const std::string st);
+		void GenerateWall(const float x, const float y, const float z, const int face, const std::string st);
+		void GenerateFloor(const float x = 0, const float y = 0, const float z = 0, const std::string& st = "");
+		void GenerateCeiling(const float x = 0, const float y = 0, const float z = 0, const std::string& st = "");
 
 		// Create Section
 		void CreateSectionWithSize(const float min_x, const float max_x, const float min_z, const float max_z);
@@ -102,19 +103,19 @@ namespace xrobot
 				
 		// Create an Object
 		void CreateObjectAtTransform(
-			const string name, 
+			const std::string name, 
 			const float tx, const float ty, const float tz,
 			const float rx = 0, const float ry = 0, const float rz = 0, const float rw = 1,
 			const float s = 1
 		);
 
 		// Spawn an Object
-		void CreateSpawnOnFloor(const string name);
-		void CreateSpawnOnObject(const string name);
-		void CreateSpawnEither(const string name);
+		void CreateSpawnOnFloor(const std::string name);
+		void CreateSpawnOnObject(const std::string name);
+		void CreateSpawnEither(const std::string name);
 
 		// Create a Constraint which an Object Cannot Be Topped
-		void CreateSpawnConstraint(const string cannot_be_topped);
+		void CreateSpawnConstraint(const std::string cannot_be_topped);
 
 		// Clear Map and Reset Simulation
 		void ClearMap();
@@ -137,12 +138,12 @@ namespace xrobot
 		std::mt19937 mt_;
 
 		// Random Spawn Object List
-		std::vector<string> on_floor_list_;
-		std::vector<string> on_object_list_;
-		std::vector<string> either_list_;
+		std::vector<std::string> on_floor_list_;
+		std::vector<std::string> on_object_list_;
+		std::vector<std::string> either_list_;
 
 		// Constraint
-		std::set<string> cannot_be_topped_list;
+		std::set<std::string> cannot_be_topped_list;
 		std::vector<int> first_layer_map_;
 
 		std::vector<AABB *> sections_AABB_;
