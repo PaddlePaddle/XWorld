@@ -3,6 +3,49 @@
 namespace xrobot {
 namespace render_engine {
 
+Shader::Shader(const std::string& computePath) {
+
+    std::string computCode;
+    std::ifstream cShaderFile;
+    cShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    try
+    {
+        cShaderFile.open(computePath);
+        std::stringstream cShaderStream;
+        cShaderStream << cShaderFile.rdbuf();
+        cShaderFile.close();
+        computCode = cShaderStream.str();
+
+        if (!computePath.empty())
+        {
+            cShaderFile.open(computePath);
+            std::stringstream cShaderStream;
+            cShaderStream << cShaderFile.rdbuf();
+            cShaderFile.close();
+            computCode = cShaderStream.str();
+        }
+    }
+
+    catch (std::ifstream::failure e)
+    {
+        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+    }
+
+    const char* cShaderCode = computCode.c_str();
+    unsigned int comput;
+    int success;
+    char infoLog[512];
+    comput = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(comput, 1, &cShaderCode, NULL);
+    glCompileShader(comput);
+    checkCompileErrors(comput, "COMPUTE");
+    id_ = glCreateProgram();
+    glAttachShader(id_, comput);
+    glLinkProgram(id_);
+    checkCompileErrors(id_, "PROGRAM");
+    glDeleteShader(comput);
+}
+
 Shader::Shader(const std::string& vertexPath,
                const std::string& fragmentPath, 
                const std::string& controlPath,

@@ -5,6 +5,7 @@
 #include <random>
 #include <set>
 #include <string>
+#include <unordered_map>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/matrix_decompose.hpp"
@@ -23,7 +24,13 @@ namespace xrobot
 	constexpr float kPadding = 0.01f;
 	constexpr float kOnFloorThreshold = 0.1f;
 	constexpr float kFirstLayerOffset = 0.5f;
-	constexpr float kSecondLayerOffset = 0.1f;
+	constexpr float kSecondLayerOffset = 0.2f;
+
+	struct ObjectWithLabel
+	{
+		std::string path;
+		std::string label;
+	};
 
 	struct SectionType
 	{
@@ -68,25 +75,21 @@ namespace xrobot
 	public:
 		Map();
 		~Map();
-
-		// Load json
-		// Those Three Functions Below are adapted from SUNCG!
-		//
-		int GetJsonArrayEntry(Json::Value *&result, Json::Value *array, unsigned int k, int expected_type = -1);
-		int GetJsonObjectMember(Json::Value *&result, Json::Value *object, const char *str, int expected_type = 0);
-		void LoadJSON(const char * houseFile, const char * input_data_directory, const bool concave = false);
-
 		
 		// Generate Floor Plan
 		glm::vec3 GenerateFloorPlan(const int w, const int l);
+		glm::vec3 GenerateTestFloorPlan(const int w, const int l);
 		void ClearFloorPlan();
 		void CreateSectionType(
 			const std::string& floor,
 			const std::string& ceiling = "",
 			const std::string& door = ""
 		);
-		
 
+		void CreateLabel(const std::string& path,
+						 const std::string& label);
+		std::string FindLabel(const std::string& path);
+		
 		void GenerateDoor(const float x, const float y, const float z, const int face, const std::string st);
 		void GenerateWall(const float x, const float y, const float z, const int face, const std::string st);
 		void GenerateFloor(const float x = 0, const float y = 0, const float z = 0, const std::string& st = "");
@@ -109,6 +112,9 @@ namespace xrobot
 			const float s = 1
 		);
 
+		// Clear Constraints
+		void ClearRules();
+
 		// Spawn an Object
 		void CreateSpawnOnFloor(const std::string name);
 		void CreateSpawnOnObject(const std::string name);
@@ -121,8 +127,13 @@ namespace xrobot
 		void ClearMap();
 		void ResetMap();
 
+
+		// Labels
+		std::map<std::string, std::string> labels_;
+
 		// World
 		World * world_;
+		AABB * map_AABB_;
 
 		// For AABB Debug Rendering
 		std::vector<std::pair<vec3, vec3>> empty_map_; // Cannot Be Occupied Spaces
@@ -158,7 +169,7 @@ namespace xrobot
 		// Utils
 		float GetRandom(const float low, const float high);
 		bool Overlap(const std::vector<AABB *> aabbs, const AABB * other);
-
+		void GetMapAABB();
 		// Spawn
 		void SpawnOnFloor(const int num);
 		void SpawnOnObject(const int num);

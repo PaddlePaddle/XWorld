@@ -6,6 +6,7 @@ include(glfw)
 
 add_library(render_engine OBJECT 
     render_utils.cpp
+    csm.cpp
     fbo.cpp
     shader.cpp
     camera.cpp
@@ -14,11 +15,17 @@ add_library(render_engine OBJECT
     gl_context.cpp
     render.cpp
     render_world.cpp
-    render2d.cpp)
+    render2d.cpp
+    texture3d.cpp)
 
 add_dependencies(render_engine assimp glm glfw) 
 
+set(EGL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
+# set(EGL_LIBRARIES "/usr/lib/x86_64-linux-gnu/libEGL.so")
+set(EGL_LIBRARIES "/usr/lib/nvidia-396/libEGL.so")
+
 target_include_directories(render_engine PUBLIC
+    ${EGL_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
@@ -26,7 +33,7 @@ target_include_directories(render_engine PUBLIC
 
 set(DEP_LIBS
     ${DEP_LIBS}
-    "/usr/lib/x86_64-linux-gnu/libEGL.so"
+    ${EGL_LIBRARIES}
     ${ASSIMP_LIBRARIES}
     ${OPENGL_gl_LIBRARY}
     ${GLFW_LIBRARIES}
@@ -35,6 +42,8 @@ set(DEP_LIBS
 
 set(DEP_INCLUDES
     ${DEP_INCLUDES}
+    ${EGL_INCLUDE_DIRS}
+    ${ASSIMP_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}

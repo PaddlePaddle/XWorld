@@ -18,6 +18,9 @@ class Shader {
 public:
     Shader() : id_(0) {};
 
+    // Computer Shader (gl 4.3 required!)
+    Shader(const std::string& computePath);
+
     Shader(const std::string& vertexPath,
            const std::string& fragmentPath, 
            const std::string& controlPath = "",

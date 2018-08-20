@@ -30,7 +30,7 @@ const EGLint EGLpbufferAttribs[] = {
 };
 
 const int GLXcontextAttribs[] = {
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+    GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
     GLX_CONTEXT_MINOR_VERSION_ARB, 3,
     GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
     None
@@ -405,7 +405,7 @@ GLFWContext::GLFWContext(int h, int w, bool core) :
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, false);
     }
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     

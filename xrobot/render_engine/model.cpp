@@ -45,6 +45,16 @@ ModelData::~ModelData() {
     }
 }
 
+void ModelData::BoneTransform(float time, float duration,
+    std::vector<aiMatrix4x4>& transforms) {
+    aiMatrix4x4 indentity();
+
+    float ticks_per_second = 25.0f;
+    float time_in_ticks = time * ticks_per_second;
+    float animation_time = fmod(time_in_ticks, duration);
+
+}
+
 void ModelData::Draw(const Shader& shader) {
     for (size_t i = 0; i < meshes_.size(); ++i) {
         meshes_[i].Draw(shader);
@@ -66,11 +76,14 @@ void ModelData::LoadModel(const std::string& path) {
     importer.SetPropertyMatrix(AI_CONFIG_PP_PTV_ROOT_TRANSFORMATION, root_trans); 
 
     int flag = aiProcess_JoinIdenticalVertices 
-               | aiProcess_GenNormals 
+               // | aiProcess_GenNormals 
                | aiProcess_ImproveCacheLocality 
-               | aiProcess_PreTransformVertices
                | aiProcess_Triangulate 
-               | aiProcess_FlipUVs;
+               | aiProcess_FlipUVs
+               | aiProcess_CalcTangentSpace
+               | aiProcess_OptimizeGraph
+               | aiProcess_OptimizeMeshes
+               | aiProcess_GenSmoothNormals;
 
     const aiScene* scene = importer.ReadFile(path, flag);
 
@@ -374,6 +387,31 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
 
+    // Not Sure About This...
+    int num_bones;
+    std::vector<BoneInfo> bone_info_list;
+    std::vector<VertexBoneData> bones;
+
+    for (unsigned int i = 0; i < mesh->mNumBones; ++i)
+    {
+        unsigned int bone_index = 0;
+        std::string bone_name(mesh->mBones[i]->mName.data);
+
+        bone_info_list[bone_index].offset_matrix = mesh->mBones[i]->mOffsetMatrix;
+
+        for (unsigned int j = 0; j < mesh->mBones[i]->mNumWeights; ++j)
+        {
+            unsigned int vertex_id = mesh->mBones[i]->mWeights[j].mVertexId;
+            float weight = mesh->mBones[i]->mWeights[j].mWeight;
+
+            assert(j < 4);
+            bones[vertex_id].ids[j] = vertex_id;
+            bones[vertex_id].weights[j] = weight;
+        }
+    }
+
+    // printf("n_bones: %d\n", num_bones);
+
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 
         Vertex vertex;
@@ -397,9 +435,8 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
             vertex.texcoords = glm::vec2(0.0f, 0.0f);
         }
 
-    #ifdef USE_TANGENT_BITANGENT
         // tangent
-        if (mesh->HasTangentsAndBitangents()) {
+        if (mesh->mTangents) {
             v.x = mesh->mTangents[i].x;
             v.y = mesh->mTangents[i].y;
             v.z = mesh->mTangents[i].z;
@@ -409,7 +446,7 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
         }
 
         // bitangent
-        if (mesh->HasTangentsAndBitangents()) {
+        if (mesh->mBitangents) {
             v.x = mesh->mBitangents[i].x;
             v.y = mesh->mBitangents[i].y;
             v.z = mesh->mBitangents[i].z;
@@ -417,10 +454,6 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
         } else {
             vertex.bitangent = glm::vec3(0.0f, 0.0f, 0.0f);
         }
-    #else
-        vertex.tangent = glm::vec3(0.0f, 0.0f, 0.0f);
-        vertex.bitangent = glm::vec3(0.0f, 0.0f, 0.0f);
-    #endif
 
         vertices.push_back(vertex);
     }
@@ -440,7 +473,7 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
         kA = glm::vec3(ambient[0], ambient[1], ambient[2]);
     }
 
-    glm::vec3 kD(1, 1, 1);
+    glm::vec3 kD(0.5, 0.5, 0.5);
     aiColor4D diffuse;
     if (aiGetMaterialColor(material, AI_MATKEY_COLOR_DIFFUSE, &diffuse) 
             == AI_SUCCESS) {
@@ -469,24 +502,44 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
     }
 
 
-    // 1. diffuse maps
+    // Diffuse Maps
     std::vector<Texture> diffuseMaps = LoadMaterialTextures(
             material, aiTextureType_DIFFUSE, "texture_diffuse");
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-    // 2. specular maps
+    // Specular Maps
     std::vector<Texture> specularMaps = LoadMaterialTextures(
             material, aiTextureType_SPECULAR, "texture_specular");
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-    // 3. normal maps
+    // Normal Maps
     std::vector<Texture> normalMaps = LoadMaterialTextures(
             material, aiTextureType_HEIGHT, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-    // 4. height maps
+    // Height Maps
     std::vector<Texture> heightMaps = LoadMaterialTextures(
             material, aiTextureType_AMBIENT, "texture_height");
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+    // Occulusion Maps
+    std::vector<Texture> aoMaps = LoadMaterialTextures(
+            material, aiTextureType_OPACITY, "texture_ao");
+    textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
 
-    return Mesh(vertices, indices, textures, kA, kD, kS, d, Ns);
+    bool diffuseMap = false;
+    if(diffuseMaps.size() > 0) diffuseMap = true;
+
+    int bumpMap = false;
+    if(normalMaps.size() > 0) bumpMap = true;
+
+    int specularMap = false;
+    if(specularMaps.size() > 0) specularMap = true;
+
+    int heightMap = false;
+    if(heightMaps.size() > 0) heightMap = true;
+
+    int aoMap = false;
+    if(aoMaps.size() > 0) aoMap = true;
+
+    return Mesh(vertices, indices, textures, kA, kD, kS, d, Ns,
+        diffuseMap, bumpMap, specularMap, heightMap, aoMap);
 }
 
 std::vector<Texture> ModelData::LoadMaterialTextures(

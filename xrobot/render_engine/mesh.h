@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "assimp/Importer.hpp"
+#include "assimp/postprocess.h"
+#include "assimp/scene.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -30,6 +33,17 @@ struct Texture {
     std::string path;
 };
 
+// TEST
+// Skinning
+struct VertexBoneData {
+    unsigned int ids[4];
+    float weights[4];
+};
+
+struct BoneInfo {
+    aiMatrix4x4 offset_matrix;
+};
+
 class Mesh {
 public:
     std::vector<Vertex> vertices_;
@@ -44,6 +58,16 @@ public:
     glm::vec3 kS_;
     float d_;
     float Ns_;
+    bool diffuse_;
+    bool bump_;
+    bool specular_;
+    bool height_;
+    bool ao_;
+
+    // Skinning
+    int num_bones_;
+    std::vector<BoneInfo> bone_info_list_;
+    std::vector<VertexBoneData> bones_;
 
     Mesh() {}
 
@@ -58,7 +82,12 @@ public:
          const glm::vec3& KDiffuse,
          const glm::vec3& kSpecular,
          float opacity,
-         float shininess);
+         float shininess,
+         bool diffuseMap,
+         bool normalMap,
+         bool specularMap,
+         bool heightMap,
+         bool aoMap);
 
     void Draw(const Shader& shader);
 
