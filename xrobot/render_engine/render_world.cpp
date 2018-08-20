@@ -5,7 +5,7 @@ namespace render_engine {
 
 void RenderWorld::render_step() {
     for (auto& kv : camera_to_body_) {
-        std::cout << "attach camera" << std::endl;
+        //std::cout << "attach camera" << std::endl;
         auto camera = kv.first;
         auto body  = kv.second;
         if (!camera || !body) continue;

@@ -17,85 +17,72 @@
 
 using namespace xrobot;
 
-static int w = 480;
-static int h = 320;
+static int w = 640;
+static int h = 480;
 static int frame = 0;
 
 static std::string door0 = "./door0/door.urdf";
-static std::string door1 = "./door1/door.urdf";
-static std::string door2 = "./door2/door.urdf";
-static std::string wall0 = "./wall0/floor.urdf";
-static std::string wall1 = "./wall1/floor.urdf";
-static std::string wall2 = "./wall2/floor.urdf";
+static std::string wall = "./wall/floor.urdf";
 static std::string floor0 = "./floor0/floor.urdf";
 static std::string floor1 = "./floor1/floor.urdf";
 static std::string floor2 = "./floor2/floor.urdf";
-static std::string bed1 = "./bed_1/bed.urdf";
-static std::string chair1 = "./chair_1/chair.urdf";
 static std::string crate1 = "./crate_1/crate.urdf";
 static std::string crate03 = "./crate_0.3/crate.urdf";
 static std::string apple = "./apple/apple.urdf";
-static std::string cat = "./cat_1/cat.urdf";
-static std::string pooltable = "./pool-table_1/pool-table.urdf";
 
 
-int main()
+int main(int argc, char **argv)
 {
-    render_engine::GLContext * ctx = render_engine::CreateContext(h, w * 3);
-    render_engine::Render * renderer = new render_engine::Render(w, h, 1, ctx);
+    assert(argc < 3);
+
+    render_engine::RenderSettings render_profile(render_engine::kLowQuality);
+    if(argc == 2) {
+        render_profile = render_engine::RenderSettings(atoi(argv[1]));
+    }
+
+    render_engine::GLContext * ctx = render_engine::CreateContext(h, w);
+    render_engine::Render * renderer = new render_engine::Render(w, h, 1, render_profile, ctx);
     Map * scene = new Map();
 
-    glm::vec3 startPosition;
-
-    // Configure Map
-    scene->CreateSectionType(floor0, wall0, door0);
-    scene->CreateSectionType(floor0, wall0, door0);
-
+    scene->CreateLabel(crate1, "crate");
+    scene->CreateLabel(crate03, "crate");
+    scene->CreateLabel(apple, "apple");
+    scene->CreateSectionType(floor0, wall, door0);
+    scene->CreateSectionType(floor1, wall, door0);
+    scene->CreateSectionType(floor2, wall, door0);
     scene->CreateSpawnOnFloor(crate1);
-    scene->CreateSpawnOnFloor(bed1);
-    scene->CreateSpawnOnFloor(chair1);
+    // scene->CreateSpawnOnFloor(bed1);
+    // scene->CreateSpawnOnFloor(chair1);
 
-    scene->CreateSpawnOnObject(apple);
+    // scene->CreateSpawnOnObject(apple);
 
-    scene->CreateSpawnEither(crate03);
-    scene->CreateSpawnEither(cat);
+    // scene->CreateSpawnEither(crate03);
+    // scene->CreateSpawnEither(cat);
 
-    scene->CreateSpawnConstraint(apple);
-    scene->CreateSpawnConstraint(bed1);
-    scene->CreateSpawnConstraint(chair1);
+    // scene->CreateSpawnConstraint(apple);
+    // scene->CreateSpawnConstraint(bed1);
+    // scene->CreateSpawnConstraint(chair1);
 
     startBenchmark();
-    startPosition = scene->GenerateFloorPlan(10, 10);
-    scene->Spawn(10, 10, 10);
+    glm::vec3 startPosition = scene->GenerateFloorPlan(10, 10);
+    scene->Spawn(5, 0, 0);
     endBenchmark();
 
     Robot * husky;
     render_engine::Camera * c0;
-    scene->CreateSpawnOnFloor(bed1);
-    scene->CreateSpawnOnFloor(chair1);
-    scene->CreateSpawnOnFloor(crate1);
-    scene->CreateSpawnOnFloor(pooltable);
 
-    scene->CreateSpawnOnObject(crate03);
-    scene->CreateSpawnOnObject(apple);
 
-    scene->CreateSpawnEither(cat);
-
-    scene->CreateSpawnConstraint(apple);
-    scene->CreateSpawnConstraint(cat);
-    scene->CreateSpawnConstraint(chair1);
-    scene->CreateSpawnConstraint(bed1);
-    scene->CreateSpawnConstraint(pooltable);
-
-    husky = scene->world_->load_urdf(
-        "./husky/robot_kuka.urdf",
-        btVector3(startPosition.x,0.25,startPosition.z),
+    husky = scene->world_->LoadURDF(
+        "husky/robot_kuka.urdf",
+        btVector3(startPosition.x,0.21,startPosition.z),
         btQuaternion(btVector3(-1,0,0),1.57)
     );
     husky->DisableSleeping();
 
     c0 = scene->world_->add_camera(vec3(0,0,0), vec3(0.3,1.0,0.0), (float) w / h);
     scene->world_->attach_camera(c0, husky);
+
+    renderer->Init(c0);
 
     static float pos_0 = 0.0f;
     static float pos_1 = 0.0f;
@@ -111,7 +98,7 @@ int main()
     static float vel_front_right_wheel = 0.0f;
     static float vel_rear_left_wheel = 0.0f;
     static float vel_rear_right_wheel = 0.0f;
-    static float speed = 2.5f;
+    static float speed = 8.5f;
 
     int count = 0;
     bool flag = true; 
@@ -133,12 +120,12 @@ int main()
             else
                 scene->ClearMap();
 
-            startPosition = scene->GenerateFloorPlan(10, 10);
-            scene->Spawn(10, 10, 10);
+            startPosition = scene->GenerateFloorPlan(8, 8);
+            scene->Spawn(5, 0, 0);
 
             husky = scene->world_->load_urdf(
                 "./husky/robot_kuka.urdf",
-                btVector3(startPosition.x,0.25,startPosition.z),
+                btVector3(startPosition.x,0.21,startPosition.z),
                 btQuaternion(btVector3(-1,0,0),1.57)
             );
             husky->DisableSleeping();
@@ -320,14 +307,13 @@ int main()
         j = husky->joints_list_[12];
         j->SetJointMotorControlPosition(pos_7, 0.1f, 1.0f,10.0f);
 
-        usleep(1000);
-
         scene->world_->BulletStep();   
-    	renderer->StepRender(scene->world_);
+        renderer->StepRender(scene->world_);
 
         ctx->SwapBuffer();
         ctx->PollEvent();
     }
+
 
     delete renderer;
     delete scene;

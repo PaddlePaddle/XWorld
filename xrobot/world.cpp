@@ -320,6 +320,117 @@ Robot::~Robot() {
     }
 }
 
+void Robot::Teleport(const glm::vec3 walk_move,
+                     const glm::vec3 walk_rotate,
+                     const float speed, const bool remit) {
+
+    static btTransform robot_transform = root_part_->object_position_;
+    static btVector3 robot_position = robot_transform.getOrigin();
+    static btQuaternion robot_rotation = robot_transform.getRotation();
+
+    if(remit) {
+        robot_transform = root_part_->object_position_;
+        robot_position = robot_transform.getOrigin();
+        robot_rotation = robot_transform.getRotation(); 
+    }
+
+    glm::vec3 walk_dir_temp = glm::normalize(walk_move);
+    btVector3 walk_dir = btVector3(walk_dir_temp.x, walk_dir_temp.y, walk_dir_temp.z);
+    walk_dir = btTransform(robot_rotation) * walk_dir;
+
+    btVector3 walk_rot_temp = btVector3(walk_rotate.x, walk_rotate.y, walk_rotate.z);
+    btQuaternion walk_rot = btQuaternion(walk_rot_temp, speed);
+
+    btVector3 robot_position_t = robot_position;
+    btQuaternion robot_rotation_t = robot_rotation;
+
+    if(glm::dot(walk_move, glm::vec3(1)) > 0.001f) {
+        robot_position_t += walk_dir * speed;
+    }
+    if(glm::dot(walk_rotate, glm::vec3(1)) > 0.001f) {
+        robot_rotation_t *= walk_rot;
+    }
+
+    robot_transform.setOrigin(robot_position_t);
+    robot_transform.setRotation(robot_rotation_t);
+    bullet_world_->SetTransformation(this, robot_transform);
+    bullet_world_->BulletStep();
+
+    std::vector<ContactPoint> contact_points;
+    bullet_world_->GetRootContactPoints(this, this->root_part_, contact_points);
+    int contact_ground_flag = 0;
+
+    for (int i = 0; i < contact_points.size(); ++i)
+    {
+        ContactPoint cp = contact_points[i];
+        if(cp.contact_distance < -0.02) {
+            robot_transform.setOrigin(robot_position);
+            robot_transform.setRotation(robot_rotation);
+            bullet_world_->SetTransformation(this, robot_transform);
+            bullet_world_->BulletStep();
+            return;
+        }
+    }
+
+    robot_position = robot_position_t;
+    robot_rotation = robot_rotation_t;
+    // printf("res: %d\n", res);
+}
+
+void Robot::Freeze(const bool remit) {
+    if(root_part_) {
+        Teleport(kVec3Zero, kVec3Zero, 0.0f, remit);
+    }
+}
+
+void Robot::MoveForward(const float speed) {
+    if(root_part_) {
+        Teleport(kVec3Front, kVec3Zero, speed);
+    }
+}
+
+void Robot::MoveBackward(const float speed) {
+    if(root_part_) {
+        Teleport(kVec3Front, kVec3Zero, -speed);
+    }
+}
+
+void Robot::TurnLeft(const float speed) {
+    if(root_part_) {
+        Teleport(kVec3Zero, kVec3Right, speed);
+    }
+}
+
+void Robot::TurnRight(const float speed) {
+    if(root_part_) {
+        Teleport(kVec3Zero, kVec3Right, -speed);
+    }
+}
+
+void Robot::SetJointVelocity(const int joint_id, const float speed,
+                             const float k_d, const float max_force) {
+    assert(joint_id > -1 && joint_id < joints_list_.size());
+
+    joints_list_[joint_id]->SetJointMotorControlVelocity(speed, k_d,
+            max_force);
+}
+
+void Robot::SetJointPosition(const int joint_id, const float target,
+                             const float k_p, const float k_d,
+                             const float max_force) {
+    assert(joint_id > -1 && joint_id < joints_list_.size());
+
+    joints_list_[joint_id]->SetJointMotorControlPosition(target, k_d,
+            k_p, max_force);
+}
+
+void Robot::ResetJointState(const int joint_id, const float pos,
+                            const float vel) {
+    assert(joint_id > -2 && joint_id < joints_list_.size());
+
+    joints_list_[joint_id]->ResetJointState(pos, vel);
+}
+
 void Robot::RemoveRobotFromBullet() {
     if(bullet_handle_ < 0) return;
 
@@ -334,11 +445,13 @@ void Robot::DisableSleeping()
 
     if (root_part_) {
         root_part_->DisableSleeping();
+        root_part_->Wake();
     }
 
     for (Object* part : other_parts_) {
        if (part) {
             part->DisableSleeping();
+            part->Wake();
        }
     }
 }
@@ -448,11 +561,13 @@ World::World() : robot_list_(0),
                  client_(0), 
                  recycle_robot_map_(),
                  model_cache_(),
+                 object_locations_(),
                  bullet_gravity_(0),
                  bullet_timestep_(0),
                  bullet_timestep_sent_(0),
                  bullet_skip_frames_sent_(0),
-                 bullet_ts_(0) {}
+                 bullet_ts_(0),
+                 reset_count_(0) {}
 
 World::~World() {
     CleanEverything();
@@ -485,6 +600,8 @@ void World::RemoveRobot(Robot * robot) {
         robot_list_[i] = nullptr;
         robot_list_.erase(index);        
     }
+
+    RemoveObjectWithLabel(robot->bullet_handle_);
 
     bullet_handle_to_robot_map_[robot->bullet_handle_] = nullptr;
 }
@@ -528,6 +645,8 @@ void World::RemoveRobot2(Robot * robot) {
         robot_list_temp.push_back(robot);
         recycle_robot_map_[robot->urdf_name_] = robot_list_temp;
     }
+
+    RemoveObjectWithLabel(robot->bullet_handle_);
 }
 
 void World::CleanEverything2()
@@ -570,14 +689,17 @@ void World::CleanEverything()
 {
     for (unsigned int i = 0; i < robot_list_.size(); ++i)
     {
-        if(robot_list_[i])
+        if(robot_list_[i]){
             delete robot_list_[i];
+        }
     }
+
     remove_all_cameras();
 
     recycle_robot_map_.clear();
     robot_list_.clear();
     bullet_handle_to_robot_map_.clear();
+    object_locations_.clear();
     ResetSimulation();
 }
 
@@ -585,7 +707,7 @@ void World::BulletStep(const int skip_frames)
 {
     float need_timestep = bullet_timestep_ * skip_frames;
     if (bullet_timestep_sent_ != need_timestep ||
-        bullet_skip_frames_sent_ != skip_frames) {
+        bullet_skip_frames_sent_ != skip_frames || true) {
         CommandHandle cmd_handle = b3InitPhysicsParamCommand(client_);
         b3PhysicsParamSetGravity(cmd_handle, 0, bullet_gravity_, 0);
         b3PhysicsParamSetDefaultContactERP(cmd_handle, 0.2);
@@ -711,6 +833,84 @@ void World::BulletInit(const float gravity, const float timestep)
     b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
 }
 
+void World::GetRootContactPoints(const Robot* robot, const Object* part,
+        std::vector<ContactPoint>& contact_points)
+{
+    int bodyUniqueIdA = robot->root_part_->bullet_handle_;
+    int linkIndexA = part->bullet_link_id_;
+
+    struct b3ContactInformation contact_point_data;
+
+    CommandHandle cmd_handle = b3InitRequestContactPointInformation(client_);
+
+    b3SetContactFilterBodyA(cmd_handle, bodyUniqueIdA);
+    // b3SetContactFilterLinkA(cmd_handle, -1);
+
+    StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
+    int status_type = b3GetStatusType(status_handle);
+    if (status_type == CMD_CONTACT_POINT_INFORMATION_COMPLETED)
+    {
+        b3GetContactPointInformation(client_, &contact_point_data);
+
+        contact_points.clear();
+
+        for (int i = 0; i < contact_point_data.m_numContactPoints; ++i)
+        {
+            ContactPoint point;
+
+            float normal_x, normal_y, normal_z;
+            normal_x = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[0];
+            normal_y = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[1];
+            normal_z = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[2];
+            point.contact_normal = glm::vec3(normal_x, normal_y, normal_z);
+            point.contact_distance = contact_point_data.m_contactPointData[i].m_contactDistance;
+
+            contact_points.push_back(point);
+        }
+        //printf("contact: %d\n", contact_point_data.m_numContactPoints);
+    }
+}
+
+void World::CharacterMove(Robot* robot, const glm::vec3 walk_move,
+            const glm::vec3 walk_rotate, const float speed)
+{
+    btTransform robot_transform = robot->root_part_->object_position_;
+    btVector3 robot_position = robot_transform.getOrigin();
+    btQuaternion robot_rotation = robot_transform.getRotation();
+
+    glm::vec3 walk_dir_temp = glm::normalize(walk_move);
+    btVector3 walk_dir = btVector3(walk_dir_temp.x, walk_dir_temp.y, walk_dir_temp.z);
+    walk_dir = btTransform(robot_rotation) * walk_dir;
+
+    btVector3 walk_rot_temp = btVector3(walk_rotate.x, walk_rotate.y, walk_rotate.z);
+    btQuaternion walk_rot = btQuaternion(walk_rot_temp, speed);
+
+    // std::vector<ContactPoint> contact_points;
+    // GetRootContactPoints(robot, contact_points);
+    // int contact_ground_flag = 0;
+
+
+    glm::vec3 fromPosition = glm::vec3(robot_position[0], robot_position[1], robot_position[2]) + glm::vec3(0, 0.15f, 0);
+    glm::vec3 toPosition = fromPosition - glm::vec3(0, 0.2f, 0);
+    int res = RayTest(fromPosition, toPosition);
+
+    if(glm::dot(walk_move, glm::vec3(1)) > 0.001f) {
+        robot_position += walk_dir * speed;
+    }
+    if(glm::dot(walk_rotate, glm::vec3(1)) > 0.001f) {
+        robot_rotation *= walk_rot;
+    }
+
+    if(res < 0) {
+        robot_position += btVector3(0,-9.81,0) * 0.001f;
+    }
+    //printf("Contact: %d\n", res);
+
+    robot_transform.setOrigin(robot_position);
+    robot_transform.setRotation(robot_rotation);
+    SetTransformation(robot, robot_transform);
+}
+
 void World::ChangeFixedRootToTargetConstraint(
     const int constraint_id,
     const btVector3& child_relative_position,
@@ -787,7 +987,7 @@ int World::CreateFixedRootToTargetConstraint(
 
 
 void World::SetVelocity(
-    const Robot* robot,
+    Robot* robot,
     const btVector3& velocity)
 {
     CommandHandle cmd_handle = b3CreatePoseCommandInit(client_, robot->bullet_handle_);
@@ -801,10 +1001,10 @@ void World::SetVelocity(
 }
 
 void World::SetTransformation(
-    const Robot* robot,
-    const btTransform& tranform
-)
+    Robot* robot,
+    const btTransform& tranform)
 {
+    assert(robot);
     CommandHandle cmd_handle = b3CreatePoseCommandInit(client_, robot->bullet_handle_);
 
     b3CreatePoseCommandSetBasePosition(
@@ -825,10 +1025,54 @@ void World::SetTransformation(
     b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
 }
 
+void World::BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& result,
+    const int num_threads)
+{
+    CommandHandle cmd_handle = b3CreateRaycastBatchCommandInit(client_);
+    b3RaycastBatchSetNumThreads(cmd_handle, num_threads);
+
+    double ray_from_position_temp[rays.size() * 3];
+    double ray_to_position_temp[rays.size() * 3];
+    for (int i = 0; i < rays.size(); ++i)
+    {
+        ray_from_position_temp[3 * i + 0] = rays[i].from.x;
+        ray_from_position_temp[3 * i + 1] = rays[i].from.y;
+        ray_from_position_temp[3 * i + 2] = rays[i].from.z;
+
+        ray_to_position_temp[3 * i + 0] = rays[i].to.x;
+        ray_to_position_temp[3 * i + 1] = rays[i].to.y;
+        ray_to_position_temp[3 * i + 2] = rays[i].to.z;
+    }
+
+    b3RaycastBatchAddRays(client_, cmd_handle, ray_from_position_temp, ray_to_position_temp, rays.size());
+
+    StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
+    if (b3GetStatusType(status_handle) == CMD_REQUEST_RAY_CAST_INTERSECTIONS_COMPLETED)
+    {
+        struct b3RaycastInformation raycast_info;
+        b3GetRaycastInformation(client_, &raycast_info);
+
+        for (int i = 0; i < raycast_info.m_numRayHits; ++i)
+        {
+            RayTestInfo res;
+            res.bullet_id = raycast_info.m_rayHits[i].m_hitObjectUniqueId;
+
+            glm::vec3 pos_temp;
+            pos_temp[0] = raycast_info.m_rayHits[i].m_hitPositionWorld[0];
+            pos_temp[1] = raycast_info.m_rayHits[i].m_hitPositionWorld[1];
+            pos_temp[2] = raycast_info.m_rayHits[i].m_hitPositionWorld[2];
+            res.pos = pos_temp;
+            
+            result.push_back(res);
+        } 
+    }
+    return;
+}
+
 int World::RayTest(const vec3 ray_from_position, const vec3 ray_to_position)
 {
     CommandHandle cmd_handle = b3CreateRaycastBatchCommandInit(client_);
-    b3RaycastBatchSetNumThreads(cmd_handle, 8);
+    b3RaycastBatchSetNumThreads(cmd_handle, 2);
 
     double ray_from_position_temp[3];
     ray_from_position_temp[0] = ray_from_position.x;
@@ -852,23 +1096,24 @@ int World::RayTest(const vec3 ray_from_position, const vec3 ray_to_position)
     return -1;
 }
 
-Robot* World::load_model_from_cache(const std::string& fn,
-                                    const btVector3 pos,
-                                    const btQuaternion rot) {
+Robot* World::LoadModelFromCache(
+        const std::string& filename,
+        const btVector3 position,
+        const btQuaternion rotation) {
 
     Robot * robot = nullptr;
 
-    if (recycle_robot_map_.find(fn) != recycle_robot_map_.end() && 
-            !recycle_robot_map_[fn].empty()) {
+    if (recycle_robot_map_.find(filename) != recycle_robot_map_.end() && 
+            !recycle_robot_map_[filename].empty()) {
 
-        robot = recycle_robot_map_[fn].back();
-        recycle_robot_map_[fn].pop_back();
+        robot = recycle_robot_map_[filename].back();
+        recycle_robot_map_[filename].pop_back();
         robot->recycle(false);
 
         btTransform transform;
         transform.setIdentity();
-        transform.setOrigin(pos);
-        transform.setRotation(rot);
+        transform.setOrigin(position);
+        transform.setRotation(rotation);
 
         SetTransformation(robot, transform);
         SetVelocity(robot, btVector3(0,0,0));
@@ -876,11 +1121,112 @@ Robot* World::load_model_from_cache(const std::string& fn,
     return robot;
 }
 
-Robot* World::load_urdf_from_file(
+void World::QueryObjectDirectionByLabel(const std::string& label, const glm::vec3 front,
+        const glm::vec3 eye, std::vector<ObjectDirections>& result) {
+    assert(!label.empty());
+
+    if(object_locations_.find(label) != object_locations_.end()) {
+
+        auto find = object_locations_[label];
+
+        result.clear();
+
+        for (int i = 0; i < find.size(); ++i)
+        {
+            int bullet_id = find[i];
+            Robot * object = bullet_handle_to_robot_map_[bullet_id];
+
+            glm::vec3 root_aabb_min, root_aabb_max;
+            object->root_part_->GetAABB(root_aabb_min, root_aabb_max);
+
+            ObjectDirections directions;
+
+            glm::vec3 bbox_positions[9];
+            bbox_positions[0] = (root_aabb_min + root_aabb_max) * 0.5f;
+            bbox_positions[1] = glm::vec3(root_aabb_min.x, root_aabb_min.y, root_aabb_min.z);
+            bbox_positions[2] = glm::vec3(root_aabb_min.x, root_aabb_min.y, root_aabb_max.z);
+            bbox_positions[3] = glm::vec3(root_aabb_min.x, root_aabb_max.y, root_aabb_min.z);
+            bbox_positions[4] = glm::vec3(root_aabb_min.x, root_aabb_max.y, root_aabb_max.z);
+            bbox_positions[5] = glm::vec3(root_aabb_max.x, root_aabb_max.y, root_aabb_min.z);
+            bbox_positions[6] = glm::vec3(root_aabb_max.x, root_aabb_max.y, root_aabb_max.z);
+            bbox_positions[7] = glm::vec3(root_aabb_max.x, root_aabb_min.y, root_aabb_max.z);
+            bbox_positions[8] = glm::vec3(root_aabb_max.x, root_aabb_max.y, root_aabb_max.z);
+
+            directions.dirs[0] = glm::angle(glm::normalize(bbox_positions[0] - eye), front);
+            directions.dirs[1] = glm::angle(glm::normalize(bbox_positions[1] - eye), front);
+            directions.dirs[2] = glm::angle(glm::normalize(bbox_positions[2] - eye), front);
+            directions.dirs[3] = glm::angle(glm::normalize(bbox_positions[3] - eye), front);
+            directions.dirs[4] = glm::angle(glm::normalize(bbox_positions[4] - eye), front);
+            directions.dirs[5] = glm::angle(glm::normalize(bbox_positions[5] - eye), front);
+            directions.dirs[6] = glm::angle(glm::normalize(bbox_positions[6] - eye), front);
+            directions.dirs[7] = glm::angle(glm::normalize(bbox_positions[7] - eye), front);
+            directions.dirs[8] = glm::angle(glm::normalize(bbox_positions[8] - eye), front);
+            directions.bullet_id = bullet_id;
+
+            result.push_back(directions);
+        }
+    }
+}
+
+void World::QueryObjectByLabel(const std::string& label,
+        std::vector<ObjectAttributes>& result) {
+    assert(!label.empty());
+
+    if(object_locations_.find(label) != object_locations_.end()) {
+
+        auto find = object_locations_[label];
+
+        result.clear();
+
+        for (int i = 0; i < find.size(); ++i)
+        {
+            int bullet_id = find[i];
+            Robot * object = bullet_handle_to_robot_map_[bullet_id];
+
+            glm::vec3 root_aabb_min, root_aabb_max;
+            object->root_part_->GetAABB(root_aabb_min, root_aabb_max);
+
+            ObjectAttributes attribs;
+            attribs.aabb_min = root_aabb_min;
+            attribs.aabb_max = root_aabb_max;
+            attribs.bullet_id = bullet_id;
+
+            result.push_back(attribs);
+        }
+    }
+}
+
+void World::AddObjectWithLabel(const std::string& label,
+        const int id) {
+    assert(!label.empty());
+
+    if(object_locations_.find(label) == object_locations_.end()) {
+        std::vector<int> bullet_id_list;
+        bullet_id_list.push_back(id);
+        object_locations_[label] = bullet_id_list;
+    } else {
+        object_locations_[label].push_back(id);
+    }
+}
+
+void World::RemoveObjectWithLabel(const int id) {
+    for (auto it = object_locations_.begin(); it != object_locations_.end(); ++it)
+    {
+        if(it->second.size() > 0) {
+            auto find = std::find(it->second.begin(), it->second.end(), id);
+            if(find != it->second.end()) {
+                it->second.erase(find);
+            }
+        }
+    }
+}
+
+Robot* World::LoadURDFFile(
         const std::string& filename,
         const btVector3 position,
         const btQuaternion rotation,
         const float scale,
+        const std::string& label,
         const bool fixed_base,
         const bool self_collision,
         const bool use_multibody) {
@@ -924,18 +1270,26 @@ Robot* World::load_urdf_from_file(
 
     robot_list_.push_back(robot);
     bullet_handle_to_robot_map_[robot->bullet_handle_] = robot;
+
+    AddObjectWithLabel(label, robot->bullet_handle_);
+
     return robot;
 }
 
-Robot* World::load_urdf(const std::string& filename,
-                        const btVector3 position,
-                        const btQuaternion rotation,
-                        const float scale,
-                        const bool fixed_base) {
-    Robot* robot = load_model_from_cache(filename, position, rotation);
-    if (robot) {
+Robot* World::LoadURDF(
+    const std::string& filename,
+    const btVector3 position,
+    const btQuaternion rotation,
+    const float scale,
+    const std::string& label,
+    const bool fixed_base)
+{
+    Robot * robot = LoadModelFromCache(filename, position, rotation);
+
+    if(robot) {
         float mass;
         robot->root_part_->ChangeMass(robot->root_part_->GetMassOriginal());
+        robot->root_part_->Wake();
 
         for (Joint * joint : robot->joints_list_) {
             if(joint) {
@@ -946,41 +1300,55 @@ Robot* World::load_urdf(const std::string& filename,
         for (Object * part : robot->other_parts_) {
             part->ChangeMass(part->GetMassOriginal());
         }
+
+        AddObjectWithLabel(label, robot->bullet_handle_);
     } else {
-        robot = load_urdf_from_file(
-            filename, position, rotation, scale, fixed_base, false, true);
+        robot = LoadURDFFile(
+            filename, position, rotation, scale, label, fixed_base, false, true);
         robot->recycle(false);
     }
 
     return robot;
 }
 
-
-Robot* World::load_obj(const std::string& filename,
-                       const btVector3 position,
-                       const btQuaternion rotation,
-                       const btVector3 scale,
-                       const bool flip,
-                       const bool concave) {
-    std::string fn_s = filename + ":"
-            + std::to_string(scale[0]) + ":"
-            + std::to_string(scale[1]) + ":"
-            + std::to_string(scale[2]);
-    Robot* robot = load_model_from_cache(fn_s, position, rotation);
-
-    if (!robot) {
-        robot = load_obj_from_file(
-                fn_s, position, rotation, scale, flip, concave);
-    }
-    return robot;
-}
-
-
-Robot* World::load_obj_from_file(
+Robot* World::LoadOBJ(
     const std::string& filename,
     const btVector3 position,
     const btQuaternion rotation,
     const btVector3 scale,
+    const std::string& label,
+    const float mass,
+    const bool flip,
+    const bool concave)
+{
+
+    std::string filename_with_scale = filename + ":" + 
+        std::to_string(scale[0]) + ":" + std::to_string(scale[1]) + ":" + std::to_string(scale[2]);
+
+    Robot* robot = LoadModelFromCache(filename_with_scale, position, rotation);
+
+    if(!robot) {
+        robot = LoadOBJFile(
+            filename,
+            position,
+            rotation,
+            scale,
+            label,
+            mass,
+            flip,
+            concave
+        );
+    }
+    return robot;
+}
+
+Robot* World::LoadOBJFile(
+    const std::string& filename,
+    const btVector3 position,
+    const btQuaternion rotation,
+    const btVector3 scale,
+    const std::string& label,
+    const float mass,
     const bool flip,
     const bool concave) {
 
@@ -1000,9 +1368,8 @@ Robot* World::load_obj_from_file(
     b3LoadObjCommandSetStartOrientation(
             cmd_handle, rotation[0], rotation[1], rotation[2], rotation[3]);
     b3LoadObjCommandSetStartScale(cmd_handle, scale[0], scale[1], scale[2]);
-    StatusHandle status_handle =
-        b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
-
+    b3LoadObjCommandSetMass(cmd_handle, mass);
+    StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
 
     int status_type = b3GetStatusType(status_handle);
     if (status_type != CMD_OBJ_LOADING_COMPLETED) {
@@ -1045,6 +1412,8 @@ Robot* World::load_obj_from_file(
 
     robot_list_.push_back(robot);
     bullet_handle_to_robot_map_[robot->bullet_handle_] = robot;
+
+    AddObjectWithLabel(label, robot->bullet_handle_);
 
     return robot;
 }

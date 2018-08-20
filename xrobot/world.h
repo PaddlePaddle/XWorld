@@ -10,6 +10,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/vector_angle.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "bullet/LinearMath/btTransform.h"
@@ -25,6 +26,10 @@
 namespace xrobot {
 
 constexpr int kCacheSize = 32;
+const glm::vec3 kVec3Zero = glm::vec3(0); 
+const glm::vec3 kVec3Up = glm::vec3(0,1,0);
+const glm::vec3 kVec3Front = glm::vec3(1,0,0);
+const glm::vec3 kVec3Right = glm::vec3(0,0,1);
 
 typedef b3SharedMemoryCommandHandle CommandHandle;
 typedef b3SharedMemoryStatusHandle StatusHandle;
@@ -89,6 +94,39 @@ inline btTransform TransformFromDoubles(const double* position, const double* or
         orientation_temp[3] = orientation[3];
     }
     return btTransform(orientation_temp, position_temp);
+}
+
+// http://www.opengl-tutorial.org
+// Rotation
+inline glm::quat RotationBetweenVectors(const glm::vec3 start, const glm::vec3 dest)
+{
+    glm::vec3 start_norm = glm::normalize(start);
+    glm::vec3 dest_norm = glm::normalize(dest);
+
+    float cosTheta = glm::dot(start_norm, dest_norm);
+    glm::vec3 rotationAxis;
+
+    if (cosTheta < -1 + 0.0001f){
+        rotationAxis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), start_norm);
+        if (glm::length2(rotationAxis) < 0.001f)
+            rotationAxis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), start_norm);
+
+        rotationAxis = glm::normalize(rotationAxis);
+        return glm::angleAxis(glm::radians(180.0f), rotationAxis);
+    }
+
+    // Implementation from Stan Melax's Game Programming Gems 1 article
+    rotationAxis = glm::cross(start_norm, dest_norm);
+
+    float s = sqrt( (1+cosTheta)*2 );
+    float invs = 1 / s;
+
+    return glm::quat(
+        s * 0.5f, 
+        rotationAxis.x * invs,
+        rotationAxis.y * invs,
+        rotationAxis.z * invs
+    );
 }
 
 class Robot;
@@ -158,7 +196,6 @@ public:
     btVector3   object_speed_;
     btVector3   object_angular_speed_;
 
-protected:
     float object_mass_original_;
 
 // xrobot::render_engine::RenderPart
@@ -180,6 +217,16 @@ public:
 
     void RemoveRobotFromBullet();
 
+    void SetJointVelocity(const int joint_id, const float speed,
+                          const float k_d, const float max_force);
+
+    void SetJointPosition(const int joint_id, const float target,
+                          const float k_p, const float k_d,
+                          const float max_force);
+
+    void ResetJointState(const int joint_id, const float pos,
+                         const float vel);
+
     void CalculateInverseKinematics(
             const int end_index, 
             const btVector3 target_position,
@@ -187,6 +234,16 @@ public:
             double* joint_damping,
             double* ik_output_joint_pos,
             int &num_poses);
+
+    void Teleport(const glm::vec3 walk_move,
+                  const glm::vec3 walk_rotate,
+                  const float speed, const bool remit = false);
+
+    virtual void Freeze(const bool remit = false);
+    virtual void MoveForward(const float speed);
+    virtual void MoveBackward(const float speed);
+    virtual void TurnLeft(const float speed);
+    virtual void TurnRight(const float speed);
 
     World* bullet_world_;
     std::string urdf_name_;
@@ -210,6 +267,33 @@ public:
                        glm::vec3& up) override;
 };
 
+struct ContactPoint {
+    glm::vec3 contact_normal;
+    float contact_distance;
+};
+
+struct Ray {
+    glm::vec3 from;
+    glm::vec3 to;
+};
+
+struct RayTestInfo
+{
+    int bullet_id;
+    glm::vec3 pos;
+};
+
+struct ObjectAttributes {
+    glm::vec3 aabb_min;
+    glm::vec3 aabb_max;
+    int bullet_id;
+};
+
+struct ObjectDirections {
+    float dirs[9];
+    int bullet_id;
+};
+
 class World : public render_engine::RenderWorld {
     using RenderBody = render_engine::RenderBody;
 public:
@@ -221,12 +305,14 @@ public:
     std::map<int, Robot*> bullet_handle_to_robot_map_;
     std::map<std::string, std::vector<Robot *>> recycle_robot_map_;
     std::map<std::string, render_engine::ModelData *> model_cache_;
+    std::map<std::string, std::vector<int>> object_locations_;
 
     float bullet_gravity_;
     float bullet_timestep_;
     float bullet_timestep_sent_;
     float bullet_skip_frames_sent_;
     double bullet_ts_;
+    int reset_count_;
 
     render_engine::ModelData * FindInCache(const std::string &key,
         std::vector<render_engine::ModelData*> &model_list, bool& reset);
@@ -244,8 +330,13 @@ public:
     void CleanEverything2();
     void ResetSimulation();
     int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
-    void SetTransformation(const Robot* robot, const btTransform& tranform);
-    void SetVelocity(const Robot* robot, const btVector3& velocity);
+    void BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& result,
+        const int num_threads = 0);
+    void SetTransformation(Robot* robot, const btTransform& tranform);
+    void SetVelocity(Robot* robot, const btVector3& velocity);
+
+    void GetRootContactPoints(const Robot* robot, const Object* part,
+        std::vector<ContactPoint>& contact_points);
 
     int CreateFixedRootToTargetConstraint(Robot* parent,
         const btVector3& parent_relative_position,
@@ -260,42 +351,70 @@ public:
         const float max_force = 500.0f
     );
 
-    Robot* load_urdf(const std::string& filename,
-                     const btVector3 position,
-                     const btQuaternion rotation,
-                     const float scale = 1.0f,
-                     const bool fixed_base = false);
 
-    Robot* load_obj(const std::string& filename,
-                    const btVector3 position,
-                    const btQuaternion rotation,
-                    const btVector3 scale,
-                    const bool flip = false,
-                    const bool concave = false);
+    void CharacterMove(Robot* robot, const glm::vec3 walk_move,
+        const glm::vec3 walk_rotate, const float speed);
 
+
+    void AddObjectWithLabel(const std::string& label,
+        const int id);
+    void RemoveObjectWithLabel(const int id);
+    void QueryObjectDirectionByLabel(const std::string& label, const glm::vec3 front,
+        const glm::vec3 eye, std::vector<ObjectDirections>& result);
+    void QueryObjectByLabel(const std::string& label,
+        std::vector<ObjectAttributes>& result);
+
+
+    Robot* LoadOBJ(
+        const std::string& filename,
+        const btVector3 position,
+        const btQuaternion rotation,
+        const btVector3 scale,
+        const std::string& label = "unlabeled",
+        const float mass = 0,
+        const bool flip = false,
+        const bool concave = false
+    );
+
+    Robot* LoadURDF(
+        const std::string& filename,
+        const btVector3 position,
+        const btQuaternion rotation,
+        const float scale = 1.0f,
+        const std::string& label = "unlabeled",
+        const bool fixed_base = false
+    );
 
 private:
-    Robot* load_model_from_cache(const std::string& fn,
-                                 const btVector3 pos,
-                                 const btQuaternion rot);
+    Robot* LoadModelFromCache(
+        const std::string& filename,
+        const btVector3 position,
+        const btQuaternion rotation
+    );
 
-    Robot* load_urdf_from_file(const std::string& filename,
-                               const btVector3 position,
-                               const btQuaternion rotation,
-                               const float scale = 1.0f,
-                               const bool fixed_base = false,
-                               const bool self_collision = false,
-                               const bool use_multibody = true);
+    Robot* LoadURDFFile(
+        const std::string& filename,
+        const btVector3 position,
+        const btQuaternion rotation,
+        const float scale = 1.0f,
+        const std::string& label = "unlabeled",
+        const bool fixed_base = false,
+        const bool self_collision = false,
+        const bool use_multibody = true
+    );
 
-    Robot* load_obj_from_file(const std::string& filename,
-                              const btVector3 position,
-                              const btQuaternion rotation,
-                              const btVector3 scale,
-                              const bool flip = false,
-                              const bool concave = false);
+
+    Robot* LoadOBJFile(
+        const std::string& filename,
+        const btVector3 position,
+        const btQuaternion rotation,
+        const btVector3 scale,
+        const std::string& label = "unlabeled",
+        const float mass = 0,
+        const bool flip = false,
+        const bool concave = false
+    );
     
-
-
 public:
     size_t size() const override { return robot_list_.size(); }
 

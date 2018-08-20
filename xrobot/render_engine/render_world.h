@@ -50,10 +50,15 @@ public:
 
 class RenderBody {
 public:
-    RenderBody() : recycle_(false) {}
+    RenderBody() : recycle_(false), move_(false) {}
 
     virtual ~RenderBody() {}
-bool recycle() const { return recycle_; }
+
+    bool move() const { return move_; }
+
+    void move(const bool value) { move_ = value; }
+
+    bool recycle() const { return recycle_; }
 
     void recycle(const bool value) { recycle_ = value; }
 
@@ -71,14 +76,40 @@ bool recycle() const { return recycle_; }
                                glm::vec3& up) = 0;
 
 protected:
+    bool move_;
     bool recycle_;
 };
 
 class RenderWorld {
 public:
-    RenderWorld() : cameras_(0), camera_to_body_() {}
+
+    RenderWorld() : cameras_(0),
+                    world_min_x_(-2),
+                    world_min_z_(-2),
+                    world_max_x_( 2),
+                    world_max_z_( 2) {}
 
     virtual size_t size() const = 0;
+
+    void set_world_size(const float min_x,
+                        const float min_z,
+                        const float max_x,
+                        const float max_z) {
+        world_min_x_ = min_x;
+        world_min_z_ = min_z;
+        world_max_x_ = max_x;
+        world_max_z_ = max_z;
+    }
+
+    void get_world_size(float& min_x,
+                        float& min_z,
+                        float& max_x,
+                        float& max_z) const {
+        min_x = world_min_x_;
+        min_z = world_min_z_;
+        max_x = world_max_x_;
+        max_z = world_max_z_;
+    }
 
     virtual const RenderBody* render_body_ptr(const size_t i) const = 0;
  
@@ -90,14 +121,16 @@ public:
 
     Camera* camera(int i);
 
+    size_t cameras_size() { return cameras_.size(); }
+
     void attach_camera(Camera* camera, RenderBody* body);
 
     Camera* add_camera(const glm::vec3& position,
                        const glm::vec3& offset = glm::vec3(0),
-                       const float aspect_ratio = 4.0f / 3.0f,
-                       const float fov = 90.0f,
+                       const float aspect_ratio = 16.0f / 9.0f,
+                       const float fov = 80.0f,
                        const float near = 0.01f,
-                       const float far = 10.0f);
+                       const float far = 25.0f);
             
     void detach_camera(Camera* camera);
 
@@ -108,6 +141,11 @@ public:
 protected:
     std::vector<Camera*> cameras_;
     std::map<Camera*, RenderBody*> camera_to_body_;
+
+    float world_min_x_;
+    float world_min_z_;
+    float world_max_x_;
+    float world_max_z_;
 };
 
 } } // xrobot::render_engine

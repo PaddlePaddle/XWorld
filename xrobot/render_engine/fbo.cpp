@@ -109,6 +109,9 @@ FBO::FBO(GLuint w,
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "FBO failed to initialize correctly." << std::endl;
 	}
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 FBO::~FBO() {

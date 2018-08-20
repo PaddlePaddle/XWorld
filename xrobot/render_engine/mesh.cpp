@@ -14,6 +14,11 @@ Mesh::Mesh(const std::vector<Vertex>& vertices,
     kS_ = glm::vec3(0.5);
     d_  = 1.0f;
     Ns_ = 1.0f;
+    diffuse_ = false;
+    bump_ = false;
+    specular_ = false;
+    height_ = false;
+    ao_ = false;
 
     SetupMesh();
 }
@@ -25,7 +30,12 @@ Mesh::Mesh(const std::vector<Vertex>& vertices,
            const glm::vec3& KDiffuse,
            const glm::vec3& kSpecular,
            float opacity,
-           float shininess) {
+           float shininess,
+           bool diffuseMap,
+           bool normalMap,
+           bool specularMap,
+           bool heightMap,
+           bool aoMap) {
     vertices_ = vertices;
     indices_ = indices;
     textures_ = textures;
@@ -35,18 +45,24 @@ Mesh::Mesh(const std::vector<Vertex>& vertices,
     kS_ = kSpecular;
     d_  = opacity;
     Ns_ = shininess;
+    diffuse_ = diffuseMap;
+    bump_ = normalMap;
+    specular_ = specularMap;
+    height_ = heightMap;
+    ao_ = aoMap;
 
     SetupMesh();
 }
 
 void Mesh::Draw(const Shader& shader) {
-    unsigned int diffuse_num  = 1;
-    unsigned int specular_num = 1;
-    unsigned int normal_num   = 1;
-    unsigned int height_num   = 1;
+    unsigned int diffuse_num  = 0;
+    unsigned int specular_num = 0;
+    unsigned int normal_num   = 0;
+    unsigned int height_num   = 0;
+    unsigned int ao_num       = 0;
 
     for (size_t i = 0; i < textures_.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
+        glActiveTexture(GL_TEXTURE4 + i);
 
         std::string number;
         std::string name = textures_[i].type;
@@ -56,10 +72,12 @@ void Mesh::Draw(const Shader& shader) {
             number = std::to_string(specular_num++);
         else if(name == "texture_normal")
             number = std::to_string(normal_num++);
-         else if(name == "texture_height")
+        else if(name == "texture_height")
             number = std::to_string(height_num++);
+        else if(name == "texture_ao")
+            number = std::to_string(ao_num++);
 
-        glUniform1i(glGetUniformLocation(shader.id(), (name+number).c_str()), i);
+        glUniform1i(glGetUniformLocation(shader.id(), (name+number).c_str()), 4 + i);
         glBindTexture(GL_TEXTURE_2D, textures_[i].id);
     }
 
@@ -69,6 +87,11 @@ void Mesh::Draw(const Shader& shader) {
     glUniform3fv(glGetUniformLocation(shader.id(), "kS"), 1, &kS_[0]);
     glUniform1f(glGetUniformLocation(shader.id(), "d"), d_);
     glUniform1f(glGetUniformLocation(shader.id(), "Ns"), Ns_);
+    glUniform1i(glGetUniformLocation(shader.id(), "bump"), bump_);
+    glUniform1i(glGetUniformLocation(shader.id(), "displacement"), height_);
+    glUniform1i(glGetUniformLocation(shader.id(), "diffuseMap"), diffuse_);
+    glUniform1i(glGetUniformLocation(shader.id(), "specularMap"), specular_);
+    glUniform1i(glGetUniformLocation(shader.id(), "aoMap"), ao_);
 
     // draw mesh
     glBindVertexArray(VAO_);

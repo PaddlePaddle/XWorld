@@ -61,10 +61,14 @@ public:
 
     ~ModelData();
     
+    void BoneTransform(float time, float duration,
+            std::vector<aiMatrix4x4>& transforms);
+
+
     void Draw(const Shader& shader);
 
     void Reset();
-   
+
 public: 
     std::vector<Texture> textures_loaded_;
     std::vector<Mesh> meshes_;
