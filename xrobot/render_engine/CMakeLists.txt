@@ -13,6 +13,7 @@ add_library(render_engine OBJECT
     model.cpp
     gl_context.cpp
     render.cpp
+    render_world.cpp
     render2d.cpp)
 
 add_dependencies(render_engine assimp glm glfw) 

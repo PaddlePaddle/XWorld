@@ -39,7 +39,7 @@ public:
 
     virtual void GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max) = 0;
 
-    virtual glm::mat4 position() const = 0;
+    virtual glm::mat4 translation_matrix() const = 0;
 
     virtual glm::mat4 local_inertial_frame() const = 0;
 
@@ -53,8 +53,7 @@ public:
     RenderBody() : recycle_(false) {}
 
     virtual ~RenderBody() {}
-
-    bool recycle() const { return recycle_; }
+bool recycle() const { return recycle_; }
 
     void recycle(const bool value) { recycle_ = value; }
 
@@ -64,6 +63,12 @@ public:
     virtual RenderPart* render_root_ptr() = 0;
     virtual const RenderPart* render_part_ptr(const size_t i) const = 0;
     virtual RenderPart* render_part_ptr(const size_t i) = 0;
+    virtual void attach_camera(const glm::vec3& offset,
+                               const float pitch,
+                               glm::vec3& loc,
+                               glm::vec3& front,
+                               glm::vec3& right,
+                               glm::vec3& up) = 0;
 
 protected:
     bool recycle_;
@@ -71,14 +76,38 @@ protected:
 
 class RenderWorld {
 public:
-    RenderWorld() : camera_list_(0) {}
+    RenderWorld() : cameras_(0), camera_to_body_() {}
+
     virtual size_t size() const = 0;
 
     virtual const RenderBody* render_body_ptr(const size_t i) const = 0;
+ 
     virtual RenderBody* render_body_ptr(const size_t i) = 0;
-// TODO: will change them to protected
-public:
-    std::vector<Camera*> camera_list_;
+
+    void render_step();
+
+    void remove_all_cameras();
+
+    Camera* camera(int i);
+
+    void attach_camera(Camera* camera, RenderBody* body);
+
+    Camera* add_camera(const glm::vec3& position,
+                       const glm::vec3& offset = glm::vec3(0),
+                       const float aspect_ratio = 4.0f / 3.0f,
+                       const float fov = 90.0f,
+                       const float near = 0.01f,
+                       const float far = 10.0f);
+            
+    void detach_camera(Camera* camera);
+
+    void remove_camera(Camera* camera);
+
+    void rotate_camera(Camera* camera, const float pitch);
+
+protected:
+    std::vector<Camera*> cameras_;
+    std::map<Camera*, RenderBody*> camera_to_body_;
 };
 
 } } // xrobot::render_engine
