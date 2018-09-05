@@ -358,7 +358,7 @@ void Render::Draw(RenderWorld* world, const Shader& shader) {
             ModelData* model = c->model_data(i);
             OriginTransformation* transform = c->transform(i);
 
-            glm::mat4 translate = c->position();
+            glm::mat4 translate = c->translation_matrix();
             glm::mat4 local_frame = 
                     glm::inverse(c->local_inertial_frame());
             glm::mat4 scale =  glm::scale(
@@ -442,7 +442,7 @@ void Render::StepRenderAllCameras(RenderWorld* world,
         glClearColor(1,1,1,0);      
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        Camera* camera = world->camera_list_[i];
+        Camera* camera = world->camera(i);
         glm::mat4 projection = camera->GetProjectionMatrix();
         glm::mat4 view = camera->GetViewMatrix();
 

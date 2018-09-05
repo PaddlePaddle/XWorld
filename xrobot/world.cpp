@@ -3,7 +3,6 @@
 namespace xrobot {
 
 using namespace glm;
-using namespace render_engine;
 
 Joint::Joint() : bullet_robot_(nullptr),
                  bullet_world_(nullptr),
@@ -289,7 +288,7 @@ float Object::GetMassOriginal()
     return object_mass_original_;
 }
 
-glm::mat4 Object::position() const {
+glm::mat4 Object::translation_matrix() const {
     return TransformToMat4(object_position_);
 }
 
@@ -409,8 +408,41 @@ RenderPart* Robot::render_part_ptr(const size_t i) {
     return static_cast<RenderPart*>(other_parts_[i]);
 }
 
+void Robot::attach_camera(const glm::vec3& offset,
+                          const float pitch,
+                          glm::vec3& loc,
+                          glm::vec3& front,
+                          glm::vec3& right,
+                          glm::vec3& up) {
+    if (!root_part_) { return; }
+
+    btTransform pose = root_part_->object_position_;
+    auto base_orientation = pose.getBasis();
+    btVector3 base_front = base_orientation * btVector3(1, 0, 0); 
+
+    // TODO: this part of codes are just used to compute the offset of camera
+    // relative to the body, i.e., camera_aim.
+    glm::vec3 f = glm::normalize(
+            glm::vec3(base_front[0], base_front[1], base_front[2]));
+    glm::vec3 r = glm::normalize(glm::cross(f, glm::vec3(0,-1,0)));
+    glm::vec3 u = glm::normalize(glm::cross(f, r));
+    glm::vec3 camera_aim(f*offset.x + u*offset.y + r*offset.z);
+
+    btMatrix3x3 pre_orientation;
+    pre_orientation.setIdentity();
+    pre_orientation.setEulerYPR(0, glm::radians(pitch), 0);
+    base_front = base_orientation * pre_orientation * btVector3(1, 0, 0); 
+    front = glm::normalize(vec3(base_front[0], base_front[1], base_front[2]));
+    right = glm::normalize(glm::cross(front, glm::vec3(0,-1,0)));
+    up = glm::normalize(glm::cross(front, right));
+
+    auto base_position = pose.getOrigin();
+    std::cout << base_position[0] << " " << base_position[1] << " " << base_position[2] << std::endl;
+    loc = glm::vec3(base_position[0], base_position[1], base_position[2]) 
+          + camera_aim;
+}
+
 World::World() : robot_list_(0),
-                 attached_camera_to_robot_map_(),
                  bullet_handle_to_robot_map_(),
                  client_(0), 
                  recycle_robot_map_(),
@@ -519,12 +551,7 @@ void World::CleanEverything2()
         }
     }
 
-    for(unsigned int i = 0; i < camera_list_.size(); ++i)
-    {
-        delete camera_list_[i];
-    }
-    camera_list_.clear();
-    attached_camera_to_robot_map_.clear();
+    remove_all_cameras();
 }
 
 void World::PrintCacheInfo()
@@ -545,84 +572,12 @@ void World::CleanEverything()
         if(robot_list_[i])
             delete robot_list_[i];
     }
+    remove_all_cameras();
+
     recycle_robot_map_.clear();
     robot_list_.clear();
     bullet_handle_to_robot_map_.clear();
     ResetSimulation();
-}
-
-Camera* World::AddCamera(const vec3 position, const vec3 offset, 
-    const float aspect_ratio, const float fov, const float near, const float far)
-{
-    Camera * camera = new Camera(position);
-    camera->Near = near;
-    camera->Far = far;
-    camera->Zoom = fov;
-    camera->Offset = offset;
-    camera->Aspect = aspect_ratio;
-    camera_list_.push_back(camera);
-    return camera;
-}
-
-void World::AttachCamera(Camera * camera, Robot * robot)
-{
-    if(!camera) return;
-    attached_camera_to_robot_map_[camera] = robot;
-}
-
-void World::DeattachCamera(Camera * camera)
-{
-    if(!camera) return;
-    attached_camera_to_robot_map_[camera] = nullptr;
-}
-
-void World::RemoveCamera(Camera * camera)
-{
-    if(!camera) return;
-    auto index = std::find(camera_list_.begin(), camera_list_.end(), camera);
-    if(index != camera_list_.end())
-    {
-        int i = index - camera_list_.begin();
-        delete camera_list_[i];
-        camera_list_[i] = nullptr;
-        camera_list_.erase(index);
-    }
-    attached_camera_to_robot_map_.erase(camera);
-}
-
-void World::AttachCameraToRoot(Camera * camera, Robot * robot)
-{
-    if(!camera || !robot || !robot->root_part_) return;
-
-    Object* root_part = robot->root_part_;
-    btTransform position = root_part->object_position_;
-    btTransform inertial_frame = root_part->object_local_inertial_frame_;
-
-    auto base_position = position.getOrigin();
-    auto base_orentation = position.getBasis();
-    btVector3 base_front = base_orentation * btVector3(1, 0, 0); 
-
-    vec3 offset = camera->Offset;
-    camera->Front = glm::normalize(vec3(base_front[0], base_front[1], base_front[2]));
-    camera->Right = glm::normalize(glm::cross(camera->Front, vec3(0,-1,0)));
-    camera->Up    = glm::normalize(glm::cross(camera->Front,camera->Right));
-    vec3 camera_aim(camera->Front * offset.x + camera->Up * offset.y + camera->Right * offset.z);
-
-    btMatrix3x3 pre_orientation;
-    pre_orientation.setIdentity();
-    pre_orientation.setEulerYPR(0,glm::radians(camera->Pre_Pitch),0);
-
-    base_front = base_orentation * pre_orientation * btVector3(1, 0, 0); 
-    camera->Front = glm::normalize(vec3(base_front[0], base_front[1], base_front[2]));
-    camera->Right = glm::normalize(glm::cross(camera->Front, vec3(0,-1,0)));
-    camera->Up    = glm::normalize(glm::cross(camera->Front,camera->Right));
-    camera->Position = vec3(base_position[0], base_position[1], base_position[2]) + camera_aim;
-}
-
-void World::RotateCamera(Camera * camera, const float pitch)
-{
-    if(!camera) return;
-    camera->Pre_Pitch = pitch;
 }
 
 void World::BulletStep(const int skip_frames)
@@ -660,13 +615,7 @@ void World::BulletStep(const int skip_frames)
     bullet_ts_ += bullet_timestep_ * skip_frames;
     QueryPositions();
 
-    for (auto index = attached_camera_to_robot_map_.begin(); index != attached_camera_to_robot_map_.end(); index++)
-    {
-        auto camera = index->first;
-        auto robot  = index->second;
-        if(!camera || !robot) continue;
-        AttachCameraToRoot(camera, robot);
-    }
+    render_step();
 }
 
 void World::QueryPositions()

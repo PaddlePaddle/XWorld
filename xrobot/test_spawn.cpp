@@ -94,8 +94,8 @@ int main()
     );
     husky->DisableSleeping();
 
-    c0 = scene->world_->AddCamera(vec3(0,0,0), vec3(0.3,1.0,0.0), (float) w / h);
-    scene->world_->AttachCamera(c0, husky);
+    c0 = scene->world_->add_camera(vec3(0,0,0), vec3(0.3,1.0,0.0), (float) w / h);
+    scene->world_->attach_camera(c0, husky);
 
     static float pos_0 = 0.0f;
     static float pos_1 = 0.0f;
@@ -152,8 +152,8 @@ int main()
             pos_6 = 0.0f;
             pos_7 = 0.005f;
 
-            c0 = scene->world_->AddCamera(vec3(0,0,0), vec3(0.3,1.0,0.0), (float) w / h);
-            scene->world_->AttachCamera(c0, husky);
+            c0 = scene->world_->add_camera(vec3(0,0,0), vec3(0.3,1.0,0.0), (float) w / h);
+            scene->world_->attach_camera(c0, husky);
         }
 
 
@@ -162,7 +162,7 @@ int main()
         // glm::vec3 toPosition = c0->Front * 20.0f + fromPosition;
         // int res = scene->world->rayTest(fromPosition, toPosition);
 
-        scene->world_->RotateCamera(c0, cam_pitch); 
+        scene->world_->rotate_camera(c0, cam_pitch); 
 
         Joint * j;
 

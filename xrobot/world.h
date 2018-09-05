@@ -15,13 +15,11 @@
 #include "bullet/LinearMath/btTransform.h"
 #include "bullet/PhysicsClientC_API.h"
 
-#include "render_engine/camera.h"
 #include "render_engine/model.h"
 #include "render_engine/render_world.h"
 
 // TODO:
 // - too many public attributes
-// - move Camera parts of World to RenderWorld
 // - what happens to Camera attached to a deleted Robot
 
 namespace xrobot {
@@ -167,7 +165,7 @@ protected:
 public:
     int id() const override { return bullet_handle_; }
     void GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max) override;
-    glm::mat4 position() const override;
+    glm::mat4 translation_matrix() const override;
     glm::mat4 local_inertial_frame() const override;
 };
 
@@ -204,10 +202,15 @@ public:
     const RenderPart* render_root_ptr() const override;
     const RenderPart* render_part_ptr(const size_t i) const override;
     RenderPart* render_part_ptr(const size_t i) override;
+    void attach_camera(const glm::vec3& offset,
+                       const float pitch,
+                       glm::vec3& loc,
+                       glm::vec3& front,
+                       glm::vec3& right,
+                       glm::vec3& up) override;
 };
 
 class World : public render_engine::RenderWorld {
-    using Camera = xrobot::render_engine::Camera;
     using RenderBody = render_engine::RenderBody;
 public:
     World();
@@ -215,7 +218,6 @@ public:
 
     b3PhysicsClientHandle client_;
     std::vector<Robot*> robot_list_;
-    std::map<Camera*, Robot*> attached_camera_to_robot_map_;
     std::map<int, Robot*> bullet_handle_to_robot_map_;
     std::map<std::string, std::vector<Robot *>> recycle_robot_map_;
     std::map<std::string, render_engine::ModelData *> model_cache_;
@@ -241,17 +243,6 @@ public:
     void CleanEverything();
     void CleanEverything2();
     void ResetSimulation();
-    Camera* AddCamera(glm::vec3 position,
-                      glm::vec3 offset = glm::vec3(0),
-                      float aspect_ratio = 4.0f / 3.0f,
-                      float fov = 90.0f,
-                      float near = 0.01f,
-                      float far = 10.0f);
-    void AttachCameraToRoot(Camera* camera, Robot* robot);
-    void AttachCamera(Camera* camera, Robot* robot);
-    void DeattachCamera(Camera* camera);
-    void RemoveCamera(Camera* camera);
-    void RotateCamera(Camera* camera, const float pitch);
     int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
     void SetTransformation(const Robot* robot, const btTransform& tranform);
     void SetVelocity(const Robot* robot, const btVector3& velocity);
@@ -308,7 +299,9 @@ public:
     
 public:
     size_t size() const override { return robot_list_.size(); }
+
     const RenderBody* render_body_ptr(const size_t i) const override;
+
     RenderBody* render_body_ptr(const size_t i) override;
 };
 
