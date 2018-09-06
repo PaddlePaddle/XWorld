@@ -316,6 +316,7 @@ BOOST_PYTHON_MODULE(py_simulator) {
         .def("game_over", &PySimulatorInterface::game_over)
         .def("get_num_actions", &PySimulatorInterface::get_num_actions)
         .def("get_lives", &PySimulatorInterface::get_lives)
+        .def("get_screen_out_dimensions", &PySimulatorInterface::get_screen_out_dimensions)
         // intentionally bind take_actions to two functions so that it has
         // optional args
         .def("take_actions", &PySimulatorInterface::take_actions)
