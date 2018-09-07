@@ -67,13 +67,16 @@ class PySimulatorInterface {
 
     void reset_game() { interface_.reset_game(); }
 
-    std::string game_over() { return interface_.game_over_string(); }
+    std::string game_over() {
+        // Five values: "alive", "max_step", "dead", "success", "lost_life"
+        return interface_.game_over_string();
+    }
 
     int get_num_actions() { return interface_.get_num_actions(); }
 
     int get_lives() { return interface_.get_lives(); }
 
-    // return [h, w, c]
+    // return [h, w, depth, context]
     py::list get_screen_out_dimensions();
 
     float take_actions(const py::dict& actions, int act_rep, bool show_screen);
@@ -291,6 +294,7 @@ py::list PySimulatorInterface::get_screen_out_dimensions() {
     dims.append(height);
     dims.append(width);
     dims.append(channels);
+    dims.append(FLAGS_context);
     return dims;
 }
 
