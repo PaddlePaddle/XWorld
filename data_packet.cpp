@@ -61,7 +61,10 @@ void StateBuffer::init_id(size_t sz) {
 }
 
 void StateBuffer::init_str() {
-    str_ = std::make_shared<std::string>();
+    //// TODO: figure out why the first line does not work
+    ////       (invalid memory string address after creation)
+    // str_ = std::make_shared<std::string>("");
+    str_.reset(new std::string(""));
 }
 
 void StateBuffer::sync_value_ptr() {
