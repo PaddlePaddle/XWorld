@@ -260,43 +260,42 @@ public:
         const float max_force = 500.0f
     );
 
-    Robot* LoadURDF2(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
-        const bool fixed_base = false
-    );
+    Robot* load_urdf(const std::string& filename,
+                     const btVector3 position,
+                     const btQuaternion rotation,
+                     const float scale = 1.0f,
+                     const bool fixed_base = false);
 
-    Robot* LoadURDF(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
-        const bool fixed_base = false,
-        const bool self_collision = false,
-        const bool use_multibody = true
-    );
-
-    Robot* LoadOBJ2(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const btVector3 scale,
-        const bool flip = false,
-        const bool concave = false
-    );
+    Robot* load_obj(const std::string& filename,
+                    const btVector3 position,
+                    const btQuaternion rotation,
+                    const btVector3 scale,
+                    const bool flip = false,
+                    const bool concave = false);
 
 
-    Robot* LoadOBJ(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const btVector3 scale,
-        const bool flip = false,
-        const bool concave = false
-    );
+private:
+    Robot* load_model_from_cache(const std::string& fn,
+                                 const btVector3 pos,
+                                 const btQuaternion rot);
+
+    Robot* load_urdf_from_file(const std::string& filename,
+                               const btVector3 position,
+                               const btQuaternion rotation,
+                               const float scale = 1.0f,
+                               const bool fixed_base = false,
+                               const bool self_collision = false,
+                               const bool use_multibody = true);
+
+    Robot* load_obj_from_file(const std::string& filename,
+                              const btVector3 position,
+                              const btQuaternion rotation,
+                              const btVector3 scale,
+                              const bool flip = false,
+                              const bool concave = false);
     
+
+
 public:
     size_t size() const override { return robot_list_.size(); }
 

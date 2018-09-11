@@ -3,6 +3,7 @@
 namespace xrobot {
 
 using namespace glm;
+using namespace render_engine;
 
 Joint::Joint() : bullet_robot_(nullptr),
                  bullet_world_(nullptr),
@@ -851,38 +852,62 @@ int World::RayTest(const vec3 ray_from_position, const vec3 ray_to_position)
     return -1;
 }
 
-Robot* World::LoadURDF(
+Robot* World::load_model_from_cache(const std::string& fn,
+                                    const btVector3 pos,
+                                    const btQuaternion rot) {
+
+    Robot * robot = nullptr;
+
+    if (recycle_robot_map_.find(fn) != recycle_robot_map_.end() && 
+            !recycle_robot_map_[fn].empty()) {
+
+        robot = recycle_robot_map_[fn].back();
+        recycle_robot_map_[fn].pop_back();
+        robot->recycle(false);
+
+        btTransform transform;
+        transform.setIdentity();
+        transform.setOrigin(pos);
+        transform.setRotation(rot);
+
+        SetTransformation(robot, transform);
+        SetVelocity(robot, btVector3(0,0,0));
+    }
+    return robot;
+}
+
+Robot* World::load_urdf_from_file(
         const std::string& filename,
         const btVector3 position,
         const btQuaternion rotation,
         const float scale,
         const bool fixed_base,
         const bool self_collision,
-        const bool use_multibody)
-{
+        const bool use_multibody) {
     Robot * robot = new Robot();
     robot->bullet_world_ = this;
     robot->urdf_name_ = filename;
    
     CommandHandle cmd_handle = b3LoadUrdfCommandInit(client_, filename.c_str());
     
-    b3LoadUrdfCommandSetStartPosition(cmd_handle, position[0], position[1], position[2]);
-    b3LoadUrdfCommandSetStartOrientation(cmd_handle, rotation[0], rotation[1],
-                                         rotation[2], rotation[3]);
+    b3LoadUrdfCommandSetStartPosition(
+            cmd_handle, position[0], position[1], position[2]);
+    b3LoadUrdfCommandSetStartOrientation(
+            cmd_handle, rotation[0], rotation[1], rotation[2], rotation[3]);
 
     b3LoadUrdfCommandSetUseFixedBase(cmd_handle, fixed_base);
     b3LoadUrdfCommandSetGlobalScaling(cmd_handle, scale);
     b3LoadUrdfCommandSetUseMultiBody(cmd_handle, use_multibody);
 
     if (self_collision) {
-        b3LoadUrdfCommandSetFlags(cmd_handle, kURDFSelfCollision | kURDFSelfCollisionExParents);
-    }
-    else 
-    {
+        b3LoadUrdfCommandSetFlags(
+                cmd_handle, kURDFSelfCollision | kURDFSelfCollisionExParents);
+    } else {
         b3LoadUrdfCommandSetFlags(cmd_handle, 0);
     }
 
-    StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
+    StatusHandle status_handle =
+            b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
     int status_type = b3GetStatusType(status_handle);
     if (status_type != CMD_URDF_LOADING_COMPLETED) {
         fprintf(stderr, "Cannot load URDF file '%s'.\n", filename.c_str());
@@ -902,133 +927,81 @@ Robot* World::LoadURDF(
     return robot;
 }
 
-Robot* World::LoadURDF2(
-    const std::string& filename,
-    const btVector3 position,
-    const btQuaternion rotation,
-    const float scale,
-    const bool fixed_base)
-{
-    Robot * robot = nullptr;
-
-    if(recycle_robot_map_.find(filename) != recycle_robot_map_.end()
-        && !recycle_robot_map_[filename].empty())
-    {
-
-        int recycled_robot_size = recycle_robot_map_[filename].size();
-
-        robot = recycle_robot_map_[filename][recycled_robot_size - 1];
-        recycle_robot_map_[filename].pop_back();
-        robot->recycle(false);
-
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(position);
-        transform.setRotation(rotation);
-
-        SetTransformation(robot, transform);
-        SetVelocity(robot, btVector3(0,0,0));
-
+Robot* World::load_urdf(const std::string& filename,
+                        const btVector3 position,
+                        const btQuaternion rotation,
+                        const float scale,
+                        const bool fixed_base) {
+    Robot* robot = load_model_from_cache(filename, position, rotation);
+    if (robot) {
         float mass;
         robot->root_part_->ChangeMass(robot->root_part_->GetMassOriginal());
 
-        for (Joint * joint : robot->joints_list_)
-        {
-            if(joint)
+        for (Joint * joint : robot->joints_list_) {
+            if(joint) {
                 joint->ResetJointState(0.0f, 0.005f);
+            }
         }
 
-        for (Object * part : robot->other_parts_)
-        {
+        for (Object * part : robot->other_parts_) {
             part->ChangeMass(part->GetMassOriginal());
         }
-
-
-    }
-    else
-    {
-        robot = LoadURDF(
-            filename,
-            position,
-            rotation,
-            scale,
-            fixed_base,
-            false,
-            true
-        );
+    } else {
+        robot = load_urdf_from_file(
+            filename, position, rotation, scale, fixed_base, false, true);
         robot->recycle(false);
+    }
+
+    return robot;
+}
+
+
+Robot* World::load_obj(const std::string& filename,
+                       const btVector3 position,
+                       const btQuaternion rotation,
+                       const btVector3 scale,
+                       const bool flip,
+                       const bool concave) {
+    std::string fn_s = filename + ":"
+            + std::to_string(scale[0]) + ":"
+            + std::to_string(scale[1]) + ":"
+            + std::to_string(scale[2]);
+    Robot* robot = load_model_from_cache(fn_s, position, rotation);
+
+    if (!robot) {
+        robot = load_obj_from_file(
+                fn_s, position, rotation, scale, flip, concave);
     }
     return robot;
 }
 
 
-Robot* World::LoadOBJ2(
+Robot* World::load_obj_from_file(
     const std::string& filename,
     const btVector3 position,
     const btQuaternion rotation,
     const btVector3 scale,
     const bool flip,
-    const bool concave)
-{
-    Robot * robot = nullptr;
+    const bool concave) {
 
-    std::string filename_with_scale = filename + ":" + 
-        std::to_string(scale[0]) + ":" + std::to_string(scale[1]) + ":" + std::to_string(scale[2]);
-
-    if(recycle_robot_map_.find(filename_with_scale) != recycle_robot_map_.end()
-        && !recycle_robot_map_[filename_with_scale].empty())
-    {
-        robot = recycle_robot_map_[filename_with_scale].back();
-        recycle_robot_map_[filename_with_scale].pop_back();
-
-        robot->recycle(false);
-
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(position);
-        transform.setRotation(rotation);
-
-        SetTransformation(robot, transform);
-    }
-    else
-    {
-        robot = LoadOBJ(
-            filename,
-            position,
-            rotation,
-            scale,
-            flip,
-            concave
-        );
-    }
-    return robot;
-}
-
-
-Robot* World::LoadOBJ(
-    const std::string& filename,
-    const btVector3 position,
-    const btQuaternion rotation,
-    const btVector3 scale,
-    const bool flip,
-    const bool concave
-)
-{
-    Robot * robot = new Robot();
+    Robot* robot = new Robot();
     robot->bullet_world_ = this;
-    robot->urdf_name_ = filename + ":" + 
-        std::to_string(scale[0]) + ":" + std::to_string(scale[1]) + ":" + std::to_string(scale[2]);
+    robot->urdf_name_ = filename;
     robot->recycle(false);
 
     CommandHandle cmd_handle = b3LoadObjCommandInit(client_, filename.c_str());
 
-    if(concave)
+    if (concave) {
         b3LoadObjCommandSetFlags(cmd_handle, kOBJConcave);
+    }
 
-    b3LoadObjCommandSetStartPosition(cmd_handle, position[0], position[1], position[2]);
-    b3LoadObjCommandSetStartOrientation(cmd_handle, rotation[0], rotation[1], rotation[2], rotation[3]);
+    b3LoadObjCommandSetStartPosition(
+            cmd_handle, position[0], position[1], position[2]);
+    b3LoadObjCommandSetStartOrientation(
+            cmd_handle, rotation[0], rotation[1], rotation[2], rotation[3]);
     b3LoadObjCommandSetStartScale(cmd_handle, scale[0], scale[1], scale[2]);
-    StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
+    StatusHandle status_handle =
+        b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
 
 
     int status_type = b3GetStatusType(status_handle);
@@ -1058,13 +1031,13 @@ Robot* World::LoadOBJ(
     origin_transform->local_scale = vec3(scale[0], scale[1], scale[2]);
     origin_transform->origin = transform;
 
-    if(flip)
+    if (flip) {
         origin_transform->flip = -1.0f;
+    }
 
     robot->root_part_->transform_list_.push_back(origin_transform);
 
-    if(reset)
-    {
+    if (reset) {
         model_data->primitive_type_ = kMesh;
         model_data->directory_ = filename;
         model_data->Reset();
