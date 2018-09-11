@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<robot name="plane">
+    <link name="floor">
+        <visual>
+            <origin rpy="1.57 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="quad2.obj"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin rpy="1.57 0 0" xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="quad2.obj"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+          <mass value="0.0"/>
+          <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+</robot>

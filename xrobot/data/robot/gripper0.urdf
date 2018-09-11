@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<robot name="lbr_iiwa" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Import Rviz colors -->
+  <material name="Grey">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+  <material name="Orange">
+    <color rgba="1.0 0.423529411765 0.0392156862745 1.0"/>
+  </material>
+  <material name="Blue">
+    <color rgba="0.5 0.7 1.0 1.0"/>      
+  </material>
+
+  <link name="base_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.05"/>
+      <mass value="1.2"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+        <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/GUIDE_WSG50_110.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.023"/>
+      <geometry>
+        <mesh filename="meshes/WSG-FMF.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/WSG50_110.stl"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
