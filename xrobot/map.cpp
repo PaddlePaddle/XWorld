@@ -286,7 +286,7 @@ void Map::LoadJSON(const char * houseFile, const char * input_data_directory, co
 						// 	btQuaternion(rotation.x,rotation.y,rotation.z,rotation.z),
 						// 	btVector3(scale.x, scale.y, scale.z)
 						// );
-						world_->LoadOBJ2(
+						world_->load_obj(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -306,7 +306,7 @@ void Map::LoadJSON(const char * houseFile, const char * input_data_directory, co
 						// 	rotation.x, rotation.y, rotation.z, rotation.w
 						// 	//glm::max(glm::max(scale.x, scale.y), scale.z)
 						// );
-						world_->LoadOBJ2(
+						world_->load_obj(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -325,7 +325,7 @@ void Map::LoadJSON(const char * houseFile, const char * input_data_directory, co
 						// 	rotation.x, rotation.y, rotation.z, rotation.w
 						// 	//glm::max(glm::max(scale.x, scale.y), scale.z)
 						// );
-						world_->LoadOBJ2(
+						world_->load_obj(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -347,7 +347,7 @@ void Map::LoadJSON(const char * houseFile, const char * input_data_directory, co
 						// 	//glm::max(glm::max(scale.x, scale.y), scale.z)
 						// );
 
-						 world_->LoadOBJ2(
+						 world_->load_obj(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -457,7 +457,7 @@ void Map::GenerateDoor(const float x, const float y, const float z, const int fa
 {
 	const int dir[4] = {0, 0, 1, 1};
 
-	world_->LoadURDF2(
+	world_->load_urdf(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
@@ -471,7 +471,7 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 {
 	const int dir[4] = {0, 0, 1, 1};
 
-	world_->LoadURDF2(
+	world_->load_urdf(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
@@ -482,7 +482,7 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 
 void Map::GenerateFloor(const float x, const float y, const float z, const std::string& st)
 {
-	Robot * floor = world_->LoadURDF2(
+	Robot * floor = world_->load_urdf(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(0,0,0,1),
@@ -559,7 +559,7 @@ void Map::CreateObjectAtTransform(
 {
 	assert(!name.empty());
 
-	Robot * robot = world_->LoadURDF2(
+	Robot * robot = world_->load_urdf(
 		name,
 		btVector3(tx,ty,tz),
 		btQuaternion(rx,ry,rz,rw),
@@ -680,7 +680,7 @@ void Map::SpawnOnFloor(const int num)
 		transform.setIdentity();
 		transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
 
-		Robot * robot = world_->LoadURDF2(
+		Robot * robot = world_->load_urdf(
 			object,
 			transform.getOrigin(),
 			transform.getRotation()
@@ -761,7 +761,7 @@ void Map::SpawnOnObject(const int num)
 		transform.setIdentity();
 		transform.setOrigin(btVector3(rand_position_on_object.x, 0, rand_position_on_object.z));
 
-		Robot * robot = world_->LoadURDF2(
+		Robot * robot = world_->load_urdf(
 			object,
 			transform.getOrigin(),
 			transform.getRotation()
@@ -839,7 +839,7 @@ void Map::SpawnEither(const int n)
 			transform.setIdentity();
 			transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 
-			Robot * r = world_->LoadURDF2(
+			Robot * r = world_->load_urdf(
 				object,
 				transform.getOrigin(),
 				transform.getRotation()
@@ -914,7 +914,7 @@ void Map::SpawnEither(const int n)
 			transform.setIdentity();
 			transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 
-			Robot * r = world_->LoadURDF2(
+			Robot * r = world_->load_urdf(
 				object,
 				transform.getOrigin(),
 				transform.getRotation()

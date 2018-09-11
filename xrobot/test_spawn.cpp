@@ -87,7 +87,7 @@ int main()
     scene->CreateSpawnConstraint(bed1);
     scene->CreateSpawnConstraint(pooltable);
 
-    husky = scene->world_->LoadURDF2(
+    husky = scene->world_->load_urdf(
         "./husky/robot_kuka.urdf",
         btVector3(startPosition.x,0.25,startPosition.z),
         btQuaternion(btVector3(-1,0,0),1.57)
@@ -136,7 +136,7 @@ int main()
             startPosition = scene->GenerateFloorPlan(10, 10);
             scene->Spawn(10, 10, 10);
 
-            husky = scene->world_->LoadURDF2(
+            husky = scene->world_->load_urdf(
                 "./husky/robot_kuka.urdf",
                 btVector3(startPosition.x,0.25,startPosition.z),
                 btQuaternion(btVector3(-1,0,0),1.57)
