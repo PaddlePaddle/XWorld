@@ -17,7 +17,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/python/exception_translator.hpp>
 #include <exception>
-#include <iostream>
 #include "simulator_interface.h"
 #include <unordered_map>
 
@@ -201,12 +200,11 @@ void convert_py_act_to_state_packet(const py::dict& actions, StatePacket& act) {
         std::string k = py::extract<std::string>(keys[i]);
         if (k == "action") {
             action[0] = py::extract<int>(actions[keys[i]]);
-            act.get_buffer("action")->set_id(action.begin(), action.end());
+            act.get_buffer(k)->set_id(action.begin(), action.end());
         } else if (k == "pred_sentence") {
-            act.add_buffer_str("pred_sentence",
-                               py::extract<std::string>(actions[keys[i]]));
+            act.add_buffer_str(k, std::string(py::extract<std::string>(actions[keys[i]])));
         } else {
-            throw PyException("Unrecognized key '" + k + "' for the actions");
+            // ignore redundant keys
         }
     }
 }
