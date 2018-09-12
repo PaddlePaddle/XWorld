@@ -24,9 +24,11 @@ set(EGL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
 # set(EGL_LIBRARIES "/usr/lib/x86_64-linux-gnu/libEGL.so")
 set(EGL_LIBRARIES "/usr/lib/nvidia-396/libEGL.so")
 
+
 target_include_directories(render_engine PUBLIC
     ${EGL_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
+    ${EGL_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${BULLET_INCLUDE_DIRS})
@@ -43,7 +45,6 @@ set(DEP_LIBS
 set(DEP_INCLUDES
     ${DEP_INCLUDES}
     ${EGL_INCLUDE_DIRS}
-    ${ASSIMP_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
