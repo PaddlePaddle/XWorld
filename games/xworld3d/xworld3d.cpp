@@ -162,7 +162,7 @@ X3World::~X3World() {
 }
 
 void X3World::reset_world(bool map_reset) {
-    assert(world_);
+    CHECK(world_) << "reset_world cannot be called during dry run.";
     std::vector<Entity> entities;
     try {
         if (map_reset) {
@@ -212,7 +212,7 @@ void X3World::clear_world() {
 }
 
 void X3World::update_world(const std::vector<Entity>& entities) {
-    assert(world_);
+    CHECK(world_) << "update_world cannot be called during dry run.";
     stadium_.load_stadium(item_path_, world_);
 
     auto found_item_in_entities = [&](const std::string& id)->bool {
@@ -251,7 +251,7 @@ void X3World::update_world(const std::vector<Entity>& entities) {
 }
 
 void X3World::add_item(const Entity& e) {
-    assert(world_);
+    CHECK(world_) << "add_item cannot be called during dry run.";
     CHECK(items_.find(e.id) == items_.end())
             << e.type << " " << e.id << " exists.";
 
@@ -334,13 +334,13 @@ void X3World::remove_item(X3ItemPtr& item) {
 }
 
 roboschool::RenderResult X3World::render(const size_t agent_id, bool debug) {
-    assert(world_);
+    CHECK(world_) << "render cannot be called during dry run.";
     auto agent_ptr = get_agent(agent_id);
     return camera_->render(agent_ptr.get(), debug);
 }
 
 void X3World::step(const int frame_skip) {
-    assert(world_);
+    CHECK(world_) << "step cannot be called during dry run.";
     world_->step(frame_skip);
     for (auto& i : items_) {
         i.second->sync_entity_info();
