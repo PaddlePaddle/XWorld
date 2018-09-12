@@ -99,7 +99,7 @@ struct RenderSettings {
 };
 
 struct Lighting {
-    Lighting() : exposure(1.0f),
+    Lighting() : exposure(1.2f),
                  indirect_strength(0.4f) {}
     float exposure;
     float indirect_strength;
@@ -145,6 +145,7 @@ class Render {
         kRay = 23,
         kSkybox = 24,
         kFXAA = 25,
+        kBarrel = 26,
         kShaderTypeSize
     };
 
@@ -199,6 +200,7 @@ public:
     // Directional Light
     bool use_sunlight_;
     DirectionalLight sunlight_;
+    Lighting lighting_;
 
     // Cone Tracing
     glm::vec3 vct_bbox_min_ = glm::vec3(-2, -2, -2);
@@ -258,6 +260,8 @@ public:
     //   FXAA
     GLuint fxaa_fbo_;
     GLuint fxaa_tex_;
+    GLuint barrel_fbo_;
+    GLuint barrel_tex_;
 
     // High Res Lidar
     GLuint cubemap_capture_fbo_;
@@ -338,6 +342,10 @@ public:
         return img_buffers_;
     }
     
+    void InitBarrelDistortion();
+
+    void BarrelDistortion();
+
     void InitFXAA();
 
     void FXAA();

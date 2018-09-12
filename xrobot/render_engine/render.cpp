@@ -1,3 +1,5 @@
+#define DEBUG
+
 #include <unistd.h>
 
 #include "glm/glm.hpp"
@@ -45,6 +47,7 @@ Render::Render(const int width,
                                   brdf_lut_map_(0),
                                   use_sunlight_(true),
                                   sunlight_(),
+                                  lighting_(),
                                   vct_bbox_min_(glm::vec3(-2, -2, -2)),
                                   vct_bbox_max_(glm::vec3(10, 10, 10)),
                                   volume_dimension_(render_profile.vct_resolution),
@@ -99,6 +102,8 @@ Render::Render(const int width,
     view_projection_matrix_inv_[1] = glm::mat4(1);
     view_projection_matrix_inv_[2] = glm::mat4(1);
     
+
+    //InitBarrelDistortion();
     //InitFXAA();
     InitPBO();
     InitShaders();
@@ -647,6 +652,8 @@ void Render::VoxelConeTracing(RenderWorld* world, Camera * camera)
         shader_vct.setInt("numDirectionalLight", 0);
     }
 
+    shader_vct.setFloat("exposure", lighting_.exposure);
+    shader_vct.setFloat("bounceStrength", lighting_.indirect_strength);
 
     if(settings_.use_vct) {
         shader_vct.setFloat("voxelScale", 1.0f / volume_grid_size_);
@@ -1501,14 +1508,6 @@ void Render::StepRenderFreeCamera(RenderWorld *world) {
     Shader line_shader = shaders_[kLine];
 
     glBindFramebuffer(GL_FRAMEBUFFER, free_camera_framebuffer_->frameBuffer);
-    glEnable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_LINE_SMOOTH);
-    glDepthMask(GL_TRUE);
-    glColorMask(true, true, true, true);
-    glViewport(0, 0, width_, height_);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     lambert_shader.use();
@@ -1956,7 +1955,7 @@ void Render::Visualization() {
     // glViewport(width_, 0, width_, height_);
     // shaders_[kColor].use();
     // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, fxaa_tex_);
+    // glBindTexture(GL_TEXTURE_2D, barrel_tex_);
     // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
     // RenderQuad();
 
@@ -2109,13 +2108,22 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     int pick_result = -1;
     std::vector<int> picks(camera_framebuffer_list_.size(), -1);
 
-    //if(num_frames_ % 2)
-     // StepRenderCubemap(world);
-     // StepCombineTexture();
+    // StepRenderCubemap(world);
+    // StepCombineTexture();
 
-    if(settings_.use_free_camera) {
+    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_LINE_SMOOTH);
+    glDepthMask(GL_TRUE);
+    glColorMask(true, true, true, true);
+    glViewport(0, 0, width_, height_);
+
+
+    #ifdef DEBUG
         StepRenderFreeCamera(world);
-    }
+    #endif
 
     if(!settings_.use_deferred) {
         StepRenderAllCameras(world, picks, pick_camera_id >= 0);
@@ -2127,15 +2135,52 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     if(pick_camera_id >= 0)
         pick_result = picks[pick_camera_id];
 
-    //StepRenderGetDepthAllCameras();     
-
-    //FXAA();
-
-    Visualization();
+    #ifdef DEBUG
+        //FXAA(); // Rename???
+        //BarrelDistortion();   
+        Visualization();
+    #else
+        StepRenderGetDepthAllCameras();  
+    #endif
 
     num_frames_++;
     return pick_result;
 }
+
+void Render::InitBarrelDistortion() {
+    glGenFramebuffers(1, &barrel_fbo_);
+    glBindFramebuffer(GL_FRAMEBUFFER, barrel_fbo_);
+
+    glGenTextures(1, &barrel_tex_);
+    glBindTexture(GL_TEXTURE_2D, barrel_tex_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, barrel_tex_, 0);
+}
+
+void Render::BarrelDistortion() {
+    // One Camera Only
+    assert(camera_framebuffer_list_.size() < 2);
+
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glClearColor(0,0,0,0);
+
+    for (int i = 0; i < camera_framebuffer_list_.size(); ++i) {     
+        glBindFramebuffer(GL_FRAMEBUFFER, barrel_fbo_);
+        glViewport(0, 0, width_, height_);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        shaders_[kBarrel].use();
+        //shaders_[kBarrel].setFloat("height", tan())
+        camera_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
+        RenderQuad();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+}
+
 
 void Render::InitFXAA() {
     glGenFramebuffers(1, &fxaa_fbo_);
@@ -2265,6 +2310,9 @@ void Render::InitShaders() {
 
     shaders_[kFXAA] = Shader(pwd+"/shaders/quad.vs",
                                pwd+"/shaders/fxaa.fs");
+
+    shaders_[kBarrel] = Shader(pwd+"/shaders/barrel.vs",
+                               pwd+"/shaders/barrel.fs");
 }
 
 void Render::GetDeltaTime() {

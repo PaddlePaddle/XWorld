@@ -4,6 +4,7 @@
 #include <ctime>
 #include <iostream>
 #include <queue>
+#include <random>
 
 struct Loc {
     int r;
@@ -31,10 +32,9 @@ struct Loc {
 
 class MapGenerator {
 public: 
-    MapGenerator(int H, int W, int num_rooms, int max_size, float rho) :
-            H_(H), W_(W), num_rooms_(num_rooms), max_size_(max_size), rho_(rho) {
+    MapGenerator(std::mt19937 mt, int H, int W, int num_rooms, int max_size, float rho) :
+            mt_(mt), H_(H), W_(W), num_rooms_(num_rooms), max_size_(max_size), rho_(rho) {
         map_ = _create_2d_matrix<int>(H_, W_);
-        std::srand(std::time(NULL));
     }
 
     ~MapGenerator() {
@@ -42,8 +42,8 @@ public:
     }
 
     void generate() {
-        int r = rand() % H_;
-        int c = rand() % W_;
+        int r = _generate_random(H_);
+        int c = _generate_random(W_);
         map_[r][c] = -1;
         for (int i = 0; i < num_rooms_; ++i) {
             _generate_a_room(i+1);
@@ -51,12 +51,12 @@ public:
     }
 
     void print_map() {
-        // for (int r = 0; r < H_; ++r) {
-        //     for (int c = 0; c < W_; ++c) {
-        //         printf("%d ", std::max(0, map_[r][c]));
-        //     }
-        //     printf("\n");
-        // }
+        for (int r = 0; r < H_; ++r) {
+            for (int c = 0; c < W_; ++c) {
+                printf("%d ", std::max(0, map_[r][c]));
+            }
+            printf("\n");
+        }
     }
 
     int** get_map() const
@@ -75,7 +75,7 @@ private:
             }
         }
 
-        int p = rand() % candidates.size();
+        int p = _generate_random(candidates.size());
         std::queue<Loc> Q;
         Q.push(candidates[p]);
 
@@ -115,6 +115,11 @@ private:
         _release_2d_matrix(visited, H_);       
     }
 
+    int _generate_random(const int high) {
+        std::uniform_real_distribution<float> dist(0, high);
+        return (int) dist(mt_);
+    }
+
     bool _available(int r, int c) {
         return (r >= 0 && r < H_ && c >= 0 && c < W_ && map_[r][c] <= 0);
 
@@ -138,6 +143,7 @@ private:
         delete [] t;
     }
 
+    std::mt19937 mt_;
     int H_;
     int W_;
     int num_rooms_;

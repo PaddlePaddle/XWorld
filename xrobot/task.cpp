@@ -287,7 +287,6 @@ namespace xrobot {
         	   aabb_min.z < c0_->Position.z &&
         	   aabb_max.z > c0_->Position.z) 
         	{
-
         		glm::vec3 fromPosition = c0_->Position;
         		glm::vec3 toPosition = c0_->Front * 2.0f + fromPosition;
         		int res = scene_->world_->RayTest(fromPosition, toPosition);
@@ -297,9 +296,13 @@ namespace xrobot {
         	}
         }
 
+        glm::vec3 front_vector = c0_->Front;
+        front_vector.y = 0;
+        front_vector = glm::normalize(front_vector);
+        
         std::vector<RayTestInfo> batch_raycast_result;
-        lidar_->Update(c0_->Front,
-                      c0_->WorldUp,
+        lidar_->Update(front_vector,
+                      glm::vec3(0,1,0),
                       c0_->Position - glm::vec3(0.0f,0.8f,0));
         batch_raycast_result = lidar_->GetResult();
 
@@ -318,6 +321,14 @@ namespace xrobot {
         if(iterations_++ > 1200000) {
         	printf("--------Fail!---------\n");
         	return "idle";
+        }
+
+        if(ctx_->GetKeyPressSpace())
+        {
+            //usleep(100);
+            printf("reset: %d\n", reset_count_);
+            ctx_->PollEvent();
+            return "idle";
         }
 
         scene_->world_->BulletStep();   
@@ -442,8 +453,6 @@ namespace xrobot {
 		std::vector<ObjectAttributes> temp;
         scene_->world_->QueryObjectByLabel("crate03", temp);
 
-        printf("========================= %d\n", temp.size());
-
         for(int i = 0; i < temp.size(); ++i)
         {
         	glm::vec3 aabb_min = temp[i].aabb_min - glm::vec3(1);
@@ -454,11 +463,6 @@ namespace xrobot {
         	   aabb_min.z < c0_->Position.z &&
         	   aabb_max.z > c0_->Position.z) 
         	{
-
-        		// glm::vec3 fromPosition = c0_->Position;
-        		// glm::vec3 toPosition = c0_->Front * 2.0f + fromPosition;
-        		// int res = scene_->world_->RayTest(fromPosition, toPosition);
-
         		std::vector<ObjectDirections> temp_dir;
         		scene_->world_->QueryObjectDirectionByLabel("crate03", c0_->Front, 
         				c0_->Position, temp_dir);
@@ -467,9 +471,13 @@ namespace xrobot {
         	}
         }
 
+        glm::vec3 front_vector = c0_->Front;
+        front_vector.y = 0;
+        front_vector = glm::normalize(front_vector);
+
         std::vector<RayTestInfo> batch_raycast_result;
-        lidar_->Update(c0_->Front,
-                      c0_->WorldUp,
+        lidar_->Update(front_vector,
+                      glm::vec3(0,1,0),
                       c0_->Position - glm::vec3(0.0f,0.8f,0));
         batch_raycast_result = lidar_->GetResult();
 
@@ -692,6 +700,10 @@ namespace xrobot {
 	std::string NavTask4::Start() {
 
 		printf("-----Find Fruit Bowl------\n");
+
+        renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
+        renderer_->lighting_.exposure = 1.2f;
+        renderer_->lighting_.indirect_strength = 2.0f;
 
 		iterations_ = 0;
         scene_->ResetMap();
