@@ -124,7 +124,6 @@ private:
         history_messages_;  // history message buffer for showing in the GUI
     std::string game_events_;
     int keyboard_action_;
-    bool dry_run_;
 };
 
 }} // simulator::xworld3d
