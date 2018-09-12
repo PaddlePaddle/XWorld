@@ -49,10 +49,10 @@ int main(int argc, char **argv)
     TaskGroup task_group5("TaskGroup_TestingGroup");
 
     task_group0.AddTask("Task_NavToLargeCrate", nav_task1, 0);
-    task_group0.AddTask("Task_NavToSmallCrate", nav_task2, 0);
+    //task_group0.AddTask("Task_NavToSmallCrate", nav_task2, 0);
     task_group1.AddTask("Task_NavToMovingRobot", nav_task0, 0);
     task_group3.AddTask("TaskGroup_NavToObject_SUNCG", nav_task4, 0);
-    task_group3.AddTask("TaskGroup_GrabObject_SUNCG", nav_task5, 0);
+    //task_group3.AddTask("TaskGroup_GrabObject_SUNCG", nav_task5, 0);
 
     renderer->InitDrawBatchRay(180);
 

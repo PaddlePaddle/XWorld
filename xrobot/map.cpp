@@ -34,6 +34,7 @@ map_(nullptr), map_AABB_(nullptr)
 {
 	world_ = new World();
 	world_->BulletInit(-9.81f, 0.01f);
+	srand(time(NULL));
 }
 
 void Map::CreateSectionType(const std::string& floor, const std::string& wall, const std::string& door)
@@ -110,9 +111,8 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 
 	glm::vec3 random_center;
 
-	map_ = new MapGenerator(w, l, section_types_.size(), 12, 0.6);
+	map_ = new MapGenerator(mt_, w, l, section_types_.size(), 12, 0.6);
 	map_->generate();
-	map_->print_map();
 
 	int** map_ptr = map_->get_map();
 	bool first = true;
@@ -177,7 +177,6 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 	}
 
 	GetMapAABB();
-
 	return random_center;
 }
 
@@ -434,8 +433,8 @@ void Map::SpawnOnFloor(const int num)
 	for (int i = 0, success = 0; i < num << 1 && success < num; ++i)
 	{
 
-		int object_index = rand() % on_floor_list_.size();
-		int room_index = rand() % sections_AABB_.size();
+		int object_index = (int) GetRandom(0, on_floor_list_.size());
+		int room_index = (int) GetRandom(0, sections_AABB_.size());
 		const std::string object = on_floor_list_[object_index];
 		const AABB * room_AABB = sections_AABB_[room_index];
 
@@ -509,8 +508,8 @@ void Map::SpawnOnObject(const int num)
 
 	for (int i = 0, success = 0; i < num << 1 && success < num; ++i)
 	{
-		int object_index = rand() % on_object_list_.size();
-		int first_layer_index = rand() % first_layer_AABB_.size();
+		int object_index = (int) GetRandom(0, on_object_list_.size());
+		int first_layer_index = (int) GetRandom(0, first_layer_AABB_.size());
 		const std::string object = on_object_list_[object_index];
 		const AABB * object_AABB = first_layer_AABB_[first_layer_index];
 
@@ -590,15 +589,15 @@ void Map::SpawnEither(const int n)
 	for (int i = 0, success = 0; i < n << 1 && success < n; ++i)
 	{
 
-		bool hasSpawnOnFloor = rand() % 2;
+		bool hasSpawnOnFloor = (bool) GetRandom(0, 2);
 
 		if(hasSpawnOnFloor)
 		{
-			int objIdx = rand() % either_list_.size();
+			int objIdx = (int) GetRandom(0, either_list_.size());
 
 			const std::string object = either_list_[objIdx];
 
-			int roomIdx = rand() % sections_AABB_.size();
+			int roomIdx = (int) GetRandom(0, sections_AABB_.size());
 
 			const AABB * rAABB = sections_AABB_[roomIdx];
 
@@ -664,9 +663,9 @@ void Map::SpawnEither(const int n)
 		}
 		else
 		{
-			int objIdx = rand() % either_list_.size();
+			int objIdx = (int) GetRandom(0, either_list_.size());
 
-			int firstIdx = rand() % first_layer_AABB_.size();
+			int firstIdx = (int) GetRandom(0, first_layer_AABB_.size());
 
 			const std::string object = either_list_[objIdx];
 

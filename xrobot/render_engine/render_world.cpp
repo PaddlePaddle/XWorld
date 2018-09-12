@@ -5,7 +5,6 @@ namespace render_engine {
 
 void RenderWorld::render_step() {
     for (auto& kv : camera_to_body_) {
-        //std::cout << "attach camera" << std::endl;
         auto camera = kv.first;
         auto body  = kv.second;
         if (!camera || !body) continue;
@@ -60,7 +59,7 @@ void RenderWorld::detach_camera(Camera* camera) {
 
 void RenderWorld::remove_camera(Camera* camera) {
     if (!camera) return;
-    auto it = std::find(cameras_.begin(), cameras_.end(), camera);
+    auto it = find(cameras_.begin(), cameras_.end(), camera);
     if (it != cameras_.end()) {
         delete *it;
         cameras_.erase(it);

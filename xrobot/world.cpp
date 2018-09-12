@@ -551,7 +551,6 @@ void Robot::attach_camera(const glm::vec3& offset,
     up = glm::normalize(glm::cross(front, right));
 
     auto base_position = pose.getOrigin();
-    std::cout << base_position[0] << " " << base_position[1] << " " << base_position[2] << std::endl;
     loc = glm::vec3(base_position[0], base_position[1], base_position[2]) 
           + camera_aim;
 }
