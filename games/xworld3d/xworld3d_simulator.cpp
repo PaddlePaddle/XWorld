@@ -26,7 +26,7 @@ namespace xworld3d {
 */
 class X3SimulatorImpl {
 public:
-    X3SimulatorImpl(const std::string& conf, bool print, bool big_screen = false);
+    X3SimulatorImpl(const std::string& conf, bool print, bool dry_run, bool big_screen = false);
 
     ~X3SimulatorImpl() {}
 
@@ -69,8 +69,9 @@ private:
 
 X3SimulatorImpl::X3SimulatorImpl(const std::string& conf,
                                  bool print,
+                                 bool dry_run,
                                  bool big_screen) :
-        xworld3d_(conf, print, big_screen),
+        xworld3d_(conf, print, dry_run, big_screen),
         height_(0), width_(0) {}
 
 void X3SimulatorImpl::reset_game(bool map_reset) {
@@ -146,9 +147,10 @@ X3Simulator::X3Simulator(bool print, bool big_screen) :
         bird_view_(false),
         agent_received_sentences_(0),
         agent_prev_actions_(0),
-        keyboard_action_(-1) {
+        keyboard_action_(-1),
+        dry_run_(FLAGS_x3_dry_run) {
     impl_ = util::make_unique<X3SimulatorImpl>(
-            FLAGS_x3_conf, print, big_screen);
+            FLAGS_x3_conf, print, dry_run_, big_screen);
 }
 
 X3Simulator::~X3Simulator() {}
