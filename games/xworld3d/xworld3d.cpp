@@ -83,7 +83,7 @@ void X3Stadium::load_stadium(const std::string& item_path,
                                 true);
 }
 
-X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
+X3World::X3World(const std::string& conf, bool print_conf, bool dry_run, bool big_screen) :
         // if big_screen=true, we don't care about rendering speed;
         // otherwise the dimensions should be the same with the training input image
         conf_(conf),
@@ -138,26 +138,31 @@ X3World::X3World(const std::string& conf, bool print_conf, bool big_screen) :
         LOG(FATAL) << "Error loading map: " << map;
     }
 
-    world_ = util::make_unique<roboschool::World>(
-            img_height_, img_width_, FLAGS_x3_gravity, FLAGS_x3_time_step);
-
-    std::string glsl_path = __FILE__;
-    glsl_path = glsl_path.substr(0, glsl_path.find_last_of("/") + 1) + "glsl";
-
-    world_->set_glsl_path(glsl_path);
-
-    camera_ = util::make_unique<X3Camera>(
-            *(world_.get()), img_height_, img_width_);
+    if (dry_run) {
+        world_ = nullptr;
+        camera_ = nullptr;
+    } else {
+        world_ = util::make_unique<roboschool::World>(
+                img_height_, img_width_, FLAGS_x3_gravity, FLAGS_x3_time_step);
+        std::string glsl_path = __FILE__;
+        glsl_path = glsl_path.substr(0, glsl_path.find_last_of("/") + 1) + "glsl";
+        world_->set_glsl_path(glsl_path);
+        camera_ = util::make_unique<X3Camera>(
+                *(world_.get()), img_height_, img_width_);
+    }
 }
 
 X3World::~X3World() {
     items_.clear();
     agents_.clear();
-    world_->clean_everything();
+    if (world_) {
+        world_->clean_everything();
+    }
     b3handle_to_id_.clear();
 }
 
 void X3World::reset_world(bool map_reset) {
+    assert(world_);
     std::vector<Entity> entities;
     try {
         if (map_reset) {
@@ -207,6 +212,7 @@ void X3World::clear_world() {
 }
 
 void X3World::update_world(const std::vector<Entity>& entities) {
+    assert(world_);
     stadium_.load_stadium(item_path_, world_);
 
     auto found_item_in_entities = [&](const std::string& id)->bool {
@@ -245,6 +251,7 @@ void X3World::update_world(const std::vector<Entity>& entities) {
 }
 
 void X3World::add_item(const Entity& e) {
+    assert(world_);
     CHECK(items_.find(e.id) == items_.end())
             << e.type << " " << e.id << " exists.";
 
@@ -327,11 +334,13 @@ void X3World::remove_item(X3ItemPtr& item) {
 }
 
 roboschool::RenderResult X3World::render(const size_t agent_id, bool debug) {
+    assert(world_);
     auto agent_ptr = get_agent(agent_id);
     return camera_->render(agent_ptr.get(), debug);
 }
 
 void X3World::step(const int frame_skip) {
+    assert(world_);
     world_->step(frame_skip);
     for (auto& i : items_) {
         i.second->sync_entity_info();
