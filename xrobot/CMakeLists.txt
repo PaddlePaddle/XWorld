@@ -45,8 +45,8 @@ set(XROBOT_SOURCES
     vendor/json.cpp
     map.cpp
     map_suncg.cpp
-    task.cpp
     state_machine.cpp
+    task_example.cpp
     room_generator.cpp
     utils.cpp
     lidar.cpp
@@ -66,16 +66,11 @@ target_include_directories(xrobot PUBLIC ${DEP_INCLUDES})
 set_target_properties(xrobot
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(xrobot_random_map test_spawn3.cpp)
-add_executable(xrobot_suncg test_suncg.cpp)
+add_executable(xrobot_test test.cpp)
 
-target_link_libraries(xrobot_random_map PUBLIC xrobot ${DEP_LIBS})
-target_link_libraries(xrobot_suncg PUBLIC xrobot ${DEP_LIBS})
+target_link_libraries(xrobot_test PUBLIC xrobot ${DEP_LIBS})
 
-target_include_directories(xrobot_random_map PUBLIC ${DEP_INCLUDES})
-target_include_directories(xrobot_suncg PUBLIC ${DEP_INCLUDES})
+target_include_directories(xrobot_test PUBLIC ${DEP_INCLUDES})
 
-set_target_properties(xrobot_random_map
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(xrobot_suncg
+set_target_properties(xrobot_test
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

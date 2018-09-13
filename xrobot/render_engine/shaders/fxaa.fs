@@ -48,7 +48,7 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D tex;
-uniform vec2 res = vec2(800, 450);
+uniform vec2 res = vec2(640, 480);
 
 #ifndef FXAA_REDUCE_MIN
     #define FXAA_REDUCE_MIN   (1.0/ 128.0)

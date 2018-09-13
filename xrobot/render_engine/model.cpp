@@ -45,16 +45,6 @@ ModelData::~ModelData() {
     }
 }
 
-void ModelData::BoneTransform(float time, float duration,
-    std::vector<aiMatrix4x4>& transforms) {
-    aiMatrix4x4 indentity();
-
-    float ticks_per_second = 25.0f;
-    float time_in_ticks = time * ticks_per_second;
-    float animation_time = fmod(time_in_ticks, duration);
-
-}
-
 void ModelData::Draw(const Shader& shader) {
     for (size_t i = 0; i < meshes_.size(); ++i) {
         meshes_[i].Draw(shader);
@@ -386,31 +376,6 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
-
-    // Not Sure About This...
-    int num_bones;
-    std::vector<BoneInfo> bone_info_list;
-    std::vector<VertexBoneData> bones;
-
-    for (unsigned int i = 0; i < mesh->mNumBones; ++i)
-    {
-        unsigned int bone_index = 0;
-        std::string bone_name(mesh->mBones[i]->mName.data);
-
-        bone_info_list[bone_index].offset_matrix = mesh->mBones[i]->mOffsetMatrix;
-
-        for (unsigned int j = 0; j < mesh->mBones[i]->mNumWeights; ++j)
-        {
-            unsigned int vertex_id = mesh->mBones[i]->mWeights[j].mVertexId;
-            float weight = mesh->mBones[i]->mWeights[j].mWeight;
-
-            assert(j < 4);
-            bones[vertex_id].ids[j] = vertex_id;
-            bones[vertex_id].weights[j] = weight;
-        }
-    }
-
-    // printf("n_bones: %d\n", num_bones);
 
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 

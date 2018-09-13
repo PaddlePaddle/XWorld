@@ -13,76 +13,82 @@ namespace render_engine {
 Render::Render(const int width,
                const int height,
                const int num_cameras,
-               RenderSettings render_profile,
-               GLContext * ctx) : current_framerate_(0.0f),
-                                  max_framerate_(0.0f),
-                                  avg_framerate_(0.0),
-                                  all_rendered_frames_(0.0),
-                                  free_camera_(),
-                                  last_x_(0.0f),
-                                  last_y_(0.0f),
-                                  delta_time_(0.0f),
-                                  first_mouse_(true), 
-                                  last_frame_(),
-                                  crosshair_vao_(0),
-                                  crosshair_vbo_(0),
-                                  cube_vao_(0),
-                                  cube_vbo_(0),
-                                  quad_vao_(0),
-                                  quad_vbo_(0),
-                                  box_vao_(0),
-                                  box_vbo_(0),
-                                  g_buffer_fbo_(0),
-                                  g_buffer_rbo_(0),
-                                  g_position_(0),
-                                  g_normal_(0),
-                                  g_albedospec_(0),
-                                  g_pbr_(0),
-                                  capture_fbo_(0),
-                                  capture_rbo_(0),
-                                  hdr_map_(0),
-                                  environment_map_(0),
-                                  irradiance_map_(0),
-                                  prefilter_map_(0),
-                                  brdf_lut_map_(0),
-                                  use_sunlight_(true),
-                                  sunlight_(),
-                                  lighting_(),
-                                  vct_bbox_min_(glm::vec3(-2, -2, -2)),
-                                  vct_bbox_max_(glm::vec3(10, 10, 10)),
-                                  volume_dimension_(render_profile.vct_resolution),
-                                  volume_grid_size_(0),
-                                  voxel_size_(0),
-                                  voxel_count_(0),
-                                  voxel_vao_(0),
-                                  voxel_albedo_(nullptr),
-                                  voxel_normal_(nullptr),
-                                  voxel_emissive_(nullptr),
-                                  voxel_radiance_(nullptr),
-                                  voxel_mipmaps_{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
-                                  csm_uniforms_(),
-                                  csm_(),
-                                  shadow_map_size_(render_profile.shadow_resolution),
-                                  cascade_count_(render_profile.shadow_split),
-                                  pssm_lamda_(0.5f),
-                                  near_offset_(10.0f),
-                                  settings_(render_profile),
-                                  shaders_(0),
-                                  width_(width),
-                                  height_(height), 
-                                  background_color_(glm::vec3(0.5f, 0.5f, 0.5f)),
-                                  ctx_(ctx),
-                                  free_camera_framebuffer_(nullptr),
-                                  camera_framebuffer_list_(num_cameras),
-                                  multiplied_framebuffer_list_(num_cameras),
-                                  reflection_map_(0),
-                                  pixel_buffer_index_(0),
-                                  pixel_buffer_next_index_(1),
-                                  pixel_buffers_{0, 0},
-                                  num_frames_(0),
-                                  img_buffers_(0),
-                                  has_init_(false),
-                                  need_voxelize_(true) {
+               const RenderSettings render_profile,
+               const bool headless) : current_framerate_(0.0f),
+                                      max_framerate_(0.0f),
+                                      avg_framerate_(0.0),
+                                      all_rendered_frames_(0.0),
+                                      free_camera_(),
+                                      last_x_(0.0f),
+                                      last_y_(0.0f),
+                                      delta_time_(0.0f),
+                                      first_mouse_(true), 
+                                      last_frame_(),
+                                      crosshair_vao_(0),
+                                      crosshair_vbo_(0),
+                                      cube_vao_(0),
+                                      cube_vbo_(0),
+                                      quad_vao_(0),
+                                      quad_vbo_(0),
+                                      box_vao_(0),
+                                      box_vbo_(0),
+                                      g_buffer_fbo_(0),
+                                      g_buffer_rbo_(0),
+                                      g_position_(0),
+                                      g_normal_(0),
+                                      g_albedospec_(0),
+                                      g_pbr_(0),
+                                      capture_fbo_(0),
+                                      capture_rbo_(0),
+                                      hdr_map_(0),
+                                      environment_map_(0),
+                                      irradiance_map_(0),
+                                      prefilter_map_(0),
+                                      brdf_lut_map_(0),
+                                      use_sunlight_(true),
+                                      sunlight_(),
+                                      lighting_(),
+                                      vct_bbox_min_(glm::vec3(-2, -2, -2)),
+                                      vct_bbox_max_(glm::vec3(10, 10, 10)),
+                                      volume_dimension_(render_profile.vct_resolution),
+                                      volume_grid_size_(0),
+                                      voxel_size_(0),
+                                      voxel_count_(0),
+                                      voxel_vao_(0),
+                                      voxel_albedo_(nullptr),
+                                      voxel_normal_(nullptr),
+                                      voxel_emissive_(nullptr),
+                                      voxel_radiance_(nullptr),
+                                      voxel_mipmaps_{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
+                                      csm_uniforms_(),
+                                      csm_(),
+                                      shadow_map_size_(render_profile.shadow_resolution),
+                                      cascade_count_(render_profile.shadow_split),
+                                      pssm_lamda_(0.5f),
+                                      near_offset_(10.0f),
+                                      settings_(render_profile),
+                                      shaders_(0),
+                                      width_(width),
+                                      height_(height), 
+                                      background_color_(glm::vec3(0.5f, 0.5f, 0.5f)),
+                                      ctx_(nullptr),
+                                      free_camera_framebuffer_(nullptr),
+                                      camera_framebuffer_list_(num_cameras),
+                                      multiplied_framebuffer_list_(num_cameras),
+                                      reflection_map_(0),
+                                      pixel_buffer_index_(0),
+                                      pixel_buffer_next_index_(1),
+                                      pixel_buffers_{0, 0},
+                                      num_frames_(0),
+                                      img_buffers_(0),
+                                      has_init_(false),
+                                      need_voxelize_(true) {
+
+    if(headless) {
+        ctx_ = render_engine::CreateHeadlessContext(height, width);
+    } else {
+        ctx_ = render_engine::CreateContext(height, width * 2);
+    }
 
     free_camera_framebuffer_ = new FBO(width, height, false, false);
 
@@ -1130,6 +1136,8 @@ Render::~Render() {
 
     delete free_camera_framebuffer_;
     img_buffers_.clear();
+
+    CloseContext(ctx_);
 }
 
 void Render::ProcessInput() {
@@ -1331,16 +1339,18 @@ void Render::InitDrawBatchRay(const int rays) {
     assert(rays > 0);
     num_rays = rays;
 
-    glGenVertexArrays(1, &batch_ray_vao_);
-    glBindVertexArray(batch_ray_vao_);
+    if(batch_ray_vao_ == 0) {
+        glGenVertexArrays(1, &batch_ray_vao_);
+        glBindVertexArray(batch_ray_vao_);
 
-    glGenBuffers(1, &batch_ray_vbo_);
-    glBindBuffer(GL_ARRAY_BUFFER, batch_ray_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, num_rays * 6 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-                0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glBindVertexArray(0);
+        glGenBuffers(1, &batch_ray_vbo_);
+        glBindBuffer(GL_ARRAY_BUFFER, batch_ray_vbo_);
+        glBufferData(GL_ARRAY_BUFFER, num_rays * 6 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(
+                    0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glBindVertexArray(0);
+    }
 }
 
 void Render::UpdateRay(const int offset, const glm::vec3 from, const glm::vec3 to) {
@@ -1955,7 +1965,7 @@ void Render::Visualization() {
     // glViewport(width_, 0, width_, height_);
     // shaders_[kColor].use();
     // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, barrel_tex_);
+    // glBindTexture(GL_TEXTURE_2D, fxaa_tex_);
     // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
     // RenderQuad();
 
@@ -2136,8 +2146,7 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
         pick_result = picks[pick_camera_id];
 
     #ifdef DEBUG
-        //FXAA(); // Rename???
-        //BarrelDistortion();   
+        //FXAA();   
         Visualization();
     #else
         StepRenderGetDepthAllCameras();  

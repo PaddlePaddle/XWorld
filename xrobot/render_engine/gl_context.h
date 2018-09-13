@@ -172,10 +172,10 @@ protected:
 };
 
 inline GLContext* CreateContext(int h, int w, int device=0) {
-    #ifdef USE_GLFW
-        return new GLFWContext{h, w};
-    #else
+    #ifdef USE_GLX
         return new GLXVisualizationContext{h, w};
+    #else
+        return new GLFWContext{h, w};
     #endif
 }
 

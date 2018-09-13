@@ -13,7 +13,7 @@ namespace xrobot
 	class Task
 	{
 	public:
-		Task(const std::string& name, TaskBase& task);
+		Task(const std::string& name, TaskInterface& task);
 		~Task();
 		
 		void RunStage();
@@ -36,7 +36,7 @@ namespace xrobot
 		TaskGroup(const std::string& name, const std::string& schedule = "");
 		~TaskGroup();
 
-		void AddTask(const std::string& task, TaskBase& task_stage, double weight);
+		void AddTask(const std::string& task, TaskInterface& task_stage, double weight = 0.0);
 		bool IsIdle();
 		void Reset();
 		void RunStage();

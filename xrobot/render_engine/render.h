@@ -25,7 +25,7 @@ namespace render_engine {
 // Normal Quality
 // Lambert + Blinn-Phong + Ambient 
 // Normal / Parrallex Mapping
-// Shadow: 6 Cascades
+// Shadow: 5 Cascades
 //
 // High Quality
 // Cook-Torrance + IBL
@@ -99,7 +99,7 @@ struct RenderSettings {
 };
 
 struct Lighting {
-    Lighting() : exposure(1.2f),
+    Lighting() : exposure(1.3f),
                  indirect_strength(0.4f) {}
     float exposure;
     float indirect_strength;
@@ -280,8 +280,8 @@ public:
     Render(const int width,
            const int height,
            const int num_cameras,
-           RenderSettings render_profile,
-           GLContext * ctx);
+           const RenderSettings render_profile,
+           const bool headless);
 
     ~Render();
 

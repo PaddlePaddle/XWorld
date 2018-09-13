@@ -352,40 +352,11 @@ void Map::ResetMap()
 	if(map_AABB_)
 		delete map_AABB_;
 
-	world_->CleanEverything();
-
-	for (auto aabb : sections_AABB_)
-	{
-		delete aabb;
+	if(world_->reset_count_ % 1000) {
+		world_->CleanEverything();
+	} else {
+		world_->CleanEverything2();
 	}
-
-	for (auto aabb : first_layer_AABB_)
-	{
-		delete aabb;
-	}
-
-	for (auto aabb : second_layer_AABB_)
-	{
-		delete aabb;
-	}
-
-	empty_map_.clear();
-	sections_map_.clear();
-	sections_AABB_.clear();
-	first_layer_AABB_.clear();
-	second_layer_AABB_.clear();
-	first_layer_map_.clear();
-}
-
-
-void Map::ClearMap()
-{
-	delete map_;
-
-	if(map_AABB_)
-		delete map_AABB_;
-
-	world_->CleanEverything2();
 
 	for (auto aabb : sections_AABB_)
 	{
@@ -430,7 +401,7 @@ void Map::SpawnOnFloor(const int num)
 {
 	if(!on_floor_list_.size()) return;
 
-	for (int i = 0, success = 0; i < num << 1 && success < num; ++i)
+	for (int i = 0, success = 0; i < num << 2 && success < num; ++i)
 	{
 
 		int object_index = (int) GetRandom(0, on_floor_list_.size());

@@ -16,7 +16,8 @@ MapSuncg::MapSuncg() : world_(nullptr),
 					   mt_(rand_device_()),
 					   remove_all_doors_(false),
 					   remove_all_stairs_(false),
-					   remove_randomly_(false)
+					   remove_randomly_(false),
+					   map_labels_properity()
 {
 	world_ = new World();
 	world_->BulletInit(-9.81f, 0.01f);
@@ -352,25 +353,30 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					// 	mass = 0.0f;
 					// }
 
-					if(all_labels_[modelId] == "chair") {
-						mass = 100.0f;
-						concave = false;
+					if(map_labels_properity.find(all_labels_[modelId]) != map_labels_properity.end()) {
+						mass = map_labels_properity[all_labels_[modelId]].mass;
+						concave = map_labels_properity[all_labels_[modelId]].concave;
 					}
 
-					if(all_labels_[modelId] == "fruit_bowl") {
-						mass = 100.0f;
-						concave = false;
-					}
+					// if(all_labels_[modelId] == "chair") {
+					// 	mass = 100.0f;
+					// 	concave = false;
+					// }
 
-					if(all_labels_[modelId] == "trash_can") {
-						mass = 100.0f;
-						concave = false;
-					}
+					// if(all_labels_[modelId] == "fruit_bowl") {
+					// 	mass = 100.0f;
+					// 	concave = false;
+					// }
 
-					if(all_labels_[modelId] == "coffee_machine") {
-						mass = 100.0f;
-						concave = false;
-					}
+					// if(all_labels_[modelId] == "trash_can") {
+					// 	mass = 100.0f;
+					// 	concave = false;
+					// }
+
+					// if(all_labels_[modelId] == "coffee_machine") {
+					// 	mass = 100.0f;
+					// 	concave = false;
+					// }
 					// if (remove_randomly_  && GetRandom(0, 5) > 2) {
 					// 	if(all_labels_[modelId] != "window") {
 					// 		continue;
@@ -491,9 +497,15 @@ void MapSuncg::ResetMap()
 	world_->CleanEverything();
 	map_bullet_label_.clear();
 	all_labels_.clear();
+	map_labels_properity.clear();
 	remove_all_doors_ = false;
 	remove_all_stairs_ = false;
 	remove_randomly_ = false;
+}
+
+void MapSuncg::AddPhysicalProperties(const std::string& label, const Properity& prop)
+{
+	map_labels_properity[label] = prop;
 }
 
 void MapSuncg::SetRemoveAll(const unsigned int remove)
