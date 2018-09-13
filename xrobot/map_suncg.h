@@ -25,6 +25,11 @@ namespace xrobot
 		kRemoveStairs = 2,
 	};
 
+	struct Properity {
+		float mass;
+		bool concave;
+	};
+
 	class MapSuncg
 	{
 	public:
@@ -44,10 +49,13 @@ namespace xrobot
 		void SetMapSize(const float min_x, const float min_z,
 				const float max_x, const float max_z);
 
+		void AddPhysicalProperties(const std::string& label, const Properity& prop);
+
 		World * world_;
 		AABB * map_AABB_;
 		std::unordered_map<int, std::string> map_bullet_label_;
 		std::unordered_map<std::string, std::string> all_labels_;
+		std::unordered_map<std::string, Properity> map_labels_properity;
 
 	private:
 		void RemoveRandomObject();

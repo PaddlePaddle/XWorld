@@ -123,8 +123,7 @@ namespace xrobot
 		// Create a Constraint which an Object Cannot Be Topped
 		void CreateSpawnConstraint(const std::string cannot_be_topped);
 
-		// Clear Map and Reset Simulation
-		void ClearMap();
+		// Reset Simulation
 		void ResetMap();
 
 

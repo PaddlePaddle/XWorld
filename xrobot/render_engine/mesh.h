@@ -33,17 +33,6 @@ struct Texture {
     std::string path;
 };
 
-// TEST
-// Skinning
-struct VertexBoneData {
-    unsigned int ids[4];
-    float weights[4];
-};
-
-struct BoneInfo {
-    aiMatrix4x4 offset_matrix;
-};
-
 class Mesh {
 public:
     std::vector<Vertex> vertices_;
@@ -63,11 +52,6 @@ public:
     bool specular_;
     bool height_;
     bool ao_;
-
-    // Skinning
-    int num_bones_;
-    std::vector<BoneInfo> bone_info_list_;
-    std::vector<VertexBoneData> bones_;
 
     Mesh() {}
 

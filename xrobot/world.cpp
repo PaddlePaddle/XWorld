@@ -670,6 +670,8 @@ void World::CleanEverything2()
         }
     }
 
+    reset_count_++;
+
     remove_all_cameras();
 }
 
@@ -692,6 +694,8 @@ void World::CleanEverything()
             delete robot_list_[i];
         }
     }
+
+    reset_count_++;
 
     remove_all_cameras();
 

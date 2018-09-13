@@ -2,7 +2,7 @@
 
 namespace xrobot 
 {
-	Task::Task(const std::string& name, TaskBase& task)
+	Task::Task(const std::string& name, TaskInterface& task)
 	: name_(name) {
 
 		auto stages = task.GetStages();
@@ -44,7 +44,7 @@ namespace xrobot
 
 	TaskGroup::~TaskGroup() {}
 
-	void TaskGroup::AddTask(const std::string& task, TaskBase& task_stage, double weight) {
+	void TaskGroup::AddTask(const std::string& task, TaskInterface& task_stage, double weight) {
 		TaskPtr task_ptr = std::make_shared<Task>(task, task_stage);
 		task_list_.push_back(task_ptr);	
 		if(task_weights_.empty()) {
