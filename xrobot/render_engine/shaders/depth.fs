@@ -10,7 +10,7 @@ uniform sampler2D tex;
 
 void main()
 {
-    float z_b = texture(tex, TexCoords).a;
+    float z_b = texture(tex, TexCoords).r;
     //z_b = (2 * zNear) / (zFar + zNear - z_b * (zFar - zNear));
     FragColor = vec4(vec3(z_b), 1.0f);
 }

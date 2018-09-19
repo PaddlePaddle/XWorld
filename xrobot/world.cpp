@@ -115,7 +115,7 @@ void Object::GetMass(float& mass) {
 
     int status_type = b3GetStatusType(status_handle);
     if (status_type != CMD_GET_DYNAMICS_INFO_COMPLETED) {
-        printf("Get Mass Failed!\n");
+        printf("Get Mass Failed! Or Could Be Static Object\n");
         return;
     }
 
@@ -299,7 +299,9 @@ glm::mat4 Object::local_inertial_frame() const {
 
 Robot::Robot() : RenderBody(),
                  bullet_world_(nullptr),
+                 label_("unlabeled"),
                  urdf_name_("robot_unnamed"),
+                 path_("unknow_path"),
                  bullet_handle_(-1), 
                  root_part_(nullptr),
                  other_parts_(0),
@@ -363,7 +365,12 @@ void Robot::Teleport(const glm::vec3 walk_move,
     for (int i = 0; i < contact_points.size(); ++i)
     {
         ContactPoint cp = contact_points[i];
-        if(cp.contact_distance < -0.02) {
+        if(cp.contact_distance < -0.01) {
+
+            float p = glm::clamp(cp.contact_distance, -0.02f, 0.0f) * 0.9f;
+            glm::vec3 move_out_temp = glm::normalize(cp.contact_normal) * p;
+            btVector3 move_out = btVector3(move_out_temp.x, 0, move_out_temp.z);
+
             robot_transform.setOrigin(robot_position);
             robot_transform.setRotation(robot_rotation);
             bullet_world_->SetTransformation(this, robot_transform);
@@ -437,6 +444,36 @@ void Robot::RemoveRobotFromBullet() {
     b3SubmitClientCommandAndWaitStatus(
             bullet_world_->client_, 
             b3InitRemoveBodyCommand(bullet_world_->client_, bullet_handle_));
+}
+
+void Robot::Sleep()
+{
+    if(bullet_handle_ < 0) return;
+
+    if (root_part_) {
+        root_part_->Sleep();
+    }
+
+    for (Object* part : other_parts_) {
+       if (part) {
+            part->Sleep();
+       }
+    }
+}
+
+void Robot::Wake()
+{
+    if(bullet_handle_ < 0) return;
+
+    if (root_part_) {
+        root_part_->Wake();
+    }
+
+    for (Object* part : other_parts_) {
+       if (part) {
+            part->Wake();
+       }
+    }
 }
 
 void Robot::DisableSleeping()
@@ -1065,6 +1102,12 @@ void World::BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& 
             pos_temp[1] = raycast_info.m_rayHits[i].m_hitPositionWorld[1];
             pos_temp[2] = raycast_info.m_rayHits[i].m_hitPositionWorld[2];
             res.pos = pos_temp;
+
+            glm::vec3 norm_temp;
+            norm_temp[0] = raycast_info.m_rayHits[i].m_hitNormalWorld[0];
+            norm_temp[1] = raycast_info.m_rayHits[i].m_hitNormalWorld[1];
+            norm_temp[2] = raycast_info.m_rayHits[i].m_hitNormalWorld[2];
+            res.norm = norm_temp;
             
             result.push_back(res);
         } 
@@ -1276,6 +1319,8 @@ Robot* World::LoadURDFFile(
 
     AddObjectWithLabel(label, robot->bullet_handle_);
 
+    robot->label_ = label;
+
     return robot;
 }
 
@@ -1355,9 +1400,13 @@ Robot* World::LoadOBJFile(
     const bool flip,
     const bool concave) {
 
+    std::string filename_with_scale = filename + ":" + 
+        std::to_string(scale[0]) + ":" + std::to_string(scale[1]) + ":" + std::to_string(scale[2]);
+
     Robot* robot = new Robot();
     robot->bullet_world_ = this;
-    robot->urdf_name_ = filename;
+    robot->urdf_name_ = filename_with_scale;
+    robot->path_ = filename;
     robot->recycle(false);
 
     CommandHandle cmd_handle = b3LoadObjCommandInit(client_, filename.c_str());
@@ -1417,6 +1466,8 @@ Robot* World::LoadOBJFile(
     bullet_handle_to_robot_map_[robot->bullet_handle_] = robot;
 
     AddObjectWithLabel(label, robot->bullet_handle_);
+
+    robot->label_ = label;
 
     return robot;
 }

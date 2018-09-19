@@ -44,10 +44,10 @@ uniform float voxelScale;
 uniform vec3 worldMinPoint;
 uniform vec3 worldMaxPoint;
 uniform int volumeDimension;
-uniform float maxTracingDistanceGlobal = 1.0f;
+uniform float maxTracingDistanceGlobal = 0.5f;
 uniform float bounceStrength = 0.5f;
-uniform float aoFalloff = 900.0f;
-uniform float aoAlpha = 0.007f;
+uniform float aoFalloff = 800.0f;
+uniform float aoAlpha = 0.005f;
 uniform float samplingFactor = 0.5f;
 uniform float coneShadowTolerance = 0.1f;
 uniform float coneShadowAperture = 0.01f;
@@ -58,6 +58,9 @@ uniform vec4 options;
 uniform int num_cascades;
 uniform float far_bounds[8];
 uniform mat4 texture_matrices[8];
+
+uniform float bias_scale = 0.05f;
+uniform float bias_clamp = 0.0002f;
 
 const vec3 diffuseConeDirections[] =
 {
@@ -88,7 +91,6 @@ float shadow_occlussion(float frag_depth, vec3 n, vec3 l, vec3 x)
     int index = 0;
     float blend = 0.0;
     
-    // Find shadow cascade.
     for (int i = 0; i < num_cascades - 1; i++)
     {
         if (frag_depth > far_bounds[i])
@@ -103,7 +105,7 @@ float shadow_occlussion(float frag_depth, vec3 n, vec3 l, vec3 x)
     vec4 light_space_pos = texture_matrices[index] * vec4(x, 1.0f);
     float current_depth = light_space_pos.z;
     
-    float bias = max(0.0005 * (1.0 - dot(n, l)), 0.0005);  
+    float bias = clamp(bias_scale * (1.0 - dot(n, l)), 0.0, bias_clamp);  
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(s_ShadowMap[index], 0).xy;
     for(int x = -1; x <= 1; ++x)
@@ -115,7 +117,7 @@ float shadow_occlussion(float frag_depth, vec3 n, vec3 l, vec3 x)
         }    
     }
     shadow /= 9.0;
-    
+
     if (options.x == 1.0)
     {
         //if (blend > 0.0 && index != num_cascades - 1)
@@ -484,7 +486,7 @@ float CaculateDirectionalShadow(vec3 normal, vec3 position, float depth)
 
     if(shadowMode == 0)
     {
-        visibility = 1.025 - shadow_occlussion(depth, normal, direction.xyz, position);
+        visibility = 1.03 - shadow_occlussion(depth, normal, direction.xyz, position);
 
     }
     else if(shadowMode == 1 && numDirectionalLight > 0)
@@ -591,12 +593,16 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
     float visibility_alpha = clamp(visibility * 4, 0, 1);
 
     vec3 distance_ibl = DistanceIBL(normal, position, albedo, metallic, roughness, ao);
-    result = result * 0.8 + vec3(spec_occ * gi_alpha * visibility_alpha) * distance_ibl * 0.1;
+    result = result * 0.8 + vec3(spec_occ * gi_alpha * visibility_alpha) * distance_ibl * 0.2;
     return vec4(result, ambientOcclusion ? ao : 1.0f);
 }
 
 void main()
 {
+    if(texture(gNormal, TexCoords).a == 0) {
+        discard;
+    }
+
     // world-space position
     vec3 position = texture(gPosition, TexCoords).rgb;
     // Depth (Log)
@@ -608,7 +614,7 @@ void main()
     float roughness = texture(gPBR, TexCoords).g;
     float height = texture(gPBR, TexCoords).b;
     float ao = texture(gPBR, TexCoords).a;
-    vec4 specular = vec4(1,1,1, clamp(1.0 - roughness,0,1) * 0.9);
+    vec4 specular = vec4(1,1,1, clamp(1.0 - roughness,0,1));
     vec3 baseColor = texture(gAlbedoSpec, TexCoords).rgb;
 
     vec3 albedo = pow(baseColor, vec3(2.2f));
@@ -717,6 +723,7 @@ void main()
     //     baseColor.rgb = specular.rgb = vec3(1.0f);
     //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
     //         roughness, metallic, true, visibility);
+
 
     indirectLighting.rgb = pow(indirectLighting.rgb, vec3(2.2f));
     compositeLighting = (directLighting + indirectLighting.rgb) * indirectLighting.a;

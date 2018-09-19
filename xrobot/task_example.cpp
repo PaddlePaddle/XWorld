@@ -1,10 +1,12 @@
 #include "task_example.h"
 
 static std::string door0 = "./door0/door.urdf";
+static std::string door1 = "/home/ziyuli/model/door1/door.urdf";
 static std::string wall = "./wall/floor.urdf";
-static std::string floor_test = "./floor/floor.urdf";
+static std::string wall1 = "/home/ziyuli/model/wall1/floor.urdf";
+static std::string floor_test = "/floor/floor.urdf";
 static std::string floor0 = "./floor0/floor.urdf";
-static std::string floor1 = "./floor1/floor.urdf";
+static std::string floor1 = "/home/ziyuli/model/floor/floor.urdf";
 static std::string floor2 = "./floor2/floor.urdf";
 static std::string crate1 = "./crate_1/crate.urdf";
 static std::string crate03 = "./crate_0.3/crate.urdf";
@@ -12,6 +14,8 @@ static std::string apple = "./apple/apple.urdf";
 static std::string data_dir = "/home/ziyuli/Desktop/suncg";
 static std::string metadata_models = "/home/ziyuli/Desktop/suncg/metadata/ModelCategoryMapping.csv";
 static std::string house0 = "/home/ziyuli/Desktop/suncg/house/7c16efebdfe46f3f14fa81abe500589c/house.json";
+
+//7c16efebdfe46f3f14fa81abe500589c
 
 namespace xrobot
 {
@@ -38,11 +42,14 @@ namespace xrobot
 	}
 
 	std::string Task_FollowRobot::Start() {
+		renderer_->sunlight_.ambient = glm::vec3(0.05,0.05,0.05);
+        renderer_->lighting_.exposure = 1.0f;
+        renderer_->lighting_.indirect_strength = 0.3f;
 		iterations_ = 0;
 		scene_->ResetMap();
 		scene_->ClearRules();
 		scene_->CreateLabel("r2d2/r2d2.urdf", "r2d2");
-		scene_->CreateSectionType(floor0, wall, door0);
+		scene_->CreateSectionType(floor1, wall1, door0);
 		scene_->GenerateTestFloorPlan(5, 5);
 
 		// Load Target Robot
@@ -477,8 +484,8 @@ namespace xrobot
 	std::string Task_NavToFruitBowl::Start() {
 		// Setup Lighting
 		renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
-        renderer_->lighting_.exposure = 1.2f;
-        renderer_->lighting_.indirect_strength = 2.0f;
+        renderer_->lighting_.exposure = 1.5f;
+        renderer_->lighting_.indirect_strength = 1.5f;
 
         // Load SUNCG Scene
         iterations_ = 0;
@@ -489,6 +496,9 @@ namespace xrobot
 	    scene_->AddPhysicalProperties("fruit_bowl", {100, false});
 	    scene_->AddPhysicalProperties("trash_can", {100, false});
 	    scene_->AddPhysicalProperties("coffee_machine", {100, false});
+	    scene_->AddPhysicalProperties("knife_rack", {100, false});
+	    scene_->AddPhysicalProperties("knife", {10, false});
+	    scene_->AddPhysicalProperties("teapot", {100, false});
 	    scene_->LoadJSON(house0.c_str(), data_dir.c_str(), true);
 	    scene_->SetMapSize(-8, -8, 6, 6);
 
@@ -606,23 +616,23 @@ namespace xrobot
         // Control Desired Joints
         Joint * j;
         j = agent_->joints_list_[2];
-        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[3];
-        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[4];
-        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[5];
-        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[6];
-        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[7];
-        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[8];
-        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[10];
-        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,10.0f);
+        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,50.0f);
         j = agent_->joints_list_[12];
-        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,10.0f);
+        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,50.0f);
         scene_->world_->rotate_camera(main_camera_, cam_pitch_);
 
         // Check In-Range
@@ -686,18 +696,22 @@ namespace xrobot
 	std::string Task_TouchPan::Start() {
 		// Setup Lighting
 		renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
-        renderer_->lighting_.exposure = 1.2f;
-        renderer_->lighting_.indirect_strength = 2.0f;
+        renderer_->lighting_.exposure = 1.5f;
+        renderer_->lighting_.indirect_strength = 1.5f;
 
         // Load SUNCG Scene
         iterations_ = 0;
         scene_->ResetMap();
-       	scene_->SetRemoveAll( kRemoveStairs );
+       	scene_->SetRemoveAll( kRemoveStairs | kRemoveDoor );
         scene_->LoadCategoryCSV(metadata_models.c_str());
-       	scene_->AddPhysicalProperties("chair", {100, false});
+        scene_->AddPhysicalProperties("chair", {100, false});
 	    scene_->AddPhysicalProperties("fruit_bowl", {100, false});
 	    scene_->AddPhysicalProperties("trash_can", {100, false});
 	    scene_->AddPhysicalProperties("coffee_machine", {100, false});
+	    scene_->AddPhysicalProperties("knife_rack", {100, false});
+	    scene_->AddPhysicalProperties("knife", {10, false});
+	    scene_->AddPhysicalProperties("teapot", {100, false});
+	    scene_->AddPhysicalProperties("bottle", {10, false});
 	    scene_->LoadJSON(house0.c_str(), data_dir.c_str(), true);
 	    scene_->SetMapSize(-8, -8, 6, 6);
 
@@ -707,7 +721,8 @@ namespace xrobot
 	        btVector3(-6,0.21,-1),
 	        btQuaternion(btVector3(-1,0,0),1.57),
 	        0.6f,
-	        "agent"
+	        "agent",
+	        true
 	    );
 	    agent_->move(true);
 	    agent_->DisableSleeping();
@@ -815,23 +830,23 @@ namespace xrobot
         // Control Desired Joints
         Joint * j;
         j = agent_->joints_list_[2];
-        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[3];
-        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[4];
-        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[5];
-        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[6];
-        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[7];
-        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[8];
-        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,100.0f);
+        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,1000.0f);
         j = agent_->joints_list_[10];
-        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,10.0f);
+        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,50.0f);
         j = agent_->joints_list_[12];
-        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,10.0f);
+        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,50.0f);
         scene_->world_->rotate_camera(main_camera_, cam_pitch_);
 
         // Check In-Range
@@ -862,8 +877,8 @@ namespace xrobot
         }
 
         // Reset After N Steps
-        if(iterations_++ > 12000) 
-        	return "idle";
+        // if(iterations_++ > 12000) 
+        // 	return "idle";
 
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   

@@ -131,7 +131,6 @@ namespace xrobot
 	    float pos_6_ = 0.0f;
 	    float pos_7_ = 0.0f;
 	};
-
 }
 
 #endif // TASK_EXAMPLE_H_

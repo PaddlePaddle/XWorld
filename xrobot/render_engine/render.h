@@ -65,9 +65,10 @@ struct RenderSettings {
                                                                use_ibl(quality < 2 ? 0 : 1),
                                                                ibl_path(""),
                                                                use_shadow(quality < 1 ? 0 : 1),
-                                                               shadow_split(quality + 3),
-                                                               shadow_lamda(0.5f),
-                                                               shadow_resolution(quality < 2 ? 1024 : 2048),
+                                                               shadow_split(6),
+                                                               shadow_lamda(0.7f),
+                                                               shadow_near_offset(50.0f),
+                                                               shadow_resolution(2048),
                                                                use_basic_frustrum_culling(true),
                                                                use_free_camera(true) {}
 
@@ -89,6 +90,7 @@ struct RenderSettings {
     bool  use_shadow;
     int   shadow_split;
     float shadow_lamda;
+    float shadow_near_offset;
     int   shadow_resolution;
 
     // Culling
@@ -103,6 +105,18 @@ struct Lighting {
                  indirect_strength(0.4f) {}
     float exposure;
     float indirect_strength;
+
+    // Shadow
+    float shadow_bias_clamp = 0.0005f;
+    float shadow_bias_scale = 0.0002f;
+    bool force_disable_shadow = false;
+
+    // VXGI
+    float propagation_distance = 0.5f;
+    float conetracing_distance = 0.8f;
+    float traceshadow_distance = 0.3f;
+    bool force_disable_propagation = false;
+    bool linear_voxelize = false;
 };
 
 struct DirectionalLight {
@@ -145,7 +159,9 @@ class Render {
         kRay = 23,
         kSkybox = 24,
         kFXAA = 25,
-        kBarrel = 26,
+        kSSAO = 26,
+        kBlur = 27,
+        kComposite = 28,
         kShaderTypeSize
     };
 
@@ -260,8 +276,15 @@ public:
     //   FXAA
     GLuint fxaa_fbo_;
     GLuint fxaa_tex_;
-    GLuint barrel_fbo_;
-    GLuint barrel_tex_;
+
+    std::vector<glm::vec3> ssaoKernel;
+    GLuint ssao_composite_fbo_;
+    GLuint ssao_composite_tex_;
+    GLuint noise_tex_;
+    GLuint ssao_fbo_;
+    GLuint ssao_blur_fbo_;
+    GLuint ssao_tex_;
+    GLuint ssao_tex_blur_;
 
     // High Res Lidar
     GLuint cubemap_capture_fbo_;
@@ -341,14 +364,14 @@ public:
     std::vector<Image> GetRenderedImages() {
         return img_buffers_;
     }
-    
-    void InitBarrelDistortion();
-
-    void BarrelDistortion();
 
     void InitFXAA();
 
     void FXAA();
+
+    void InitSSAO();
+
+    void SSAO(RenderWorld* world);
 
     void InitShaders();
 

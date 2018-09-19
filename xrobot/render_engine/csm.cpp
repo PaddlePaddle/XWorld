@@ -47,16 +47,15 @@ void CSM::initialize(float lambda, float near_offset, int split_count, int shado
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_shadow_map_size, m_shadow_map_size, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, m_shadow_map_size, m_shadow_map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	}
-
-
-
 
 
 	for (int i = 0; i < m_split_count; i++)
 	{
 		glGenFramebuffers(1, &m_shadow_fbos[i]);
 		glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_fbos[i]);
+		//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadow_maps[i], 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_shadow_maps[i], 0);
 	}
 
