@@ -9,7 +9,7 @@ layout(binding = 3) uniform sampler3D voxelTexMipmap[6];
 
 const float PI = 3.14159265f;
 const float EPSILON = 1e-30;
-uniform float maxTracingDistanceGlobal = 0.5f;
+uniform float maxTracingDistanceGlobal = 0.1f;
 uniform int volumeDimension;
 uniform uint checkBoundaries = 1;
 

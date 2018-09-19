@@ -310,7 +310,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					}
 
 					sprintf(obj_name, "%s/room/%s/%sc.obj", input_data_directory, scene_id, modelId); 
-					if (!hideCeiling) {
+					if (!hideCeiling && false) {
 						//printf("Load Wall: %s\n", obj_name);
 						// createObjectAtTransform(obj_name,
 						// 	translation.x, translation.y, translation.z,
@@ -319,9 +319,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						// );
 						Robot* object = world_->LoadOBJ(
 							obj_name,
-							btVector3(translation.x,translation.y - 8.0,translation.z),
+							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
-							btVector3(scale.x, scale.y *4, scale.z),
+							btVector3(scale.x, scale.y , scale.z),
 							"Ceiling",
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f,
@@ -335,7 +335,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					else sprintf(obj_name, "%s/object/%s/%s.obj", input_data_directory, modelId, modelId); 
 					
 					float mass = 0.0f;
-					bool concave = false;
+					bool concave = true;
 
 					if (remove_all_doors_ && all_labels_[modelId] == "door") {
 						continue;
@@ -395,8 +395,8 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						concave
 					);
 
-					object->root_part_->ChangeLinearDamping(0.8f);
-					object->root_part_->ChangeAngularDamping(0.8f);
+					object->root_part_->ChangeLinearDamping(0.9f);
+					object->root_part_->ChangeAngularDamping(0.9f);
 
 					map_bullet_label_[object->bullet_handle_] = all_labels_[modelId];
 					//printf("    label: %s\n", all_labels_[modelId].c_str());

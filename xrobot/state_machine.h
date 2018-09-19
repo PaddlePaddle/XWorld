@@ -5,8 +5,10 @@
 #include <vector>
 #include <unordered_map>
 
-#include "map.h"
 #include "task.h"
+#include "map.h"
+#include "render_engine/gl_context.h"
+#include "render_engine/render.h"
 
 namespace xrobot
 {

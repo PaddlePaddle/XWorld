@@ -34,6 +34,7 @@ uniform struct Material
 
 uniform int volumeDimension;
 uniform int flagStaticVoxels = 1;
+uniform int linear = 1;
 
 // MTL
 uniform float d = 1;
@@ -134,12 +135,13 @@ void main()
     if(albedo.a > 0.0f)
     {
         // albedo is in srgb space, bring back to linear
-        //albedo.rgb = pow(albedo.rgb, vec3(2.2f));
+        if(linear == 1)
+            albedo.rgb = pow(albedo.rgb, vec3(2.2f));
         // premultiplied alpha
         albedo.rgb *= albedo.a;
         albedo.a = 1.0f;
         // emission value
-        vec4 emissive = vec4(albedo.rgb * 0.05f, 1.0f);
+        vec4 emissive = vec4(albedo.rgb * 0.01f, 1.0f);
 
         vec4 normal = vec4(EncodeNormal(normalize(In.normal)), 1.0f);
 

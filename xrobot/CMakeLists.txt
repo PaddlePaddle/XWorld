@@ -45,8 +45,10 @@ set(XROBOT_SOURCES
     vendor/json.cpp
     map.cpp
     map_suncg.cpp
+    inventory.cpp
     state_machine.cpp
     task_example.cpp
+    task_example_testing.cpp
     room_generator.cpp
     utils.cpp
     lidar.cpp

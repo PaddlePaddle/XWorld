@@ -128,9 +128,9 @@ public:
     Camera* add_camera(const glm::vec3& position,
                        const glm::vec3& offset = glm::vec3(0),
                        const float aspect_ratio = 4.0f / 3.0f,
-                       const float fov = 90.0f,
+                       const float fov = 60.0f,
                        const float near = 0.02f,
-                       const float far = 25.0f);
+                       const float far = 30.0f);
             
     void detach_camera(Camera* camera);
 

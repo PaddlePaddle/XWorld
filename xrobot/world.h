@@ -215,6 +215,10 @@ public:
 
     void DisableSleeping();
 
+    void Wake();
+
+    void Sleep();
+
     void RemoveRobotFromBullet();
 
     void SetJointVelocity(const int joint_id, const float speed,
@@ -246,7 +250,9 @@ public:
     virtual void TurnRight(const float speed);
 
     World* bullet_world_;
+    std::string label_;
     std::string urdf_name_;
+    std::string path_;
     int bullet_handle_;
     Object* root_part_;
     std::vector<Object*> other_parts_;
@@ -281,6 +287,7 @@ struct RayTestInfo
 {
     int bullet_id;
     glm::vec3 pos;
+    glm::vec3 norm;
 };
 
 struct ObjectAttributes {

@@ -66,14 +66,15 @@ void ModelData::LoadModel(const std::string& path) {
     importer.SetPropertyMatrix(AI_CONFIG_PP_PTV_ROOT_TRANSFORMATION, root_trans); 
 
     int flag = aiProcess_JoinIdenticalVertices 
-               // | aiProcess_GenNormals 
+               //| aiProcess_GenNormals 
                | aiProcess_ImproveCacheLocality 
                | aiProcess_Triangulate 
                | aiProcess_FlipUVs
                | aiProcess_CalcTangentSpace
                | aiProcess_OptimizeGraph
                | aiProcess_OptimizeMeshes
-               | aiProcess_GenSmoothNormals;
+               | aiProcess_GenSmoothNormals
+               | aiProcess_SplitLargeMeshes;
 
     const aiScene* scene = importer.ReadFile(path, flag);
 

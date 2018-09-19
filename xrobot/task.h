@@ -16,10 +16,6 @@ namespace xrobot
 	public:
 		virtual ~TaskInterface() {};
 		virtual TaskStages GetStages() = 0;
-		
-		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
-		render_engine::Camera * main_camera_;
 	};
 
 }

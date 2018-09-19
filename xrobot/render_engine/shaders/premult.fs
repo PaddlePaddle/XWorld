@@ -2,15 +2,15 @@
 
 out vec4 FragColor;
 
-in vec2 TexCoords;
+in mediump vec2 TexCoords;
+
+uniform mediump float zNear = 0.02;
+uniform mediump float zFar = 30.0;
+uniform lowp float deferred = 0;
 
 uniform sampler2D tex;
 uniform sampler2D dep;
 uniform sampler2D mask;
-
-uniform float zNear = 0.02;
-uniform float zFar = 30.0;
-uniform int deferred = 0;
 
 float linearize(float depth)
 {
@@ -22,7 +22,7 @@ void main()
 
   FragColor.rgb = texture(tex, TexCoords).rgb;
 
-  if(deferred == 1)
+  if(deferred > 0)
   {
     FragColor.a = linearize(texture(dep, TexCoords).a);
     if(texture(mask, TexCoords).a < 0.5) {

@@ -6,6 +6,7 @@ layout(binding = 0) uniform sampler3D voxelAlbedo;
 layout(binding = 1, rgba8) uniform image3D voxelNormal;
 layout(binding = 2, rgba8) uniform image3D writeonly voxelRadiance;
 layout(binding = 3, rgba8) uniform image3D readonly voxelEmissive;
+layout(binding = 4) uniform sampler2D s_ShadowMap[8];
 
 const float PI = 3.14159265f;
 const float EPSILON = 1e-30;
@@ -35,6 +36,49 @@ uniform int volumeDimension;
 uniform uint normalWeightedLambert = 1;
 uniform float traceShadowHit;
 uniform int numDirectionalLight;
+uniform int shadowMode = 1; // 0 ShadowMap
+uniform vec4 direction;
+uniform vec4 options;
+uniform int num_cascades;
+uniform float far_bounds[8];
+uniform mat4 texture_matrices[8];
+uniform vec3 camera_position;
+
+float depth_compare(float a, float b, float bias)
+{
+    return a - bias > b ? 1.0 : 0.0;
+}
+
+float shadow_occlussion(float frag_depth, vec3 n, vec3 l, vec3 x)
+{
+    int index = num_cascades - 2;
+    
+    // for (int i = 0; i < num_cascades - 1; i++)
+    // {
+    //     if (frag_depth > far_bounds[i])
+    //         index = i + 1;
+    // }
+
+    // Transform frag position into Light-space.
+    vec4 light_space_pos = texture_matrices[index] * vec4(x, 1.0f);
+    float current_depth = light_space_pos.z;
+    
+    float bias = max(0.0005 * (1.0 - dot(n, l)), 0.0005);  
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(s_ShadowMap[index], 0).xy;
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(s_ShadowMap[index], vec2(light_space_pos.xy + vec2(x, y) * texelSize)).r; 
+            shadow += current_depth - bias > pcfDepth ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+
+    
+    return shadow;
+}
 
 vec3 VoxelToWorld(ivec3 pos)
 {
@@ -78,7 +122,7 @@ float TraceShadow(vec3 position, vec3 direction, float maxTracingDistance)
         if(traceSample > 1.0f - EPSILON) { return 0.0f; }
 
         // accumulate
-        visibility += (1.0f - visibility) * traceSample / (dst * dst);
+        visibility += (1.0f - visibility) * traceSample / (dst * 1);
         // move further into volume
         dst += voxelTexSize;
         samplePos = direction * dst + position;
@@ -115,19 +159,33 @@ vec3 BRDF(Light light, vec3 normal, vec3 albedo)
 }
 
 
-vec4 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo)
+vec4 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo, float depth)
 {
     float visibility = 1.0f;
 
+    // if(shadowMode == 0)
+    // {
+    //     visibility = 1.002 - shadow_occlussion(depth, normal, direction.xyz, position);
+
+    // } else if(shadowMode == 1){
+    //     vec3 voxelPos = WorldToVoxel(position);
+    //     visibility = TraceShadow(voxelPos, normalize(light.direction), 1.0f);
+    // } else {
+    //     float a = 1.002 - shadow_occlussion(depth, normal, direction.xyz, position);
+    //     vec3 voxelPos = WorldToVoxel(position);
+    //     float b = TraceShadow(voxelPos, normalize(light.direction), 1.0f);
+    //     visibility = min(a, b);
+    // }
+
     vec3 voxelPos = WorldToVoxel(position);
-    visibility = TraceShadow(voxelPos, light.direction, 1.0f);
+    visibility = TraceShadow(voxelPos, normalize(light.direction), 1.0f);
 
     if(visibility == 0.0f) return vec4(0.0f); 
 
     return vec4(BRDF(light, normal, albedo) * visibility, visibility);
 }
 
-vec4 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo)
+vec4 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo, float depth)
 {
     normal = normalize(normal);
     // world space grid voxel size
@@ -139,7 +197,7 @@ vec4 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo)
 
     for (uint i = 0; i < numDirectionalLight; ++i)
     {
-        current = CalculateDirectional(directionalLight[i], normal, position, albedo);
+        current = CalculateDirectional(directionalLight[i], normal, position, albedo, depth);
         directLighting.rgb += current.rgb;
         directLighting.a += current.a; 
     }
@@ -182,7 +240,13 @@ void main()
     if(any(greaterThan(albedo.rgb, vec3(0.0f))))
     {
         vec3 wsPosition = VoxelToWorld(writePos);
-        albedo = CalculateDirectLighting(wsPosition, normal, albedo.rgb);
+        
+        float near = 0.05f;
+        float far = 120.0f;
+
+        float z_linear = clamp((length(wsPosition - camera_position) - near) / far ,0.0, 1.0);
+        float z_non_linear = ((near + far) * z_linear - (2 * near)) / ((near - far) * z_linear);
+        albedo = CalculateDirectLighting(wsPosition, normal, albedo.rgb, z_non_linear);
     }
 
 
