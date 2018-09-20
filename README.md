@@ -125,7 +125,7 @@ If you use XWorld2D for research, consider citing
 If you use XWorld3D for research, consider citing
 
 * Haonan Yu, Xiaochen Lian, Haichao Zhang, Wei Xu, [*Guided Feature Transformation (GFT): A Neural Language Grounding Module
-  for Embodied Agents*](https://arxiv.org/abs/1805.08329), arXiv preprint 2018.
+  for Embodied Agents*](https://arxiv.org/abs/1805.08329), CoRL 2018.
 
 If you use our wrappers of the third-party simulators, please follow their original guide for citation.
 

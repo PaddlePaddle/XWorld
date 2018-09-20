@@ -30,7 +30,7 @@ DEFINE_double(x3_collect_distance, 1.42,
               " is smaller than this value");
 DEFINE_double(x3_move_speed, 25.0, "magnitude of moving speed");
 DEFINE_double(x3_jump_speed, 20.0, "magnitude of jumping speed");
-DEFINE_double(x3_turning_rad, M_PI/8, "turning degree in radian");
+DEFINE_double(x3_turning_rad, 0.2, "turning degree in radian");
 DEFINE_double(x3_gravity, 9.8, "gravitiy of the world");
 DEFINE_double(x3_time_step, 0.0066, "time step for one simulation step");
 //DEFINE_int32(x3_frame_skip, 1, "time step for one simulation step");
