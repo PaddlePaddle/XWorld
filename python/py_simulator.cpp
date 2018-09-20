@@ -149,7 +149,7 @@ void init_xworld3d_gflags(const py::dict& args) {
     FLAGS_x3_move_speed = extract_py_dict_val(args, "x3_move_speed", false, 25.0f);
     FLAGS_x3_turning_rad = extract_py_dict_val(args, "x3_turning_rad", false, M_PI / 8);
     FLAGS_x3_big_screen = extract_py_dict_val(args, "x3_big_screen", false, false);
-    FLAGS_x3_dry_run = extract_py_dict_val(args, "x3_dry_run", false, false);
+    FLAGS_x3_opengl_init = extract_py_dict_val(args, "x3_opengl_init", false, true);
     FLAGS_color = extract_py_dict_val(args, "color", false, false);
 #endif
 }

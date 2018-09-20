@@ -97,7 +97,7 @@ private:
 
 class X3World {
 public:
-    X3World(const std::string& conf, bool print_conf, bool dry_run, bool big_screen);
+    X3World(const std::string& conf, bool print_conf, bool opengl_init, bool big_screen);
 
     X3World(const X3World&)  = delete;
 
