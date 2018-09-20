@@ -38,4 +38,4 @@ DEFINE_string(
     x3_task_mode,
     "lang_acquisition",
     "lang_acquisition|interactive|one_channel");
-DEFINE_bool(x3_dry_run, false, "true if it is just a dry run (no opengl init)");
+DEFINE_bool(x3_opengl_init, true, "false if init xworld3d without opengl");

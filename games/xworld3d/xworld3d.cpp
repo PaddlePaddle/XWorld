@@ -83,7 +83,7 @@ void X3Stadium::load_stadium(const std::string& item_path,
                                 true);
 }
 
-X3World::X3World(const std::string& conf, bool print_conf, bool dry_run, bool big_screen) :
+X3World::X3World(const std::string& conf, bool print_conf, bool opengl_init, bool big_screen) :
         // if big_screen=true, we don't care about rendering speed;
         // otherwise the dimensions should be the same with the training input image
         conf_(conf),
@@ -138,7 +138,7 @@ X3World::X3World(const std::string& conf, bool print_conf, bool dry_run, bool bi
         LOG(FATAL) << "Error loading map: " << map;
     }
 
-    if (dry_run) {
+    if (!opengl_init) {
         world_ = nullptr;
         camera_ = nullptr;
     } else {
