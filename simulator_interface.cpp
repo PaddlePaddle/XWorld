@@ -47,24 +47,30 @@ SimulatorInterface::SimulatorInterface(const std::string& name, bool server)
                 FLAGS_task_groups_exclusive = false;
             }
 
-            auto xwd = std::make_shared<XWorldSimulator>(true /*print*/);
+            auto print = false;
+            auto xwd = std::make_shared<XWorldSimulator>(print);
             int agent_id = xwd->add_agent();
             game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
             teaching_env_ = xwd;
             teacher_ = std::make_shared<Teacher>(
-                xwd->conf_file(), xwd, false /*print*/);
+                xwd->conf_file(), xwd, print);
             // print out all the possible sentences the teacher can say in this world
-            teacher_->print_total_possible_sentences();
+            if (print) {
+                teacher_->print_total_possible_sentences();
+            }
         }
 #ifdef XWORLD3D
         else if (name == "xworld3d") {
-            auto xwd = std::make_shared<X3Simulator>(true /*print*/, FLAGS_x3_big_screen);
+            auto print = false;
+            auto xwd = std::make_shared<X3Simulator>(print, FLAGS_x3_big_screen);
             int agent_id = xwd->add_agent();
             game_ = std::make_shared<AgentSpecificSimulator>(xwd, agent_id);
             teaching_env_ = xwd;
             teacher_ = std::make_shared<Teacher>(
-                    xwd->conf_file(), xwd, false /*print*/);
-            teacher_->print_total_possible_sentences();
+                    xwd->conf_file(), xwd, print);
+            if (print) {
+                teacher_->print_total_possible_sentences();
+            }
         }
 #endif
 #ifdef ATARI
