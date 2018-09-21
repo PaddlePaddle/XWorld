@@ -82,6 +82,7 @@ namespace xrobot
 		TaskStages GetStages();
 
 		int iterations_;
+		Inventory * inventory_;
 		Map * scene_;
 		Robot * agent_;
 		Robot * target_;

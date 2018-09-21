@@ -27,7 +27,8 @@ namespace xrobot
 					     renderer_(renderer),
 					     ctx_(renderer->ctx_),
 					     main_camera_(nullptr),
-					     cam_pitch_(0) {}
+					     cam_pitch_(0),
+					     inventory_(new Inventory(10)) {}
 
 	Task_FollowRobot2::~Task_FollowRobot2() {}
 
@@ -44,34 +45,96 @@ namespace xrobot
         renderer_->lighting_.indirect_strength = 0.3f;
         renderer_->lighting_.traceshadow_distance = 0.3f;
         renderer_->lighting_.propagation_distance = 0.3f;
+        renderer_->lighting_.sample_factor = 0.9f;
         renderer_->lighting_.boost_ambient = 0.03f;
+        renderer_->lighting_.shadow_bias_scale = 0.0003f;
+        renderer_->lighting_.linear_voxelize = true;
 
 		iterations_ = 0;
 		scene_->ResetMap();
 		scene_->ClearRules();
 		scene_->CreateLabel("/home/ziyuli/model/pica_robot.urdf", "pica_robot");
-		scene_->CreateLabel("/home/ziyuli/model/pica_obj.urdf", "pica_stack");
+		scene_->CreateLabel("/home/ziyuli/model/pica_obj.urdf", "stack");
+		scene_->CreateLabel("/home/ziyuli/model/m0.urdf", "m0");
+		scene_->CreateLabel("/home/ziyuli/model/m1.urdf", "m1");
+		scene_->CreateLabel("/home/ziyuli/model/m2.urdf", "m2");
+		scene_->CreateLabel("/home/ziyuli/model/m3.urdf", "m3");
+		scene_->CreateLabel(crate1, "crate");
 		scene_->CreateSectionType(floor1, wall1, door0);
 		scene_->GenerateTestFloorPlan(5, 5);
 
+		inventory_->ResetNonPickableObjectTag();
+	    inventory_->AddNonPickableObjectTag("Wall");
+	    inventory_->AddNonPickableObjectTag("Ceiling");
+	    inventory_->AddNonPickableObjectTag("Floor");
+
 		// Load Obj
 		Robot* obj = scene_->world_->LoadURDF(
-	        "/home/ziyuli/model/pica_obj.urdf",
-	        btVector3(4, 0.01, 4),
+	        crate1,
+	        btVector3(2, 0, 2),
 	        btQuaternion(btVector3(1,0,0),0),
-	        0.1f,
-	        "obj",
+	        1.0f,
+	        "crate",
 	        true
 	    );
 	   	obj->move(false);
-	   	obj->DisableSleeping();
+
+	   	obj = scene_->world_->LoadURDF(
+	        "/home/ziyuli/model/m0.urdf",
+	        btVector3(1, 0, 4),
+	        btQuaternion(btVector3(1,0,0),0),
+	        0.1f,
+	        "m0",
+	        true
+	    );
+	   	obj->move(false);
+
+	   	obj = scene_->world_->LoadURDF(
+	        "/home/ziyuli/model/m0.urdf",
+	        btVector3(1, 0, 4),
+	        btQuaternion(btVector3(1,0,0),0),
+	        0.1f,
+	        "m0",
+	        true
+	    );
+	   	obj->move(false);
+
+	   	obj = scene_->world_->LoadURDF(
+	        "/home/ziyuli/model/m1.urdf",
+	        btVector3(4, 0, 1),
+	        btQuaternion(btVector3(1,0,0),0),
+	        0.1f,
+	        "m1",
+	        true
+	    );
+	   	obj->move(false);
+
+	   	obj = scene_->world_->LoadURDF(
+	        "/home/ziyuli/model/m2.urdf",
+	        btVector3(7, 0, 7),
+	        btQuaternion(btVector3(1,0,0),0),
+	        0.1f,
+	        "m2",
+	        true
+	    );
+	   	obj->move(false);
+
+	   	obj = scene_->world_->LoadURDF(
+	        "/home/ziyuli/model/m3.urdf",
+	        btVector3(8, 0, 2),
+	        btQuaternion(btVector3(1,0,0),0),
+	        0.1f,
+	        "m3",
+	        true
+	    );
+	   	obj->move(false);
 
 		// Load Target Robot
 		target_ = scene_->world_->LoadURDF(
 	        "/home/ziyuli/model/pica_robot.urdf",
 	        btVector3(2, 0.01, 0),
 	        btQuaternion(btVector3(1,0,0),0),
-	        0.15f,
+	        0.1f,
 	        "pica_robot",
 	        true
 	    );
@@ -120,6 +183,31 @@ namespace xrobot
         if(ctx_->GetKeyPressKP6())
             cam_pitch_ -= 0.1f;
 
+        // Pick
+	    if(ctx_->GetKeyPress1()) {
+	    	glm::vec3 fromPosition = main_camera_->Position;
+	    	glm::vec3 toPosition = main_camera_->Front * 3.0f + fromPosition;
+	    	agent_->PickUp(inventory_, fromPosition, toPosition);
+	    	renderer_->BakeScene(scene_->world_);
+	    }
+
+	    // Put
+	    if(ctx_->GetKeyPress2()) {
+	    	glm::vec3 fromPosition = main_camera_->Position;
+	    	glm::vec3 toPosition = main_camera_->Front * 3.0f + fromPosition;
+	    	agent_->PutDown(inventory_, fromPosition, toPosition);
+	    	renderer_->BakeScene(scene_->world_);
+	    }
+
+	    // Rotate
+	    if(ctx_->GetKeyPress3()) {
+	    	glm::vec3 fromPosition = main_camera_->Position;
+	    	glm::vec3 toPosition = main_camera_->Front * 3.0f + fromPosition;
+	    	agent_->RotateObject(1.57f, fromPosition, toPosition);
+	    	renderer_->BakeScene(scene_->world_);
+	    }
+
+
         cam_pitch_ = glm::clamp(cam_pitch_, -45.0f, 45.0f);
         scene_->world_->rotate_camera(main_camera_, cam_pitch_);
 
@@ -142,8 +230,8 @@ namespace xrobot
         }
 
         // Move Target Robot
-        float s = 3 * sin(iterations_ * 0.002f) + 4;
-        float c = 3 * cos(iterations_ * 0.002f) + 4;
+        float s = 3 * sin(0 * 0.002f) + 4;
+        float c = 3 * cos(0 * 0.002f) + 4;
 
         btTransform transform;
         transform.setIdentity();
@@ -151,10 +239,11 @@ namespace xrobot
         transform.setRotation(btQuaternion(btVector3(0,1,0), -iterations_ * 0.002f));
         scene_->world_->SetTransformation(target_, transform);
 
+        iterations_++;
 
         // Reset After N Steps
-        if(iterations_++ > 12000) 
-        	return "idle";
+        // if(iterations_++ > 12000) 
+        // 	return "idle";
 
 
         // Step Simulation and Renderer
@@ -238,7 +327,7 @@ namespace xrobot
 	        "agent",
 	        true
 	    );
-
+	    agent_->root_part_->ChangeLinearDamping(0.01f);
 	    agent_->move(true);
 	    agent_->DisableSleeping();
 

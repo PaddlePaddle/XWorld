@@ -346,12 +346,19 @@ void Robot::Teleport(const glm::vec3 walk_move,
     btVector3 robot_position_t = robot_position;
     btQuaternion robot_rotation_t = robot_rotation;
 
+    bool freeze_flag = true;
+
     if(glm::dot(walk_move, glm::vec3(1)) > 0.001f) {
         robot_position_t += walk_dir * speed;
+        freeze_flag = false;
     }
     if(glm::dot(walk_rotate, glm::vec3(1)) > 0.001f) {
         robot_rotation_t *= walk_rot;
+        freeze_flag = false;
     }
+
+    // if(freeze_flag)
+    //     return;
 
     robot_transform.setOrigin(robot_position_t);
     robot_transform.setRotation(robot_rotation_t);
@@ -367,14 +374,19 @@ void Robot::Teleport(const glm::vec3 walk_move,
         ContactPoint cp = contact_points[i];
         if(cp.contact_distance < -0.01) {
 
-            float p = glm::clamp(cp.contact_distance, -0.02f, 0.0f) * 0.9f;
+            float p = glm::clamp(cp.contact_distance, -0.02f, 0.0f) * 1.0f;
             glm::vec3 move_out_temp = glm::normalize(cp.contact_normal) * p;
             btVector3 move_out = btVector3(move_out_temp.x, 0, move_out_temp.z);
+
+            //printf("move: %f %f %f\n", move_out[0], move_out[1], move_out[2]);
+
+            //robot_position += move_out;
 
             robot_transform.setOrigin(robot_position);
             robot_transform.setRotation(robot_rotation);
             bullet_world_->SetTransformation(this, robot_transform);
             bullet_world_->BulletStep();
+
             return;
         }
     }
@@ -468,22 +480,36 @@ void Robot::PutDown(Inventory * inventory,
             object->root_part_->GetAABB(aabb_min, aabb_max);
 
             // On the Surface ???
-            if(aabb_max.y - 0.05f < position.y || true) {
+            if(aabb_max.y - 0.05f < position.y) {
                 std::string temp_obj_label; 
                 std::string temp_obj_path = inventory->GetObjectRandomly(temp_obj_label);
 
+                std::size_t postfix = temp_obj_path.find(".urdf");
+
                 // Get Object File Path
                 if(!temp_obj_path.empty()) {
-                    Robot * temp_obj = bullet_world_->LoadOBJ(
-                        temp_obj_path,
-                        btVector3(position.x,20,position.z),
-                        btQuaternion(btVector3(-1,0,0),1.57),
-                        btVector3(1,1,1),
-                        temp_obj_label,
-                        0,
-                        false,
-                        true
-                    );
+                    Robot * temp_obj;
+                    if(postfix < 0) {
+                        temp_obj = bullet_world_->LoadOBJ(
+                            temp_obj_path,
+                            btVector3(position.x,20,position.z),
+                            btQuaternion(btVector3(-1,0,0),1.57),
+                            btVector3(1,1,1),
+                            temp_obj_label,
+                            0,
+                            false,
+                            true
+                        );
+                    } else {
+                        temp_obj = bullet_world_->LoadURDF(
+                            temp_obj_path,
+                            btVector3(position.x,20,position.z),
+                            btQuaternion(btVector3(-1,0,0),1.57),
+                            1.0f,
+                            temp_obj_label,
+                            true
+                        );
+                    }
                     temp_obj->Sleep();
 
                     glm::vec3 aabb_min0, aabb_max0;
@@ -493,13 +519,30 @@ void Robot::PutDown(Inventory * inventory,
                     float height = (aabb_max0.z - aabb_min0.z) / 2;
 
                     // In Range
-                    if(aabb_min.x + width < position.x && 
-                       aabb_max.x - width > position.x &&
-                       aabb_min.z + height < position.z && 
-                       aabb_max.z - height > position.z) {
+                    std::vector<RayTestInfo> temp1_res;
+                    std::vector<Ray> temp1_ray;
+                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
+                            glm::vec3(position.x,1,position.z) + glm::vec3(width + 0.05f, 0, 0)});
+                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
+                            glm::vec3(position.x,1,position.z) + glm::vec3(width - 0.05f, 0, 0)});
+                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
+                            glm::vec3(position.x,1,position.z) + glm::vec3(0, 0, height + 0.05f)});
+                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
+                            glm::vec3(position.x,1,position.z) + glm::vec3(0, 0, height - 0.05f)});
 
-                        bool intersect = false;
+                    bullet_world_->BatchRayTest(temp1_ray, temp1_res);
 
+                    bool intersect = false;
+
+                    printf("size: %d\n", temp1_res.size());
+
+                    for (int i = 0; i < temp1_res.size(); ++i)
+                    {
+                        if(temp1_res[i].bullet_id >= 0)
+                            intersect = true;
+                    }
+
+                    if(!intersect) {
                         // TODO
                         // Add a List for Special Objs
                         for (size_t i = 0; i < bullet_world_->size(); i++) {
@@ -1440,6 +1483,7 @@ Robot* World::LoadURDFFile(
     Robot * robot = new Robot();
     robot->bullet_world_ = this;
     robot->urdf_name_ = filename;
+    robot->path_ = filename;
    
     CommandHandle cmd_handle = b3LoadUrdfCommandInit(client_, filename.c_str());
     
