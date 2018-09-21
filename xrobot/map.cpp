@@ -194,7 +194,7 @@ void Map::GenerateDoor(const float x, const float y, const float z, const int fa
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
 		1.0f,
-		"door",
+		"Door",
 		true
 	);
 }
@@ -209,7 +209,7 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
 		1.0f,
-		"wall",
+		"Wall",
 		true
 	);
 }
@@ -221,7 +221,7 @@ void Map::GenerateFloor(const float x, const float y, const float z, const std::
 		btVector3(x,y,z),
 		btQuaternion(0,0,0,1),
 		1.0f,
-		"floor",
+		"Floor",
 		true
 	);
 }

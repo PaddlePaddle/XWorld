@@ -336,7 +336,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					else sprintf(obj_name, "%s/object/%s/%s.obj", input_data_directory, modelId, modelId); 
 					
 					float mass = 0.0f;
-					bool concave = true;
+					bool concave = false;
 
 					if (remove_all_doors_ && all_labels_[modelId] == "door") {
 						continue;

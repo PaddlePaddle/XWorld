@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 
 #include <unistd.h>
 
@@ -577,8 +577,8 @@ void Render::UpdateProjectionMatrices(RenderWorld * world)
     float max_z;
     world->get_world_size(min_x, min_z, max_x, max_z);
 
-    vct_bbox_min_ = glm::vec3(min_x, -2, min_z);
-    vct_bbox_max_ = glm::vec3(max_x,  6, max_z);
+    vct_bbox_min_ = glm::vec3(min_x - 1, -2, min_z - 1);
+    vct_bbox_max_ = glm::vec3(max_x + 1,  6, max_z + 1);
 
     glm::vec3 center = (vct_bbox_min_ + vct_bbox_max_) * 0.5f;
     glm::vec3 axis_size = vct_bbox_max_ - vct_bbox_min_;
@@ -2047,7 +2047,7 @@ void Render::Visualization() {
     multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
     RenderQuad();
 
-    glViewport(0, 0, width_ / 3, height_ / 3);
+    glViewport(2 * width_ / 3, 2 * height_ / 3, width_ / 3, height_ / 3);
     shaders_[kDepth].use();
     multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
     RenderQuad();
@@ -2192,7 +2192,7 @@ void Render::Visualization() {
 
 int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     GetDeltaTime();
-    GetFrameRate();
+    //GetFrameRate();
 
     ProcessMouse();
     ProcessInput();
