@@ -46,9 +46,9 @@ uniform vec3 worldMaxPoint;
 uniform int volumeDimension;
 uniform float maxTracingDistanceGlobal = 0.5f;
 uniform float bounceStrength = 0.5f;
-uniform float aoFalloff = 800.0f;
+uniform float aoFalloff = 900.0f;
 uniform float aoAlpha = 0.005f;
-uniform float samplingFactor = 0.5f;
+uniform float samplingFactor = 0.4f;
 uniform float coneShadowTolerance = 0.1f;
 uniform float coneShadowAperture = 0.01f;
 uniform float zNear = 0.02f;
@@ -61,6 +61,7 @@ uniform mat4 texture_matrices[8];
 
 uniform float bias_scale = 0.05f;
 uniform float bias_clamp = 0.0002f;
+uniform float ibl_factor = 0.3f;
 
 const vec3 diffuseConeDirections[] =
 {
@@ -581,10 +582,11 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 
     float ao = clamp((1.0f - diffuseTrace.a + aoAlpha), 0.08f, 1.0f);
 
+    ao = pow(ao, 0.75f);
+
     // Distanct IBL Specular Occulision
     vec3 V = normalize(cameraPosition - position);
     float spec_occ = specOcculision(dot(normal, V), ao, roughness);
-
 
     float spec_gi_alpha = 1 - clamp(dot(specularTrace.rgb, vec3(0.34)), 0, 1);
     float diff_gi_alpha = 1 - clamp(dot(diffuseTrace.rgb, vec3(0.44)), 0, 1);
@@ -593,7 +595,7 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
     float visibility_alpha = clamp(visibility * 4, 0, 1);
 
     vec3 distance_ibl = DistanceIBL(normal, position, albedo, metallic, roughness, ao);
-    result = result * 0.8 + vec3(spec_occ * gi_alpha * visibility_alpha) * distance_ibl * 0.2;
+    result = result * (1.0 - ibl_factor) + vec3(spec_occ * gi_alpha * visibility_alpha) * distance_ibl * ibl_factor;
     return vec4(result, ambientOcclusion ? ao : 1.0f);
 }
 
@@ -738,6 +740,7 @@ void main()
     // convert to gamma space
     const float gamma = 2.2;
     compositeLighting = pow(compositeLighting, vec3(1.0 / gamma));
+
     fragColor = vec4(compositeLighting, texture(gNormal, TexCoords).a);
 
     if(depth * (zFar - zNear) < 2.0f)

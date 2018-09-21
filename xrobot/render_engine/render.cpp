@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 #include <unistd.h>
 
@@ -87,7 +87,11 @@ Render::Render(const int width,
     if(headless) {
         ctx_ = render_engine::CreateHeadlessContext(height, width);
     } else {
+        #ifdef DEBUG
         ctx_ = render_engine::CreateContext(height, width * 2);
+        #else
+        ctx_ = render_engine::CreateContext(height, width);
+        #endif
     }
 
     free_camera_framebuffer_ = new FBO(width, height, false, false);
@@ -144,7 +148,7 @@ Render::Render(const int width,
 
 void Render::Init(Camera * camera)
 {
-    if(settings_.use_shadow && !has_init_)
+    if(settings_.use_shadow && !has_init_ && !lighting_.force_disable_shadow)
     {
         InitCascadeShadowMap(camera);
         has_init_ = true;
@@ -617,8 +621,11 @@ void Render::VoxelConeTracing(RenderWorld* world, Camera * camera)
     glm::mat4 projection = camera->GetProjectionMatrix();
     glm::mat4 view = camera->GetViewMatrix();
 
-    if(settings_.use_shadow) {
-        shader_vct.setInt("shadowMode", lighting_.force_disable_shadow ? 4 : 0);
+    shader_vct.setInt("shadowMode", lighting_.force_disable_shadow ? 4 : 0);
+    shader_vct.setFloat("samplingFactor", lighting_.sample_factor);
+    shader_vct.setFloat("ibl_factor", lighting_.ibl_factor);
+    
+    if(settings_.use_shadow && !lighting_.force_disable_shadow) {
         shader_vct.setVec4("direction", csm_uniforms_.direction);
         shader_vct.setVec4("options", csm_uniforms_.options);
         shader_vct.setInt("num_cascades", csm_uniforms_.num_cascades);
@@ -915,10 +922,11 @@ void Render::ClearTextures()
     glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Render::RevoxelizeScene(RenderWorld* world)
+void Render::BakeScene(RenderWorld* world)
 {
     assert(world);
-    VoxelizeScene(world);
+    if(settings_.use_vct)
+        VoxelizeScene(world);
 }
 
 void Render::VoxelizeScene(RenderWorld* world)
@@ -947,6 +955,7 @@ void Render::VoxelizeScene(RenderWorld* world)
     shader_voxelize.setVec3("worldMinPoint", vct_bbox_min_);
     shader_voxelize.setFloat("voxelScale", 1.0f / volume_grid_size_);
     shader_voxelize.setInt("linear", lighting_.linear_voxelize);
+    shader_voxelize.setFloat("ambient", lighting_.boost_ambient);
 
     voxel_radiance_->Clear();
 
@@ -982,7 +991,7 @@ void Render::VisualizeVoxels(const int draw_mip_level)
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glColorMask(true, true, true, true);
-    glViewport(width_, 0, width_ / 2, height_ / 2);
+    glViewport(width_ / 3, 0, width_ / 3, height_ / 3);
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     auto shader_visualization = shaders_[kVoxelVisualization];
@@ -1610,7 +1619,7 @@ void Render::StepRenderAllCamerasDeferred(RenderWorld* world,
         Camera* camera = world->camera(i);
         //Camera* camera = &free_camera_;
 
-        if(settings_.use_shadow) {
+        if(settings_.use_shadow && !lighting_.force_disable_shadow) {
             StepRenderShadowMaps(world, camera);
         }
 
@@ -1623,7 +1632,7 @@ void Render::StepRenderAllCamerasDeferred(RenderWorld* world,
         }
 
         StepRenderGBuffer(world, camera);
-        
+
         glBindFramebuffer(
                 GL_FRAMEBUFFER, camera_framebuffer_list_[i]->frameBuffer);
 
@@ -1632,7 +1641,6 @@ void Render::StepRenderAllCamerasDeferred(RenderWorld* world,
         //DrawBackground(camera);
 
         VoxelConeTracing(world, camera);
-
 
         // glDepthFunc(GL_ALWAYS);
         // glDepthFunc(GL_LEQUAL);
@@ -1860,9 +1868,6 @@ void Render::StepRenderAllCameras(RenderWorld* world,
             picks[i] = ColorToId(data[0], data[1], data[2]);
         }
 
-        shaders_[kCrossHair].use();
-        RenderMarker();
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 }
@@ -1882,11 +1887,15 @@ void Render::StepRenderGetDepthAllCameras() {
         Shader multiply_shader = shaders_[kMultiply];
 
         multiply_shader.use();
-        camera_framebuffer_list_[i]->ActivateAsTexture(
-                multiply_shader.id(), "tex", 0);
 
-                    camera_framebuffer_list_[i]->ActivateDepthAsTexture(
-                    multiply_shader.id(), "dep", 1);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
+        glUniform1i(glGetUniformLocation(multiply_shader.id(), "tex"), 0);
+        // camera_framebuffer_list_[i]->ActivateAsTexture(
+        //     multiply_shader.id(), "tex", 0);
+
+        camera_framebuffer_list_[i]->ActivateDepthAsTexture(
+            multiply_shader.id(), "dep", 1);
 
         if(!settings_.use_deferred) {
             camera_framebuffer_list_[i]->ActivateDepthAsTexture(
@@ -1954,6 +1963,7 @@ void Render::StepRenderGetDepthAllCameras() {
 void Render::StepRenderGBuffer(RenderWorld* world, Camera * camera) {
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
     glDepthMask(GL_TRUE);
     glColorMask(true, true, true, true);
     glViewport(0, 0, width_, height_);
@@ -2008,35 +2018,40 @@ void Render::Visualization() {
     // camera_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
     // RenderQuad();
 
-    glViewport(0, 0, width_, height_);
-    shaders_[kColor].use();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
-    glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
-    RenderQuad();
-
-    glViewport(width_, 0, width_, height_);
-    shaders_[kDepth].use();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, ssao_tex_);
-    glUniform1i(glGetUniformLocation(shaders_[kDepth].id(), "tex"), 0);
-    RenderQuad();
-
+    // glViewport(0, 0, width_, height_);
+    // shaders_[kColor].use();
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
+    // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
+    // RenderQuad();
 
     // glViewport(width_, 0, width_, height_);
     // shaders_[kColor].use();
     // free_camera_framebuffer_->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
     // RenderQuad();
 
-    // glViewport(0, 0, width_ / 2, height_ / 2);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
 
-    // glViewport(0 + width_ / 2, 0, width_ / 2, height_ / 2);
-    // shaders_[kDepth].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
-    // RenderQuad();
+    #ifdef DEBUG
+        shaders_[kCrossHair].use();
+        glViewport(0, 0, width_, height_);
+        RenderMarker();
+
+        glViewport(width_, 0, width_, height_);
+        shaders_[kColor].use();
+        free_camera_framebuffer_->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
+        RenderQuad();
+    #endif
+
+    glViewport(0, 0, width_, height_);
+    shaders_[kColor].use();
+    multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
+    RenderQuad();
+
+    glViewport(0, 0, width_ / 3, height_ / 3);
+    shaders_[kDepth].use();
+    multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
+    RenderQuad();
+
 
     // glViewport(0, 0, 400, 100);
     // shaders_[kColor].use();
@@ -2199,7 +2214,7 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
             background_color_.x, background_color_.y, background_color_.z, 1.0f); 
 
     #ifdef DEBUG
-        //StepRenderFreeCamera(world);
+        StepRenderFreeCamera(world);
     #endif
 
     if(!settings_.use_deferred) {
@@ -2208,19 +2223,12 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
         StepRenderAllCamerasDeferred(world, picks, pick_camera_id >= 0);
     }
 
-
     if(pick_camera_id >= 0)
         pick_result = picks[pick_camera_id];
 
-    //StepRenderGetDepthAllCameras();
-
-    #ifdef DEBUG
-        SSAO(world);
-        //FXAA();
-        Visualization();
-    #else
-        StepRenderGetDepthAllCameras();  
-    #endif
+    SSAO(world);
+    StepRenderGetDepthAllCameras();
+    Visualization();  
 
     num_frames_++;
     return pick_result;
@@ -2252,8 +2260,8 @@ void Render::InitSSAO() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width_, height_, 0, GL_RGB, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssao_tex_, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "SSAO Framebuffer not complete!" << std::endl;

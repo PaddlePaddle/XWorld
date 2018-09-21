@@ -45,7 +45,6 @@ set(XROBOT_SOURCES
     vendor/json.cpp
     map.cpp
     map_suncg.cpp
-    inventory.cpp
     state_machine.cpp
     task_example.cpp
     task_example_testing.cpp
@@ -53,6 +52,7 @@ set(XROBOT_SOURCES
     utils.cpp
     lidar.cpp
     world.cpp
+    inventory.cpp
 )
 
 add_library(xrobot SHARED

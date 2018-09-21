@@ -40,6 +40,7 @@ uniform int linear = 1;
 uniform float d = 1;
 uniform vec3 kD = vec3(1,0,0);
 uniform int diffuseMap = 1;
+uniform float ambient = 0.02;
 
 vec4 convRGBA8ToVec4(uint val)
 {
@@ -141,7 +142,7 @@ void main()
         albedo.rgb *= albedo.a;
         albedo.a = 1.0f;
         // emission value
-        vec4 emissive = vec4(albedo.rgb * 0.01f, 1.0f);
+        vec4 emissive = vec4(albedo.rgb * ambient, 1.0f);
 
         vec4 normal = vec4(EncodeNormal(normalize(In.normal)), 1.0f);
 

@@ -1,10 +1,11 @@
 #include "inventory.h"
 
 namespace xrobot {
-	Inventory::Inventory(World* world, const int size) : world_(world),
-														 inventory_(),
-														 size_(size),
-														 rest_(size) {
+	Inventory::Inventory(const int size) :
+										 inventory_(),
+										 non_pickable_list_(0),
+										 size_(size),
+										 rest_(size) {
 		if(size < 1) {
 			size_ = INT_MAX;
 			rest_ = INT_MAX;
@@ -13,9 +14,25 @@ namespace xrobot {
 
 	Inventory::~Inventory() {
 		ClearInventory();
+		non_pickable_list_.clear();
 	}
 
-	void Inventory::PutObject(Robot* r) {
+	bool Inventory::IsPickableObject(const std::string& name) {
+		return std::find(non_pickable_list_.begin(),
+					 	 non_pickable_list_.end(),
+						 name) == non_pickable_list_.end();
+	}
+
+	void Inventory::AddNonPickableObjectTag(const std::string& name) {
+		assert(!name.empty());
+		non_pickable_list_.push_back(name);
+	}
+
+	void Inventory::ResetNonPickableObjectTag() {
+		non_pickable_list_.clear();
+	}
+
+	void Inventory::PutObject(std::string& object_label, std::string& object_path) {
 		assert(r);
 
 		if(rest_ < 1) {
@@ -23,18 +40,18 @@ namespace xrobot {
 			return;
 		}
 
-		if(r->label_ == "" || r->label_ == "unlabeled") {
+		if(object_label == "" || object_label == "unlabeled") {
 			printf("Please Assigned A Label For This Object!\n");
 			return;
 		}
 
-		if (inventory_.find(r->label_) != inventory_.end() && 
-            !inventory_[r->label_].empty()) {
-			inventory_[r->label_].push_back(r->path_);
+		if (inventory_.find(object_label) != inventory_.end() && 
+            !inventory_[object_label].empty()) {
+			inventory_[object_label].push_back(object_path);
 		} else {
 			std::vector<std::string> object_list_tmp;
-			object_list_tmp.push_back(r->path_);
-			inventory_[r->label_] = object_list_tmp;
+			object_list_tmp.push_back(object_path);
+			inventory_[object_label] = object_list_tmp;
 		}
 
 		rest_--;

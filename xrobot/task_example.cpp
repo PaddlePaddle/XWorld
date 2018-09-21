@@ -696,13 +696,16 @@ namespace xrobot
 	std::string Task_TouchPan::Start() {
 		// Setup Lighting
 		renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
-        renderer_->lighting_.exposure = 1.5f;
+        renderer_->lighting_.exposure = 1.0f;
         renderer_->lighting_.indirect_strength = 1.5f;
+        renderer_->lighting_.traceshadow_distance = 0.3f;
+        renderer_->lighting_.propagation_distance = 0.3f;
+        renderer_->lighting_.force_disable_shadow = true;
 
         // Load SUNCG Scene
         iterations_ = 0;
         scene_->ResetMap();
-       	scene_->SetRemoveAll( kRemoveStairs | kRemoveDoor );
+       	scene_->SetRemoveAll( kRemoveStairs );
         scene_->LoadCategoryCSV(metadata_models.c_str());
         scene_->AddPhysicalProperties("chair", {100, false});
 	    scene_->AddPhysicalProperties("fruit_bowl", {100, false});

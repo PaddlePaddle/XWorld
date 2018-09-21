@@ -130,7 +130,7 @@ public:
                        const float aspect_ratio = 4.0f / 3.0f,
                        const float fov = 60.0f,
                        const float near = 0.02f,
-                       const float far = 30.0f);
+                       const float far = 40.0f);
             
     void detach_camera(Camera* camera);
 

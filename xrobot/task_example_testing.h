@@ -71,5 +71,25 @@ namespace xrobot
 	    float vel_rear_right_wheel_ = 0.0f;
 	};
 
+	class Task_FollowRobot2 : public TaskInterface {
+	public:
+
+		Task_FollowRobot2(render_engine::Render * renderer, Map * map);
+		~Task_FollowRobot2();
+
+		std::string Start();
+		std::string NavTarget();
+		TaskStages GetStages();
+
+		int iterations_;
+		Map * scene_;
+		Robot * agent_;
+		Robot * target_;
+		render_engine::GLContext * ctx_;
+		render_engine::Render * renderer_;
+		render_engine::Camera * main_camera_;
+		float cam_pitch_;
+	};
+
 }
 #endif // TASK_EXAMPLE_TESTING_H_

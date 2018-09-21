@@ -414,6 +414,167 @@ void Robot::TurnRight(const float speed) {
     }
 }
 
+void Robot::PickUp(Inventory * inventory, 
+        const glm::vec3 from, const glm::vec3 to) {
+
+    assert(inventory);
+    assert(glm::dot(from, glm::vec3(0,0,0)) != 0.0f);
+    assert(glm::dot(to, glm::vec3(0,0,0)) != 0.0f);
+
+    std::vector<RayTestInfo> temp_res;
+    std::vector<Ray> temp_ray;
+    temp_ray.push_back({from, to});
+
+    bullet_world_->BatchRayTest(temp_ray, temp_res);
+
+    if(temp_res[0].bullet_id > 0) {
+
+        Robot* object = bullet_world_->bullet_handle_to_robot_map_[
+                temp_res[0].bullet_id];
+
+        if(inventory->IsPickableObject(object->label_)) {
+            inventory->PutObject(object->label_, object->path_);
+            bullet_world_->RemoveRobot2(object);
+            //scene_->map_bullet_label_.erase(
+            //        scene_->map_bullet_label_.find(temp_res[0].bullet_id));
+        }
+    }
+
+}
+
+void Robot::PutDown(Inventory * inventory, 
+        const glm::vec3 from, const glm::vec3 to) {
+    
+    assert(inventory);
+    assert(glm::dot(from, glm::vec3(0,0,0)) != 0.0f);
+    assert(glm::dot(to, glm::vec3(0,0,0)) != 0.0f);
+
+    std::vector<RayTestInfo> temp_res;
+    std::vector<Ray> temp_ray;
+    temp_ray.push_back({from, to});
+
+    bullet_world_->BatchRayTest(temp_ray, temp_res);
+
+    // Ray Hit
+    if(temp_res[0].bullet_id > 0) {
+        Robot * object = bullet_world_->bullet_handle_to_robot_map_[
+                temp_res[0].bullet_id];
+        glm::vec3 normal = temp_res[0].norm;
+        glm::vec3 position = temp_res[0].pos;
+
+        // Horizontal Flat Fragment
+        if(object && glm::dot(normal, glm::vec3(0,1,0)) > 0.9f) {
+            glm::vec3 aabb_min, aabb_max;
+            object->root_part_->GetAABB(aabb_min, aabb_max);
+
+            // On the Surface ???
+            if(aabb_max.y - 0.05f < position.y || true) {
+                std::string temp_obj_label; 
+                std::string temp_obj_path = inventory->GetObjectRandomly(temp_obj_label);
+
+                // Get Object File Path
+                if(!temp_obj_path.empty()) {
+                    Robot * temp_obj = bullet_world_->LoadOBJ(
+                        temp_obj_path,
+                        btVector3(position.x,20,position.z),
+                        btQuaternion(btVector3(-1,0,0),1.57),
+                        btVector3(1,1,1),
+                        temp_obj_label,
+                        0,
+                        false,
+                        true
+                    );
+                    temp_obj->Sleep();
+
+                    glm::vec3 aabb_min0, aabb_max0;
+                    temp_obj->root_part_->GetAABB(aabb_min0, aabb_max0);
+
+                    float width = (aabb_max0.x - aabb_min0.x) / 2;
+                    float height = (aabb_max0.z - aabb_min0.z) / 2;
+
+                    // In Range
+                    if(aabb_min.x + width < position.x && 
+                       aabb_max.x - width > position.x &&
+                       aabb_min.z + height < position.z && 
+                       aabb_max.z - height > position.z) {
+
+                        bool intersect = false;
+
+                        // TODO
+                        // Add a List for Special Objs
+                        for (size_t i = 0; i < bullet_world_->size(); i++) {
+                            Robot* body = bullet_world_->robot_list_[i];
+                            Object * part = body->root_part_;
+                            if (part && !body->recycle() && part->id()!=temp_obj->bullet_handle_
+                                && body->label_!= "Wall"
+                                && body->label_!= "Floor"
+                                && body->label_!= "Ceiling")
+                            {
+                                glm::vec3 aabb_min1, aabb_max1;
+                                part->GetAABB(aabb_min1, aabb_max1);
+
+                                if(aabb_min1.x < aabb_max0.x &&
+                                   aabb_max1.x > aabb_min0.x &&
+                                   aabb_min1.z < aabb_max0.z &&
+                                   aabb_max1.z > aabb_min0.z) {
+                                    intersect = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if(intersect) {
+                            inventory->PutObject(temp_obj->label_, temp_obj->path_);
+                            bullet_world_->RemoveRobot2(temp_obj);
+                        } else {
+                            float height = (aabb_max0.y - aabb_min0.y) * 0.5f;
+                            glm::vec3 intersection = temp_res[0].pos;
+
+                            btTransform tr;
+                            tr.setIdentity();
+                            tr.setOrigin(btVector3(intersection.x, intersection.y, intersection.z));
+
+                            bullet_world_->SetTransformation(temp_obj, tr);
+                            bullet_world_->BulletStep();
+                        }
+
+                    } else {
+                        inventory->PutObject(temp_obj->label_, temp_obj->path_);
+                        bullet_world_->RemoveRobot2(temp_obj);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Robot::RotateObject(const float rotate_angle_y,
+    const glm::vec3 from, const glm::vec3 to) {
+    
+    assert(glm::dot(from, glm::vec3(0,0,0)) != 0.0f);
+    assert(glm::dot(to, glm::vec3(0,0,0)) != 0.0f);
+
+    std::vector<RayTestInfo> temp_res;
+    std::vector<Ray> temp_ray;
+    temp_ray.push_back({from, to});
+
+    bullet_world_->BatchRayTest(temp_ray, temp_res);
+
+    if(temp_res[0].bullet_id > 0) {
+        Robot * temp_obj = bullet_world_->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
+
+        if(temp_obj->label_!= "Wall" 
+            && temp_obj->label_!= "Floor"
+            && temp_obj->label_!= "Ceiling") {
+
+            btTransform tr = temp_obj->root_part_->object_position_;
+            tr.setRotation(btQuaternion(btVector3(0,1,0), rotate_angle_y));
+            bullet_world_->SetTransformation(temp_obj, tr);
+            bullet_world_->BulletStep();
+        }
+    }
+}
+
 void Robot::SetJointVelocity(const int joint_id, const float speed,
                              const float k_d, const float max_force) {
     assert(joint_id > -1 && joint_id < joints_list_.size());
@@ -1452,6 +1613,8 @@ Robot* World::LoadOBJFile(
 
     if (flip) {
         origin_transform->flip = -1.0f;
+    } else {
+        origin_transform->flip = 1.0f;
     }
 
     robot->root_part_->transform_list_.push_back(origin_transform);
