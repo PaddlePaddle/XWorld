@@ -3,18 +3,18 @@
 
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 #include "glm/glm.hpp"
 
-#include "world.h"
 
 namespace xrobot {
 class Inventory {
 public:
-	Inventory(World* world, const int size);
+	Inventory(const int size);
 	~Inventory();
 
-	void PutObject(Robot* r);
+	void PutObject(std::string& object_label, std::string& object_path);
 	std::string GetObjectRandomly(std::string& object_label);
 	std::string GetObject(const std::string& object_label);
 	void DiscardObject(const std::string& object_label, const int num = 1);
@@ -24,9 +24,13 @@ public:
 	int GetNumUsedSpace() { return size_ - rest_; }
 	int GetNumFreeSpace() { return rest_; }
 
+	bool IsPickableObject(const std::string& name);
+	void AddNonPickableObjectTag(const std::string& name);
+	void ResetNonPickableObjectTag();
+
 private:
-	World * world_;
 	std::unordered_map<std::string, std::vector<std::string>> inventory_;
+	std::vector<std::string> non_pickable_list_;
 	int size_;
 	int rest_;
 };

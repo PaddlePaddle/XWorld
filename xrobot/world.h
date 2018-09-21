@@ -19,11 +19,15 @@
 #include "render_engine/model.h"
 #include "render_engine/render_world.h"
 
+#include "inventory.h"
+
 // TODO:
 // - too many public attributes
 // - what happens to Camera attached to a deleted Robot
 
 namespace xrobot {
+
+class Inventory;
 
 constexpr int kCacheSize = 32;
 const glm::vec3 kVec3Zero = glm::vec3(0); 
@@ -248,6 +252,12 @@ public:
     virtual void MoveBackward(const float speed);
     virtual void TurnLeft(const float speed);
     virtual void TurnRight(const float speed);
+    virtual void PickUp(Inventory * inventory,
+            const glm::vec3 from, const glm::vec3 to);
+    virtual void PutDown(Inventory * inventory, 
+            const glm::vec3 from, const glm::vec3 to);
+    virtual void RotateObject(const float rotate_angle_y,
+            const glm::vec3 from, const glm::vec3 to);
 
     World* bullet_world_;
     std::string label_;

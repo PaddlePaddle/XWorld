@@ -310,7 +310,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					}
 
 					sprintf(obj_name, "%s/room/%s/%sc.obj", input_data_directory, scene_id, modelId); 
-					if (!hideCeiling && false) {
+					if (!hideCeiling) {
 						//printf("Load Wall: %s\n", obj_name);
 						// createObjectAtTransform(obj_name,
 						// 	translation.x, translation.y, translation.z,
@@ -325,8 +325,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Ceiling",
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f,
-							false
+							concave
 						);
+						map_bullet_label_[object->bullet_handle_] = "Ceiling";
 					}
 				}
 				else if(!strcmp(node_type, "Object"))
@@ -346,7 +347,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					}
 
 					if (all_labels_[modelId] == "window") {
-						continue;
+						//continue;
 					}
 
 					// if (all_labels_[modelId] == "window") {

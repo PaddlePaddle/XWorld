@@ -15,7 +15,7 @@ add_library(render_engine OBJECT
     gl_context.cpp
     render.cpp
     render_world.cpp
-    render2d.cpp
+    #render2d.cpp
     texture3d.cpp)
 
 add_dependencies(render_engine assimp glm glfw) 

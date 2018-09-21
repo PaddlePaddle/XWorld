@@ -25,19 +25,19 @@ namespace render_engine {
 // Normal Quality
 // Lambert + Blinn-Phong + Ambient 
 // Normal / Parrallex Mapping
-// Shadow: 5 Cascades
+// Shadow: 3 Cascades
 //
 // High Quality
 // Cook-Torrance + IBL
 // Normal / Parrallex Mapping
 // VXGI + VXAO 256
-// Shadow: 6 Cascades
+// Shadow: 4 Cascades
 //
-// Very High Quality (Static Only)
+// Very High Quality (Baked)
 // Cook-Torrance + IBL
 // Normal / Parrallex Mapping
 // VXGI + VXAO 512
-// Shadow: 7 Cascades
+// Shadow: 5 Cascades
 //
 
 constexpr unsigned int kLowQuality = 0;
@@ -65,7 +65,7 @@ struct RenderSettings {
                                                                use_ibl(quality < 2 ? 0 : 1),
                                                                ibl_path(""),
                                                                use_shadow(quality < 1 ? 0 : 1),
-                                                               shadow_split(6),
+                                                               shadow_split(quality + 3),
                                                                shadow_lamda(0.7f),
                                                                shadow_near_offset(50.0f),
                                                                shadow_resolution(2048),
@@ -103,18 +103,36 @@ struct RenderSettings {
 struct Lighting {
     Lighting() : exposure(1.3f),
                  indirect_strength(0.4f) {}
-    float exposure;
+    // Lighting
+    // exposure: change the brightness of the scene
+    // indirect_strength: change the contribution of the indirect lighting
+    float exposure; 
     float indirect_strength;
 
     // Shadow
+    // shadow_bias: increase to reduce the shadow arc effect however 
+    //              this could also detach the shadow
+    // force_disable_shadow: disable directional shadow during rendering
     float shadow_bias_clamp = 0.0005f;
     float shadow_bias_scale = 0.0002f;
     bool force_disable_shadow = false;
 
     // VXGI
+    // propagation_distance: increase to make directional light lit more area
+    //                       however this could also leak the light
+    // conetracing_distance: increase to make indirectional light lit more area
+    // traceshadow_distance: shadow ray distance
+    // boost_ambient: force the albedo contribute ambient lighting in VXGI
+    // sample_factor: inc/dec for different size of scene
+    // ibl_factor: control the contribution between IBL and VXGI
+    // force_disable_progagation: disable the light progagation algorithm
+    // linear_voxelize: convert albedo into linear space before voxelize
     float propagation_distance = 0.5f;
     float conetracing_distance = 0.8f;
     float traceshadow_distance = 0.3f;
+    float boost_ambient = 0.02f;
+    float sample_factor = 0.4f;
+    float ibl_factor = 0.3f;
     bool force_disable_propagation = false;
     bool linear_voxelize = false;
 };
@@ -389,7 +407,7 @@ public:
 
     void StepRenderCubemap(RenderWorld* world);
 
-    void RevoxelizeScene(RenderWorld* world);
+    void BakeScene(RenderWorld* world);
 
 private:
 
