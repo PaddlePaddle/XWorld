@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <queue>
 #include <unistd.h>
 #include <utility>
 
@@ -243,6 +244,10 @@ public:
             double* ik_output_joint_pos,
             int &num_poses);
 
+    void Teleport2(const glm::vec3 walk_move,
+                  const glm::vec3 walk_rotate,
+                  const float speed, const bool remit = false); 
+
     void Teleport(const glm::vec3 walk_move,
                   const glm::vec3 walk_rotate,
                   const float speed, const bool remit = false);
@@ -286,6 +291,8 @@ public:
 struct ContactPoint {
     glm::vec3 contact_normal;
     float contact_distance;
+    int bullet_id_a;
+    int bullet_id_b;
 };
 
 struct Ray {

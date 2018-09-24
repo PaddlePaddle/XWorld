@@ -132,7 +132,7 @@ struct Lighting {
     float traceshadow_distance = 0.3f;
     float boost_ambient = 0.02f;
     float sample_factor = 0.4f;
-    float ibl_factor = 0.3f;
+    float ibl_factor = 0.1f;
     bool force_disable_propagation = false;
     bool linear_voxelize = false;
 };
