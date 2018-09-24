@@ -487,7 +487,7 @@ float CaculateDirectionalShadow(vec3 normal, vec3 position, float depth)
 
     if(shadowMode == 0)
     {
-        visibility = 1.03 - shadow_occlussion(depth, normal, direction.xyz, position);
+        visibility = 1.02 - shadow_occlussion(depth, normal, direction.xyz, position);
 
     }
     else if(shadowMode == 1 && numDirectionalLight > 0)
@@ -512,7 +512,6 @@ vec3 CalculateDirectional(Light light, vec3 normal, vec3 position, vec3 albedo, 
     float depth, float roughness, float metallic, float ao)
 {
     vec3 brdf = CookTorranceBRDF(light, normal, position, albedo, metallic, roughness, ao);
-
     return brdf;
 }
 

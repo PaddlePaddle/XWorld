@@ -322,6 +322,73 @@ Robot::~Robot() {
     }
 }
 
+void Robot::Teleport2(const glm::vec3 walk_move,
+                      const glm::vec3 walk_rotate,
+                      const float speed, const bool remit) {
+
+    static std::queue<btTransform> robot_transform_queue;
+
+    if(remit) {
+        while(!robot_transform_queue.empty()) {
+            robot_transform_queue.pop();
+        }
+    }
+
+    static btTransform robot_transform = root_part_->object_position_;
+    btVector3 robot_position = robot_transform.getOrigin();
+    btQuaternion robot_rotation = robot_transform.getRotation(); 
+
+    robot_transform_queue.push(robot_transform);
+
+    if(robot_transform_queue.size() > 50) {
+        robot_transform_queue.pop();
+    }
+
+    glm::vec3 walk_dir_temp = glm::normalize(walk_move);
+    btVector3 walk_dir = btVector3(walk_dir_temp.x, walk_dir_temp.y, walk_dir_temp.z);
+    walk_dir = btTransform(robot_rotation) * walk_dir;
+
+    btVector3 walk_rot_temp = btVector3(walk_rotate.x, walk_rotate.y, walk_rotate.z);
+    btQuaternion walk_rot = btQuaternion(walk_rot_temp, speed);
+
+    btVector3 robot_position_t = robot_position;
+    btQuaternion robot_rotation_t = robot_rotation;
+
+    if(glm::dot(walk_move, glm::vec3(1)) > 0.001f) {
+        robot_position_t += walk_dir * speed;
+    }
+    if(glm::dot(walk_rotate, glm::vec3(1)) > 0.001f) {
+        robot_rotation_t *= walk_rot;
+    }
+
+    btTransform robot_transform_t = robot_transform;
+    robot_transform_t.setOrigin(robot_position_t);
+    robot_transform_t.setRotation(robot_rotation_t);
+    bullet_world_->SetTransformation(this, robot_transform);
+    bullet_world_->BulletStep();
+
+    std::vector<ContactPoint> contact_points;
+    bullet_world_->GetRootContactPoints(this, this->root_part_, contact_points);
+
+    for (int i = 0; i < contact_points.size(); ++i)
+    {
+        ContactPoint cp = contact_points[i];
+        if(cp.contact_distance < -0.01) {
+
+            robot_transform.setOrigin(robot_transform_queue.front().getOrigin());
+            robot_transform.setRotation(robot_transform_queue.front().getRotation());
+            bullet_world_->SetTransformation(this, robot_transform);
+            bullet_world_->BulletStep();
+            while(!robot_transform_queue.empty()) {
+                robot_transform_queue.pop();
+            }
+            return;
+        }
+    }
+
+    robot_transform = robot_transform_t;
+}
+
 void Robot::Teleport(const glm::vec3 walk_move,
                      const glm::vec3 walk_rotate,
                      const float speed, const bool remit) {
@@ -475,12 +542,13 @@ void Robot::PutDown(Inventory * inventory,
         glm::vec3 position = temp_res[0].pos;
 
         // Horizontal Flat Fragment
-        if(object && glm::dot(normal, glm::vec3(0,1,0)) > 0.9f) {
+        if(object && glm::dot(normal, glm::vec3(0,1,0)) > 0.8f) {
             glm::vec3 aabb_min, aabb_max;
             object->root_part_->GetAABB(aabb_min, aabb_max);
 
+
             // On the Surface ???
-            if(aabb_max.y - 0.05f < position.y) {
+            if(aabb_max.y - 0.05f < position.y || true) {
                 std::string temp_obj_label; 
                 std::string temp_obj_path = inventory->GetObjectRandomly(temp_obj_label);
 
@@ -489,7 +557,7 @@ void Robot::PutDown(Inventory * inventory,
                 // Get Object File Path
                 if(!temp_obj_path.empty()) {
                     Robot * temp_obj;
-                    if(postfix < 0) {
+                    if((int) postfix < 0) {
                         temp_obj = bullet_world_->LoadOBJ(
                             temp_obj_path,
                             btVector3(position.x,20,position.z),
@@ -500,6 +568,7 @@ void Robot::PutDown(Inventory * inventory,
                             false,
                             true
                         );
+                        printf("obj!!!!!!!!!\n");
                     } else {
                         temp_obj = bullet_world_->LoadURDF(
                             temp_obj_path,
@@ -518,37 +587,53 @@ void Robot::PutDown(Inventory * inventory,
                     float width = (aabb_max0.x - aabb_min0.x) / 2;
                     float height = (aabb_max0.z - aabb_min0.z) / 2;
 
-                    // In Range
-                    std::vector<RayTestInfo> temp1_res;
-                    std::vector<Ray> temp1_ray;
-                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
-                            glm::vec3(position.x,1,position.z) + glm::vec3(width + 0.05f, 0, 0)});
-                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
-                            glm::vec3(position.x,1,position.z) + glm::vec3(width - 0.05f, 0, 0)});
-                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
-                            glm::vec3(position.x,1,position.z) + glm::vec3(0, 0, height + 0.05f)});
-                    temp1_ray.push_back({glm::vec3(position.x,1,position.z),
-                            glm::vec3(position.x,1,position.z) + glm::vec3(0, 0, height - 0.05f)});
-
-                    bullet_world_->BatchRayTest(temp1_ray, temp1_res);
 
                     bool intersect = false;
 
-                    printf("size: %d\n", temp1_res.size());
+                    printf("position: %f %f %f\n", position.x, position.y, position.z);
+
+                    // In Range
+                    std::vector<RayTestInfo> temp1_res;
+                    std::vector<Ray> temp1_ray;
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(width + 0.01f, 0, 0)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(width + 0.01f, 0, 0)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(0, 0, height + 0.01f)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(0, 0, height + 0.01f)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(width + 0.01f, -0.01f, height + 0.01f)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(width + 0.01f, -0.01f, height + 0.01f)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(-width - 0.01f, -0.01f, height + 0.01f)});
+                    temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                            glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(-width - 0.01f, -0.01f, height + 0.01f)});
+
+                    bullet_world_->BatchRayTest(temp1_ray, temp1_res);
 
                     for (int i = 0; i < temp1_res.size(); ++i)
                     {
+                        printf("uid: %d\n", temp1_res[i].bullet_id);
                         if(temp1_res[i].bullet_id >= 0)
                             intersect = true;
                     }
 
+                    
                     if(!intersect) {
                         // TODO
                         // Add a List for Special Objs
+
+                        printf("ok......\n");
+
                         for (size_t i = 0; i < bullet_world_->size(); i++) {
                             Robot* body = bullet_world_->robot_list_[i];
                             Object * part = body->root_part_;
-                            if (part && !body->recycle() && part->id()!=temp_obj->bullet_handle_
+                            if (part && !body->recycle() 
+                                && part->id()!=temp_obj->bullet_handle_
+                                && part->id()!=object->bullet_handle_
                                 && body->label_!= "Wall"
                                 && body->label_!= "Floor"
                                 && body->label_!= "Ceiling")
@@ -1108,7 +1193,8 @@ void World::GetRootContactPoints(const Robot* robot, const Object* part,
             normal_z = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[2];
             point.contact_normal = glm::vec3(normal_x, normal_y, normal_z);
             point.contact_distance = contact_point_data.m_contactPointData[i].m_contactDistance;
-
+            point.bullet_id_a = contact_point_data.m_contactPointData[i].m_bodyUniqueIdA;
+            point.bullet_id_b = contact_point_data.m_contactPointData[i].m_bodyUniqueIdB;
             contact_points.push_back(point);
         }
         //printf("contact: %d\n", contact_point_data.m_numContactPoints);

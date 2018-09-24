@@ -51,27 +51,27 @@ int main(int argc, char **argv)
     TaskGroup group2("TaskGroup_NavToObjectInSUNCG");
     Task_NavToFruitBowl task3(renderer, scene_suncg);
     Task_TouchPan task4(renderer, scene_suncg);
-    //group2.AddTask("NavToFruitBowl", task3);
+    group2.AddTask("NavToFruitBowl", task3);
     group2.AddTask("TouchPan", task4);
 
-    // Loading Customized Scene (ex. obj with mtl)
-    TaskGroup group3("TaskGroup_Testing");
-    Task_LoadScene task5(renderer, scene);
-    group3.AddTask("LoadScene", task5);
+    // // Loading Customized Scene (ex. obj with mtl)
+    // TaskGroup group3("TaskGroup_Testing");
+    // Task_LoadScene task5(renderer, scene);
+    // group3.AddTask("LoadScene", task5);
 
-    // Get / Put
-    TaskGroup group4("TaskGroup_Testing");
-    Task_GetAndPut task6(renderer, scene_suncg);
-    group4.AddTask("GetAndPut", task6);
+    // // Get / Put
+    // TaskGroup group4("TaskGroup_Testing");
+    // Task_GetAndPut task6(renderer, scene_suncg);
+    // group4.AddTask("GetAndPut", task6);
 
-    // Loading Pica Pica Model...
-    TaskGroup group5("TaskGroup_Testing2");
-    Task_FollowRobot2 task7(renderer, scene);
-    group5.AddTask("GetAndPut", task7);
+    // // Loading Pica Pica Model...
+    // TaskGroup group5("TaskGroup_Testing2");
+    // Task_FollowRobot2 task7(renderer, scene);
+    // group5.AddTask("GetAndPut", task7);
 
     while(!renderer->ctx_->GetWindowShouldClose())
     {
-        group5.RunStage();
+        group2.RunStage();
     }
 
     delete renderer;
