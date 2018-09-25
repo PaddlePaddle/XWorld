@@ -288,6 +288,31 @@ public:
                        glm::vec3& up) override;
 };
 
+
+class RobotWithConvertion : public xrobot::Robot {
+public:
+    RobotWithConvertion();
+    ~RobotWithConvertion();
+
+    void TakeAction(const int act_id);
+
+private:
+    int status_;
+    std::vector<Robot*> all_status_;
+};
+
+class RobotWithAnimation : public xrobot::Robot {
+public:
+    RobotWithAnimation();
+    ~RobotWithAnimation();
+
+    void TakeAction(const int act_id);
+
+private:
+    
+};
+
+
 struct ContactPoint {
     glm::vec3 contact_normal;
     float contact_distance;

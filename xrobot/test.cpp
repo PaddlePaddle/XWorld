@@ -64,14 +64,14 @@ int main(int argc, char **argv)
     // Task_GetAndPut task6(renderer, scene_suncg);
     // group4.AddTask("GetAndPut", task6);
 
-    // // Loading Pica Pica Model...
-    // TaskGroup group5("TaskGroup_Testing2");
-    // Task_FollowRobot2 task7(renderer, scene);
-    // group5.AddTask("GetAndPut", task7);
+    // Loading Pica Pica Model...
+    TaskGroup group5("TaskGroup_Testing2");
+    Task_FollowRobot2 task7(renderer, scene);
+    group5.AddTask("GetAndPut", task7);
 
     while(!renderer->ctx_->GetWindowShouldClose())
     {
-        group2.RunStage();
+        group5.RunStage();
     }
 
     delete renderer;

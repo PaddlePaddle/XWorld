@@ -297,6 +297,28 @@ glm::mat4 Object::local_inertial_frame() const {
     return TransformToMat4(object_local_inertial_frame_);
 }
 
+RobotWithConvertion::RobotWithConvertion() {
+
+
+}
+
+RobotWithConvertion::~RobotWithConvertion() {
+  
+}
+
+void RobotWithConvertion::TakeAction(const int act_id) {
+  
+}
+
+RobotWithAnimation::RobotWithAnimation() {
+
+}
+
+
+RobotWithAnimation::~RobotWithAnimation() {
+
+}
+
 Robot::Robot() : RenderBody(),
                  bullet_world_(nullptr),
                  label_("unlabeled"),

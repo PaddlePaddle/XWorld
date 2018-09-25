@@ -50,9 +50,13 @@ public:
 
 class RenderBody {
 public:
-    RenderBody() : recycle_(false), move_(false) {}
+    RenderBody() : recycle_(false), move_(false), hide_(false) {}
 
     virtual ~RenderBody() {}
+
+    bool hide() const { return hide_; }
+
+    void hide(const bool value) { hide_ = value; } 
 
     bool move() const { return move_; }
 
@@ -76,6 +80,7 @@ public:
                                glm::vec3& up) = 0;
 
 protected:
+    bool hide_;
     bool move_;
     bool recycle_;
 };
