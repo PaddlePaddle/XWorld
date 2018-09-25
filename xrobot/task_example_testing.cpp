@@ -14,7 +14,7 @@ static std::string floor1 = "/home/ziyuli/model/floor/floor.urdf";
 static std::string floor2 = "./floor2/floor.urdf";
 static std::string crate1 = "./crate_1/crate.urdf";
 static std::string apple = "./apple/apple.urdf";
-
+static std::string door_ani = "/home/ziyuli/model/door.urdf";
 namespace xrobot
 {
 
@@ -59,6 +59,7 @@ namespace xrobot
 		scene_->CreateLabel("/home/ziyuli/model/m1.urdf", "m1");
 		scene_->CreateLabel("/home/ziyuli/model/m2.urdf", "m2");
 		scene_->CreateLabel("/home/ziyuli/model/m3.urdf", "m3");
+		scene_->CreateLabel(door_ani, "door");
 		scene_->CreateLabel(crate03, "crate");
 		scene_->CreateSectionType(floor1, wall1, door0);
 		scene_->GenerateTestFloorPlan(5, 5);
@@ -74,6 +75,17 @@ namespace xrobot
 	    inventory_->AddNonPickableObjectTag("m3");
 
 		// Load Obj
+	    door_ = scene_->world_->LoadURDF(
+	        door_ani,
+	        btVector3(3, 0.1, 6),
+	        btQuaternion(btVector3(0,0,1),1.57),
+	        1.0f,
+	        "door",
+	        false
+	    );
+	   	door_->move(true);
+	   	door_->DisableSleeping();
+
 		Robot* obj = scene_->world_->LoadURDF(
 	        crate03,
 	        btVector3(2, 0, 2),
@@ -162,6 +174,8 @@ namespace xrobot
 	    renderer_->Init(main_camera_);
 	    scene_->world_->BulletStep();
 
+	    door_angle_ = 0;
+
 	    return "NavTarget";
 	}
 
@@ -187,6 +201,15 @@ namespace xrobot
 
         if(ctx_->GetKeyPressKP6())
             cam_pitch_ -= 0.1f;
+
+        if(ctx_->GetKeyPress0()) {
+        	door_angle_ = glm::clamp(door_angle_ + 0.01f, 0.0f, 1.5f);
+        	printf("angle: %f\n", door_angle_);
+        }
+        if(ctx_->GetKeyPress9()) {
+        	door_angle_ = glm::clamp(door_angle_ - 0.01f, 0.0f, 1.5f);
+        }
+        door_->SetJointPosition(1, door_angle_, 1.0f, 1.0f, 20000.0f);
 
         // Pick
 	    if(ctx_->GetKeyPress1()) {

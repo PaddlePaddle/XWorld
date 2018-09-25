@@ -84,12 +84,14 @@ namespace xrobot
 		int iterations_;
 		Inventory * inventory_;
 		Map * scene_;
+		Robot * door_;
 		Robot * agent_;
 		Robot * target_;
 		render_engine::GLContext * ctx_;
 		render_engine::Render * renderer_;
 		render_engine::Camera * main_camera_;
 		float cam_pitch_;
+		float door_angle_;
 	};
 
 }
