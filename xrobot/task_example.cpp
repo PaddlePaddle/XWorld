@@ -1170,4 +1170,133 @@ namespace xrobot
 
         return "NavTarget";
 	}
+
+
+	//=======================================Task 6=============================
+	// This is a dummy task for only testing crowd and navigation features
+
+	Task_Crowd::Task_Crowd(render_engine::Render * renderer,
+		Map * map) : iterations_(0),
+				     scene_(map),
+				     agent_(nullptr),
+				     renderer_(renderer),
+				     ctx_(renderer->ctx_),
+				     main_camera_(nullptr),
+				     cam_pitch_(0),
+				     crowd_(new Crowd(renderer->ctx_, map->world_)) {}
+
+	Task_Crowd::~Task_Crowd() {}	     
+
+	TaskStages Task_Crowd::GetStages() {
+		TaskStages stages;
+		stages["idle"] = std::bind(&Task_Crowd::Start, this);
+		stages["NavTarget"] = std::bind(&Task_Crowd::NavTarget, this);
+		return stages;
+	}
+
+
+	std::string Task_Crowd::Start() {
+		renderer_->sunlight_.ambient = glm::vec3(0.02,0.02,0.02);
+        renderer_->lighting_.exposure = 0.7f;
+        renderer_->lighting_.indirect_strength = 0.25f;
+        renderer_->lighting_.traceshadow_distance = 0.3f;
+        renderer_->lighting_.propagation_distance = 0.3f;
+        renderer_->lighting_.sample_factor = 0.7f;
+        renderer_->lighting_.boost_ambient = 0.01f;
+        renderer_->lighting_.shadow_bias_scale = 0.0003f;
+        renderer_->lighting_.linear_voxelize = true;
+
+		iterations_ = 0;
+		scene_->ResetMap();
+		scene_->ClearRules();
+		scene_->CreateLabel("/home/ziyuli/model/pica_obj.urdf", "stack");
+		scene_->CreateLabel("/home/ziyuli/model/m0.urdf", "m0");
+		scene_->CreateLabel("/home/ziyuli/model/m1.urdf", "m1");
+		scene_->CreateLabel("/home/ziyuli/model/m2.urdf", "m2");
+		scene_->CreateLabel("/home/ziyuli/model/m3.urdf", "m3");
+		scene_->CreateLabel(crate1, "crate");
+		scene_->CreateSectionType(floor1, wall1, door0);
+		scene_->GenerateTestFloorPlan(5, 5);
+	  	
+		RobotBase * obj = scene_->world_->LoadRobot(
+	        crate1,
+	        btVector3(2, 0, 2),
+	        btQuaternion(btVector3(1,0,0),0),
+	        btVector3(1, 1, 1),
+	        "crate",
+	        false
+	    );
+	   	obj->move(false);
+
+	   	// Load Agent
+	   	agent_ = scene_->world_->LoadRobot(
+	        "husky/husky.urdf",
+	        btVector3(0,0.001,0),
+	        btQuaternion(btVector3(-1,0,0),1.57),
+	        btVector3(1, 1, 1),
+	        "husky",
+	        true
+	    );
+	    agent_->move(true);
+	    agent_->DisableSleeping();
+
+	    // Create a Camera and Attach to the Agent
+	    main_camera_ = scene_->world_->add_camera(vec3(0, 0, 0),
+	    		vec3(0.3,1.3,0.0), (float) 4 / 3);
+	    scene_->world_->attach_camera(main_camera_, agent_);
+	    renderer_->Init(main_camera_);
+	    scene_->world_->BulletStep();
+
+	    // Bake NavMesh
+	    crowd_->SetBakeArea(glm::vec3(-2,-1,-2), glm::vec3(10,5,10));
+	    crowd_->BakeNavMesh();
+	    crowd_->GetGrid().Visualize();
+
+	    return "NavTarget";
+	}
+
+
+		std::string Task_Crowd::NavTarget() {
+		// TODO
+		// Remove Freeze Parameter
+		agent_->Freeze(!iterations_);
+		
+		if(ctx_->GetKeyPressUp())
+            agent_->MoveForward(0.01f);
+
+        if(ctx_->GetKeyPressDown())
+            agent_->MoveBackward(0.01f);
+
+        if(ctx_->GetKeyPressLeft())
+            agent_->TurnLeft(0.01f);
+
+        if(ctx_->GetKeyPressRight())
+            agent_->TurnRight(0.01f);
+
+        if(ctx_->GetKeyPressKP9())
+            cam_pitch_ += 0.1f;
+
+        if(ctx_->GetKeyPressKP6())
+            cam_pitch_ -= 0.1f;
+
+        cam_pitch_ = glm::clamp(cam_pitch_, -45.0f, 45.0f);
+        scene_->world_->rotate_camera(main_camera_, cam_pitch_);
+		iterations_++;
+
+
+        // This is just for testing
+        if(ctx_->GetKeyPressSpace()) {
+            ctx_->PollEvent();
+            printf("Reset the Scene : %d\n", scene_->world_->reset_count_);
+            return "idle";
+        }
+
+        // Step Simulation and Renderer
+        scene_->world_->BulletStep();   
+        renderer_->StepRender(scene_->world_);
+        ctx_->SwapBuffer();
+        ctx_->PollEvent();
+
+        return "NavTarget";
+	}
 }
