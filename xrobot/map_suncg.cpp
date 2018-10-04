@@ -261,16 +261,17 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					sprintf(obj_name, "%s/room/%s/%sf.obj", input_data_directory, scene_id, modelId); 
 					if (!hideFloor) {
 
-						Robot* object = world_->LoadOBJ(
+						RobotBase * object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
 							btVector3(scale.x, scale.y, scale.z),
 							"Floor",
+							true,
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f
 						);
-						map_bullet_label_[object->bullet_handle_] = "Floor";
+						map_bullet_label_[object->robot_data_.bullet_handle_] = "Floor";
 					}
 				}
 				else if(!strcmp(node_type, "Room"))
@@ -279,16 +280,17 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					sprintf(obj_name, "%s/room/%s/%sf.obj", input_data_directory, scene_id, modelId); 
 					if (!hideFloor) {
 
-						Robot* object = world_->LoadOBJ(
+						RobotBase * object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
 							btVector3(scale.x, scale.y, scale.z),
 							"Floor",
+							true,
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f
 						);
-						map_bullet_label_[object->bullet_handle_] = "Floor";
+						map_bullet_label_[object->robot_data_.bullet_handle_] = "Floor";
 					}
 
 
@@ -296,17 +298,18 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					sprintf(obj_name, "%s/room/%s/%sw.obj", input_data_directory, scene_id, modelId); 
 					if (!hideWalls) {
 
-						Robot* object = world_->LoadOBJ(
+						RobotBase * object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
 							btVector3(scale.x, scale.y, scale.z),
 							"Wall",
+							true,
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f,
 							concave
 						);
-						map_bullet_label_[object->bullet_handle_] = "Wall";
+						map_bullet_label_[object->robot_data_.bullet_handle_] = "Wall";
 					}
 
 					sprintf(obj_name, "%s/room/%s/%sc.obj", input_data_directory, scene_id, modelId); 
@@ -317,17 +320,18 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						// 	rotation.x, rotation.y, rotation.z, rotation.w
 						// 	//glm::max(glm::max(scale.x, scale.y), scale.z)
 						// );
-						Robot* object = world_->LoadOBJ(
+						RobotBase * object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
 							btVector3(scale.x, scale.y , scale.z),
 							"Ceiling",
+							true,
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f,
 							concave
 						);
-						map_bullet_label_[object->bullet_handle_] = "Ceiling";
+						map_bullet_label_[object->robot_data_.bullet_handle_] = "Ceiling";
 					}
 				}
 				else if(!strcmp(node_type, "Object"))
@@ -385,21 +389,22 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					// }
 
 
-					Robot* object = world_->LoadOBJ(
+					RobotBase * object = world_->LoadRobot(
 						obj_name,
 						btVector3(translation.x,translation.y,translation.z),
 						btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
 						btVector3(scale.x, scale.y, scale.z),
 						all_labels_[modelId],
+						true,
 						mass,
 						isMirrored == 1 ? -1.0f : 1.0f,
 						concave
 					);
 
-					object->root_part_->ChangeLinearDamping(0.9f);
-					object->root_part_->ChangeAngularDamping(0.9f);
+					object->robot_data_.root_part_->ChangeLinearDamping(0.9f);
+					object->robot_data_.root_part_->ChangeAngularDamping(0.9f);
 
-					map_bullet_label_[object->bullet_handle_] = all_labels_[modelId];
+					map_bullet_label_[object->robot_data_.bullet_handle_] = all_labels_[modelId];
 					//printf("    label: %s\n", all_labels_[modelId].c_str());
 				}
 

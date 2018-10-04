@@ -1,4 +1,5 @@
-//#define DEBUG
+#define DEBUG
+//#define DYN_VOXEL
 
 #include <unistd.h>
 
@@ -575,10 +576,18 @@ void Render::UpdateProjectionMatrices(RenderWorld * world)
     float min_z;
     float max_x;
     float max_z;
-    world->get_world_size(min_x, min_z, max_x, max_z);
 
-    vct_bbox_min_ = glm::vec3(min_x - 1, -2, min_z - 1);
-    vct_bbox_max_ = glm::vec3(max_x + 1,  6, max_z + 1);
+    #ifdef DYN_VOXEL
+        Camera* camera = world->camera(0);
+        int x = ceil(camera->Position.x);
+        int z = ceil(camera->Position.z);
+        vct_bbox_min_ = glm::vec3(x - 10, -2, z - 10);
+        vct_bbox_max_ = glm::vec3(x + 10,  6, z + 10);
+    #else
+        world->get_world_size(min_x, min_z, max_x, max_z);
+        vct_bbox_min_ = glm::vec3(min_x - 1, -2, min_z - 1);
+        vct_bbox_max_ = glm::vec3(max_x + 1,  6, max_z + 1);
+    #endif
 
     glm::vec3 center = (vct_bbox_min_ + vct_bbox_max_) * 0.5f;
     glm::vec3 axis_size = vct_bbox_max_ - vct_bbox_min_;
@@ -972,7 +981,16 @@ void Render::VoxelizeScene(RenderWorld* world)
     //Camera* camera = &free_camera_; 
 
     glm::vec3 minAABB, maxAABB;
-    GetViewFrusrumBoundingVolume(camera, minAABB, maxAABB);
+    
+
+    #ifdef DYN_VOXEL
+        int x = ceil(camera->Position.x);
+        int z = ceil(camera->Position.z);
+        minAABB = glm::vec3(x - 10, -2, z - 10);
+        maxAABB = glm::vec3(x + 10,  6, z + 10);
+    #else
+        GetViewFrusrumBoundingVolume(camera, minAABB, maxAABB);
+    #endif
 
     Draw(world, shader_voxelize, minAABB - glm::vec3(5), maxAABB + glm::vec3(5), true);
 
@@ -1542,6 +1560,9 @@ void Render::Draw(RenderWorld* world,
             continue;
 
         if(skip_robot && body->move())
+            continue;
+
+        if(body->hide())
             continue;
 
         // Root

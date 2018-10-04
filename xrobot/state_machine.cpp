@@ -21,7 +21,7 @@ namespace xrobot
 	void Task::RunStage() {
 		// TODO: why this asserts not triggered when current_stage_ is ""
 		assert(stages_.find(current_stage_) != stages_.end());
-		assert(current_stage_ != "idle");
+		// assert(current_stage_ != "idle");
 
 		current_stage_ = stages_[current_stage_]();		
 	}

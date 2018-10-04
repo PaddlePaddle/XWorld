@@ -125,6 +125,7 @@ namespace xrobot
 
 		// Reset Simulation
 		void ResetMap();
+		void ForceResetMap();
 
 
 		// Labels

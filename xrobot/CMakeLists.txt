@@ -3,13 +3,13 @@ cmake_minimum_required(VERSION 3.0)
 project(xrobot CXX C)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ## -Wno-error for gcc 5.x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
 
 include(ExternalProject)
 
@@ -47,12 +47,11 @@ set(XROBOT_SOURCES
     map_suncg.cpp
     state_machine.cpp
     task_example.cpp
-    task_example_testing.cpp
     room_generator.cpp
     utils.cpp
     lidar.cpp
-    world.cpp
     inventory.cpp
+    world.cpp
 )
 
 add_library(xrobot SHARED
