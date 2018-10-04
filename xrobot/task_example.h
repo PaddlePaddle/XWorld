@@ -10,6 +10,7 @@
 #include "map_suncg.h"
 #include "lidar.h"
 #include "task.h"
+#include "crowd.h"
 
 namespace xrobot
 {
@@ -155,6 +156,26 @@ namespace xrobot
 		render_engine::Camera * main_camera_;
 		float cam_pitch_;
 		float door_angle_;
+	};
+
+	class Task_Crowd : public TaskInterface {
+	public:
+
+		Task_Crowd(render_engine::Render * renderer, Map * map);
+		~Task_Crowd();
+
+		std::string Start();
+		std::string NavTarget();
+		TaskStages GetStages();
+		
+		int iterations_;
+		Map * scene_;
+		Crowd * crowd_;
+		RobotBase * agent_;
+		render_engine::GLContext * ctx_;
+		render_engine::Render * renderer_;
+		render_engine::Camera * main_camera_;
+		float cam_pitch_;
 	};
 }
 

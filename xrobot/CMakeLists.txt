@@ -50,6 +50,7 @@ set(XROBOT_SOURCES
     room_generator.cpp
     utils.cpp
     lidar.cpp
+    crowd.cpp
     inventory.cpp
     world.cpp
 )

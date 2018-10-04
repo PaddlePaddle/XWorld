@@ -58,9 +58,14 @@ int main(int argc, char **argv)
     Task_NewFeatures task5(renderer, scene);
     group5.AddTask("GetAndPut", task5);
 
+    // Crowd (Test)
+    TaskGroup group6("TaskGroup_Crowd");
+    Task_Crowd task6(renderer, scene);
+    group6.AddTask("Crowd", task6);
+
     while(!renderer->ctx_->GetWindowShouldClose())
     {
-        group5.RunStage();
+        group6.RunStage();
     }
 
     delete renderer;
