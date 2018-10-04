@@ -6,18 +6,32 @@
 #include <algorithm>
 
 #include "glm/glm.hpp"
-
+#include "bullet/LinearMath/btTransform.h"
 
 namespace xrobot {
+
+// struct ObjectInfo
+// {
+// 	std::string label;
+// 	std::string path;
+// 	btVector3 pos;
+// 	btQuaternion rot;
+// 	btVector3 scl;
+// 	float mass;
+// 	bool fixed;
+// };
+
+class RobotBase;
+
 class Inventory {
 public:
 	Inventory(const int size);
 	~Inventory();
 
-	void PutObject(std::string& object_label, std::string& object_path);
-	std::string GetObjectRandomly(std::string& object_label);
-	std::string GetObject(const std::string& object_label);
-	void DiscardObject(const std::string& object_label, const int num = 1);
+	bool PutObject(RobotBase* object);
+	RobotBase* GetObjectLast();
+	bool GetObject(RobotBase* object, const std::string& label);
+	bool DiscardObject(const std::string& object_label);
 	void ClearInventory();
 	void PrintInventory();
 
@@ -29,7 +43,7 @@ public:
 	void ResetNonPickableObjectTag();
 
 private:
-	std::unordered_map<std::string, std::vector<std::string>> inventory_;
+	std::vector<RobotBase*> inventory_;
 	std::vector<std::string> non_pickable_list_;
 	int size_;
 	int rest_;

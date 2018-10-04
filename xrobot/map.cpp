@@ -189,11 +189,11 @@ void Map::GenerateDoor(const float x, const float y, const float z, const int fa
 {
 	const int dir[4] = {0, 0, 1, 1};
 
-	world_->LoadURDF(
+	RobotBase * robot = world_->LoadRobot(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
-		1.0f,
+		btVector3(1.0f, 1.0f, 1.0f),
 		"Door",
 		true
 	);
@@ -204,11 +204,11 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 {
 	const int dir[4] = {0, 0, 1, 1};
 
-	world_->LoadURDF(
+	RobotBase * robot = world_->LoadRobot(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
-		1.0f,
+		btVector3(1.0f, 1.0f, 1.0f),
 		"Wall",
 		true
 	);
@@ -216,11 +216,11 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 
 void Map::GenerateFloor(const float x, const float y, const float z, const std::string& st)
 {
-	Robot * floor = world_->LoadURDF(
+	RobotBase * robot = world_->LoadRobot(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(0,0,0,1),
-		1.0f,
+		btVector3(1.0f, 1.0f, 1.0f),
 		"Floor",
 		true
 	);
@@ -321,15 +321,16 @@ void Map::CreateObjectAtTransform(
 {
 	assert(!name.empty());
 
-	Robot * robot = world_->LoadURDF(
+	RobotBase * robot = world_->LoadRobot(
 		name,
 		btVector3(tx,ty,tz),
 		btQuaternion(rx,ry,rz,rw),
-		s
+		btVector3(s,s,s),
+		"Unnamed_Object"
 	);
 
 	vec3 aabbMin, aabbMax;
-	robot->root_part_->GetAABB(aabbMin, aabbMax);
+	robot->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
 
 	AABB * bbox = new AABB(aabbMin.x, aabbMin.y, aabbMin.z, aabbMax.x, aabbMax.y, aabbMax.z);
 	if(aabbMin.y < kOnFloorThreshold)
@@ -345,6 +346,38 @@ void Map::CreateObjectAtTransform(
 	}
 }
 
+void Map::ForceResetMap()
+{
+	delete map_;
+
+	if(map_AABB_)
+		delete map_AABB_;
+
+	world_->CleanEverything();
+
+	for (auto aabb : sections_AABB_)
+	{
+		delete aabb;
+	}
+
+	for (auto aabb : first_layer_AABB_)
+	{
+		delete aabb;
+	}
+
+	for (auto aabb : second_layer_AABB_)
+	{
+		delete aabb;
+	}
+
+	empty_map_.clear();
+	sections_map_.clear();
+	sections_AABB_.clear();
+	first_layer_AABB_.clear();
+	second_layer_AABB_.clear();
+	first_layer_map_.clear();
+}
+
 void Map::ResetMap()
 {
 	delete map_;
@@ -353,9 +386,9 @@ void Map::ResetMap()
 		delete map_AABB_;
 
 	if(world_->reset_count_ % 1000) {
-		world_->CleanEverything();
-	} else {
 		world_->CleanEverything2();
+	} else {
+		world_->CleanEverything();
 	}
 
 	for (auto aabb : sections_AABB_)
@@ -401,7 +434,7 @@ void Map::SpawnOnFloor(const int num)
 {
 	if(!on_floor_list_.size()) return;
 
-	for (int i = 0, success = 0; i < num << 2 && success < num; ++i)
+	for (int i = 0, success = 0; i < num << 1 && success < num; ++i)
 	{
 
 		int object_index = (int) GetRandom(0, on_floor_list_.size());
@@ -419,11 +452,11 @@ void Map::SpawnOnFloor(const int num)
 		transform.setIdentity();
 		transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
 
-		Robot * robot = world_->LoadURDF(
+		RobotBase * robot = world_->LoadRobot(
 			object,
 			transform.getOrigin(),
 			transform.getRotation(),
-			1.0f,
+			btVector3(1.0f, 1.0f, 1.0f),
 			FindLabel(object)
 		);
 
@@ -434,9 +467,10 @@ void Map::SpawnOnFloor(const int num)
 
 			transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
 			world_->SetTransformation(robot, transform);
+			//world_->BulletStep();
 
 			vec3 aabb_min, aabb_max;
-			robot->root_part_->GetAABB(aabb_min, aabb_max);
+			robot->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
 
 			bbox->update(
 				aabb_min.x, aabb_min.y, aabb_min.z,
@@ -466,7 +500,7 @@ void Map::SpawnOnFloor(const int num)
 
 		if(!find_sol)
 		{
-			world_->RemoveRobot2(robot);
+			robot->RemoveRobotTemp();
 			delete bbox;
 		}
 
@@ -502,11 +536,11 @@ void Map::SpawnOnObject(const int num)
 		transform.setIdentity();
 		transform.setOrigin(btVector3(rand_position_on_object.x, 0, rand_position_on_object.z));
 
-		Robot * robot = world_->LoadURDF(
+		RobotBase * robot = world_->LoadRobot(
 			object,
 			transform.getOrigin(),
 			transform.getRotation(),
-			1.0f,
+			btVector3(1.0f, 1.0f, 1.0f),
 			FindLabel(object)
 		);
 
@@ -519,7 +553,7 @@ void Map::SpawnOnObject(const int num)
 			world_->SetTransformation(robot, transform);
 
 			vec3 aabb_min, aabb_max;
-			robot->root_part_->GetAABB(aabb_min, aabb_max);
+			robot->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
 
 			bbox->update(aabb_min.x, aabb_min.y, aabb_min.z, aabb_max.x, aabb_max.y, aabb_max.z);
 
@@ -545,7 +579,7 @@ void Map::SpawnOnObject(const int num)
 
 		if(!find_sol)
 		{
-			world_->RemoveRobot2(robot);
+			robot->RemoveRobotTemp();
 			delete bbox;
 		}
 
@@ -582,11 +616,11 @@ void Map::SpawnEither(const int n)
 			transform.setIdentity();
 			transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 
-			Robot * r = world_->LoadURDF(
+			RobotBase * r = world_->LoadRobot(
 				object,
 				transform.getOrigin(),
 				transform.getRotation(),
-				1.0f,
+				btVector3(1.0f, 1.0f, 1.0f),
 				FindLabel(object)
 			);
 
@@ -599,7 +633,7 @@ void Map::SpawnEither(const int n)
 				world_->SetTransformation(r, transform);
 
 				vec3 aabbMin, aabbMax;
-				r->root_part_->GetAABB(aabbMin, aabbMax);
+				r->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
 
 				bbox->update(
 					aabbMin.x, aabbMin.y, aabbMin.z,
@@ -628,7 +662,7 @@ void Map::SpawnEither(const int n)
 
 			if(!find_sol)
 			{
-				world_->RemoveRobot2(r);
+				r->RemoveRobotTemp();
 				delete bbox;
 			}
 		}
@@ -659,11 +693,11 @@ void Map::SpawnEither(const int n)
 			transform.setIdentity();
 			transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 
-			Robot * r = world_->LoadURDF(
+			RobotBase * r =  world_->LoadRobot(
 				object,
 				transform.getOrigin(),
 				transform.getRotation(),
-				1.0f,
+				btVector3(1.0f, 1.0f, 1.0f),
 				FindLabel(object)
 			);
 
@@ -676,7 +710,7 @@ void Map::SpawnEither(const int n)
 				world_->SetTransformation(r, transform);
 
 				vec3 aabbMin, aabbMax;
-				r->root_part_->GetAABB(aabbMin, aabbMax);
+				r->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
 
 				bbox->update(aabbMin.x, aabbMin.y, aabbMin.z, aabbMax.x, aabbMax.y, aabbMax.z);
 
@@ -706,7 +740,7 @@ void Map::SpawnEither(const int n)
 
 			if(!find_sol)
 			{
-				world_->RemoveRobot2(r);
+				r->RemoveRobotTemp();
 				delete bbox;
 			}
 		}

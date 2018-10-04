@@ -12,7 +12,6 @@
 
 #include "task.h"
 #include "task_example.h"
-#include "task_example_testing.h"
 #include "state_machine.h"
 #include "render_engine/render2d.h"
 
@@ -54,20 +53,10 @@ int main(int argc, char **argv)
     group2.AddTask("NavToFruitBowl", task3);
     group2.AddTask("TouchPan", task4);
 
-    // // Loading Customized Scene (ex. obj with mtl)
-    // TaskGroup group3("TaskGroup_Testing");
-    // Task_LoadScene task5(renderer, scene);
-    // group3.AddTask("LoadScene", task5);
-
-    // // Get / Put
-    // TaskGroup group4("TaskGroup_Testing");
-    // Task_GetAndPut task6(renderer, scene_suncg);
-    // group4.AddTask("GetAndPut", task6);
-
-    // Loading Pica Pica Model...
-    TaskGroup group5("TaskGroup_Testing2");
-    Task_FollowRobot2 task7(renderer, scene);
-    group5.AddTask("GetAndPut", task7);
+    // Inventory, Pickup and Putdown, Animation and Convertion
+    TaskGroup group5("TaskGroup_New");
+    Task_NewFeatures task5(renderer, scene);
+    group5.AddTask("GetAndPut", task5);
 
     while(!renderer->ctx_->GetWindowShouldClose())
     {

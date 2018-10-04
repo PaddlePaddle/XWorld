@@ -28,8 +28,8 @@ namespace xrobot
 
 		int iterations_;
 		Map * scene_;
-		Robot * agent_;
-		Robot * target_;
+		RobotBase * agent_;
+		RobotBase * target_;
 		render_engine::GLContext * ctx_;
 		render_engine::Render * renderer_;
 		render_engine::Camera * main_camera_;
@@ -48,7 +48,7 @@ namespace xrobot
 
 		int iterations_;
 		Map * scene_;
-		Robot * agent_;
+		RobotBase * agent_;
 		Lidar * lidar_;
 		render_engine::GLContext * ctx_;
 		render_engine::Render * renderer_;
@@ -68,7 +68,7 @@ namespace xrobot
 
 		int iterations_;
 		Map * scene_;
-		Robot * agent_;
+		RobotBase * agent_;
 		Lidar * lidar_;
 		render_engine::GLContext * ctx_;
 		render_engine::Render * renderer_;
@@ -88,7 +88,7 @@ namespace xrobot
 
 		int iterations_;
 		MapSuncg * scene_;
-		Robot * agent_;
+		RobotBase * agent_;
 		float cam_pitch_;
 		render_engine::GLContext * ctx_;
 		render_engine::Render * renderer_;
@@ -116,7 +116,7 @@ namespace xrobot
 		
 		int iterations_;
 		MapSuncg * scene_;
-		Robot * agent_;
+		RobotBase * agent_;
 		float cam_pitch_;
 		render_engine::GLContext * ctx_;
 		render_engine::Render * renderer_;
@@ -130,6 +130,31 @@ namespace xrobot
 	    float pos_5_ = 0.0f;
 	    float pos_6_ = 0.0f;
 	    float pos_7_ = 0.0f;
+	};
+
+	class Task_NewFeatures : public TaskInterface {
+	public:
+
+		Task_NewFeatures(render_engine::Render * renderer, Map * map);
+		~Task_NewFeatures();
+
+		std::string Start();
+		std::string NavTarget();
+		TaskStages GetStages();
+		
+		int iterations_;
+		Inventory * inventory_;
+		Map * scene_;
+		RobotBase * door_;
+		RobotBase * agent_;
+		RobotBase * target_;
+		RobotBase * obj_conv_;
+		RobotBase * door_anim_;
+		render_engine::GLContext * ctx_;
+		render_engine::Render * renderer_;
+		render_engine::Camera * main_camera_;
+		float cam_pitch_;
+		float door_angle_;
 	};
 }
 
