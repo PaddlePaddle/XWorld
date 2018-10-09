@@ -1,16 +1,21 @@
 #include "crowd.h"
 #include "world.h"
 
+static std::string crate03 = "./crate_0.3/crate.urdf";
+
 namespace xrobot {
 
 Grid::Grid(const int width, const int length) : width_(width),
                                                 length_(length),
                                                 world_min_(glm::vec2(0,0)),
                                                 grid_size_(glm::vec2(0,0)),
-                                                data_(width * length) 
-{
+                                                data_(width * length) {}
 
-}
+Grid::Grid(const Grid& other) : width_(other.width_),
+                                length_(other.length_),
+                                world_min_(other.world_min_),
+                                grid_size_(other.grid_size_),
+                                data_(other.data_) {}
 
 void Grid::Visualize()
 {
@@ -49,7 +54,19 @@ std::vector<Node*> Grid::GetNeighbours(Node* node)
 
 Node* Grid::GetNodeFromWorldPosition(const glm::vec2 position)
 {
+    glm::vec2 relative_position = (position - world_min_)
+            / (glm::vec2(width_, length_) * grid_size_);
 
+    relative_position = glm::clamp(relative_position, glm::vec2(0,0), glm::vec2(1,1));
+
+    int x = round((width_ - 1) * relative_position.x);
+    int y = round((length_ - 1) * relative_position.y);
+
+    if(x >= 0 && x < width_ && y >= 0 && y < length_) {
+        return data_[y * width_ + x];
+    }
+
+    return nullptr;
 }
 
 Crowd::Crowd(
@@ -63,7 +80,10 @@ Crowd::Crowd(
 									 grid_map_(width, length),
                                      depth_map_(width * length),
 									 crowd_(0),
-                                     surface_level_(-1.0f)
+                                     surface_level_(-1.0f),
+                                     request_manager_(),
+                                     update_counter_(0),
+                                     counter_(0)
 {
 	assert(ctx && world);
 	assert(width > 0 && length > 0);
@@ -95,6 +115,583 @@ Crowd::~Crowd()
 {
 	glDeleteFramebuffers(1, &fbo_);
 	glDeleteTextures(1, &grid_texture_);
+    Reset();
+}
+
+void Crowd::Reset()
+{
+    crowd_.clear();
+    request_manager_.Flush();
+
+    for (int i = 0; i < grid_map_.data_.size(); ++i)
+    {
+        delete grid_map_.data_[i];
+        grid_map_.data_[i] = nullptr;
+    }
+}
+
+// Testing
+void Crowd::SpawnAgent(const glm::vec3 position)
+{
+    // Greate Robot
+    RobotBase * robot = world_->LoadRobot(
+        crate03,
+        btVector3(position.x, 0.001, position.z),
+        btQuaternion(btVector3(1,0,0),0),
+        btVector3(1, 1, 1),
+        "crate_robot",
+        false
+    );
+    robot->move(true);
+    world_->BulletStep();
+
+    Agent agent;
+    agent.current_position_ = position;
+    agent.robot_ = robot;
+    agent.speed_ = 0.005f;
+
+    crowd_.push_back(agent);
+}
+
+Agent::Agent() : robot_(nullptr),
+                 target_index_(0),
+                 speed_(0.1f),
+                 path_(0),
+                 distance_(0.0f),
+                 angle_(0.0f),
+                 last_direction_(glm::vec3(0,0,0)),
+                 current_position_(glm::vec3(0,0,0)),
+                 target_position_(glm::vec3(0,0,0)),
+                 request_update_(true) {}
+
+void Agent::FollowPath() {
+
+    if(path_.size() < 1)
+        return;
+
+    //Update Current Status
+    btTransform current_transform_bt = robot_->robot_data_.root_part_->object_position_;
+    btVector3 current_position_bt = current_transform_bt.getOrigin();
+
+    current_position_ = glm::vec3(
+        current_position_bt[0],
+        current_position_bt[1],
+        current_position_bt[2]
+    );
+
+    // On Track
+    glm::vec2 current_position_2d(current_position_.x, current_position_.z);
+    glm::vec2 current_waypoint_2d = path_[target_index_]->world_position;
+
+    if(glm::distance(current_position_2d, current_waypoint_2d) < 0.2f) {
+        target_index_++;
+        if(target_index_ >= path_.size()) {
+            return;
+        }
+    }
+
+    // Move to Waypoint
+    glm::vec2 direction_2d = glm::normalize(current_waypoint_2d - current_position_2d);
+    glm::vec3 direction_3d = glm::vec3(direction_2d.x, 0, direction_2d.y);
+    current_position_ += direction_3d * speed_;
+}
+
+void Agent::AssignTarget(const glm::vec3 position) {
+    target_position_ = position;
+    request_update_ = true;
+}
+
+PathRequestManager::PathRequestManager() : requests_(),
+                                           current_request_(),
+                                           grid_map_() {}
+
+std::vector<Node*> PathRequestManager::RequestPath(glm::vec2 path_start, glm::vec2 path_end) {
+    PathRequest new_request(path_start, path_end);
+    requests_.push(new_request);
+    return ProcessNext();
+}
+
+std::vector<Node*> PathRequestManager::ProcessNext() {
+    if(requests_.size()) {
+        current_request_ = requests_.front();
+        requests_.pop();
+
+        // Calculate Path
+        return Pathfinding(grid_map_).FindPath(
+            current_request_.path_start,
+            current_request_.path_end
+        );
+    }
+
+    std::vector<Node*> no_result(0);
+    return no_result;
+}
+
+void PathRequestManager::Flush() {
+    std::queue<PathRequest> empty;
+    std::swap(requests_, empty);
+}
+
+Pathfinding::Pathfinding(Grid grid_map) : grid_map_(grid_map) {}
+
+std::vector<Node*> Pathfinding::FindPath(const glm::vec2 seek, const glm::vec2 target)
+{
+    Node* start_node = grid_map_.GetNodeFromWorldPosition(seek);
+    Node* end_node   = grid_map_.GetNodeFromWorldPosition(target);
+
+    // printf("start: %d %d\n", start_node->x, start_node->y);
+    // printf("end: %d %d\n", end_node->x, end_node->y);
+
+    std::vector<Node*> open_set;
+    std::unordered_set<Node*> closed_set;
+    open_set.push_back(start_node);
+
+    while(open_set.size() > 0) {
+        Node* node = open_set.front();
+
+        for (int i = 1; i < open_set.size(); ++i)
+        {
+            if(open_set[i]->FCost() <  node->FCost() || 
+               open_set[i]->FCost() == node->FCost()) {
+                if(open_set[i]->h_cost < node->h_cost)
+                    node = open_set[i];
+            }
+        }
+
+        auto it = std::find (open_set.begin(), open_set.end(), node);
+        if(it != open_set.end())
+        {
+            int offset = it - open_set.begin();
+            open_set.erase(open_set.begin() + offset);
+        }
+
+        closed_set.insert(node);
+
+        if(node == end_node) {
+            return RetracePath(start_node, end_node);
+        }
+
+        for (Node * neighbour : grid_map_.GetNeighbours(node))
+        {
+            auto it_t = closed_set.find(neighbour);
+            if((neighbour->block || neighbour->carve) || it_t != closed_set.end()) {
+                continue;
+            }
+
+            int new_cost_to_neighbour = node->g_cost + GetDistance(node, neighbour);
+
+            auto it_s = std::find (open_set.begin(), open_set.end(), neighbour);
+            if (new_cost_to_neighbour < neighbour->g_cost || 
+                it_s == open_set.end()) 
+            {
+                neighbour->g_cost = new_cost_to_neighbour;
+                neighbour->h_cost = GetDistance(neighbour, end_node);
+                neighbour->parent = node;
+
+                if(it_s == open_set.end()) {
+                    open_set.push_back(neighbour);
+                }
+            }
+        }
+    }
+
+    std::vector<Node*> no_result(0);
+    return no_result;
+}
+
+std::vector<Node*> Pathfinding::RetracePath(Node* start_node, Node* end_node)
+{
+    std::vector<Node*> path;
+
+    Node* current_node = end_node;
+
+    while (current_node != start_node) {
+        path.push_back(current_node);
+        current_node = current_node->parent;
+    }
+
+    std::vector<Node*> waypoints = SimplifyPath(path);
+
+    std::reverse(waypoints.begin(), waypoints.end());
+
+    return waypoints;
+}
+
+std::vector<Node*> Pathfinding::SimplifyPath(std::vector<Node*> path)
+{
+    std::vector<Node*> waypoints;
+    glm::vec2 direction_old = glm::vec2(0,0);
+
+    for (int i = 1; i < path.size(); ++i)
+    {
+        glm::vec2 direction_new = glm::vec2(
+            path[i - 1]->x - path[i]->x,
+            path[i - 1]->y - path[i]->y
+        );
+
+        path[i - 1]->angle = glm::dot(direction_new, direction_old);
+
+        if(direction_new != direction_old) {
+            waypoints.push_back(path[i - 1]);
+        }
+        direction_old = direction_new;
+    }
+
+    // Testing
+    /*
+    for (int i = 0; i < grid_map_.length_; ++i)
+    {
+        for (int j = 0; j < grid_map_.width_; ++j)
+        {
+            bool flag = true;
+            bool way = false;
+            for (Node* node : path)
+            {
+                if(node->x == j && node->y == i) {
+                    way = false;
+                    flag = false;
+                }
+            }
+            for (Node* node : waypoints)
+            {
+                if(node->x == j && node->y == i) {
+                    way = true;
+                    flag = false;
+                }
+            }
+            if(flag) {
+                if (grid_map_.data_[i * grid_map_.width_ + j]->block) {
+                    printf("%s ","x");
+                } else if (grid_map_.data_[i * grid_map_.width_ + j]->carve) {
+                    printf("%s ","c");
+                } else {
+                    printf("%s "," ");
+                }
+            }
+            else {
+                if(way) {
+                    printf("%s ", "o");
+                } else {
+                    printf("%s ", "+");
+                }
+            }
+        }
+        printf("\n");
+    }
+    */
+
+    return waypoints;
+}
+
+int Pathfinding::GetDistance(Node* node_a, Node* node_b)
+{
+    int dst_x = abs(node_a->x - node_b->x);
+    int dst_y = abs(node_a->y - node_b->y);
+
+    if(dst_x > dst_y) 
+        return 14 * dst_y + 10 * (dst_x - dst_y);
+
+    return 14 * dst_x + 10 * (dst_y - dst_x);
+}
+
+void Crowd::Speration(const int current_id)
+{
+    glm::vec2 vel_speration = glm::vec2(0, 0);
+
+    glm::vec2 agent_current = glm::vec2(
+        crowd_[current_id].current_position_.x, 
+        crowd_[current_id].current_position_.z
+    );
+
+    for (int j = 0; j < crowd_.size(); ++j)
+    {
+        if(j == current_id)
+            continue;
+
+        if(crowd_[j].path_.size() < 1)
+            continue;
+
+        glm::vec2 near_current = glm::vec2(
+            crowd_[j].current_position_.x, 
+            crowd_[j].current_position_.z
+        );
+
+        if(glm::distance(near_current, agent_current) < 1.0f) {
+            vel_speration -= (near_current - agent_current);
+        }
+    }
+
+    vel_speration *= 0.00125f;
+
+    crowd_[current_id].current_position_ += glm::vec3(
+        vel_speration.x,
+        0,
+        vel_speration.y
+    );
+}
+
+void Crowd::Alignment(const int current_id)
+{
+    glm::vec2 vel_alignment = glm::vec2(0, 0);
+
+    glm::vec2 agent_current = glm::vec2(
+        crowd_[current_id].current_position_.x, 
+        crowd_[current_id].current_position_.z
+    );
+
+    float num_alignment = 0.0f;
+
+    for (int j = 0; j < crowd_.size(); ++j)
+    {
+        if(j == current_id)
+            continue;
+
+        if(crowd_[j].path_.size() < 1)
+            continue;
+
+        glm::vec2 near_current = glm::vec2(
+            crowd_[j].current_position_.x, 
+            crowd_[j].current_position_.z
+        );
+
+        if(glm::distance(near_current, agent_current) < 0.5f) {
+
+            int target_index = crowd_[j].target_index_;
+
+            if(target_index >= crowd_[j].path_.size())
+                return;
+
+            glm::vec2 target = crowd_[j].path_[target_index]->world_position;
+            glm::vec2 direction = glm::normalize(target - near_current);
+
+            vel_alignment += direction;
+            num_alignment++;
+        }
+    }
+
+    if(num_alignment > 0) {
+        vel_alignment /= num_alignment;
+        vel_alignment *= 0.0002f;
+    }
+
+    crowd_[current_id].current_position_ += glm::vec3(
+        vel_alignment.x,
+        0,
+        vel_alignment.y
+    );
+}
+
+void Crowd::Cohesion(const int current_id)
+{
+    glm::vec2 vel_cohesion = glm::vec2(0, 0);
+
+    glm::vec2 agent_current = glm::vec2(
+        crowd_[current_id].current_position_.x, 
+        crowd_[current_id].current_position_.z
+    );
+
+    float num_cohesion = 0.0f;
+
+    for (int j = 0; j < crowd_.size(); ++j)
+    {
+        if(j == current_id)
+            continue;
+
+        if(crowd_[j].path_.size() < 1)
+            continue;
+
+        glm::vec2 near_current = glm::vec2(
+            crowd_[j].current_position_.x, 
+            crowd_[j].current_position_.z
+        );
+
+        if(glm::distance(near_current, agent_current) < 2.0f) {
+            vel_cohesion += near_current;
+            num_cohesion++;
+        }
+    }
+
+    if(num_cohesion > 0) {
+        vel_cohesion /= num_cohesion;
+        vel_cohesion = (vel_cohesion - agent_current) * 0.0001f;
+    }
+
+    crowd_[current_id].current_position_ += glm::vec3(
+        vel_cohesion.x,
+        0,
+        vel_cohesion.y
+    );
+}
+
+void Crowd::Blocking(const int current_id, const glm::vec3 current_position)
+{
+    glm::vec3 next_position = crowd_[current_id].current_position_;
+
+    glm::vec2 next_position_2d(next_position.x, next_position.z);
+    glm::vec2 current_position_2d(current_position.x, current_position.z);
+
+    Node* next_pos_locate_node = grid_map_.GetNodeFromWorldPosition(next_position_2d);
+    Node* curr_pos_locate_node = grid_map_.GetNodeFromWorldPosition(current_position_2d);
+
+    if(next_pos_locate_node->carve) {
+
+        glm::vec2 reflect = current_position_2d - next_position_2d;
+
+	    //crowd_[current_id].current_position_ = current_position + glm::vec3(reflect.x, 0, reflect.y);
+        //printf("Agent #%d Request Re-Path (Block) \n", current_id);
+        crowd_[current_id].target_index_ = 0;
+        crowd_[current_id].request_update_ = true;
+    }
+}
+
+void Crowd::ClearCarving()
+{
+    for (int i = 0; i < grid_map_.data_.size(); ++i)
+    {
+        grid_map_.data_[i]->carve = false;
+    }
+}
+
+bool Crowd::Carving()
+{
+    bool update = false;
+
+    ClearCarving();
+
+    for (int i = 0; i < grid_map_.length_; ++i)
+    {
+        for (int j = 0; j < grid_map_.width_; ++j)
+        {
+
+            glm::vec2 world_position = 
+                grid_map_.data_[i * width_ + j]->world_position;
+
+            for (int k = 0; k < carve_shapes_.size(); ++k)
+            {
+                glm::vec2 carve_position = carve_shapes_[k].position;
+
+                if(glm::distance(carve_position, world_position) <= carve_shapes_[k].radius) {
+                    grid_map_.data_[i * width_ + j]->carve = true;
+                    update |= carve_shapes_[k].moving;
+                }
+            }
+        }
+    }
+
+    request_manager_.UpdateGrid(grid_map_);
+
+    return update;
+}
+
+void Crowd::Update() 
+{
+    // Carve Navivation Grid
+    bool update = Carving();
+
+    for (int i = 0; i < crowd_.size(); ++i)
+    {
+        // Update NavMesh and Request Path
+        if(crowd_[i].request_update_) {
+            std::vector<Node*> new_path;
+
+            new_path = request_manager_.RequestPath(
+                glm::vec2(crowd_[i].current_position_.x, crowd_[i].current_position_.z),
+                glm::vec2(crowd_[i].target_position_.x, crowd_[i].target_position_.z)
+            );
+
+            crowd_[i].path_ = new_path;
+            crowd_[i].request_update_ = false;
+        }
+
+        glm::vec3 last_position = crowd_[i].current_position_;
+
+        // Check Arrive?
+        float dist = glm::distance(crowd_[i].current_position_, crowd_[i].target_position_);
+        if(dist > 0.5f) {
+
+            // Apply Path Finding
+            crowd_[i].FollowPath();
+            glm::vec3 current_position = crowd_[i].current_position_;
+
+            // Apply Flocking Behavior
+            Speration(i);
+            Alignment(i);
+            Cohesion(i);
+
+            // Auto Repath
+            if(counter_ % 16) {
+                glm::vec3 updated_position = crowd_[i].current_position_;
+                crowd_[i].distance_ += glm::length(updated_position - last_position);
+            } else {
+                if(crowd_[i].distance_ < (crowd_[i].speed_ * 0.5f * 15)) {
+                    crowd_[i].target_index_ = 0;
+                    crowd_[i].request_update_ = true;
+                    //printf("Agent #%d Request Re-Path (Freeze)\n", i);
+                }
+                crowd_[i].distance_ = 0;
+            }
+
+            if(counter_ % 3 == 0 && update) {
+                Blocking(i, current_position);
+            }
+
+        }
+
+        // Update Agent Status
+        RobotBase * robot = crowd_[i].robot_;
+        glm::vec3 next_position = crowd_[i].current_position_;
+        
+        glm::vec3 current_direction = glm::normalize(next_position - last_position);
+        float cos_angle = glm::dot(current_direction, glm::vec3(0,0,1));
+        float angle = glm::acos(glm::clamp(cos_angle, -1.0f, 1.0f));    
+        crowd_[i].angle_ = crowd_[i].angle_ + glm::sign(angle - crowd_[i].angle_) * 0.01f;
+
+        btTransform transform_temp;
+        transform_temp.setIdentity();
+        transform_temp.setRotation(btQuaternion(btVector3(0,1,0), crowd_[i].angle_));
+        transform_temp.setOrigin(
+            btVector3(next_position.x, next_position.y, next_position.z)
+        );
+
+        world_->SetTransformation(robot, transform_temp);
+
+        crowd_[i].last_direction_ = current_direction;
+    }
+
+    counter_++;
+}
+
+void Crowd::KillAgentOnceArrived()
+{
+    for (int i = 0; i < crowd_.size(); ++i)
+    {
+        // Check Arrive?
+
+        float dist = glm::distance(crowd_[i].current_position_, crowd_[i].target_position_);
+
+        if(dist < 1.0f) 
+        {
+            crowd_[i].robot_->RemoveRobotFromBullet();
+            world_->RemoveRobot(crowd_[i].robot_);
+            crowd_[i].robot_ = nullptr;
+            crowd_.erase(crowd_.begin() + i);
+
+
+            // Rebake
+            // BakeNavMesh();
+
+            // for (int i = 0; i < crowd_.size(); ++i)
+            // {
+            //     if(crowd_[i].target_index_ >= crowd_[i].path_.size()) {
+            //         crowd_[i].request_update_ = true;
+            //         crowd_[i].target_index_ = 0;
+            //     }
+            // }
+
+            //printf("Kill Agent #%d\n", i);
+            break;
+        }
+    }
 }
 
 void Crowd::SetBakeArea(const glm::vec3 world_min, const glm::vec3 world_max) 
@@ -112,6 +709,10 @@ void Crowd::BakeNavMesh()
 	Voxelization();
 
     glDisable(GL_CONSERVATIVE_RASTERIZATION_NV);
+
+    request_manager_.UpdateGrid(grid_map_);
+
+    //printf("Update Navigation Map...\n");
 }
 
 void Crowd::Voxelization()
@@ -158,9 +759,9 @@ void Crowd::Voxelization()
         }
     };
 
+
     glViewport(0, 0, width_, length_);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -226,11 +827,12 @@ void Crowd::Voxelization()
             node->world_position.x = world_min_.x + pixel_size.x * 0.5f + pixel_size.x * j;
             node->world_position.y = world_min_.z + pixel_size.z * 0.5f + pixel_size.z * i;
 
-            if(depth_map_[i * width_ + j] == 1.0f) {
+            // ????
+            if(depth_map_[j * length_ + i] == 1.0f) {
                 node->block = true;
-            } else if(depth_map_[i * width_ + j] <  surface_level_) {
+            } else if(depth_map_[j * length_ + i] <  surface_level_) {
                 node->block = true;
-            } else if(depth_map_[i * width_ + j] == surface_level_){
+            } else if(depth_map_[j * length_ + i] == surface_level_){
                 node->block = false;
             } else {
                 node->block = false;

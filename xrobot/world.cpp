@@ -1941,6 +1941,9 @@ void World::RemoveRobot(RobotBase * robot) {
         robot_list_.erase(index);        
     }
 
+    // ???
+    //robot->RemoveRobotFromBullet();
+
     RemoveObjectWithLabel(robot->robot_data_.bullet_handle_);
 
     bullet_handle_to_robot_map_[robot->robot_data_.bullet_handle_] = nullptr;
