@@ -1,8 +1,10 @@
 #ifndef CROWD_H_
 #define CROWD_H_
 
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include <queue>
 #include <algorithm>
 
 #include "glm/glm.hpp"
@@ -17,23 +19,17 @@ namespace xrobot {
 	class RobotBase;
 	class World;
 
-	inline float DepthLogToLinear (const float depth, const float near, const float far) 
-	{
-		return 2.0f * near * far / (far + near - (2.0f * depth - 1.0f) * (far - near));
-	}
-
-	struct Agent {
-		RobotBase* object;
-	};
-
 	struct Node {
+		bool carve;
 		bool block;
 		glm::vec2 world_position;
+		float angle;
 		int x, y;
 		int g_cost, h_cost;
 		Node* parent;
 
 		Node() : block(false),
+				 carve(false),
 				 world_position(glm::vec3(0,0,0)),
 				 x(0),
 				 y(0),
@@ -43,9 +39,36 @@ namespace xrobot {
 		int FCost() { return g_cost + h_cost; }
 	};
 
+	struct CarveShape {
+		glm::vec2 position;
+		float radius;
+		bool moving;
+	};
+
+	class Agent {
+	public:
+		Agent();
+
+		RobotBase* robot_;
+		bool request_update_;
+		int target_index_;
+		float speed_;
+		float distance_;
+		float angle_;
+		glm::vec3 last_direction_;
+		glm::vec3 current_position_;
+		glm::vec3 target_position_;
+		std::vector<Node*> path_;
+
+		void AssignTarget(const glm::vec3 position);
+		void FollowPath();
+	};
+
 	class Grid {
 	public:
+		Grid() {};
 		Grid(const int width, const int length);
+		Grid(const Grid& copyFrom);
 
 		void Visualize();
 		std::vector<Node*> GetNeighbours(Node* node);
@@ -57,17 +80,58 @@ namespace xrobot {
 		std::vector<Node*> data_;
 	};
 
+	class Pathfinding {
+	public:
+		Pathfinding(Grid grid_map);
+		void UpdateGrid(Grid grid_map) { grid_map_ = grid_map; }
+		std::vector<Node*> FindPath(const glm::vec2 seek, const glm::vec2 target);
+
+	private:
+		std::vector<Node*> RetracePath(Node* start_node, Node* end_node);
+		std::vector<Node*> SimplifyPath(std::vector<Node*> path);
+		int GetDistance(Node* node_a, Node* node_b);
+		
+		Grid grid_map_;
+	};
+
+	struct PathRequest
+	{
+		PathRequest() : path_start(glm::vec2(0, 0)),
+						path_end(glm::vec2(0, 0)) {}
+
+		PathRequest(glm::vec2 start, glm::vec2 end) : path_start(start),
+													  path_end(end) {}
+		glm::vec2 path_start;
+		glm::vec2 path_end;	
+	};
+
+	class PathRequestManager {
+	public:
+		PathRequestManager();
+		std::vector<Node*> RequestPath(glm::vec2 path_start, glm::vec2 path_end);
+		std::vector<Node*> ProcessNext();
+		void Flush();
+		void UpdateGrid(Grid grid_map) { grid_map_ = grid_map; }
+
+	private:
+		Grid grid_map_;
+		PathRequest current_request_;
+		std::queue<PathRequest> requests_;
+	};
+
 	class Crowd {
 	public:
 		Crowd(
 			render_engine::GLContext * ctx,
 			World * world,
-			const unsigned int width = 16,
-			const unsigned int length = 16);
+			const unsigned int width = 20,
+			const unsigned int length = 20);
 		~Crowd();
 
-
 		void SpawnAgent(const glm::vec3 position);
+		void KillAgentOnceArrived();
+		void Update();
+		void Reset();
 		void BakeNavMesh();
 		void SetBakeArea(
 			const glm::vec3 world_min,
@@ -75,8 +139,25 @@ namespace xrobot {
 
 		void SetSurfaceLevel(const float level) { surface_level_ = level; }
 		Grid GetGrid() { return grid_map_; }
+		GLuint GetGridTexture() { return grid_texture_; }
+
+		std::vector<Agent> crowd_;
+		std::vector<CarveShape> carve_shapes_;
 
 	private:
+		// Flocking Behavior
+		void Speration(const int current_id);
+		void Alignment(const int current_id);
+		void Cohesion(const int current_id);
+
+		// Collision Avoidance with Static Object
+		void Blocking(const int current_id, const glm::vec3 current_position);
+
+		// Collision Avoidance with Dynamic Object
+		void ClearCarving();
+		bool Carving();
+
+		// Voxelize
 		void Voxelization();
 
 		float surface_level_;
@@ -89,7 +170,9 @@ namespace xrobot {
 		render_engine::GLContext * ctx_;
 		Grid grid_map_;
 		std::vector<float> depth_map_;
-		std::vector<Agent> crowd_;
+		PathRequestManager request_manager_;
+		int update_counter_;
+		int counter_;
 	};
 }
 

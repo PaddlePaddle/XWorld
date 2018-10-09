@@ -1185,7 +1185,9 @@ namespace xrobot
 				     cam_pitch_(0),
 				     crowd_(new Crowd(renderer->ctx_, map->world_)) {}
 
-	Task_Crowd::~Task_Crowd() {}	     
+	Task_Crowd::~Task_Crowd() {
+		delete crowd_;
+	}	     
 
 	TaskStages Task_Crowd::GetStages() {
 		TaskStages stages;
@@ -1207,6 +1209,7 @@ namespace xrobot
         renderer_->lighting_.linear_voxelize = true;
 
 		iterations_ = 0;
+		crowd_->Reset();
 		scene_->ResetMap();
 		scene_->ClearRules();
 		scene_->CreateLabel("/home/ziyuli/model/pica_obj.urdf", "stack");
@@ -1224,14 +1227,34 @@ namespace xrobot
 	        btQuaternion(btVector3(1,0,0),0),
 	        btVector3(1, 1, 1),
 	        "crate",
-	        false
+	        true
+	    );
+	   	obj->move(false);
+
+	   	obj = scene_->world_->LoadRobot(
+	        crate1,
+	        btVector3(4, 0, 2),
+	        btQuaternion(btVector3(1,0,0),0),
+	        btVector3(1, 1, 1),
+	        "crate",
+	        true
+	    );
+	   	obj->move(false);
+
+	   	obj = scene_->world_->LoadRobot(
+	        crate1,
+	        btVector3(6, 0, 6),
+	        btQuaternion(btVector3(1,0,0),0),
+	        btVector3(1, 1, 1),
+	        "crate",
+	        true
 	    );
 	   	obj->move(false);
 
 	   	// Load Agent
 	   	agent_ = scene_->world_->LoadRobot(
 	        "husky/husky.urdf",
-	        btVector3(0,0.001,0),
+	        btVector3(0,0.001,2),
 	        btQuaternion(btVector3(-1,0,0),1.57),
 	        btVector3(1, 1, 1),
 	        "husky",
@@ -1250,8 +1273,8 @@ namespace xrobot
 	    // Bake NavMesh
 	    crowd_->SetBakeArea(glm::vec3(-2,-1,-2), glm::vec3(10,5,10));
 	    crowd_->BakeNavMesh();
-	    crowd_->GetGrid().Visualize();
 
+	    crowd_->carve_shapes_.resize(1);
 	    return "NavTarget";
 	}
 
@@ -1261,19 +1284,32 @@ namespace xrobot
 		// Remove Freeze Parameter
 		agent_->Freeze(!iterations_);
 		
-		if(ctx_->GetKeyPressUp())
+		CarveShape cs;
+		cs.position = glm::vec2(main_camera_->Position.x, main_camera_->Position.z);
+		cs.radius = 1.3f;
+		cs.moving = false;
+
+		if(ctx_->GetKeyPressUp()) {
             agent_->MoveForward(0.01f);
+            cs.moving = true;
+		}
 
-        if(ctx_->GetKeyPressDown())
+        if(ctx_->GetKeyPressDown()) {
             agent_->MoveBackward(0.01f);
+            cs.moving = true;
+        }
 
-        if(ctx_->GetKeyPressLeft())
+        if(ctx_->GetKeyPressLeft()) {
             agent_->TurnLeft(0.01f);
+        	cs.moving = true;
+        }
 
-        if(ctx_->GetKeyPressRight())
+        if(ctx_->GetKeyPressRight()) {
             agent_->TurnRight(0.01f);
+        	cs.moving = true;
+        }
 
-        if(ctx_->GetKeyPressKP9())
+        if(ctx_->GetKeyPressKP9()) 
             cam_pitch_ += 0.1f;
 
         if(ctx_->GetKeyPressKP6())
@@ -1283,6 +1319,15 @@ namespace xrobot
         scene_->world_->rotate_camera(main_camera_, cam_pitch_);
 		iterations_++;
 
+		// Generate New Agent
+		if(iterations_ % 700 == 0) {
+			crowd_->SpawnAgent(glm::vec3(0,0,8));
+			crowd_->crowd_.back().AssignTarget(glm::vec3(8,0,0));
+		}
+
+		crowd_->carve_shapes_[0] = cs;
+		crowd_->Update();
+		crowd_->KillAgentOnceArrived();
 
         // This is just for testing
         if(ctx_->GetKeyPressSpace()) {
