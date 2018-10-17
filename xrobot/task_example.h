@@ -10,17 +10,19 @@
 #include "map_suncg.h"
 #include "lidar.h"
 #include "task.h"
-#include "crowd.h"
+#include "navigation.h"
 
 namespace xrobot
 {
 	typedef std::unordered_map<std::string,
 							   std::function<std::string()>> TaskStages;
 
+	
 	class Task_FollowRobot : public TaskInterface {
 	public:
 
-		Task_FollowRobot(render_engine::Render * renderer, Map * map);
+		Task_FollowRobot(std::shared_ptr<render_engine::Render> renderer,
+				   		 std::shared_ptr<Map> map);
 		~Task_FollowRobot();
 
 		std::string Start();
@@ -28,19 +30,23 @@ namespace xrobot
 		TaskStages GetStages();
 
 		int iterations_;
-		Map * scene_;
-		RobotBase * agent_;
-		RobotBase * target_;
-		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
-		render_engine::Camera * main_camera_;
 		float cam_pitch_;
+
+		std::weak_ptr<RobotBase> agent_;
+		std::weak_ptr<RobotBase> target_;
+		std::shared_ptr<Map> scene_;
+		std::shared_ptr<render_engine::Render> renderer_;
+
+		render_engine::GLContext * ctx_;
+		render_engine::Camera * main_camera_;
 	};
 
+	
 	class Task_NavToLargeCrate : public TaskInterface {
 	public:
 
-		Task_NavToLargeCrate(render_engine::Render * renderer, Map * map);
+		Task_NavToLargeCrate(std::shared_ptr<render_engine::Render> renderer,
+				   		 	 std::shared_ptr<Map> map);
 		~Task_NavToLargeCrate();
 
 		std::string Start();
@@ -48,19 +54,23 @@ namespace xrobot
 		TaskStages GetStages();
 
 		int iterations_;
-		Map * scene_;
-		RobotBase * agent_;
-		Lidar * lidar_;
-		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
-		render_engine::Camera * main_camera_;
 		float cam_pitch_;
+
+		std::weak_ptr<RobotBase> agent_;
+		std::shared_ptr<Map> scene_;
+		std::shared_ptr<Lidar> lidar_;
+		std::shared_ptr<render_engine::Render> renderer_;
+
+		render_engine::GLContext * ctx_;
+		render_engine::Camera * main_camera_;
 	};
 
+	
 	class Task_NavToSmallCrate : public TaskInterface {
 	public:
 
-		Task_NavToSmallCrate(render_engine::Render * renderer, Map * map);
+		Task_NavToSmallCrate(std::shared_ptr<render_engine::Render> renderer,
+				   		 	 std::shared_ptr<Map> map);
 		~Task_NavToSmallCrate();
 
 		std::string Start();
@@ -68,19 +78,23 @@ namespace xrobot
 		TaskStages GetStages();
 
 		int iterations_;
-		Map * scene_;
-		RobotBase * agent_;
-		Lidar * lidar_;
-		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
-		render_engine::Camera * main_camera_;
 		float cam_pitch_;
+		
+		std::weak_ptr<RobotBase> agent_;
+		std::shared_ptr<Map> scene_;
+		std::shared_ptr<Lidar> lidar_;
+		std::shared_ptr<render_engine::Render> renderer_;
+
+		render_engine::GLContext * ctx_;
+		render_engine::Camera * main_camera_;
 	};
 
+	
 	class Task_NavToFruitBowl : public TaskInterface {
 	public:
 
-		Task_NavToFruitBowl(render_engine::Render * renderer, MapSuncg * map); 
+		Task_NavToFruitBowl(std::shared_ptr<render_engine::Render> renderer,
+				   		 	std::shared_ptr<MapSuncg> map); 
 		~Task_NavToFruitBowl();
 
 		std::string Start();
@@ -88,11 +102,16 @@ namespace xrobot
 		TaskStages GetStages();
 
 		int iterations_;
-		MapSuncg * scene_;
-		RobotBase * agent_;
 		float cam_pitch_;
+
+		std::shared_ptr<Inventory> inventory_;
+		std::shared_ptr<Lidar> lidar_;
+		std::weak_ptr<RobotBase> agent_;
+		std::weak_ptr<RobotBase> obj_conv_;
+		std::shared_ptr<MapSuncg> scene_;
+		std::shared_ptr<render_engine::Render> renderer_;
+
 		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
 		render_engine::Camera * main_camera_;
 
 		float pos_0_ = 0.0f;
@@ -108,7 +127,8 @@ namespace xrobot
 	class Task_TouchPan : public TaskInterface {
 	public:
 
-		Task_TouchPan(render_engine::Render * renderer, MapSuncg * map);
+		Task_TouchPan(std::shared_ptr<render_engine::Render> renderer,
+				   	  std::shared_ptr<MapSuncg> map);
 		~Task_TouchPan();
 
 		std::string Start();
@@ -116,11 +136,14 @@ namespace xrobot
 		TaskStages GetStages();
 		
 		int iterations_;
-		MapSuncg * scene_;
-		RobotBase * agent_;
 		float cam_pitch_;
+
+		std::shared_ptr<Lidar> lidar_;
+		std::weak_ptr<RobotBase> agent_;
+		std::shared_ptr<MapSuncg> scene_;
+		std::shared_ptr<render_engine::Render> renderer_;
+		
 		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
 		render_engine::Camera * main_camera_;
 
 		float pos_0_ = 0.0f;
@@ -133,10 +156,12 @@ namespace xrobot
 	    float pos_7_ = 0.0f;
 	};
 
+
 	class Task_NewFeatures : public TaskInterface {
 	public:
 
-		Task_NewFeatures(render_engine::Render * renderer, Map * map);
+		Task_NewFeatures(std::shared_ptr<render_engine::Render> renderer,
+				   		 std::shared_ptr<Map> map);
 		~Task_NewFeatures();
 
 		std::string Start();
@@ -144,24 +169,24 @@ namespace xrobot
 		TaskStages GetStages();
 		
 		int iterations_;
-		Inventory * inventory_;
-		Map * scene_;
-		RobotBase * door_;
-		RobotBase * agent_;
-		RobotBase * target_;
-		RobotBase * obj_conv_;
-		RobotBase * door_anim_;
-		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
-		render_engine::Camera * main_camera_;
 		float cam_pitch_;
-		float door_angle_;
+		
+		std::weak_ptr<RobotBase> agent_;
+		std::weak_ptr<RobotBase> obj_conv_;
+		std::weak_ptr<RobotBase> door_anim_;
+		std::shared_ptr<render_engine::Render> renderer_;
+		std::shared_ptr<Inventory> inventory_;
+		std::shared_ptr<Map> scene_;
+
+		render_engine::GLContext * ctx_;
+		render_engine::Camera * main_camera_;
 	};
 
 	class Task_Crowd : public TaskInterface {
 	public:
 
-		Task_Crowd(render_engine::Render * renderer, Map * map);
+		Task_Crowd(std::shared_ptr<render_engine::Render> renderer,
+				   std::shared_ptr<Map> map);
 		~Task_Crowd();
 
 		std::string Start();
@@ -169,13 +194,15 @@ namespace xrobot
 		TaskStages GetStages();
 		
 		int iterations_;
-		Map * scene_;
-		Crowd * crowd_;
-		RobotBase * agent_;
-		render_engine::GLContext * ctx_;
-		render_engine::Render * renderer_;
-		render_engine::Camera * main_camera_;
 		float cam_pitch_;
+
+		std::weak_ptr<RobotBase> agent_;
+		std::shared_ptr<Map> scene_;
+		std::shared_ptr<Navigation> crowd_;
+		std::shared_ptr<render_engine::Render> renderer_;
+		
+		render_engine::GLContext * ctx_;
+		render_engine::Camera * main_camera_;
 	};
 }
 

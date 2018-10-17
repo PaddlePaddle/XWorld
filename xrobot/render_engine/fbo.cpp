@@ -17,8 +17,8 @@ FBO::FBO(GLuint w,
 	this->needDepthBuffer = depthBuffer;
     this->needSigBuffer = sigBuffer;
 
-	GLint previousFrameBuffer;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFrameBuffer);
+	// GLint previousFrameBuffer;
+	// glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFrameBuffer);
 
 	glGenFramebuffers(1, &frameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);

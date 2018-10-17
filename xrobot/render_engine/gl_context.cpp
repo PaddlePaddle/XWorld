@@ -10,16 +10,12 @@ namespace xrobot{
 namespace render_engine {
 
 const EGLint EGLconfigAttribs[] = {
-    EGL_SURFACE_TYPE, EGL_PIXMAP_BIT,
     EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
-    EGL_MATCH_NATIVE_PIXMAP, EGL_TRUE,  
-    EGL_NATIVE_RENDERABLE, EGL_TRUE,
-    EGL_BLUE_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_RED_SIZE, 8,
-    EGL_ALPHA_SIZE, 8,
-    EGL_DEPTH_SIZE, 24,
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+  EGL_BLUE_SIZE, 8,
+  EGL_GREEN_SIZE, 8,
+  EGL_RED_SIZE, 8,
+  EGL_DEPTH_SIZE, 24,
+  EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
     EGL_NONE
 };
 
@@ -95,9 +91,9 @@ EGLContext::EGLContext(int h, int w, int device): GLContext{h, w} {
                 device_ids.push_back(i);
             }
         }
-        cout << "[EGL] Detected " << numDevices << " devices, among which "
-             << (device_ids.size() ? getenv("CUDA_VISIBLE_DEVICES") : "all")
-             << " are visible. ";
+        // cout << "[EGL] Detected " << numDevices << " devices, among which "
+        //      << (device_ids.size() ? getenv("CUDA_VISIBLE_DEVICES") : "all")
+        //      << " are visible. ";
         assert(device < (int)device_ids.size());
         device = device_ids[device];
         cout << "Using device " << device << endl;
@@ -107,6 +103,10 @@ EGLContext::EGLContext(int h, int w, int device): GLContext{h, w} {
 
     EGLint major, minor;
     EGLBoolean succ = eglInitialize(eglDpy_, &major, &minor);
+
+    printf("major: %d\n", major);
+    printf("minor: %d\n", minor);
+
     if (!succ) {
         fprintf(stderr, "Failed to initialize EGL display!");
         fflush(stderr);
@@ -406,6 +406,7 @@ GLFWContext::GLFWContext(int h, int w, bool core) :
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, false);
+        //glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
     }
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     

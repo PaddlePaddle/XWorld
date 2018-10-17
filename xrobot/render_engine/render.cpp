@@ -113,8 +113,6 @@ Render::Render(const int width,
     view_projection_matrix_inv_[1] = glm::mat4(1);
     view_projection_matrix_inv_[2] = glm::mat4(1);
     
-    InitFXAA();
-    InitSSAO();
     InitPBO();
     InitShaders();
     InitFramebuffers(num_cameras);
@@ -125,11 +123,13 @@ Render::Render(const int width,
 
     if(!settings_.use_deferred)
     {
-        InitReflectionMap(); // Forward
+        //InitReflectionMap(); // Forward
     }
     else
     {
         InitGBuffer(); // Deferred
+        // InitFXAA();
+        InitSSAO();
 
         if(settings_.use_vct)
         {
@@ -310,8 +310,6 @@ void Render::InitIBL(const std::string& hdr_path)
         temp_path = pwd + "/envmaps/Ridgecrest_Road_Ref.hdr";
     else
         temp_path = pwd + hdr_path;
-
-    printf("hdri: %s\n", temp_path.c_str());
 
     GLuint hdr_map_ = HDRTextureFromFile(temp_path.c_str());
 
@@ -633,6 +631,7 @@ void Render::VoxelConeTracing(RenderWorld* world, Camera * camera)
     shader_vct.setInt("shadowMode", lighting_.force_disable_shadow ? 4 : 0);
     shader_vct.setFloat("samplingFactor", lighting_.sample_factor);
     shader_vct.setFloat("ibl_factor", lighting_.ibl_factor);
+    shader_vct.setFloat("aoFalloff", lighting_.ao_falloff);
     
     if(settings_.use_shadow && !lighting_.force_disable_shadow) {
         shader_vct.setVec4("direction", csm_uniforms_.direction);
@@ -1548,6 +1547,7 @@ void Render::Draw(RenderWorld* world,
                 shader.setMat4("matrices.model", glm::mat4(1));
             shader.setFloat("flip", transform->flip);
             shader.setVec3("id_color", id_color);
+            shader.setVec3("urdf_color", glm::vec3(transform->color));
             model->Draw(shader);
         }
     };
@@ -1910,10 +1910,13 @@ void Render::StepRenderGetDepthAllCameras() {
         multiply_shader.use();
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
-        glUniform1i(glGetUniformLocation(multiply_shader.id(), "tex"), 0);
-        // camera_framebuffer_list_[i]->ActivateAsTexture(
-        //     multiply_shader.id(), "tex", 0);
+
+        if(!settings_.use_deferred) {
+            camera_framebuffer_list_[i]->ActivateAsTexture(multiply_shader.id(), "tex", 0);
+        } else {
+            glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
+            glUniform1i(glGetUniformLocation(multiply_shader.id(), "tex"), 0);
+        }
 
         camera_framebuffer_list_[i]->ActivateDepthAsTexture(
             multiply_shader.id(), "dep", 1);
@@ -2242,12 +2245,12 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
         StepRenderAllCameras(world, picks, pick_camera_id >= 0);
     } else {
         StepRenderAllCamerasDeferred(world, picks, pick_camera_id >= 0);
+        SSAO(world);
     }
 
     if(pick_camera_id >= 0)
         pick_result = picks[pick_camera_id];
 
-    SSAO(world);
     StepRenderGetDepthAllCameras();
     Visualization();  
 
@@ -2464,7 +2467,7 @@ void Render::InitShaders() {
                                  pwd+"/shaders/premult.fs");
 
     // Cone Tracing (gl 4.3 required)
-    if(true || settings_.use_vct)
+    if(settings_.use_vct)
     {
         shaders_[kVoxelize] = Shader(pwd+"/shaders/voxelize.vs",
                                      pwd+"/shaders/voxelize.fs",
@@ -2491,14 +2494,14 @@ void Render::InitShaders() {
                                          pwd+"/shaders/cone_trace.fs");
 
     // Deferred
-    if(true || settings_.use_deferred)
+    if(settings_.use_deferred)
     {
         shaders_[kGBuffer] = Shader(pwd+"/shaders/lambert.vs",
                                     pwd+"/shaders/g.fs");
     }
 
     // Physically Based Rendering
-    if(true || settings_.use_pbr)
+    if(settings_.use_pbr)
     {
         shaders_[kConvertToCubemap] = Shader(pwd+"/shaders/cubemap.vs",
                                              pwd+"/shaders/to_cubemap.fs");
@@ -2514,7 +2517,7 @@ void Render::InitShaders() {
     }
 
     // Cascade Shadow Map
-    if(true || settings_.use_shadow)
+    if(settings_.use_shadow)
     {
         shaders_[kPSSM] = Shader(pwd+"/shaders/csm.vs",
                                  pwd+"/shaders/csm.fs");

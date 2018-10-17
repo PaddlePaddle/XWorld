@@ -7,6 +7,7 @@
 
 #include "task.h"
 #include "map.h"
+#include "map_suncg.h"
 #include "render_engine/gl_context.h"
 #include "render_engine/render.h"
 

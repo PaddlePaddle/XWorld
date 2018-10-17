@@ -44,6 +44,7 @@ struct OriginTransformation {
     float flip = -1.0f;
     glm::vec3 local_scale = glm::vec3(1);
     glm::mat4 origin = glm::mat4(1);
+    glm::vec4 color = glm::vec4(0);
 };
 
 enum GeometryTypes {

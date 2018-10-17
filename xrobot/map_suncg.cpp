@@ -5,7 +5,8 @@ namespace xrobot
 
 MapSuncg::~MapSuncg()
 {
-	delete world_;
+	//delete world_;
+	world_ = nullptr;
 }
 
 MapSuncg::MapSuncg() : world_(nullptr),
@@ -19,7 +20,7 @@ MapSuncg::MapSuncg() : world_(nullptr),
 					   remove_randomly_(false),
 					   map_labels_properity()
 {
-	world_ = new World();
+	world_ = std::make_shared<World>();
 	world_->BulletInit(-9.81f, 0.01f);
 }
 
@@ -261,7 +262,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					sprintf(obj_name, "%s/room/%s/%sf.obj", input_data_directory, scene_id, modelId); 
 					if (!hideFloor) {
 
-						RobotBase * object = world_->LoadRobot(
+						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -271,7 +272,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f
 						);
-						map_bullet_label_[object->robot_data_.bullet_handle_] = "Floor";
+
+						if(auto object_sptr = object.lock())
+							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Floor";
 					}
 				}
 				else if(!strcmp(node_type, "Room"))
@@ -280,7 +283,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					sprintf(obj_name, "%s/room/%s/%sf.obj", input_data_directory, scene_id, modelId); 
 					if (!hideFloor) {
 
-						RobotBase * object = world_->LoadRobot(
+						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -290,7 +293,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							0,
 							isMirrored == 1 ? -1.0f : 1.0f
 						);
-						map_bullet_label_[object->robot_data_.bullet_handle_] = "Floor";
+
+						if(auto object_sptr = object.lock())
+							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Floor";
 					}
 
 
@@ -298,7 +303,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					sprintf(obj_name, "%s/room/%s/%sw.obj", input_data_directory, scene_id, modelId); 
 					if (!hideWalls) {
 
-						RobotBase * object = world_->LoadRobot(
+						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -309,7 +314,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							isMirrored == 1 ? -1.0f : 1.0f,
 							concave
 						);
-						map_bullet_label_[object->robot_data_.bullet_handle_] = "Wall";
+
+						if(auto object_sptr = object.lock())
+							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Wall";
 					}
 
 					sprintf(obj_name, "%s/room/%s/%sc.obj", input_data_directory, scene_id, modelId); 
@@ -320,7 +327,8 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						// 	rotation.x, rotation.y, rotation.z, rotation.w
 						// 	//glm::max(glm::max(scale.x, scale.y), scale.z)
 						// );
-						RobotBase * object = world_->LoadRobot(
+
+						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
 							btVector3(translation.x,translation.y,translation.z),
 							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -331,7 +339,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							isMirrored == 1 ? -1.0f : 1.0f,
 							concave
 						);
-						map_bullet_label_[object->robot_data_.bullet_handle_] = "Ceiling";
+
+						if(auto object_sptr = object.lock())
+							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Ceiling";
 					}
 				}
 				else if(!strcmp(node_type, "Object"))
@@ -339,8 +349,10 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					if (state) sprintf(obj_name, "%s/object/%s/%s_0.obj", input_data_directory, modelId, modelId); 
 					else sprintf(obj_name, "%s/object/%s/%s.obj", input_data_directory, modelId, modelId); 
 					
+					//printf("%s\n", std::string(obj_name).c_str());
+
 					float mass = 0.0f;
-					bool concave = false;
+					bool concave = true;
 
 					if (remove_all_doors_ && all_labels_[modelId] == "door") {
 						continue;
@@ -389,7 +401,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					// }
 
 
-					RobotBase * object = world_->LoadRobot(
+					std::weak_ptr<RobotBase> object = world_->LoadRobot(
 						obj_name,
 						btVector3(translation.x,translation.y,translation.z),
 						btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
@@ -401,10 +413,11 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						concave
 					);
 
-					object->robot_data_.root_part_->ChangeLinearDamping(0.9f);
-					object->robot_data_.root_part_->ChangeAngularDamping(0.9f);
-
-					map_bullet_label_[object->robot_data_.bullet_handle_] = all_labels_[modelId];
+					if(auto object_sptr = object.lock()) {
+						object_sptr->robot_data_.root_part_->ChangeLinearDamping(0.9f);
+						object_sptr->robot_data_.root_part_->ChangeAngularDamping(0.9f);
+						map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = all_labels_[modelId];
+					}
 					//printf("    label: %s\n", all_labels_[modelId].c_str());
 				}
 

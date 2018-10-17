@@ -23,6 +23,9 @@ uniform vec3 id_color = vec3(1,0,0);
 uniform float zNear = 0.01;
 uniform float zFar = 10.0;
 
+// URDF
+uniform vec3 urdf_color = vec3(1,1,1);
+
 // MTL
 uniform vec3 kA = vec3(0.0);
 uniform vec3 kD = vec3(1,0,0);
@@ -62,7 +65,7 @@ void main()
     }
     else
     {
-        diffuse = kD;
+        diffuse = kD * urdf_color;
     }
 
     alpha = min(diffuse_tex.a, d);
@@ -89,12 +92,13 @@ void main()
 
     // Reflection
     float ref = 0;
-    if(alpha < 0.85)
-        ref = lum(kS) * 0.1;
-    if(lum(kS) > 1.5)
-        ref = lum(kS) * 0.07;
-    vec3 reflection = texture(cmap, R).rgb;
-    if(Ns < 0.01) ref = 0;
+    vec3 reflection = vec3(0);
+    // if(alpha < 0.85)
+    //     ref = lum(kS) * 0.1;
+    // if(lum(kS) > 1.5)
+    //     ref = lum(kS) * 0.07;
+    // vec3 reflection = texture(cmap, R).rgb;
+    // if(Ns < 0.01) ref = 0;
 
     // Blinn-Phong
     float NdotH = dot(N, H);

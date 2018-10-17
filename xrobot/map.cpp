@@ -7,20 +7,20 @@ Map::~Map()
 {
 	for (auto aabb : sections_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	for (auto aabb : first_layer_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	for (auto aabb : second_layer_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
-	delete world_;
+	world_ = nullptr;
 }
 
 Map::Map() : world_(nullptr),
@@ -32,12 +32,13 @@ first_layer_map_(0), empty_map_(0),
 rand_device_(), mt_(rand_device_()),
 map_(nullptr), map_AABB_(nullptr)
 {
-	world_ = new World();
+	world_ = std::make_shared<World>();
 	world_->BulletInit(-9.81f, 0.01f);
 	srand(time(NULL));
 }
 
-void Map::CreateSectionType(const std::string& floor, const std::string& wall, const std::string& door)
+void Map::CreateSectionType(const std::string& floor, 
+	const std::string& wall, const std::string& door)
 {
 	assert(!floor.empty());
 
@@ -89,7 +90,8 @@ glm::vec3 Map::GenerateTestFloorPlan(const int w, const int l)
 				else
 				{
 					// Outter
-					GenerateWall(2 * i + dirx[d], 1, 2 * j + diry[d], d, section_types_[id - 1].urdf_wall);
+					GenerateWall(2 * i + dirx[d], 1, 2 * j + diry[d],
+						d, section_types_[id - 1].urdf_wall);
 				}
 			}
 
@@ -111,7 +113,8 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 
 	glm::vec3 random_center;
 
-	map_ = new MapGenerator(mt_, w, l, section_types_.size(), 12, 0.6);
+	map_ = std::make_shared<MapGenerator>(mt_, w, l, 
+		section_types_.size(), 12, 0.6);
 	map_->generate();
 
 	int** map_ptr = map_->get_map();
@@ -150,22 +153,28 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 					// Inner
 					if(map_ptr[x][y] < 1) // Outter Side
 					{
-						GenerateWall(2 * i + dirx[d], 1, 2 * j + diry[d], d, section_types_[id - 1].urdf_wall);
+						GenerateWall(2 * i + dirx[d], 1, 2 * j + diry[d],
+							d, section_types_[id - 1].urdf_wall);
 					}
 					else if(map_ptr[x][y] != map_ptr[i][j]) // Door????
 					{
-						glm::vec3 door_center = glm::vec3(2 * i + dirx[d], 0, 2 * j + diry[d]);
+						glm::vec3 door_center = glm::vec3(2 * i + dirx[d],
+														  0,
+														  2 * j + diry[d]);
 						glm::vec3 minAABB = door_center - glm::vec3(1.0, 0, 1.0);
 						glm::vec3 maxAABB = door_center + glm::vec3(1.0, 0, 1.0);
 
-						CreateEmptyVolume(minAABB.x, maxAABB.x, minAABB.z, maxAABB.z);
-						GenerateDoor(2 * i + dirx[d], 1, 2 * j + diry[d], d, section_types_[id - 1].urdf_door);
+						CreateEmptyVolume(minAABB.x, maxAABB.x, 
+										  minAABB.z, maxAABB.z);
+						GenerateDoor(2 * i + dirx[d], 1, 2 * j + diry[d],
+							d, section_types_[id - 1].urdf_door);
 					}
 				}
 				else
 				{
 					// Outter
-					GenerateWall(2 * i + dirx[d], 1, 2 * j + diry[d], d, section_types_[id - 1].urdf_wall);
+					GenerateWall(2 * i + dirx[d], 1, 2 * j + diry[d],
+						d, section_types_[id - 1].urdf_wall);
 				}
 			}
 
@@ -180,16 +189,18 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 	return random_center;
 }
 
-void Map::GenerateCeiling(const float x, const float y, const float z, const std::string& st)
+void Map::GenerateCeiling(const float x, const float y, const float z, 
+	const std::string& st)
 {
 
 }
 
-void Map::GenerateDoor(const float x, const float y, const float z, const int face, const std::string st)
+void Map::GenerateDoor(const float x, const float y, const float z, 
+	const int face, const std::string st)
 {
 	const int dir[4] = {0, 0, 1, 1};
 
-	RobotBase * robot = world_->LoadRobot(
+	world_->LoadRobot(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
@@ -200,11 +211,12 @@ void Map::GenerateDoor(const float x, const float y, const float z, const int fa
 }
 
 
-void Map::GenerateWall(const float x, const float y, const float z, const int face, const std::string st)
+void Map::GenerateWall(const float x, const float y, const float z, 
+	const int face, const std::string st)
 {
 	const int dir[4] = {0, 0, 1, 1};
 
-	RobotBase * robot = world_->LoadRobot(
+	world_->LoadRobot(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(btVector3(0,1,0),-1.57 * dir[face]),
@@ -214,9 +226,10 @@ void Map::GenerateWall(const float x, const float y, const float z, const int fa
 	);
 }
 
-void Map::GenerateFloor(const float x, const float y, const float z, const std::string& st)
+void Map::GenerateFloor(const float x, const float y, const float z, 
+	const std::string& st)
 {
-	RobotBase * robot = world_->LoadRobot(
+	world_->LoadRobot(
 		st,
 		btVector3(x,y,z),
 		btQuaternion(0,0,0,1),
@@ -257,7 +270,7 @@ void Map::ClearRules()
 void Map::CreateSpawnOnFloor(const std::string name)
 {
 	if(!name.empty() &&
-	 std::find(on_floor_list_.begin(), on_floor_list_.end(), name) == on_floor_list_.end())
+		std::find(on_floor_list_.begin(), on_floor_list_.end(), name) == on_floor_list_.end())
 	{
 		on_floor_list_.push_back(name);
 	}
@@ -266,7 +279,7 @@ void Map::CreateSpawnOnFloor(const std::string name)
 void Map::CreateSpawnOnObject(const std::string name)
 {
 	if(!name.empty() &&
-	 std::find(on_object_list_.begin(), on_object_list_.end(), name) == on_object_list_.end())
+		std::find(on_object_list_.begin(), on_object_list_.end(), name) == on_object_list_.end())
 	{
 		on_object_list_.push_back(name);
 	}
@@ -275,20 +288,23 @@ void Map::CreateSpawnOnObject(const std::string name)
 void Map::CreateSpawnEither(const std::string name)
 {
 	if(!name.empty() &&
-	 std::find(either_list_.begin(), either_list_.end(), name) == either_list_.end())
+		std::find(either_list_.begin(), either_list_.end(), name) == either_list_.end())
 	{
 		either_list_.push_back(name);
 	}
 }
 
-void Map::CreateSectionWithSize(const float min_x, const float max_x, const float min_z, const float max_z)
+void Map::CreateSectionWithSize(const float min_x, const float max_x, 
+								const float min_z, const float max_z)
 {
 	assert(min_x < max_x && min_z < max_z);
 
-	AABB * bbox = new AABB(min_x, 0, min_z, max_x, kCeiling, max_z);
+	std::shared_ptr<AABB> bbox = std::make_shared<AABB>(min_x, 0, min_z, max_x, 
+		kCeiling, max_z);
 
 	sections_AABB_.push_back(bbox);
-	sections_map_.push_back(std::make_pair(glm::vec3(bbox->minX, 0, bbox->minZ), glm::vec3(bbox->maxX, 2, bbox->maxZ)));
+	sections_map_.push_back(std::make_pair(glm::vec3(bbox->minX, 0, bbox->minZ), 
+										   glm::vec3(bbox->maxX, 2, bbox->maxZ)));
 
 }
 
@@ -301,27 +317,29 @@ void Map::CreateSpawnConstraint(const std::string cannot_be_topped)
 	}
 }
 
-void Map::CreateEmptyVolume(const float min_x, const float max_x, const float min_z, const float max_z)
+void Map::CreateEmptyVolume(const float min_x, const float max_x, 
+							const float min_z, const float max_z)
 {
 	assert(min_x < max_x && min_z < max_z);
 
-	AABB * bbox = new AABB(min_x, 0, min_z, max_x, kCeiling, max_z);
+	std::shared_ptr<AABB> bbox =  std::make_shared<AABB>(min_x, 0, min_z, max_x, 
+		kCeiling, max_z);
 
 	first_layer_AABB_.push_back(bbox);
 	first_layer_map_.push_back(-2);
-	empty_map_.push_back(std::make_pair(glm::vec3(bbox->minX, 0, bbox->minZ), glm::vec3(bbox->maxX, 1, bbox->maxZ)));
+	empty_map_.push_back(std::make_pair(glm::vec3(bbox->minX, 0, bbox->minZ),
+										glm::vec3(bbox->maxX, 1, bbox->maxZ)));
 }
 
 void Map::CreateObjectAtTransform(
 	const std::string name, 
 	const float tx, const float ty, const float tz,
 	const float rx, const float ry, const float rz, const float rw,
-	const float s
-)
+	const float s)
 {
 	assert(!name.empty());
 
-	RobotBase * robot = world_->LoadRobot(
+	std::weak_ptr<RobotBase> robot = world_->LoadRobot(
 		name,
 		btVector3(tx,ty,tz),
 		btQuaternion(rx,ry,rz,rw),
@@ -330,9 +348,17 @@ void Map::CreateObjectAtTransform(
 	);
 
 	vec3 aabbMin, aabbMax;
-	robot->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
 
-	AABB * bbox = new AABB(aabbMin.x, aabbMin.y, aabbMin.z, aabbMax.x, aabbMax.y, aabbMax.z);
+	if(auto robot_sptr = robot.lock()) 
+	{
+		robot_sptr->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
+	}
+
+	std::shared_ptr<AABB> bbox = std::make_shared<AABB>(
+		aabbMin.x, aabbMin.y,
+		aabbMin.z, aabbMax.x,
+		aabbMax.y, aabbMax.z
+	);
 	if(aabbMin.y < kOnFloorThreshold)
 	{
 		// firstLayer.insertObject(bbox);
@@ -348,26 +374,24 @@ void Map::CreateObjectAtTransform(
 
 void Map::ForceResetMap()
 {
-	delete map_;
-
-	if(map_AABB_)
-		delete map_AABB_;
+	map_ = nullptr;
+	map_AABB_ = nullptr;
 
 	world_->CleanEverything();
 
 	for (auto aabb : sections_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	for (auto aabb : first_layer_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	for (auto aabb : second_layer_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	empty_map_.clear();
@@ -380,10 +404,8 @@ void Map::ForceResetMap()
 
 void Map::ResetMap()
 {
-	delete map_;
-
-	if(map_AABB_)
-		delete map_AABB_;
+	map_ = nullptr;
+	map_AABB_ = nullptr;
 
 	if(world_->reset_count_ % 1000) {
 		world_->CleanEverything2();
@@ -393,17 +415,17 @@ void Map::ResetMap()
 
 	for (auto aabb : sections_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	for (auto aabb : first_layer_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	for (auto aabb : second_layer_AABB_)
 	{
-		delete aabb;
+		aabb = nullptr;
 	}
 
 	empty_map_.clear();
@@ -414,9 +436,10 @@ void Map::ResetMap()
 	first_layer_map_.clear();
 }
 
-bool Map::Overlap(const std::vector<AABB *> aabbs, const AABB * other)
+bool Map::Overlap(const std::vector<std::shared_ptr<AABB>> aabbs, 
+				  const std::shared_ptr<AABB> other)
 {
-	for (const AABB * bbox : aabbs)
+	for (auto bbox : aabbs)
 	{
 		if(bbox->overlaps(*other)) return true;
 	}
@@ -440,7 +463,7 @@ void Map::SpawnOnFloor(const int num)
 		int object_index = (int) GetRandom(0, on_floor_list_.size());
 		int room_index = (int) GetRandom(0, sections_AABB_.size());
 		const std::string object = on_floor_list_[object_index];
-		const AABB * room_AABB = sections_AABB_[room_index];
+		auto room_AABB = sections_AABB_[room_index];
 
 		glm::vec3 rand_position_on_tile = glm::vec3(
 			GetRandom(room_AABB->minX + kFirstLayerOffset, room_AABB->maxX - kFirstLayerOffset),
@@ -452,7 +475,7 @@ void Map::SpawnOnFloor(const int num)
 		transform.setIdentity();
 		transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
 
-		RobotBase * robot = world_->LoadRobot(
+		std::weak_ptr<RobotBase> robot = world_->LoadRobot(
 			object,
 			transform.getOrigin(),
 			transform.getRotation(),
@@ -460,50 +483,53 @@ void Map::SpawnOnFloor(const int num)
 			FindLabel(object)
 		);
 
-		AABB * bbox = new AABB();
+		if(auto robot_sptr = robot.lock()) {
 
-		bool find_sol = false;
-		for(int t = 0; t < 15; ++t){
+			std::shared_ptr<AABB> bbox = std::make_shared<AABB>();
 
-			transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
-			world_->SetTransformation(robot, transform);
-			//world_->BulletStep();
+			bool find_sol = false;
+			for(int t = 0; t < 15; ++t){
 
-			vec3 aabb_min, aabb_max;
-			robot->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
+				transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
+				world_->SetTransformation(robot_sptr, transform);
+				//world_->BulletStep();
 
-			bbox->update(
-				aabb_min.x, aabb_min.y, aabb_min.z,
-			 	aabb_max.x, aabb_max.y, aabb_max.z
-			 );
+				vec3 aabb_min, aabb_max;
+				robot_sptr->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
 
-			if(!Overlap(first_layer_AABB_, bbox))
+				bbox->update(
+					aabb_min.x, aabb_min.y, aabb_min.z,
+				 	aabb_max.x, aabb_max.y, aabb_max.z
+				 );
+
+				if(!Overlap(first_layer_AABB_, bbox))
+				{
+					// firstLayer.insertObject(bbox);
+					first_layer_AABB_.push_back(bbox);
+					first_layer_map_.push_back(object_index);
+
+					transform.setOrigin(btVector3(rand_position_on_tile.x,
+						0 - aabb_min.y + kPadding, rand_position_on_tile.z));
+					world_->SetTransformation(robot_sptr, transform);
+					t = 100;
+					find_sol = true;
+					success++;
+				} 
+
+				rand_position_on_tile = glm::vec3(
+					GetRandom(room_AABB->minX + kFirstLayerOffset, room_AABB->maxX - kFirstLayerOffset),
+					0,
+					GetRandom(room_AABB->minZ + kFirstLayerOffset, room_AABB->maxZ - kFirstLayerOffset)
+				);
+			}
+
+			if(!find_sol)
 			{
-				// firstLayer.insertObject(bbox);
-				first_layer_AABB_.push_back(bbox);
-				first_layer_map_.push_back(object_index);
+				robot_sptr->RemoveRobotTemp();
+				bbox = nullptr;
+			}
 
-				transform.setOrigin(btVector3(rand_position_on_tile.x,
-					0 - aabb_min.y + kPadding, rand_position_on_tile.z));
-				world_->SetTransformation(robot, transform);
-				t = 100;
-				find_sol = true;
-				success++;
-			} 
-
-			rand_position_on_tile = glm::vec3(
-				GetRandom(room_AABB->minX + kFirstLayerOffset, room_AABB->maxX - kFirstLayerOffset),
-				0,
-				GetRandom(room_AABB->minZ + kFirstLayerOffset, room_AABB->maxZ - kFirstLayerOffset)
-			);
 		}
-
-		if(!find_sol)
-		{
-			robot->RemoveRobotTemp();
-			delete bbox;
-		}
-
 	}
 }
 
@@ -516,7 +542,7 @@ void Map::SpawnOnObject(const int num)
 		int object_index = (int) GetRandom(0, on_object_list_.size());
 		int first_layer_index = (int) GetRandom(0, first_layer_AABB_.size());
 		const std::string object = on_object_list_[object_index];
-		const AABB * object_AABB = first_layer_AABB_[first_layer_index];
+		auto object_AABB = first_layer_AABB_[first_layer_index];
 
 		if(first_layer_map_[first_layer_index] < 0 ||
 			cannot_be_topped_list.find(on_floor_list_[(int)first_layer_map_[first_layer_index]])
@@ -536,7 +562,7 @@ void Map::SpawnOnObject(const int num)
 		transform.setIdentity();
 		transform.setOrigin(btVector3(rand_position_on_object.x, 0, rand_position_on_object.z));
 
-		RobotBase * robot = world_->LoadRobot(
+		std::weak_ptr<RobotBase> robot = world_->LoadRobot(
 			object,
 			transform.getOrigin(),
 			transform.getRotation(),
@@ -544,43 +570,47 @@ void Map::SpawnOnObject(const int num)
 			FindLabel(object)
 		);
 
-		AABB * bbox = new AABB();
+		if(auto robot_sptr = robot.lock()) {
 
-		bool find_sol = false;
-		for(int t = 0; t < 15; ++t){
+			std::shared_ptr<AABB> bbox = std::make_shared<AABB>();
 
-			transform.setOrigin(btVector3(rand_position_on_object.x, 0, rand_position_on_object.z));
-			world_->SetTransformation(robot, transform);
+			bool find_sol = false;
+			for(int t = 0; t < 15; ++t){
 
-			vec3 aabb_min, aabb_max;
-			robot->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
+				transform.setOrigin(btVector3(rand_position_on_object.x, 0, rand_position_on_object.z));
+				world_->SetTransformation(robot_sptr, transform);
 
-			bbox->update(aabb_min.x, aabb_min.y, aabb_min.z, aabb_max.x, aabb_max.y, aabb_max.z);
+				vec3 aabb_min, aabb_max;
+				robot_sptr->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
 
-			if(!Overlap(second_layer_AABB_, bbox))
-			{
-				// secondLayer.insertObject(bbox);
-				second_layer_AABB_.push_back(bbox);
+				bbox->update(aabb_min.x, aabb_min.y, aabb_min.z, aabb_max.x, aabb_max.y, aabb_max.z);
 
-				transform.setOrigin(btVector3(rand_position_on_object.x, object_AABB->maxY - aabb_min.y + kPadding,
-					rand_position_on_object.z));
-				world_->SetTransformation(robot, transform);
-				t = 100;
-				find_sol = true;
-				success++;
+				if(!Overlap(second_layer_AABB_, bbox))
+				{
+					// secondLayer.insertObject(bbox);
+					second_layer_AABB_.push_back(bbox);
+
+					transform.setOrigin(btVector3(rand_position_on_object.x, object_AABB->maxY - aabb_min.y + kPadding,
+						rand_position_on_object.z));
+					world_->SetTransformation(robot_sptr, transform);
+					t = 100;
+					find_sol = true;
+					success++;
+				}
+
+				glm::vec3 rand_position_on_object = glm::vec3(
+					GetRandom(object_AABB->minX + kSecondLayerOffset, object_AABB->maxX - kSecondLayerOffset),
+					0,
+					GetRandom(object_AABB->minZ + kSecondLayerOffset, object_AABB->maxZ - kSecondLayerOffset)
+				);
 			}
 
-			glm::vec3 rand_position_on_object = glm::vec3(
-				GetRandom(object_AABB->minX + kSecondLayerOffset, object_AABB->maxX - kSecondLayerOffset),
-				0,
-				GetRandom(object_AABB->minZ + kSecondLayerOffset, object_AABB->maxZ - kSecondLayerOffset)
-			);
-		}
+			if(!find_sol)
+			{
+				robot_sptr->RemoveRobotTemp();
+				bbox = nullptr;
+			}
 
-		if(!find_sol)
-		{
-			robot->RemoveRobotTemp();
-			delete bbox;
 		}
 
 	}
@@ -604,7 +634,7 @@ void Map::SpawnEither(const int n)
 
 			int roomIdx = (int) GetRandom(0, sections_AABB_.size());
 
-			const AABB * rAABB = sections_AABB_[roomIdx];
+			auto rAABB = sections_AABB_[roomIdx];
 
 			glm::vec3 randPos = glm::vec3(
 				GetRandom(rAABB->minX + kFirstLayerOffset, rAABB->maxX - kFirstLayerOffset),
@@ -616,7 +646,7 @@ void Map::SpawnEither(const int n)
 			transform.setIdentity();
 			transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 
-			RobotBase * r = world_->LoadRobot(
+			std::weak_ptr<RobotBase> r = world_->LoadRobot(
 				object,
 				transform.getOrigin(),
 				transform.getRotation(),
@@ -624,46 +654,50 @@ void Map::SpawnEither(const int n)
 				FindLabel(object)
 			);
 
-			AABB * bbox = new AABB();
+			if(auto r_sptr = r.lock()) {
 
-			bool find_sol = false;
-			for(int t = 0; t < 15; ++t){
+				std::shared_ptr<AABB> bbox = std::make_shared<AABB>();
 
-				transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
-				world_->SetTransformation(r, transform);
+				bool find_sol = false;
+				for(int t = 0; t < 15; ++t){
 
-				vec3 aabbMin, aabbMax;
-				r->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
+					transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
+					world_->SetTransformation(r_sptr, transform);
 
-				bbox->update(
-					aabbMin.x, aabbMin.y, aabbMin.z,
-				 	aabbMax.x, aabbMax.y, aabbMax.z
-				 );
+					vec3 aabbMin, aabbMax;
+					r_sptr->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
 
-				if(!Overlap(first_layer_AABB_, bbox))
+					bbox->update(
+						aabbMin.x, aabbMin.y, aabbMin.z,
+					 	aabbMax.x, aabbMax.y, aabbMax.z
+					 );
+
+					if(!Overlap(first_layer_AABB_, bbox))
+					{
+						// firstLayer.insertObject(bbox);
+						first_layer_AABB_.push_back(bbox);
+						first_layer_map_.push_back(objIdx);
+
+						transform.setOrigin(btVector3(randPos.x, 0 - aabbMin.y + kPadding, randPos.z));
+						world_->SetTransformation(r_sptr, transform);
+						t = 100;
+						find_sol = true;
+						success++;
+					} 
+
+					randPos = glm::vec3(
+						GetRandom(rAABB->minX + kFirstLayerOffset, rAABB->maxX - kFirstLayerOffset),
+						0,
+						GetRandom(rAABB->minZ + kFirstLayerOffset, rAABB->maxZ - kFirstLayerOffset)
+					);
+				}
+
+				if(!find_sol)
 				{
-					// firstLayer.insertObject(bbox);
-					first_layer_AABB_.push_back(bbox);
-					first_layer_map_.push_back(objIdx);
+					r_sptr->RemoveRobotTemp();
+					bbox = nullptr;
+				}
 
-					transform.setOrigin(btVector3(randPos.x, 0 - aabbMin.y + kPadding, randPos.z));
-					world_->SetTransformation(r, transform);
-					t = 100;
-					find_sol = true;
-					success++;
-				} 
-
-				randPos = glm::vec3(
-					GetRandom(rAABB->minX + kFirstLayerOffset, rAABB->maxX - kFirstLayerOffset),
-					0,
-					GetRandom(rAABB->minZ + kFirstLayerOffset, rAABB->maxZ - kFirstLayerOffset)
-				);
-			}
-
-			if(!find_sol)
-			{
-				r->RemoveRobotTemp();
-				delete bbox;
 			}
 		}
 		else
@@ -674,7 +708,7 @@ void Map::SpawnEither(const int n)
 
 			const std::string object = either_list_[objIdx];
 
-			const AABB * rAABB = first_layer_AABB_[firstIdx];
+			auto rAABB = first_layer_AABB_[firstIdx];
 
 			if(first_layer_map_[firstIdx] < 0 ||
 			cannot_be_topped_list.find(on_floor_list_[(int)first_layer_map_[firstIdx]]) != cannot_be_topped_list.end())
@@ -693,7 +727,7 @@ void Map::SpawnEither(const int n)
 			transform.setIdentity();
 			transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 
-			RobotBase * r =  world_->LoadRobot(
+			std::weak_ptr<RobotBase> r =  world_->LoadRobot(
 				object,
 				transform.getOrigin(),
 				transform.getRotation(),
@@ -701,51 +735,53 @@ void Map::SpawnEither(const int n)
 				FindLabel(object)
 			);
 
-			AABB * bbox = new AABB();
+			if(auto r_sptr = r.lock()) {
 
-			bool find_sol = false;
-			for(int t = 0; t < 15; ++t){
+				std::shared_ptr<AABB> bbox = std::make_shared<AABB>();
 
-				transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
-				world_->SetTransformation(r, transform);
+				bool find_sol = false;
+				for(int t = 0; t < 15; ++t){
 
-				vec3 aabbMin, aabbMax;
-				r->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
+					transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
+					world_->SetTransformation(r_sptr, transform);
 
-				bbox->update(aabbMin.x, aabbMin.y, aabbMin.z, aabbMax.x, aabbMax.y, aabbMax.z);
+					vec3 aabbMin, aabbMax;
+					r_sptr->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
 
-				if(rAABB->getXZArea() > bbox->getXZArea())
-				{
-					if(!Overlap(second_layer_AABB_, bbox))
+					bbox->update(aabbMin.x, aabbMin.y, aabbMin.z, aabbMax.x, aabbMax.y, aabbMax.z);
+
+					if(rAABB->getXZArea() > bbox->getXZArea())
 					{
-						// secondLayer.insertObject(bbox);
-						second_layer_AABB_.push_back(bbox);
+						if(!Overlap(second_layer_AABB_, bbox))
+						{
+							// secondLayer.insertObject(bbox);
+							second_layer_AABB_.push_back(bbox);
 
-						transform.setOrigin(btVector3(randPos.x, rAABB->maxY - aabbMin.y + kPadding, randPos.z));
-						world_->SetTransformation(r, transform);
+							transform.setOrigin(btVector3(randPos.x, rAABB->maxY - aabbMin.y + kPadding, randPos.z));
+							world_->SetTransformation(r_sptr, transform);
+							t = 100;
+							find_sol = true;
+							success++;
+						}
+					} else {
 						t = 100;
-						find_sol = true;
-						success++;
 					}
-				} else {
-					t = 100;
+
+					glm::vec3 randPos = glm::vec3(
+						GetRandom(rAABB->minX + kSecondLayerOffset, rAABB->maxX - kSecondLayerOffset),
+						0,
+						GetRandom(rAABB->minZ + kSecondLayerOffset, rAABB->maxZ - kSecondLayerOffset)
+					);
 				}
 
-				glm::vec3 randPos = glm::vec3(
-					GetRandom(rAABB->minX + kSecondLayerOffset, rAABB->maxX - kSecondLayerOffset),
-					0,
-					GetRandom(rAABB->minZ + kSecondLayerOffset, rAABB->maxZ - kSecondLayerOffset)
-				);
-			}
+				if(!find_sol)
+				{
+					r_sptr->RemoveRobotTemp();
+					bbox = nullptr;
+				}
 
-			if(!find_sol)
-			{
-				r->RemoveRobotTemp();
-				delete bbox;
 			}
 		}
-
-		
 
 	}
 
@@ -755,13 +791,13 @@ void Map::GetMapAABB()
 {
 	AABB temp;
 
-	for (const AABB * bbox : sections_AABB_)
+	for (auto bbox : sections_AABB_)
 	{
 		temp = temp.merge(*bbox);
 	}
 
-	map_AABB_ = new AABB(temp.minX, temp.minY, temp.minZ,
-							  temp.maxX, temp.maxY, temp.maxZ);
+	map_AABB_ = std::make_shared<AABB>(temp.minX, temp.minY, temp.minZ,
+							  		   temp.maxX, temp.maxY, temp.maxZ);
 
 	world_->set_world_size(temp.minX, temp.minZ, temp.maxX, temp.maxZ);
 }

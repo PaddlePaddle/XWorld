@@ -19,6 +19,9 @@ namespace xrobot {
 		            const glm::vec3 center);
 		std::vector<RayTestInfo> GetResult() const;
 
+		int GetNumRays() const { return num_rays_; }
+		int GetMaxDistance() const { return max_distance_; }
+
 	private:
 		World * world_;
 		int num_rays_;

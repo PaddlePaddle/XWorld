@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/matrix_decompose.hpp"
@@ -90,19 +91,27 @@ namespace xrobot
 						 const std::string& label);
 		std::string FindLabel(const std::string& path);
 		
-		void GenerateDoor(const float x, const float y, const float z, const int face, const std::string st);
-		void GenerateWall(const float x, const float y, const float z, const int face, const std::string st);
-		void GenerateFloor(const float x = 0, const float y = 0, const float z = 0, const std::string& st = "");
-		void GenerateCeiling(const float x = 0, const float y = 0, const float z = 0, const std::string& st = "");
+		void GenerateDoor(const float x, const float y, const float z, 
+			const int face, const std::string st);
+		void GenerateWall(const float x, const float y, const float z, 
+			const int face, const std::string st);
+		void GenerateFloor(const float x = 0, const float y = 0, const float z = 0, 
+			const std::string& st = "");
+		void GenerateCeiling(const float x = 0, const float y = 0, const float z = 0, 
+			const std::string& st = "");
 
 		// Create Section
-		void CreateSectionWithSize(const float min_x, const float max_x, const float min_z, const float max_z);
+		void CreateSectionWithSize(const float min_x, const float max_x, 
+								   const float min_z, const float max_z);
 		
-		void Spawn(const int onFloor = 5, const int onObject = 5, const int onEither = 5);
+		void Spawn(const int onFloor = 5, 
+				   const int onObject = 5, 
+				   const int onEither = 5);
 
 
 		// Create Empty Placeholder
-		void CreateEmptyVolume(const float min_x, const float max_x, const float min_z, const float max_z);
+		void CreateEmptyVolume(const float min_x, const float max_x, 
+							   const float min_z, const float max_z);
 				
 		// Create an Object
 		void CreateObjectAtTransform(
@@ -127,20 +136,19 @@ namespace xrobot
 		void ResetMap();
 		void ForceResetMap();
 
-
 		// Labels
 		std::map<std::string, std::string> labels_;
 
 		// World
-		World * world_;
-		AABB * map_AABB_;
+		std::shared_ptr<World> world_;
+		std::shared_ptr<AABB> map_AABB_;
 
 		// For AABB Debug Rendering
 		std::vector<std::pair<vec3, vec3>> empty_map_; // Cannot Be Occupied Spaces
 		std::vector<std::pair<vec3, vec3>> sections_map_; // Tiles (2m x 2m)
 
 		// Map
-		MapGenerator * map_;
+		std::shared_ptr<MapGenerator> map_;
 		std::vector<SectionType> section_types_; // Defined Which Kind of Room Will Be Generated
 
 	private:
@@ -157,18 +165,19 @@ namespace xrobot
 		std::set<std::string> cannot_be_topped_list;
 		std::vector<int> first_layer_map_;
 
-		std::vector<AABB *> sections_AABB_;
+		std::vector<std::shared_ptr<AABB>> sections_AABB_;
 		Boardphase sections_;
 
-		std::vector<AABB *> first_layer_AABB_;
+		std::vector<std::shared_ptr<AABB>> first_layer_AABB_;
 		Boardphase first_layer_;
 
-		std::vector<AABB *> second_layer_AABB_;
+		std::vector<std::shared_ptr<AABB>> second_layer_AABB_;
 		Boardphase second_layer_;
 
 		// Utils
 		float GetRandom(const float low, const float high);
-		bool Overlap(const std::vector<AABB *> aabbs, const AABB * other);
+		bool Overlap(const std::vector<std::shared_ptr<AABB>> aabbs, 
+			const std::shared_ptr<AABB> other);
 		void GetMapAABB();
 		// Spawn
 		void SpawnOnFloor(const int num);
