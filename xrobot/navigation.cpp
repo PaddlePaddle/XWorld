@@ -1,7 +1,5 @@
-#include "crowd.h"
+#include "navigation.h"
 #include "world.h"
-
-static std::string crate03 = "./crate_0.3/crate.urdf";
 
 namespace xrobot {
 
@@ -29,9 +27,10 @@ void Grid::Visualize()
     }
 }
 
-std::vector<Node*> Grid::GetNeighbours(Node* node)
+std::vector<std::shared_ptr<Node>> Grid::GetNeighbours(
+    std::shared_ptr<Node> node)
 {
-    std::vector<Node*> neighbours(0);
+    std::vector<std::shared_ptr<Node>> neighbours(0);
 
     for (int x = -1; x <= 1; ++x)
     {
@@ -43,7 +42,8 @@ std::vector<Node*> Grid::GetNeighbours(Node* node)
             int check_x = node->x + x;
             int check_y = node->y + y;
 
-            if(check_x >= 0 && check_x < width_ && check_y >= 0 && check_y < length_) {
+            if(check_x >= 0 && check_x < width_ &&
+               check_y >= 0 && check_y < length_) {
                 neighbours.push_back(data_[check_y * width_ + check_x]);
             }
         }
@@ -52,12 +52,14 @@ std::vector<Node*> Grid::GetNeighbours(Node* node)
     return neighbours;
 }
 
-Node* Grid::GetNodeFromWorldPosition(const glm::vec2 position)
+std::shared_ptr<Node> Grid::GetNodeFromWorldPosition(const glm::vec2 position)
 {
     glm::vec2 relative_position = (position - world_min_)
-            / (glm::vec2(width_, length_) * grid_size_);
+        / (glm::vec2(width_, length_) * grid_size_);
 
-    relative_position = glm::clamp(relative_position, glm::vec2(0,0), glm::vec2(1,1));
+    relative_position = glm::clamp(relative_position, 
+                                   glm::vec2(0,0),
+                                   glm::vec2(1,1));
 
     int x = round((width_ - 1) * relative_position.x);
     int y = round((length_ - 1) * relative_position.y);
@@ -69,7 +71,7 @@ Node* Grid::GetNodeFromWorldPosition(const glm::vec2 position)
     return nullptr;
 }
 
-Crowd::Crowd(
+Navigation::Navigation(
 		render_engine::GLContext * ctx,
 		World * world,
 		const unsigned int width,
@@ -107,42 +109,46 @@ Crowd::Crowd(
 
     // Initialize Shaders
     depth_shader_ = xrobot::render_engine::Shader(
-    	"/home/ziyuli/XWorld/xrobot/depth.vs",
-    	"/home/ziyuli/XWorld/xrobot/depth.fs");
+    	"../depth.vs",
+    	"../depth.fs");
 }
 
-Crowd::~Crowd()
+Navigation::~Navigation()
 {
 	glDeleteFramebuffers(1, &fbo_);
 	glDeleteTextures(1, &grid_texture_);
     Reset();
 }
 
-void Crowd::Reset()
+void Navigation::Reset()
 {
     crowd_.clear();
     request_manager_.Flush();
 
     for (int i = 0; i < grid_map_.data_.size(); ++i)
     {
-        delete grid_map_.data_[i];
         grid_map_.data_[i] = nullptr;
     }
 }
 
 // Testing
-void Crowd::SpawnAgent(const glm::vec3 position)
+void Navigation::SpawnAgent(const glm::vec3 position,
+                            const std::string& path, 
+                            const std::string& label)
 {
     // Greate Robot
-    RobotBase * robot = world_->LoadRobot(
-        crate03,
+    std::weak_ptr<RobotBase> robot = world_->LoadRobot(
+        path,
         btVector3(position.x, 0.001, position.z),
         btQuaternion(btVector3(1,0,0),0),
         btVector3(1, 1, 1),
-        "crate_robot",
+        label,
         false
     );
-    robot->move(true);
+
+    if(auto robot_sptr = robot.lock()) 
+        robot_sptr->move(true);
+
     world_->BulletStep();
 
     Agent agent;
@@ -153,7 +159,7 @@ void Crowd::SpawnAgent(const glm::vec3 position)
     crowd_.push_back(agent);
 }
 
-Agent::Agent() : robot_(nullptr),
+Agent::Agent() : robot_(),
                  target_index_(0),
                  speed_(0.1f),
                  path_(0),
@@ -169,31 +175,34 @@ void Agent::FollowPath() {
     if(path_.size() < 1)
         return;
 
-    //Update Current Status
-    btTransform current_transform_bt = robot_->robot_data_.root_part_->object_position_;
-    btVector3 current_position_bt = current_transform_bt.getOrigin();
+    if(auto robot_sptr = robot_.lock()) {
 
-    current_position_ = glm::vec3(
-        current_position_bt[0],
-        current_position_bt[1],
-        current_position_bt[2]
-    );
+        //Update Current Status
+        btTransform current_transform_bt = robot_sptr->robot_data_.root_part_->object_position_;
+        btVector3 current_position_bt = current_transform_bt.getOrigin();
 
-    // On Track
-    glm::vec2 current_position_2d(current_position_.x, current_position_.z);
-    glm::vec2 current_waypoint_2d = path_[target_index_]->world_position;
+        current_position_ = glm::vec3(
+            current_position_bt[0],
+            current_position_bt[1],
+            current_position_bt[2]
+        );
 
-    if(glm::distance(current_position_2d, current_waypoint_2d) < 0.2f) {
-        target_index_++;
-        if(target_index_ >= path_.size()) {
-            return;
+        // On Track
+        glm::vec2 current_position_2d(current_position_.x, current_position_.z);
+        glm::vec2 current_waypoint_2d = path_[target_index_]->world_position;
+
+        if(glm::distance(current_position_2d, current_waypoint_2d) < 0.2f) {
+            target_index_++;
+            if(target_index_ >= path_.size()) {
+                return;
+            }
         }
-    }
 
-    // Move to Waypoint
-    glm::vec2 direction_2d = glm::normalize(current_waypoint_2d - current_position_2d);
-    glm::vec3 direction_3d = glm::vec3(direction_2d.x, 0, direction_2d.y);
-    current_position_ += direction_3d * speed_;
+        // Move to Waypoint
+        glm::vec2 direction_2d = glm::normalize(current_waypoint_2d - current_position_2d);
+        glm::vec3 direction_3d = glm::vec3(direction_2d.x, 0, direction_2d.y);
+        current_position_ += direction_3d * speed_;
+    }
 }
 
 void Agent::AssignTarget(const glm::vec3 position) {
@@ -203,15 +212,37 @@ void Agent::AssignTarget(const glm::vec3 position) {
 
 PathRequestManager::PathRequestManager() : requests_(),
                                            current_request_(),
-                                           grid_map_() {}
+                                           grid_map_() 
+{
 
-std::vector<Node*> PathRequestManager::RequestPath(glm::vec2 path_start, glm::vec2 path_end) {
+    // for (int i = 0; i < workers_.size(); ++i)
+    // {
+    //     workers.push_back(std::thread([i,&this] {
+    //         PathRequest request;
+    //         while(1) {
+    //             if(requests_.dequeue(request)) {
+    //                 Pathfinding(grid_map_).FindPath(
+    //                     current_request_.path_start,
+    //                     current_request_.path_end
+    //                 );
+    //             } else {
+    //                 break;
+    //             }
+    //         }
+    //     }));
+    // }
+}
+
+std::vector<std::shared_ptr<Node>> PathRequestManager::RequestPath(
+    glm::vec2 path_start, glm::vec2 path_end) 
+{
     PathRequest new_request(path_start, path_end);
     requests_.push(new_request);
+    //requests_.enqueue(new_request);
     return ProcessNext();
 }
 
-std::vector<Node*> PathRequestManager::ProcessNext() {
+std::vector<std::shared_ptr<Node>> PathRequestManager::ProcessNext() {
     if(requests_.size()) {
         current_request_ = requests_.front();
         requests_.pop();
@@ -223,7 +254,7 @@ std::vector<Node*> PathRequestManager::ProcessNext() {
         );
     }
 
-    std::vector<Node*> no_result(0);
+    std::vector<std::shared_ptr<Node>> no_result(0);
     return no_result;
 }
 
@@ -234,20 +265,18 @@ void PathRequestManager::Flush() {
 
 Pathfinding::Pathfinding(Grid grid_map) : grid_map_(grid_map) {}
 
-std::vector<Node*> Pathfinding::FindPath(const glm::vec2 seek, const glm::vec2 target)
+std::vector<std::shared_ptr<Node>> Pathfinding::FindPath(const glm::vec2 seek, 
+                                                         const glm::vec2 target)
 {
-    Node* start_node = grid_map_.GetNodeFromWorldPosition(seek);
-    Node* end_node   = grid_map_.GetNodeFromWorldPosition(target);
+    std::shared_ptr<Node> start_node = grid_map_.GetNodeFromWorldPosition(seek);
+    std::shared_ptr<Node> end_node = grid_map_.GetNodeFromWorldPosition(target);
 
-    // printf("start: %d %d\n", start_node->x, start_node->y);
-    // printf("end: %d %d\n", end_node->x, end_node->y);
-
-    std::vector<Node*> open_set;
-    std::unordered_set<Node*> closed_set;
+    std::vector<std::shared_ptr<Node>> open_set;
+    std::unordered_set<std::shared_ptr<Node>> closed_set;
     open_set.push_back(start_node);
 
     while(open_set.size() > 0) {
-        Node* node = open_set.front();
+        std::shared_ptr<Node> node = open_set.front();
 
         for (int i = 1; i < open_set.size(); ++i)
         {
@@ -271,7 +300,7 @@ std::vector<Node*> Pathfinding::FindPath(const glm::vec2 seek, const glm::vec2 t
             return RetracePath(start_node, end_node);
         }
 
-        for (Node * neighbour : grid_map_.GetNeighbours(node))
+        for (std::shared_ptr<Node> neighbour : grid_map_.GetNeighbours(node))
         {
             auto it_t = closed_set.find(neighbour);
             if((neighbour->block || neighbour->carve) || it_t != closed_set.end()) {
@@ -295,31 +324,33 @@ std::vector<Node*> Pathfinding::FindPath(const glm::vec2 seek, const glm::vec2 t
         }
     }
 
-    std::vector<Node*> no_result(0);
+    std::vector<std::shared_ptr<Node>> no_result(0);
     return no_result;
 }
 
-std::vector<Node*> Pathfinding::RetracePath(Node* start_node, Node* end_node)
+std::vector<std::shared_ptr<Node>> Pathfinding::RetracePath(
+    std::shared_ptr<Node> start_node, std::shared_ptr<Node> end_node)
 {
-    std::vector<Node*> path;
+    std::vector<std::shared_ptr<Node>> path;
 
-    Node* current_node = end_node;
+    std::shared_ptr<Node> current_node = end_node;
 
     while (current_node != start_node) {
         path.push_back(current_node);
         current_node = current_node->parent;
     }
 
-    std::vector<Node*> waypoints = SimplifyPath(path);
+    std::vector<std::shared_ptr<Node>> waypoints = SimplifyPath(path);
 
     std::reverse(waypoints.begin(), waypoints.end());
 
     return waypoints;
 }
 
-std::vector<Node*> Pathfinding::SimplifyPath(std::vector<Node*> path)
+std::vector<std::shared_ptr<Node>> Pathfinding::SimplifyPath(
+    std::vector<std::shared_ptr<Node>> path)
 {
-    std::vector<Node*> waypoints;
+    std::vector<std::shared_ptr<Node>> waypoints;
     glm::vec2 direction_old = glm::vec2(0,0);
 
     for (int i = 1; i < path.size(); ++i)
@@ -383,7 +414,8 @@ std::vector<Node*> Pathfinding::SimplifyPath(std::vector<Node*> path)
     return waypoints;
 }
 
-int Pathfinding::GetDistance(Node* node_a, Node* node_b)
+int Pathfinding::GetDistance(std::shared_ptr<Node> node_a,
+                             std::shared_ptr<Node> node_b)
 {
     int dst_x = abs(node_a->x - node_b->x);
     int dst_y = abs(node_a->y - node_b->y);
@@ -394,7 +426,7 @@ int Pathfinding::GetDistance(Node* node_a, Node* node_b)
     return 14 * dst_x + 10 * (dst_y - dst_x);
 }
 
-void Crowd::Speration(const int current_id)
+void Navigation::Speration(const int current_id)
 {
     glm::vec2 vel_speration = glm::vec2(0, 0);
 
@@ -421,6 +453,15 @@ void Crowd::Speration(const int current_id)
         }
     }
 
+    for (int k = 0; k < carve_shapes_.size(); ++k)
+    {
+        glm::vec2 near_current = carve_shapes_[k].position;
+
+        if(glm::distance(near_current, agent_current) < carve_shapes_[k].radius * 0.75f) {
+            vel_speration -= (near_current - agent_current) * 1.5f;
+        }
+    }
+
     vel_speration *= 0.00125f;
 
     crowd_[current_id].current_position_ += glm::vec3(
@@ -430,7 +471,7 @@ void Crowd::Speration(const int current_id)
     );
 }
 
-void Crowd::Alignment(const int current_id)
+void Navigation::Alignment(const int current_id)
 {
     glm::vec2 vel_alignment = glm::vec2(0, 0);
 
@@ -481,7 +522,7 @@ void Crowd::Alignment(const int current_id)
     );
 }
 
-void Crowd::Cohesion(const int current_id)
+void Navigation::Cohesion(const int current_id)
 {
     glm::vec2 vel_cohesion = glm::vec2(0, 0);
 
@@ -523,15 +564,17 @@ void Crowd::Cohesion(const int current_id)
     );
 }
 
-void Crowd::Blocking(const int current_id, const glm::vec3 current_position)
+void Navigation::Blocking(const int current_id, const glm::vec3 current_position)
 {
     glm::vec3 next_position = crowd_[current_id].current_position_;
 
     glm::vec2 next_position_2d(next_position.x, next_position.z);
     glm::vec2 current_position_2d(current_position.x, current_position.z);
 
-    Node* next_pos_locate_node = grid_map_.GetNodeFromWorldPosition(next_position_2d);
-    Node* curr_pos_locate_node = grid_map_.GetNodeFromWorldPosition(current_position_2d);
+    std::shared_ptr<Node> next_pos_locate_node = 
+        grid_map_.GetNodeFromWorldPosition(next_position_2d);
+    std::shared_ptr<Node> curr_pos_locate_node = 
+        grid_map_.GetNodeFromWorldPosition(current_position_2d);
 
     if(next_pos_locate_node->carve) {
 
@@ -544,7 +587,7 @@ void Crowd::Blocking(const int current_id, const glm::vec3 current_position)
     }
 }
 
-void Crowd::ClearCarving()
+void Navigation::ClearCarving()
 {
     for (int i = 0; i < grid_map_.data_.size(); ++i)
     {
@@ -552,7 +595,7 @@ void Crowd::ClearCarving()
     }
 }
 
-bool Crowd::Carving()
+bool Navigation::Carving()
 {
     bool update = false;
 
@@ -583,7 +626,7 @@ bool Crowd::Carving()
     return update;
 }
 
-void Crowd::Update() 
+void Navigation::Update() 
 {
     // Carve Navivation Grid
     bool update = Carving();
@@ -592,7 +635,7 @@ void Crowd::Update()
     {
         // Update NavMesh and Request Path
         if(crowd_[i].request_update_) {
-            std::vector<Node*> new_path;
+            std::vector<std::shared_ptr<Node>> new_path;
 
             new_path = request_manager_.RequestPath(
                 glm::vec2(crowd_[i].current_position_.x, crowd_[i].current_position_.z),
@@ -634,48 +677,53 @@ void Crowd::Update()
             if(counter_ % 3 == 0 && update) {
                 Blocking(i, current_position);
             }
-
         }
 
         // Update Agent Status
-        RobotBase * robot = crowd_[i].robot_;
-        glm::vec3 next_position = crowd_[i].current_position_;
-        
-        glm::vec3 current_direction = glm::normalize(next_position - last_position);
-        float cos_angle = glm::dot(current_direction, glm::vec3(0,0,1));
-        float angle = glm::acos(glm::clamp(cos_angle, -1.0f, 1.0f));    
-        crowd_[i].angle_ = crowd_[i].angle_ + glm::sign(angle - crowd_[i].angle_) * 0.01f;
+        auto robot = crowd_[i].robot_;
 
-        btTransform transform_temp;
-        transform_temp.setIdentity();
-        transform_temp.setRotation(btQuaternion(btVector3(0,1,0), crowd_[i].angle_));
-        transform_temp.setOrigin(
-            btVector3(next_position.x, next_position.y, next_position.z)
-        );
+        if(auto robot_sptr = robot.lock()) {
 
-        world_->SetTransformation(robot, transform_temp);
+            glm::vec3 next_position = crowd_[i].current_position_;
+            
+            glm::vec3 current_direction = glm::normalize(next_position - last_position);
+            float cos_angle = glm::dot(current_direction, glm::vec3(0,0,1));
+            float angle = glm::acos(glm::clamp(cos_angle, -1.0f, 1.0f));    
+            crowd_[i].angle_ = crowd_[i].angle_ + glm::sign(angle - crowd_[i].angle_) * 0.01f;
 
-        crowd_[i].last_direction_ = current_direction;
+            btTransform transform_temp;
+            transform_temp.setIdentity();
+            transform_temp.setRotation(btQuaternion(btVector3(0,1,0), crowd_[i].angle_));
+            transform_temp.setOrigin(
+                btVector3(next_position.x, next_position.y, next_position.z)
+            );
+
+            world_->SetTransformation(robot_sptr, transform_temp);
+
+            crowd_[i].last_direction_ = current_direction;
+        }
     }
 
     counter_++;
 }
 
-void Crowd::KillAgentOnceArrived()
+void Navigation::KillAgentOnceArrived()
 {
     for (int i = 0; i < crowd_.size(); ++i)
     {
         // Check Arrive?
-
         float dist = glm::distance(crowd_[i].current_position_, crowd_[i].target_position_);
 
         if(dist < 1.0f) 
         {
-            crowd_[i].robot_->RemoveRobotFromBullet();
-            world_->RemoveRobot(crowd_[i].robot_);
-            crowd_[i].robot_ = nullptr;
-            crowd_.erase(crowd_.begin() + i);
 
+            auto robot = crowd_[i].robot_;
+            if(auto robot_sptr = robot.lock()) {
+                robot_sptr->RemoveRobotFromBullet();
+                world_->RemoveRobot(robot_sptr);
+                robot_sptr = nullptr;
+                crowd_.erase(crowd_.begin() + i);
+            }
 
             // Rebake
             // BakeNavMesh();
@@ -694,13 +742,13 @@ void Crowd::KillAgentOnceArrived()
     }
 }
 
-void Crowd::SetBakeArea(const glm::vec3 world_min, const glm::vec3 world_max) 
+void Navigation::SetBakeArea(const glm::vec3 world_min, const glm::vec3 world_max) 
 {
     world_min_ = world_min;
     world_max_ = world_max;
 }
 
-void Crowd::BakeNavMesh()
+void Navigation::BakeNavMesh()
 {
     // Conservative Rasterization EXT
     // At Least NVIDIA Maxwell
@@ -715,7 +763,7 @@ void Crowd::BakeNavMesh()
     //printf("Update Navigation Map...\n");
 }
 
-void Crowd::Voxelization()
+void Navigation::Voxelization()
 {
 	// Update Projection Matrices
 	glm::vec3 center = (world_min_ + world_max_) * 0.5f;
@@ -820,7 +868,7 @@ void Crowd::Voxelization()
     {
         for (int j = 0; j < width_; ++j)
         {
-            Node * node = new Node();
+            std::shared_ptr<Node> node = std::make_shared<Node>();
 
             node->x = j;
             node->y = i;

@@ -65,7 +65,7 @@ void ModelData::LoadModel(const std::string& path) {
     importer.SetPropertyInteger(AI_CONFIG_PP_PTV_ADD_ROOT_TRANSFORMATION, 1);
     importer.SetPropertyMatrix(AI_CONFIG_PP_PTV_ROOT_TRANSFORMATION, root_trans); 
 
-    int flag = aiProcess_JoinIdenticalVertices 
+    int flag = aiProcess_JoinIdenticalVertices
                //| aiProcess_GenNormals 
                | aiProcess_ImproveCacheLocality 
                | aiProcess_Triangulate 
@@ -516,6 +516,8 @@ std::vector<Texture> ModelData::LoadMaterialTextures(
     for(unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
         aiString str;
         mat->GetTexture(type, i, &str);
+
+        //printf("%s\n", str.C_Str());
 
         bool skip = false;
         for(unsigned int j = 0; j < textures_loaded_.size(); j++) {

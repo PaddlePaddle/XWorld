@@ -32,87 +32,96 @@ namespace xrobot {
 		non_pickable_list_.clear();
 	}
 
-	bool Inventory::PutObject(RobotBase* object) {
+	bool Inventory::PutObject(std::weak_ptr<RobotBase> put_object) {
 		if(rest_ < 1) {
 			printf("Inventory Is Full!\n");
 			return false;
 		}
 
-		if(!object) {
-			printf("Invalid Object!\n");
-			return false;
+		if(auto object = put_object.lock())
+		{
+			auto bullet_world = object->bullet_world_.lock();
+
+			if(!object) {
+				printf("Invalid Object!\n");
+				return false;
+			}
+
+			if(object->robot_data_.label_ == "" ||
+			   object->robot_data_.label_ == "unlabeled") {
+				printf("Please Assigned A Label For This Object!\n");
+				return false;
+			}
+
+
+			object->hide(true);
+			btTransform transform = object->robot_data_.root_part_->object_position_;
+		    transform.setOrigin(btVector3(0, -5, 0));
+
+		    // Set Velocity to 0
+		    bullet_world->SetTransformation(object, transform);
+		    bullet_world->SetVelocity(object, btVector3(0,0,0));
+
+		    // Change Root to Static
+		    float mass;
+		    object->robot_data_.root_part_->GetMass(mass);
+		    object->robot_data_.root_part_->ChangeMass(0.0f);
+		    object->robot_data_.root_part_->SetMassOriginal(mass);
+		    object->robot_data_.root_part_->Sleep();
+
+		     // Change Rest to Static
+		    for (auto part : object->robot_data_.other_parts_)
+		    {
+		        part->GetMass(mass);
+		        part->ChangeMass(0.0f);
+		        part->SetMassOriginal(mass);
+		        part->Sleep();
+		    }
+
+			inventory_.push_back(object);
+
+			rest_--;
+			return true;
 		}
 
-		if(object->robot_data_.label_ == "" ||
-		   object->robot_data_.label_ == "unlabeled") {
-			printf("Please Assigned A Label For This Object!\n");
-			return false;
-		}
-
-
-		object->hide(true);
-		btTransform transform = object->robot_data_.root_part_->object_position_;
-	    transform.setOrigin(btVector3(0, -5, 0));
-
-	    // Set Velocity to 0
-	    object->bullet_world_->SetTransformation(object, transform);
-	    object->bullet_world_->SetVelocity(object, btVector3(0,0,0));
-
-	    // Change Root to Static
-	    float mass;
-	    object->robot_data_.root_part_->GetMass(mass);
-	    object->robot_data_.root_part_->ChangeMass(0.0f);
-	    object->robot_data_.root_part_->SetMassOriginal(mass);
-	    object->robot_data_.root_part_->Sleep();
-
-	     // Change Rest to Static
-	    for (Object * part : object->robot_data_.other_parts_)
-	    {
-	        part->GetMass(mass);
-	        part->ChangeMass(0.0f);
-	        part->SetMassOriginal(mass);
-	        part->Sleep();
-	    }
-
-		inventory_.push_back(object);
-
-		rest_--;
-		return true;
+		return false;
 	}
 
-	RobotBase* Inventory::GetObjectLast() {
+	std::weak_ptr<RobotBase> Inventory::GetObjectLast() {
 		if(size_ == rest_) {
 			printf("Inventory Is Empty!\n");
-			return nullptr;
+			return std::weak_ptr<RobotBase>();
 		}
 
 		rest_++;
 	
-		RobotBase* object = inventory_.back();
+		std::weak_ptr<RobotBase> get_object = inventory_.back();
 		inventory_.pop_back();
 
-		if(object) {
+		if(auto object = get_object.lock()) {
 	        float mass;
 	        object->robot_data_.root_part_->ChangeMass(
 	                object->robot_data_.root_part_->GetMassOriginal());
 	        object->robot_data_.root_part_->Wake();
 	        object->hide(false);
 
-	        for (Joint * joint : object->robot_data_.joints_list_) {
+	        for (auto joint : object->robot_data_.joints_list_) {
 	            if(joint) {
 	                joint->ResetJointState(0.0f, 0.005f);
 	            }
 	        }
 
-	        for (Object * part : object->robot_data_.other_parts_) {
+	        for (auto part : object->robot_data_.other_parts_) {
 	            part->ChangeMass(part->GetMassOriginal());
 	        }
+
+	        return object;
 	    }
 
-		return object;
+	    return std::weak_ptr<RobotBase>();
 	}
 
-	bool Inventory::GetObject(RobotBase* object, const std::string& label) {
+	bool Inventory::GetObject(std::weak_ptr<RobotBase> get_object, const std::string& label) {
 		assert(label.size());
 
 		if(size_ == rest_) {
@@ -122,11 +131,15 @@ namespace xrobot {
 
 		for (int i = 0; i < inventory_.size(); ++i)
 		{
-			if(inventory_[i]->robot_data_.label_ == label) {
-				object = inventory_[i];
-				rest_++;
-				inventory_.erase(inventory_.begin() + i);
-				return true;
+
+			if(auto object = inventory_[i].lock()) 
+			{
+				if(object->robot_data_.label_ == label) {
+					get_object = object;
+					rest_++;
+					inventory_.erase(inventory_.begin() + i);
+					return true;
+				}
 			}
 		}
 
@@ -143,10 +156,15 @@ namespace xrobot {
 
 		for (int i = 0; i < inventory_.size(); ++i)
 		{
-			if(inventory_[i]->robot_data_.label_ == object_label) {
-				rest_++;
-				inventory_.erase(inventory_.begin() + i);
-				return true;
+
+			if(auto object = inventory_[i].lock()) 
+			{
+				if(object->robot_data_.label_ == object_label) {
+					rest_++;
+					object = nullptr;
+					inventory_.erase(inventory_.begin() + i);
+					return true;
+				}
 			}
 		}
 
@@ -162,7 +180,10 @@ namespace xrobot {
 		printf("---------------------------------------\n");
 		for (int i = 0; i < inventory_.size(); ++i)
 		{
-			printf("%s\n", inventory_[i]->robot_data_.label_.c_str());
+			if(auto object = inventory_[i].lock()) 
+			{
+				printf("%s\n", object->robot_data_.label_.c_str());
+			}
 		}
 		printf("---------------------------------------\n");
 	}

@@ -1,11 +1,13 @@
-#ifndef CROWD_H_
-#define CROWD_H_
+#ifndef NAVIGATION_H_
+#define NAVIGATION_H_
 
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <memory>
+#include <thread>
 
 #include "glm/glm.hpp"
 #include "bullet/LinearMath/btTransform.h"
@@ -26,7 +28,7 @@ namespace xrobot {
 		float angle;
 		int x, y;
 		int g_cost, h_cost;
-		Node* parent;
+		std::shared_ptr<Node> parent;
 
 		Node() : block(false),
 				 carve(false),
@@ -49,7 +51,7 @@ namespace xrobot {
 	public:
 		Agent();
 
-		RobotBase* robot_;
+		std::weak_ptr<RobotBase> robot_;
 		bool request_update_;
 		int target_index_;
 		float speed_;
@@ -58,7 +60,7 @@ namespace xrobot {
 		glm::vec3 last_direction_;
 		glm::vec3 current_position_;
 		glm::vec3 target_position_;
-		std::vector<Node*> path_;
+		std::vector<std::shared_ptr<Node>> path_;
 
 		void AssignTarget(const glm::vec3 position);
 		void FollowPath();
@@ -71,25 +73,31 @@ namespace xrobot {
 		Grid(const Grid& copyFrom);
 
 		void Visualize();
-		std::vector<Node*> GetNeighbours(Node* node);
-		Node* GetNodeFromWorldPosition(const glm::vec2 position);
+		std::vector<std::shared_ptr<Node>> GetNeighbours(
+			std::shared_ptr<Node> node);
+		std::shared_ptr<Node> GetNodeFromWorldPosition(
+			const glm::vec2 position);
 
 		int width_, length_;
 		glm::vec2 grid_size_;
 		glm::vec2 world_min_;
-		std::vector<Node*> data_;
+		std::vector<std::shared_ptr<Node>> data_;
 	};
 
 	class Pathfinding {
 	public:
 		Pathfinding(Grid grid_map);
 		void UpdateGrid(Grid grid_map) { grid_map_ = grid_map; }
-		std::vector<Node*> FindPath(const glm::vec2 seek, const glm::vec2 target);
+		std::vector<std::shared_ptr<Node>> FindPath(const glm::vec2 seek,
+													const glm::vec2 target);
 
 	private:
-		std::vector<Node*> RetracePath(Node* start_node, Node* end_node);
-		std::vector<Node*> SimplifyPath(std::vector<Node*> path);
-		int GetDistance(Node* node_a, Node* node_b);
+		std::vector<std::shared_ptr<Node>> RetracePath(
+			std::shared_ptr<Node> start_node, std::shared_ptr<Node> end_node);
+		std::vector<std::shared_ptr<Node>> SimplifyPath(
+			std::vector<std::shared_ptr<Node>> path);
+		int GetDistance(std::shared_ptr<Node> node_a,
+						std::shared_ptr<Node> node_b);
 		
 		Grid grid_map_;
 	};
@@ -97,19 +105,23 @@ namespace xrobot {
 	struct PathRequest
 	{
 		PathRequest() : path_start(glm::vec2(0, 0)),
-						path_end(glm::vec2(0, 0)) {}
+						path_end(glm::vec2(0, 0)),
+						id(-1) {}
 
 		PathRequest(glm::vec2 start, glm::vec2 end) : path_start(start),
-													  path_end(end) {}
+													  path_end(end),
+													  id(-1) {}
 		glm::vec2 path_start;
 		glm::vec2 path_end;	
+		int id;
 	};
 
 	class PathRequestManager {
 	public:
 		PathRequestManager();
-		std::vector<Node*> RequestPath(glm::vec2 path_start, glm::vec2 path_end);
-		std::vector<Node*> ProcessNext();
+		std::vector<std::shared_ptr<Node>> RequestPath(glm::vec2 path_start,
+													   glm::vec2 path_end);
+		std::vector<std::shared_ptr<Node>> ProcessNext();
 		void Flush();
 		void UpdateGrid(Grid grid_map) { grid_map_ = grid_map; }
 
@@ -117,18 +129,21 @@ namespace xrobot {
 		Grid grid_map_;
 		PathRequest current_request_;
 		std::queue<PathRequest> requests_;
+		//std::vector<std::thread> workers_;
 	};
 
-	class Crowd {
+	class Navigation {
 	public:
-		Crowd(
+		Navigation(
 			render_engine::GLContext * ctx,
 			World * world,
 			const unsigned int width = 20,
 			const unsigned int length = 20);
-		~Crowd();
+		~Navigation();
 
-		void SpawnAgent(const glm::vec3 position);
+		void SpawnAgent(const glm::vec3 position,
+						const std::string& path, 
+						const std::string& label);
 		void KillAgentOnceArrived();
 		void Update();
 		void Reset();

@@ -44,10 +44,10 @@ uniform float voxelScale;
 uniform vec3 worldMinPoint;
 uniform vec3 worldMaxPoint;
 uniform int volumeDimension;
-uniform float maxTracingDistanceGlobal = 0.5f;
+uniform float maxTracingDistanceGlobal = 1.0f;
 uniform float bounceStrength = 0.5f;
-uniform float aoFalloff = 900.0f;
-uniform float aoAlpha = 0.01f;
+uniform float aoFalloff = 1000.0f;
+uniform float aoAlpha = 0.005f;
 uniform float samplingFactor = 0.4f;
 uniform float coneShadowTolerance = 0.1f;
 uniform float coneShadowAperture = 0.01f;
@@ -487,7 +487,7 @@ float CaculateDirectionalShadow(vec3 normal, vec3 position, float depth)
 
     if(shadowMode == 0)
     {
-        visibility = 1.02 - shadow_occlussion(depth, normal, direction.xyz, position);
+        visibility = 1.04 - shadow_occlussion(depth, normal, direction.xyz, position);
 
     }
     else if(shadowMode == 1 && numDirectionalLight > 0)
@@ -579,9 +579,9 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 
     vec3 result = bounceStrength * (diffuseTrace.rgb + specularTrace.rgb);
 
-    float ao = clamp((1.0f - diffuseTrace.a + aoAlpha), 0.08f, 1.0f);
+    float ao = clamp((1.0f - diffuseTrace.a + aoAlpha), 0.02f, 1.0f);
 
-    ao = pow(ao, 2.0f);
+    //ao = pow(ao, 1.0f);
 
     // Distanct IBL Specular Occulision
     vec3 V = normalize(cameraPosition - position);
@@ -663,14 +663,14 @@ void main()
     //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
     //         roughness, metallic, false, visibility);
     // }
-    else if(mode == 10) // ambient occlusion only
-    {
-        directLighting = vec3(0.0f);
-        specular = vec4(0.0f);
-        indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-            roughness, metallic, true, 1.0f);
-        indirectLighting.rgb = vec3(1.0f);
-    }
+    // else if(mode == 10) // ambient occlusion only
+    // {
+    //     directLighting = vec3(0.0f);
+    //     specular = vec4(0.0f);
+    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
+    //         roughness, metallic, true, 1.0f);
+    //     indirectLighting.rgb = vec3(1.0f);
+    // }
     else if(mode == 5)
     {
         visibility = CaculateDirectionalShadow(normal, position, depth);
@@ -678,13 +678,13 @@ void main()
         directLighting = BRDF(directionalLight[0], normal, position, albedo, specular) *
                 visibility + albedo * 0.2f;
     }
-    else if(mode == 6)
-    {
-        visibility = CaculateDirectionalShadow(normal, position, depth);
-        indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        directLighting = CookTorranceBRDF(directionalLight[0], normal, position, albedo,
-                metallic, roughness, ao) + albedo * 0.2f;
-    }
+    // else if(mode == 6)
+    // {
+    //     visibility = CaculateDirectionalShadow(normal, position, depth);
+    //     indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    //     directLighting = CookTorranceBRDF(directionalLight[0], normal, position, albedo,
+    //             metallic, roughness, ao) + albedo * 0.2f;
+    // }
 
     // visibility = CaculateDirectionalShadow(normal, position, depth);
     //     directLighting = vec3(0.0f);
@@ -734,7 +734,7 @@ void main()
     // Reinhard tone mapping
     //compositeLighting = compositeLighting / (compositeLighting + 1.0f);
 
-    compositeLighting = compositeLighting;
+    compositeLighting = compositeLighting * pow(2.0, exposure);
 
     // convert to gamma space
     const float gamma = 2.2;

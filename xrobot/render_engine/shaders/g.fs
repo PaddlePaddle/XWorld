@@ -15,6 +15,9 @@ in VS_OUT {
     vec3 TangentFragPos;
 } fs_in;
 
+// URDF
+uniform vec3 urdf_color = vec3(1,1,1);
+
 // MTL
 uniform vec3 kA = vec3(0.0);
 uniform vec3 kD = vec3(1,0,0);

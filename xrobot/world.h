@@ -226,8 +226,8 @@ public:
     void SetJointMotorControlPosition(const float target,
         const float k_p, const float k_d, const float max_force);
 
-    RobotBase * bullet_robot_;
-    World * bullet_world_;
+    std::weak_ptr<RobotBase> bullet_robot_;
+    std::weak_ptr<World> bullet_world_;
     std::string joint_name_;
     int joint_type_;
     int bullet_joint_id_;
@@ -266,7 +266,7 @@ public:
     void SetMassOriginal(const float mass);
 
 public:
-    World * bullet_world_;
+    std::weak_ptr<World> bullet_world_;
     std::string object_name_;
     
     int bullet_handle_;
@@ -279,6 +279,10 @@ public:
     btVector3   object_angular_speed_;
 
     float object_mass_original_;
+
+    // Attach
+    btTransform attach_transform_;
+    std::weak_ptr<RobotBase> attach_object_;
 
 // xrobot::render_engine::RenderPart
 public:
@@ -294,9 +298,9 @@ public:
 	RobotData(btVector3 scale, bool fixed, float mass,
 			std::string label, std::string urdf_name,
 			std::string path, int bullet_handle,
-			Object * root_part,
-			std::vector<Object*> other_parts,
-			std::vector<Joint*> joints_list);
+			std::shared_ptr<Object> root_part,
+			std::vector<std::shared_ptr<Object>> other_parts,
+			std::vector<std::shared_ptr<Joint>> joints_list);
 
 	btVector3 scale_;
     bool fixed_;
@@ -305,19 +309,23 @@ public:
     std::string urdf_name_;
     std::string path_;
     int bullet_handle_;
-    Object* root_part_;
-    std::vector<Object*> other_parts_;
-    std::vector<Joint *> joints_list_;
+    int attach_to_id_;
+    std::shared_ptr<Object> root_part_;
+    std::vector<std::shared_ptr<Object>> other_parts_;
+    std::vector<std::shared_ptr<Joint>> joints_list_;
 };
 
-class RobotBase : public render_engine::RenderBody {
+class RobotBase : public render_engine::RenderBody,
+                  public std::enable_shared_from_this<RobotBase> {
     using RenderPart = render_engine::RenderPart;
 public:
-    RobotBase(World * bullet_world);
+
+    RobotBase(std::weak_ptr<World> bullet_world);
 
     virtual ~RobotBase();
 
     virtual bool TakeAction(const int act_id);
+    virtual std::vector<std::string> GetActions() const;
 
     virtual void LoadConvertedObject(
         const std::string& filename,
@@ -400,6 +408,8 @@ public:
     void ResetJointState(const int joint_id, const float pos,
                          const float vel);
 
+    virtual void Move(const float move, const float rotate, const bool remit = false);
+
     virtual void Teleport2(const glm::vec3 walk_move,
                   const glm::vec3 walk_rotate,
                   const float speed, const bool remit = false); 
@@ -408,17 +418,20 @@ public:
                   const glm::vec3 walk_rotate,
                   const float speed, const bool remit = false);
 
+    virtual void UnFreeze();
     virtual void Freeze(const bool remit = false);
     virtual void MoveForward(const float speed);
     virtual void MoveBackward(const float speed);
     virtual void TurnLeft(const float speed);
     virtual void TurnRight(const float speed);
-    virtual void PickUp(Inventory * inventory,
+    virtual void PickUp(std::shared_ptr<Inventory> inventory,
             const glm::vec3 from, const glm::vec3 to);
-    virtual void PutDown(Inventory * inventory, 
+    virtual void PutDown(std::shared_ptr<Inventory> inventory, 
             const glm::vec3 from, const glm::vec3 to);
-    virtual void RotateObject(const float rotate_angle_y,
+    virtual void RotateObject(const glm::vec3 rotate_angle,
             const glm::vec3 from, const glm::vec3 to);
+    virtual void AttachObject(std::weak_ptr<RobotBase> object, const int id = -1);
+    virtual void DetachObject();
 
     size_t size() const override { return robot_data_.other_parts_.size(); }
     RenderPart* render_root_ptr() override;
@@ -432,13 +445,13 @@ public:
                        glm::vec3& right,
                        glm::vec3& up) override;
 
-    World* bullet_world_;
+    std::weak_ptr<World> bullet_world_;
     RobotData robot_data_;
 };
 
 class Robot : public xrobot::RobotBase {
 public:
-	Robot(World* bullet_world);
+	Robot(std::weak_ptr<World> bullet_world);
 	~Robot();
 
     void CalculateInverseKinematics(
@@ -452,7 +465,7 @@ public:
 
 class RobotWithConvertion : public xrobot::RobotBase {
 public:
-    RobotWithConvertion(World* bullet_world);
+    RobotWithConvertion(std::weak_ptr<World> bullet_world);
     ~RobotWithConvertion();
 
     void LoadConvertedObject(
@@ -467,6 +480,8 @@ public:
     void SetCycle(const bool cycle) { cycle_ = cycle; }
     void SetStatus(const int status) { status_ = status; }
     void RemoveRobotTemp();
+
+    std::vector<std::string> GetActions() const { return object_name_list_; }
 
     float scale_;
     std::string label_;
@@ -483,7 +498,7 @@ private:
 
 class RobotWithAnimation : public xrobot::RobotBase {
 public:
-    RobotWithAnimation(World* bullet_world);
+    RobotWithAnimation(std::weak_ptr<World> bullet_world);
     ~RobotWithAnimation();
 
     void LoadAnimatedObject(
@@ -499,12 +514,15 @@ public:
     void SetJoint(const int joint) { joint_ = joint; }
     void RemoveRobotTemp();
 
+    std::vector<std::string> GetActions() const { return object_name_list_; }
+
     std::string path_;
+    std::vector<std::string> object_name_list_;
 
 private:
     int status_;
     int joint_;
-    std::map<int, float> positions_; 
+    std::map<int, float> positions_;
 };
 
 struct ContactPoint {
@@ -537,17 +555,18 @@ struct ObjectDirections {
     int bullet_id;
 };
 
-class World : public render_engine::RenderWorld {
+class World : public render_engine::RenderWorld,
+              public std::enable_shared_from_this<World> {
     using RenderBody = render_engine::RenderBody;
 public:
     World();
     ~World();
 
     b3PhysicsClientHandle client_;
-    std::vector<RobotBase*> robot_list_;
-    std::map<int, RobotBase*> bullet_handle_to_robot_map_;
-    std::map<std::string, std::vector<RobotBase *>> recycle_robot_map_;
-    std::map<std::string, render_engine::ModelData *> model_cache_;
+    std::vector<std::shared_ptr<RobotBase>> robot_list_;
+    std::map<int, std::shared_ptr<RobotBase>> bullet_handle_to_robot_map_;
+    std::map<std::string, std::vector<std::shared_ptr<RobotBase>>> recycle_robot_map_;
+    std::map<std::string, render_engine::ModelData*> model_cache_;
     std::map<std::string, std::vector<int>> object_locations_;
 
     float bullet_gravity_;
@@ -557,7 +576,7 @@ public:
     double bullet_ts_;
     int reset_count_;
 
-    RobotBase* LoadRobot(
+    std::weak_ptr<RobotBase> LoadRobot(
         const std::string& filename,
         const btVector3 position,
         const btQuaternion rotation,
@@ -569,34 +588,34 @@ public:
         const bool concave = false
     );
 
-    RobotBase* LoadModelFromCache(
+   std::shared_ptr<RobotBase> LoadModelFromCache(
         const std::string& filename,
         const btVector3 position,
         const btQuaternion rotation
     );
 
-    render_engine::ModelData * FindInCache(const std::string &key,
+    render_engine::ModelData* FindInCache(const std::string &key,
         std::vector<render_engine::ModelData*> &model_list, bool& reset);
     void ClearCache();
     void PrintCacheInfo();
     void BulletInit(const float gravity = 9.81f, const float timestep = 1.0/100.0);
     void BulletStep(const int skip_frames = 1);
     void QueryPositions();
-    void QueryPosition(const RobotBase* robot);
-    void RemoveRobot(RobotBase* robot);
+    void QueryPosition(std::shared_ptr<RobotBase> robot);
+    void RemoveRobot(std::weak_ptr<RobotBase> rm_robot);
     void CleanEverything();
     void CleanEverything2();
     void ResetSimulation();
     int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
     void BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& result,
         const int num_threads = 0);
-    void SetTransformation(RobotBase* robot, const btTransform& tranform);
-    void SetVelocity(RobotBase* robot, const btVector3& velocity);
+    void SetTransformation(std::weak_ptr<RobotBase> robot_tr, const btTransform& tranform);
+    void SetVelocity(std::weak_ptr<RobotBase> robot_vel, const btVector3& velocity);
 
-    void GetRootContactPoints(const RobotBase* robot, const Object* part,
+    void GetRootContactPoints(std::weak_ptr<RobotBase> robot_in, std::weak_ptr<Object> part_in,
         std::vector<ContactPoint>& contact_points);
 
-    int CreateFixedRootToTargetConstraint(RobotBase* parent,
+    int CreateFixedRootToTargetConstraint(std::weak_ptr<RobotBase> parent_robot,
         const btVector3& parent_relative_position,
         const btVector3& child_relative_position,
         const btQuaternion& parent_relative_orientation = btQuaternion(),
@@ -609,7 +628,7 @@ public:
         const float max_force = 500.0f
     );
 
-    void CharacterMove(RobotBase* robot, const glm::vec3 walk_move,
+    void CharacterMove(std::weak_ptr<RobotBase> robot_move, const glm::vec3 walk_move,
         const glm::vec3 walk_rotate, const float speed);
 
     void AddObjectWithLabel(const std::string& label,

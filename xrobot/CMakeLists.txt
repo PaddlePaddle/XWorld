@@ -15,7 +15,11 @@ include(ExternalProject)
 
 set(EXTERNAL_PROJECT_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external")
 
+
 find_package(Threads REQUIRED)
+find_package(PythonInterp REQUIRED)
+find_package(PythonLibs 2.7 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS python system)
 
 ## user can directly set GLOG_INCLUDE_DIRS and GLOG_LIBRARIES
 if(NOT GLOG_LIBRARIES)
@@ -29,10 +33,16 @@ if(NOT GFLAGS_LIBRARIES)
 endif()
 
 include(bullet)
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${PYTHON_INCLUDE_DIRS})
+
+link_directories(${Boost_LIBRARY_DIR})
 
 set(DEP_LIBS
     ${GFLAGS_LIBRARIES}
-    ${GLOG_LIBRARIES})
+    ${GLOG_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${PYTHON_LIBRARIES})
 
 set(DEP_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -50,9 +60,10 @@ set(XROBOT_SOURCES
     room_generator.cpp
     utils.cpp
     lidar.cpp
-    crowd.cpp
+    navigation.cpp
     inventory.cpp
     world.cpp
+    python_binding.cpp
 )
 
 add_library(xrobot SHARED
@@ -69,10 +80,18 @@ set_target_properties(xrobot
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(xrobot_test test.cpp)
+# add_executable(xrobot_playround test_playground.cpp)
 
 target_link_libraries(xrobot_test PUBLIC xrobot ${DEP_LIBS})
+# target_link_libraries(xrobot_playround PUBLIC xrobot ${DEP_LIBS})
 
 target_include_directories(xrobot_test PUBLIC ${DEP_INCLUDES})
+# target_include_directories(xrobot_playround PUBLIC ${DEP_INCLUDES})
 
 set_target_properties(xrobot_test
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+# set_target_properties(xrobot_playround
+#     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+
+

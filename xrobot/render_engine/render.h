@@ -128,11 +128,12 @@ struct Lighting {
     // force_disable_progagation: disable the light progagation algorithm
     // linear_voxelize: convert albedo into linear space before voxelize
     float propagation_distance = 0.5f;
-    float conetracing_distance = 0.8f;
+    float conetracing_distance = 1.0f;
     float traceshadow_distance = 0.3f;
     float boost_ambient = 0.02f;
     float sample_factor = 0.4f;
-    float ibl_factor = 0.1f;
+    float ao_falloff = 1000.0f;
+    float ibl_factor = 0.0f;
     bool force_disable_propagation = false;
     bool linear_voxelize = false;
 };
