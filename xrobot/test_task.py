@@ -2,6 +2,7 @@ import libxrobot
 from teaching_task import *
 import cv2
 import numpy as np
+import random
 
 class XRobot3DNavTarget(TaskInterface):
 	def __init__(self, env):
@@ -20,7 +21,10 @@ class XRobot3DNavTarget(TaskInterface):
 		self.env.CreateAnTestScene()
 		self.env.SetLighting()
 
-		self.env.SpawnAnObject("./crate_1/crate.urdf", [5,0,0], [1,0,0,0], 1.0, "Crate", False)
+		x = random.randint(1, 8)
+		y = random.randint(1, 8)
+
+		self.env.SpawnAnObject("./crate_1/crate.urdf", [x,0,y], [1,0,0,0], 1.0, "Crate", False)
 		self.agent = self.env.SpawnAnObject("husky/husky.urdf", [2,0,2], [-1,0,0,1.57], 1.0, "Agent", True)
 		self.env.AttachCameraTo(self.agent, [0.3,1.3,0.0])
 		self.env.Initialize()
@@ -46,27 +50,5 @@ class XRobot3DNavTarget(TaskInterface):
 		image_depth = image_rgbd[:,:,3]
 		cv2.imshow("RGB", image_rgb)
 		cv2.imshow("Depth", image_depth)
-
-		# key = cv2.waitKey(1)
-
-		# if key == 27: # ESC
-		# 	return "idle"
-		# elif key == 119: # W
-		# 	self.env.MoveForward(10)
-		# elif key == 97:  # A
-		# 	self.env.TurnLeft(10)
-		# elif key == 115: # S
-		# 	self.env.MoveBackward(10)
-		# elif key == 100: # D
-		# 	self.env.TurnRight(10)
-
 		return "navigation"
 
-
-# scene = libxrobot.Playground(640, 480, libxrobot.HEADLESS)
-# task_group = TaskGroup("TaskGroup")
-# task_nav   = XRobot3DNavTarget(scene)
-# task_group.add_task("Navigation", task_nav)
-
-# while True:
-# 	task_group.run_stage()

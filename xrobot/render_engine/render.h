@@ -61,9 +61,6 @@ struct RenderSettings {
                                                                use_vct(quality < 2 ? 0 : 1),
                                                                vct_bake_before_simulate(quality < 3 ? false : true),
                                                                vct_resolution(quality < 3 ? 256 : 512),
-                                                               use_pbr(quality < 2 ? 0 : 1),
-                                                               use_ibl(quality < 2 ? 0 : 1),
-                                                               ibl_path(""),
                                                                use_shadow(quality < 1 ? 0 : 1),
                                                                shadow_split(quality + 3),
                                                                shadow_lamda(0.7f),
@@ -83,8 +80,6 @@ struct RenderSettings {
 
     // Physically Based Rendering
     bool  use_pbr;
-    bool  use_ibl;
-    std::string ibl_path; 
 
     // Shadow
     bool  use_shadow;
@@ -217,21 +212,6 @@ public:
     GLuint g_albedospec_;
     GLuint g_pbr_;
 
-    // Environment Map
-    GLuint capture_fbo_;
-    GLuint capture_rbo_;
-    GLuint hdr_map_;
-    GLuint environment_map_;
-
-    // Irradiance Map
-    GLuint irradiance_map_;
-
-    // Pre-Filter Map
-    GLuint prefilter_map_;
-
-    // BRDF LUT
-    GLuint brdf_lut_map_;
-
     // Directional Light
     bool use_sunlight_;
     DirectionalLight sunlight_;
@@ -289,13 +269,6 @@ public:
 
 
     // Post-Processing
-    //   Bloom
-    // GLuint bloom_fbo_;
-    // GLuint blur_fbo_[2];
-    //   FXAA
-    GLuint fxaa_fbo_;
-    GLuint fxaa_tex_;
-
     std::vector<glm::vec3> ssaoKernel;
     GLuint ssao_composite_fbo_;
     GLuint ssao_composite_tex_;
@@ -384,10 +357,6 @@ public:
         return img_buffers_;
     }
 
-    void InitFXAA();
-
-    void FXAA();
-
     void InitSSAO();
 
     void SSAO(RenderWorld* world);
@@ -404,15 +373,11 @@ public:
 
     void InitCaptureCubemap();
 
-    void InitCaptureCubemap2();
-
     void StepRenderCubemap(RenderWorld* world);
 
     void BakeScene(RenderWorld* world);
 
 private:
-
-    void DrawBackground(Camera * camera); // Skybox
 
     void VoxelConeTracing(RenderWorld* world, Camera * camera);
 
@@ -449,8 +414,6 @@ private:
     void UpdateCascadeShadowMap();
 
     void InitCascadeShadowMap(Camera * camera);
-
-    void InitIBL(const std::string& hdr_path);
 
     void InitPBO();
 

@@ -39,13 +39,6 @@ Render::Render(const int width,
                                       g_normal_(0),
                                       g_albedospec_(0),
                                       g_pbr_(0),
-                                      capture_fbo_(0),
-                                      capture_rbo_(0),
-                                      hdr_map_(0),
-                                      environment_map_(0),
-                                      irradiance_map_(0),
-                                      prefilter_map_(0),
-                                      brdf_lut_map_(0),
                                       use_sunlight_(true),
                                       sunlight_(),
                                       lighting_(),
@@ -123,7 +116,7 @@ Render::Render(const int width,
 
     if(!settings_.use_deferred)
     {
-        //InitReflectionMap(); // Forward
+        // Forward
     }
     else
     {
@@ -134,14 +127,6 @@ Render::Render(const int width,
         if(settings_.use_vct)
         {
             InitVoxelization(); // VCT
-        }
-
-        if(settings_.use_pbr || settings_.use_vct)
-        {
-            if(settings_.use_ibl)
-            {
-                InitIBL(settings_.ibl_path);
-            }
         }
     }
     
@@ -288,182 +273,6 @@ void Render::InitCascadeShadowMap(Camera * camera)
         height_,
         csm_uniforms_.direction
     );
-}
-
-void Render::InitIBL(const std::string& hdr_path)
-{
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    
-    glGenFramebuffers(1, &capture_fbo_);
-    glGenRenderbuffers(1, &capture_rbo_);
-    
-    glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo_);
-    glBindRenderbuffer(GL_RENDERBUFFER, capture_rbo_);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, capture_rbo_);
-
-    std::string pwd = get_pwd(__FILE__);
-    std::string temp_path;
-    if(hdr_path.empty())
-        temp_path = pwd + "/envmaps/Ridgecrest_Road_Ref.hdr";
-    else
-        temp_path = pwd + hdr_path;
-
-    GLuint hdr_map_ = HDRTextureFromFile(temp_path.c_str());
-
-    glGenTextures(1, &environment_map_);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, environment_map_);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 captureViews[] =
-    {
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-    };
-    
-    auto toCubemapShader = shaders_[kConvertToCubemap];
-    toCubemapShader.use();
-    toCubemapShader.setInt("equirectangularMap", 0);
-    toCubemapShader.setMat4("projection", captureProjection);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, hdr_map_);
-    
-    glViewport(0, 0, 512, 512);
-    glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo_);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        toCubemapShader.setMat4("view", captureViews[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environment_map_, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        RenderBox();
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    // Convolution
-    // Convolute Cubemap to Irradiance Map
-    glBindTexture(GL_TEXTURE_CUBE_MAP, environment_map_);
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-    glGenTextures(1, &irradiance_map_);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map_);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0,
-                     GL_RGB, GL_FLOAT, nullptr);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo_);
-    glBindRenderbuffer(GL_RENDERBUFFER, capture_rbo_);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
-    
-    auto irradianceConvShader = shaders_[kIrrandianceConv];
-    irradianceConvShader.use();
-    irradianceConvShader.setInt("environmentMap", 0);
-    irradianceConvShader.setMat4("projection", captureProjection);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, environment_map_);
-    
-    glViewport(0, 0, 32, 32);
-    glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo_);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        irradianceConvShader.setMat4("view", captureViews[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradiance_map_, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        RenderBox();
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Pre-Filter
-    // This is for the BRDF Specular Look Up
-    glGenTextures(1, &prefilter_map_);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilter_map_);
-    for (unsigned int i = 0; i < 6; ++i) {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
-    }
-    
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-    
-    auto prefilterShader = shaders_[kPrefilter];
-    prefilterShader.use();
-    prefilterShader.setInt("enviromentMap", 0);
-    prefilterShader.setMat4("projection", captureProjection);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, environment_map_);
-    
-    glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo_);
-    unsigned int maxMipLevels = 5;
-    for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
-        unsigned int mipWidth  = 128 * std::pow(0.5, mip);
-        unsigned int mipHeight = 128 * std::pow(0.5, mip);
-        glBindRenderbuffer(GL_RENDERBUFFER, capture_rbo_);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
-        glViewport(0, 0, mipWidth, mipHeight);
-        
-        float roughness = (float)mip / (float)(maxMipLevels - 1);
-        prefilterShader.setFloat("roughness", roughness);
-        for (unsigned int i = 0; i < 6; ++i)
-        {
-            prefilterShader.setMat4("view", captureViews[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilter_map_, mip);
-            
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            RenderBox();
-        }
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    // BRDF LUT
-    glGenTextures(1, &brdf_lut_map_);
-    glBindTexture(GL_TEXTURE_2D, brdf_lut_map_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, capture_fbo_);
-    glBindRenderbuffer(GL_RENDERBUFFER, capture_rbo_);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdf_lut_map_, 0);
-    
-    glViewport(0, 0, 512, 512);
-    auto brdfShader = shaders_[kBRDF];
-    brdfShader.use();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    RenderQuad();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Render::GetViewFrusrumBoundingVolume(const glm::vec3 eye,
@@ -690,20 +499,6 @@ void Render::VoxelConeTracing(RenderWorld* world, Camera * camera)
         glUniform1i(glGetUniformLocation(shader_vct.id(), "voxelTex"), 1);
     }
 
-    if(settings_.use_pbr) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map_);
-        glUniform1i(glGetUniformLocation(shader_vct.id(), "irradianceMap"), 2);
-
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, prefilter_map_);
-        glUniform1i(glGetUniformLocation(shader_vct.id(), "prefilterMap"), 3);
-
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, brdf_lut_map_);
-        glUniform1i(glGetUniformLocation(shader_vct.id(), "brdfLUT"), 4);
-    }
-
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, g_albedospec_);
     glUniform1i(glGetUniformLocation(shader_vct.id(), "gAlbedoSpec"), 5);
@@ -758,32 +553,6 @@ void Render::InjectRadiance()
     {
         shader_injection.setInt("numDirectionalLight", 0);
     }
-
-    // if(settings_.use_shadow) {
-    //     //shader_injection.setInt("shadowMode", 1);
-    //     shader_injection.setVec4("direction", csm_uniforms_.direction);
-    //     shader_injection.setVec4("options", csm_uniforms_.options);
-    //     shader_injection.setInt("num_cascades", csm_uniforms_.num_cascades);
-
-    //     shader_injection.setVec3("camera_position", free_camera_.Position);
-
-    //     for (unsigned int i = 0; i < csm_uniforms_.num_cascades - 1; ++i)
-    //     {
-    //         std::string far_bounds_str = "far_bounds[" + std::to_string(i) + "]";
-    //         shader_injection.setFloat(far_bounds_str.c_str(), csm_uniforms_.far_bounds[i]);
-
-    //         std::string mat_str = "texture_matrices[" + std::to_string(i) + "]";
-    //         shader_injection.setMat4(mat_str.c_str(), csm_uniforms_.texture_matrices[i]);
-    //     }
-
-    //     for (unsigned int i = 0; i < csm_uniforms_.num_cascades; ++i)
-    //     {
-    //         glActiveTexture(GL_TEXTURE4 + i);
-    //         glBindTexture(GL_TEXTURE_2D, csm_.shadow_map()[i]);
-    //         std::string temp = "s_ShadowMap[" + std::to_string(i) + "]";
-    //         glUniform1i(glGetUniformLocation(shader_injection.id(), temp.c_str()), 4 + i);
-    //     }
-    // }
 
     shader_injection.setFloat("traceShadowHit", lighting_.traceshadow_distance);
     shader_injection.setFloat("voxelSize", vSize);
@@ -1116,20 +885,6 @@ void Render::InitGBuffer()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Render::InitReflectionMap()
-{
-    std::string pwd = get_pwd(__FILE__);
-    std::vector<std::string> faces {
-        pwd + "/../data/cubemaps/right.tga",
-        pwd + "/../data/cubemaps/left.tga",
-        pwd + "/../data/cubemaps/top.tga",
-        pwd + "/../data/cubemaps/bottom.tga",
-        pwd + "/../data/cubemaps/front.tga",
-        pwd + "/../data/cubemaps/back.tga",
-    };
-    reflection_map_ = LoadCubemap(faces);
-}
-
 void Render::InitPBO()
 {
     glGenBuffers(2, pixel_buffers_);
@@ -1150,27 +905,10 @@ Render::~Render() {
     glDeleteFramebuffers(1, &ssao_composite_fbo_);
     glDeleteFramebuffers(1, &ssao_blur_fbo_);
     glDeleteFramebuffers(1, &ssao_fbo_);
-    glDeleteFramebuffers(1, &fxaa_fbo_);
     glDeleteTextures(1, &ssao_composite_tex_);
     glDeleteTextures(1, &noise_tex_);
     glDeleteTextures(1, &ssao_tex_);
     glDeleteTextures(1, &ssao_tex_blur_);
-    glDeleteTextures(1, &fxaa_tex_);
-
-    if(settings_.use_pbr)
-    {
-        glDeleteFramebuffers(1, &capture_fbo_);
-        glDeleteRenderbuffers(1, &capture_rbo_);
-    }
-
-    if(settings_.use_ibl)
-    {
-        glDeleteTextures(1, &hdr_map_);
-        glDeleteTextures(1, &environment_map_);
-        glDeleteTextures(1, &irradiance_map_);
-        glDeleteTextures(1, &prefilter_map_);
-        glDeleteTextures(1, &brdf_lut_map_);
-    }
 
     if(settings_.use_deferred)
     {
@@ -1621,7 +1359,6 @@ void Render::StepRenderFreeCamera(RenderWorld *world) {
     line_shader.setVec3("color", glm::vec3(0.7,0.7,0.7));
     DrawRootAABB(world, line_shader);
 
-
     glEnable(GL_PROGRAM_POINT_SIZE);
     DrawBatchRay();
 
@@ -1662,9 +1399,6 @@ void Render::StepRenderAllCamerasDeferred(RenderWorld* world,
         //DrawBackground(camera);
 
         VoxelConeTracing(world, camera);
-
-        // glDepthFunc(GL_ALWAYS);
-        // glDepthFunc(GL_LEQUAL);
 
         if(color_pick)
         {
@@ -1742,34 +1476,6 @@ void Render::StepCombineTexture() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-// Init Cubemap
-void Render::InitCaptureCubemap2() {
-    glGenFramebuffers(1, &cubemap_capture_fbo_);
-    glGenRenderbuffers(1, &cubemap_capture_rbo_);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, cubemap_capture_fbo_);
-    glBindRenderbuffer(GL_RENDERBUFFER, cubemap_capture_rbo_);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 128, 128);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, cubemap_capture_rbo_);
-
-    glGenTextures(1, &cubemap_texture_);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture_);
-
-    for (unsigned int i = 0; i < 6; ++i) {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8,
-                128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-}
-
-// This is the REAL ONE !
 void Render::InitCaptureCubemap() {
     glGenFramebuffers(1, &cubemap_capture_fbo_);
     glBindFramebuffer(GL_FRAMEBUFFER, cubemap_capture_fbo_);
@@ -2014,21 +1720,6 @@ void Render::StepRenderGBuffer(RenderWorld* world, Camera * camera) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Render::DrawBackground(Camera * camera) {
-    auto backgroundShader = shaders_[kSkybox];
-
-    glm::mat4 projection = camera->GetProjectionMatrix();
-    glm::mat4 view = camera->GetViewMatrix();
-
-    backgroundShader.use();
-    backgroundShader.setMat4("projection", projection);
-    backgroundShader.setMat4("view", view);
-    backgroundShader.setInt("environmentMap", 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, environment_map_);
-    RenderBox();
-}
-
 void Render::Visualization() {
 
     glEnable(GL_BLEND);
@@ -2036,24 +1727,6 @@ void Render::Visualization() {
     glDisable(GL_DEPTH_TEST);
     glClearColor(0.5, 0.5, 0.5, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
-
-    // glViewport(0, 0, width_, height_);
-    // shaders_[kColor].use();
-    // camera_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(0, 0, width_, height_);
-    // shaders_[kColor].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
-    // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, width_, height_);
-    // shaders_[kColor].use();
-    // free_camera_framebuffer_->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
 
     #ifdef DEBUG
         shaders_[kCrossHair].use();
@@ -2075,143 +1748,6 @@ void Render::Visualization() {
     shaders_[kDepth].use();
     multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
     RenderQuad();
-
-
-    // glViewport(0, 0, 400, 100);
-    // shaders_[kColor].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, combine_texture_);
-    // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, 100, 100);
-    // shaders_[kCubemapVisualization].use();
-    // shaders_[kCubemapVisualization].setInt("dir", 5);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture_);
-    // glUniform1i(glGetUniformLocation(shaders_[kCubemapVisualization].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ + 100, 0, 100, 100);
-    // shaders_[kCubemapVisualization].use();
-    // shaders_[kCubemapVisualization].setInt("dir", 0);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture_);
-    // glUniform1i(glGetUniformLocation(shaders_[kCubemapVisualization].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ + 200, 0, 100, 100);
-    // shaders_[kCubemapVisualization].use();
-    // shaders_[kCubemapVisualization].setInt("dir", 4);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture_);
-    // glUniform1i(glGetUniformLocation(shaders_[kCubemapVisualization].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ + 300, 0, 100, 100);
-    // shaders_[kCubemapVisualization].use();
-    // shaders_[kCubemapVisualization].setInt("dir", 1);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture_);
-    // glUniform1i(glGetUniformLocation(shaders_[kCubemapVisualization].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, 128, 128);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, 128, 128);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, 128, 128);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, 128, 128);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, 128, 128);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(0, 0, width_, height_);
-    // shaders_[kColor].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, width_ / 2, height_ /2);
-    // shaders_[kDepth].use();
-    // multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
-    // RenderQuad();
-
-    // glViewport(width_, 0, width_ / 4, height_ / 4);
-    // shaders_[kDepth].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, csm_.shadow_map()[0]);
-    // glUniform1i(glGetUniformLocation(shaders_[kDepth].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_, height_ / 4, width_ / 4,height_ / 4);
-    // shaders_[kDepth].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, csm_.shadow_map()[1]);
-    // glUniform1i(glGetUniformLocation(shaders_[kDepth].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ * 1.25, 0, width_ / 4, height_ / 4);
-    // shaders_[kDepth].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, csm_.shadow_map()[2]);
-    // glUniform1i(glGetUniformLocation(shaders_[kDepth].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ * 1.25, height_ / 4, width_ / 4,height_ / 4);
-    // shaders_[kDepth].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, csm_.shadow_map()[3]);
-    // glUniform1i(glGetUniformLocation(shaders_[kDepth].id(), "tex"), 0);
-    // RenderQuad();
-
-    //VisualizeVoxels();      
-
-    // glViewport(width_, 0, width_ / 3, height_ / 3);
-    // shaders_[kColor].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, g_albedospec_);
-    // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ + width_ / 2, 0, width_ / 2, height_ / 2);
-    // shaders_[kDepth].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, g_position_);
-    // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
-    // RenderQuad();
-
-    // glViewport(width_ * 2, 0, width_ / 2, height_ / 2);
-    // shaders_[kColor].use();
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, g_normal_);
-    // glUniform1i(glGetUniformLocation(shaders_[kColor].id(), "tex"), 0);
-    // RenderQuad();
-
-            // camera_framebuffer_list_[i]->ActivateAsTexture(
-        //         shaders_[kColor].id(), "tex", 0);
-
-    // for (int i = 0; i < multiplied_framebuffer_list_.size(); ++i) {
-    //     glViewport(width_*2, i*height_, width_, height_);
-    //     shaders_[kDepth].use();
-    //     camera_framebuffer_list_[i]->ActivateDepthAsTexture(
-    //             shaders_[kDepth].id(), "tex", 0);
-    //     RenderQuad();
-    // }
 }
 
 int Render::StepRender(RenderWorld* world, int pick_camera_id) {
@@ -2340,8 +1876,7 @@ void Render::InitSSAO() {
 
 void Render::SSAO(RenderWorld* world) {
     // TODO
-    // 1. Move All Post-Processing into a Class
-    // 2. For Texture! Not for Camera
+    // Move into a Class
 
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
@@ -2408,41 +1943,6 @@ void Render::SSAO(RenderWorld* world) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     
-}
-
-void Render::InitFXAA() {
-    glGenFramebuffers(1, &fxaa_fbo_);
-    glBindFramebuffer(GL_FRAMEBUFFER, fxaa_fbo_);
-
-    glGenTextures(1, &fxaa_tex_);
-    glBindTexture(GL_TEXTURE_2D, fxaa_tex_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fxaa_tex_, 0);
-}
-
-void Render::FXAA() {
-
-    // One Camera Only
-    assert(camera_framebuffer_list_.size() < 2);
-
-    glDisable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
-    glClearColor(0,0,0,0);
- 
-    glBindFramebuffer(GL_FRAMEBUFFER, fxaa_fbo_);
-    glViewport(0, 0, width_, height_);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    shaders_[kFXAA].use();
-    shaders_[kFXAA].setInt("tex", 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
-    //camera_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    RenderQuad();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Render::InitShaders() {
@@ -2563,10 +2063,7 @@ void Render::GetFrameRate() {
     all_rendered_frames_ += 1;
     max_framerate_ = glm::max(max_framerate_, current_framerate_);
 
-    std::string framerate_str = "FPS: " 
-        + std::to_string((int)current_framerate_);
-        // + " Avg: " + std::to_string((int)(avg_framerate_/all_rendered_frames_))
-        // + " Max: " + std::to_string((int)max_framerate_);
+    std::string framerate_str = "FPS: " + std::to_string((int)current_framerate_);
 
     printf("%s\n", framerate_str.c_str());
     //ctx_->SetTitle(framerate_str.c_str());
