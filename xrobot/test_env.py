@@ -6,7 +6,7 @@ from test_task import *
 
 class XRobotEnv(object):
     def __init__(self, contexts = 1):
-        self.env = libxrobot.Playground(640, 480, libxrobot.HEADLESS)
+        self.env = libxrobot.Playground(640, 480, libxrobot.HEADLESS, 2)
 
         self.task_group = TaskGroup("TaskGroup")
         task_nav   = XRobot3DNavTarget(self.env)

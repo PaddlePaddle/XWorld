@@ -7,9 +7,6 @@ layout (location = 1) out vec4 LabelAndDepth;
 
 layout(binding = 0) uniform sampler3D voxelVisibility;
 layout(binding = 1) uniform sampler3D voxelTex;
-layout(binding = 2) uniform samplerCube irradianceMap; // PBR
-layout(binding = 3) uniform samplerCube prefilterMap;
-layout(binding = 4) uniform sampler2D brdfLUT;
 layout(binding = 5) uniform sampler2D gAlbedoSpec; // G-Buffer
 layout(binding = 6) uniform sampler2D gNormal;
 layout(binding = 7) uniform sampler2D gPosition;
@@ -415,43 +412,13 @@ vec3 CookTorranceBRDF(
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - metallic;
     
+    float spec_occ = specOcculision(dot(N, V), ao, roughness);
+
     float NdotL = max(dot(N, L), 0.0);
-    Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+    Lo = (kD * albedo / PI + specular * spec_occ) * radiance * NdotL;
 
     vec3 color = Lo * ao;
     return color;
-}
-
-vec3 DistanceIBL(
-    vec3 N,
-    vec3 X,
-    vec3 albedo,
-    float metallic,
-    float roughness,
-    float ao
-)
-{
-    vec3 V = normalize(cameraPosition - X);
-    vec3 R = reflect(-V, N);
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
-
-    const float MAX_REFLECTION_LOD = 4.0;
-
-    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= vec3(1.0 - metallic);
-
-
-    vec3 irradiance = texture(irradianceMap, N).rgb;
-    vec3 diffuse      = irradiance * albedo;
-    vec2 brdf  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;
-    vec3 spec = prefilteredColor * (F * brdf.x + brdf.y);
-    vec3 ambient = (kD * diffuse + spec) * ao;
-
-    return ambient;
 }
 
 vec3 BRDF(Light light, vec3 N, vec3 X, vec3 ka, vec4 ks)
@@ -522,7 +489,6 @@ vec3 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specu
     vec3 directLighting = vec3(0.0f);
 
     // calculate lighting for directional light
-
     for (int i = 0; i < numDirectionalLight; ++i)
     {
         Light light = directionalLight[i];
@@ -531,7 +497,6 @@ vec3 CalculateDirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 specu
             albedo, specular, depth, roughness, metallic, ao);
         directLighting += Ambient(light, albedo);        
     }
-
 
     return directLighting;
 }
@@ -581,20 +546,6 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 
     float ao = clamp((1.0f - diffuseTrace.a + aoAlpha), 0.02f, 1.0f);
 
-    //ao = pow(ao, 1.0f);
-
-    // Distanct IBL Specular Occulision
-    vec3 V = normalize(cameraPosition - position);
-    float spec_occ = specOcculision(dot(normal, V), ao, roughness);
-
-    float spec_gi_alpha = 1 - clamp(dot(specularTrace.rgb, vec3(0.34)), 0, 1);
-    float diff_gi_alpha = 1 - clamp(dot(diffuseTrace.rgb, vec3(0.44)), 0, 1);
-    float gi_alpha = spec_gi_alpha * diff_gi_alpha;
-
-    float visibility_alpha = clamp(visibility * 4, 0, 1);
-
-    vec3 distance_ibl = DistanceIBL(normal, position, albedo, metallic, roughness, ao);
-    result = result * (1.0 - ibl_factor) + vec3(spec_occ * gi_alpha * visibility_alpha) * distance_ibl * ibl_factor;
     return vec4(result, ambientOcclusion ? ao : 1.0f);
 }
 
@@ -640,37 +591,6 @@ void main()
         directLighting = CalculateDirectLighting(position, normal, albedo, specular, depth,
             roughness, metallic, ao) * visibility;
     }
-    // else if(mode == 1)  // direct + indirect
-    // {
-    //     visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, 
-    //         roughness, metallic, false, visibility);
-    //     directLighting = CalculateDirectLighting(position, normal, albedo, specular, depth,
-    //         roughness, metallic, ao) * visibility + albedo * 0.15;
-    // }
-    // else if(mode == 2) // direct only
-    // {
-    //     visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    //     directLighting = CalculateDirectLighting(position, normal, albedo, specular, depth,
-    //         roughness, metallic, ao) * visibility;
-    // }
-    // else if(mode == 3) // indirect only
-    // {
-    //     visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, false, visibility);
-    // }
-    // else if(mode == 10) // ambient occlusion only
-    // {
-    //     directLighting = vec3(0.0f);
-    //     specular = vec4(0.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, 1.0f);
-    //     indirectLighting.rgb = vec3(1.0f);
-    // }
     else if(mode == 5)
     {
         visibility = CaculateDirectionalShadow(normal, position, depth);
@@ -678,52 +598,6 @@ void main()
         directLighting = BRDF(directionalLight[0], normal, position, albedo, specular) *
                 visibility + albedo * 0.2f;
     }
-    // else if(mode == 6)
-    // {
-    //     visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    //     directLighting = CookTorranceBRDF(directionalLight[0], normal, position, albedo,
-    //             metallic, roughness, ao) + albedo * 0.2f;
-    // }
-
-    // visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, visibility);
-
-    // visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, visibility);
-
-    // vec3 debug = debug_cascade(depth);
-    // directLighting =  debug;
-
-    // visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, visibility);
-
-    // visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, visibility);
-
-    // visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, visibility);
-
-    // visibility = CaculateDirectionalShadow(normal, position, depth);
-    //     directLighting = vec3(0.0f);
-    //     baseColor.rgb = specular.rgb = vec3(1.0f);
-    //     indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular,
-    //         roughness, metallic, true, visibility);
 
 
     indirectLighting.rgb = pow(indirectLighting.rgb, vec3(2.2f));

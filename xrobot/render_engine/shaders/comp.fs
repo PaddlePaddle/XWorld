@@ -8,5 +8,5 @@ uniform sampler2D src;
 
 void main() 
 { 
-    FragColor = texture(src, TexCoords).rgb * texture(ssao, TexCoords).r;
+    FragColor = texture(ssao, TexCoords).r * vec3(1) * texture(src, TexCoords).rgb;
 }  

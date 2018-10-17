@@ -220,7 +220,7 @@ void def_py_init()
 	.def("__eq__", &Thing::__eq__)
 	;
 
-	class_<Playground>("Playground", init<int,int,int>())
+	class_<Playground>("Playground", init<int,int,int,int>())
 	.def("SetLighting", &Playground::SetLighting)
 	.def("EnableLidar", &Playground::EnableLidar)
 	.def("UpdateLidar", &Playground::UpdateLidar)
