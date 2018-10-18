@@ -15,7 +15,7 @@ uniform vec3 samples[64];
 int kernelSize = 64;
 float radius = 0.5;
 float bias = 0.025;
-float scale = 1.0f;
+float scale = 1.2f;
 
 const vec2 noiseScale = vec2(640.0/4.0, 480.0/4.0); 
 

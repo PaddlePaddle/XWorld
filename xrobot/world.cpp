@@ -1569,7 +1569,7 @@ void RobotBase::PickUp(std::shared_ptr<Inventory> inventory,
 
         bullet_world->BatchRayTest(temp_ray, temp_res);
 
-        if(temp_res[0].bullet_id > 0) {
+        if(temp_res[0].bullet_id >= 0) {
 
             auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
 
@@ -1601,11 +1601,13 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
         bullet_world->BatchRayTest(temp_ray, temp_res);
 
         // Ray Hit
-        if(temp_res[0].bullet_id > 0) {
+        if(temp_res[0].bullet_id >= 0) {
             auto object = bullet_world->bullet_handle_to_robot_map_[
                     temp_res[0].bullet_id];
             glm::vec3 normal = temp_res[0].norm;
             glm::vec3 position = temp_res[0].pos;
+
+            // printf("hit\n");
 
             // Horizontal Flat Fragment
             if(object && glm::dot(normal, glm::vec3(0,1,0)) > 0.8f) {
@@ -1620,6 +1622,8 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
                     // Get Object File Path
                     if(auto temp_obj = weak_obj.lock()) {
 
+                        // printf("okay\n");
+
                         btTransform tr = temp_obj->robot_data_.root_part_->object_position_;
                         tr.setOrigin(btVector3(position.x,20,position.z));
                         bullet_world->SetTransformation(temp_obj, tr);
@@ -1631,7 +1635,7 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
 
                         float width = (aabb_max0.x - aabb_min0.x) / 2;
                         float height = (aabb_max0.z - aabb_min0.z) / 2;
-                        bool intersect = false;
+                        volatile bool intersect = false;
 
                         //printf("position: %f %f %f\n", position.x, position.y, position.z);
 
@@ -1642,10 +1646,10 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
                                 glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(width + 0.01f, 0, 0)});
                         temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
                                 glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(width + 0.01f, 0, 0)});
-                        temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
-                                glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(0, 0, height + 0.01f)});
-                        temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
-                                glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(0, 0, height + 0.01f)});
+                        // temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                        //         glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(0, 0, height + 0.01f)});
+                        // temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
+                        //         glm::vec3(position.x,0.05f + position.y,position.z) - glm::vec3(0, 0, height + 0.01f)});
                         temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
                                 glm::vec3(position.x,0.05f + position.y,position.z) + glm::vec3(width + 0.01f, -0.01f, height + 0.01f)});
                         temp1_ray.push_back({glm::vec3(position.x,0.05f + position.y,position.z),
@@ -1669,8 +1673,6 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
                             // TODO
                             // Add a List for Special Objs
 
-                            //printf("ok......\n");
-
                             for (size_t i = 0; i < bullet_world->size(); i++) {
                                 auto body = bullet_world->robot_list_[i];
                                 auto part = body->robot_data_.root_part_;
@@ -1684,10 +1686,14 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
                                     glm::vec3 aabb_min1, aabb_max1;
                                     part->GetAABB(aabb_min1, aabb_max1);
 
+                                    if(aabb_min1.y >= (aabb_max0.y - aabb_min0.y))
+                                        continue;
+
                                     if(aabb_min1.x < aabb_max0.x &&
                                        aabb_max1.x > aabb_min0.x &&
                                        aabb_min1.z < aabb_max0.z &&
-                                       aabb_max1.z > aabb_min0.z) {
+                                       aabb_max1.z > aabb_min0.z) 
+                                    {
                                         intersect = true;
                                         break;
                                     }
@@ -1730,7 +1736,7 @@ void RobotBase::RotateObject(const glm::vec3 rotate_angle,
 
         bullet_world->BatchRayTest(temp_ray, temp_res);
 
-        if(temp_res[0].bullet_id > 0) {
+        if(temp_res[0].bullet_id >= 0) {
             auto temp_obj = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
 
             if(temp_obj->robot_data_.label_!= "Wall" 

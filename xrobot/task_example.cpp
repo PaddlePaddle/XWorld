@@ -28,7 +28,7 @@ namespace xrobot
 
 	Task_FollowRobot::Task_FollowRobot(
 		std::shared_ptr<render_engine::Render> renderer,
-		std::shared_ptr<Map> map) : iterations_(0),
+		std::shared_ptr<MapGrid> map) : iterations_(0),
 								    scene_(map),
 								    agent_(),
 								    target_(),
@@ -175,7 +175,7 @@ namespace xrobot
 
 	Task_NavToLargeCrate::Task_NavToLargeCrate(
 		std::shared_ptr<render_engine::Render> renderer,
-		std::shared_ptr<Map> map) : iterations_(0),
+		std::shared_ptr<MapGrid> map) : iterations_(0),
 								    scene_(map),
 								    agent_(),
 								    lidar_(nullptr),
@@ -355,7 +355,7 @@ namespace xrobot
 
 	Task_NavToSmallCrate::Task_NavToSmallCrate(
 		std::shared_ptr<render_engine::Render> renderer,
-		std::shared_ptr<Map> map) : iterations_(0),
+		std::shared_ptr<MapGrid> map) : iterations_(0),
 								    scene_(map),
 								    agent_(),
 								    lidar_(nullptr),
@@ -826,6 +826,8 @@ namespace xrobot
         	return "idle";
         }
 
+        printf("framerate: %d\n", (int) renderer_->current_framerate_);
+
         // Reset After N Steps
         if(iterations_++ > 12000) 
         	return "idle";
@@ -1067,6 +1069,8 @@ namespace xrobot
 	        }
         }
 
+        printf("framerate: %d\n", (int) renderer_->current_framerate_);
+
         if(ctx_->GetKeyPressSpace()) {
         	ctx_->PollEvent();
         	return "idle";
@@ -1092,7 +1096,7 @@ namespace xrobot
 
 	Task_NewFeatures::Task_NewFeatures(
 		std::shared_ptr<render_engine::Render> renderer,
-		std::shared_ptr<Map> map) : iterations_(0),
+		std::shared_ptr<MapGrid> map) : iterations_(0),
 								    scene_(map),
 								    agent_(),
 								    renderer_(renderer),
@@ -1316,7 +1320,7 @@ namespace xrobot
 
 	Task_Crowd::Task_Crowd(
 		std::shared_ptr<render_engine::Render> renderer,
-		std::shared_ptr<Map> map) : iterations_(0),
+		std::shared_ptr<MapGrid> map) : iterations_(0),
 								      scene_(map),
 								      renderer_(renderer),
 								      ctx_(renderer->ctx_),
@@ -1357,49 +1361,49 @@ namespace xrobot
 	  	
 		std::weak_ptr<RobotBase> obj;
 
-		obj = scene_->world_->LoadRobot(
-	        crate1,
-	        btVector3(2, 0, 2),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(1, 1, 1),
-	        "crate",
-	        true
-	    );
-	    if(auto obj_sptr = obj.lock())
-	   		obj_sptr->move(false);
+		// obj = scene_->world_->LoadRobot(
+	 //        crate1,
+	 //        btVector3(2, 0, 2),
+	 //        btQuaternion(btVector3(1,0,0),0),
+	 //        btVector3(1, 1, 1),
+	 //        "crate",
+	 //        true
+	 //    );
+	 //    if(auto obj_sptr = obj.lock())
+	 //   		obj_sptr->move(false);
 
-	   	obj = scene_->world_->LoadRobot(
-	        crate1,
-	        btVector3(4, 0, 2),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(1, 1, 1),
-	        "crate",
-	        true
-	    );
-	   	if(auto obj_sptr = obj.lock())
-	   		obj_sptr->move(false);
+	 //   	obj = scene_->world_->LoadRobot(
+	 //        crate1,
+	 //        btVector3(4, 0, 2),
+	 //        btQuaternion(btVector3(1,0,0),0),
+	 //        btVector3(1, 1, 1),
+	 //        "crate",
+	 //        true
+	 //    );
+	 //   	if(auto obj_sptr = obj.lock())
+	 //   		obj_sptr->move(false);
 
-	   	obj = scene_->world_->LoadRobot(
-	        crate1,
-	        btVector3(4, 0, 4),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(1, 1, 1),
-	        "crate",
-	        true
-	    );
-	   	if(auto obj_sptr = obj.lock())
-	   		obj_sptr->move(false);
+	 //   	obj = scene_->world_->LoadRobot(
+	 //        crate1,
+	 //        btVector3(4, 0, 4),
+	 //        btQuaternion(btVector3(1,0,0),0),
+	 //        btVector3(1, 1, 1),
+	 //        "crate",
+	 //        true
+	 //    );
+	 //   	if(auto obj_sptr = obj.lock())
+	 //   		obj_sptr->move(false);
 
-	   	obj = scene_->world_->LoadRobot(
-	        crate1,
-	        btVector3(6, 0, 6),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(1, 1, 1),
-	        "crate",
-	        true
-	    );
-	   	if(auto obj_sptr = obj.lock())
-	   		obj_sptr->move(false);
+	 //   	obj = scene_->world_->LoadRobot(
+	 //        crate1,
+	 //        btVector3(6, 0, 6),
+	 //        btQuaternion(btVector3(1,0,0),0),
+	 //        btVector3(1, 1, 1),
+	 //        "crate",
+	 //        true
+	 //    );
+	 //   	if(auto obj_sptr = obj.lock())
+	 //   		obj_sptr->move(false);
 
 	   	// Load Agent
 	   	agent_ = scene_->world_->LoadRobot(

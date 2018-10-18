@@ -25,6 +25,14 @@ const EGLint EGLpbufferAttribs[] = {
     EGL_NONE,
 };
 
+const EGLint ctxattr[] = {
+    EGL_CONTEXT_MAJOR_VERSION, 3,
+    EGL_CONTEXT_MINOR_VERSION, 3,
+    EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
+    EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
+    EGL_NONE
+};
+
 const int GLXcontextAttribs[] = {
     GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
     GLX_CONTEXT_MINOR_VERSION_ARB, 4,
@@ -104,9 +112,6 @@ EGLContext::EGLContext(int h, int w, int device): GLContext{h, w} {
     EGLint major, minor;
     EGLBoolean succ = eglInitialize(eglDpy_, &major, &minor);
 
-    printf("major: %d\n", major);
-    printf("minor: %d\n", minor);
-
     if (!succ) {
         fprintf(stderr, "Failed to initialize EGL display!");
         fflush(stderr);
@@ -138,7 +143,8 @@ EGLContext::EGLContext(int h, int w, int device): GLContext{h, w} {
 
     // 5. Create a context and make it current
     ::EGLContext eglCtx = eglCreateContext(
-            eglDpy_, eglCfg, (::EGLContext)0, NULL);
+            eglDpy_, eglCfg, (::EGLContext)0, ctxattr);
+
     checkError(succ);
     succ = eglMakeCurrent(eglDpy_, eglSurf, eglSurf, eglCtx);
     if (!succ) {

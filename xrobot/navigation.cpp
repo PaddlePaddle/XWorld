@@ -85,7 +85,9 @@ Navigation::Navigation(
                                      surface_level_(-1.0f),
                                      request_manager_(),
                                      update_counter_(0),
-                                     counter_(0)
+                                     counter_(0),
+                                     agent_id_base_(0),
+                                     agent_radius_(0.0f)
 {
 	assert(ctx && world);
 	assert(width > 0 && length > 0);
@@ -108,9 +110,12 @@ Navigation::Navigation(
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Initialize Shaders
+
+    size_t p = std::string(__FILE__).find_last_of("/");
+    std::string pwd =std::string(__FILE__).substr(0, p);
     depth_shader_ = xrobot::render_engine::Shader(
-    	"../depth.vs",
-    	"../depth.fs");
+    	pwd + "/depth.vs",
+    	pwd + "/depth.fs");
 }
 
 Navigation::~Navigation()
@@ -155,6 +160,7 @@ void Navigation::SpawnAgent(const glm::vec3 position,
     agent.current_position_ = position;
     agent.robot_ = robot;
     agent.speed_ = 0.005f;
+    agent.uid_ = agent_id_base_++;
 
     crowd_.push_back(agent);
 }
@@ -165,6 +171,7 @@ Agent::Agent() : robot_(),
                  path_(0),
                  distance_(0.0f),
                  angle_(0.0f),
+                 uid_(0),
                  last_direction_(glm::vec3(0,0,0)),
                  current_position_(glm::vec3(0,0,0)),
                  target_position_(glm::vec3(0,0,0)),
@@ -369,47 +376,46 @@ std::vector<std::shared_ptr<Node>> Pathfinding::SimplifyPath(
     }
 
     // Testing
-    /*
-    for (int i = 0; i < grid_map_.length_; ++i)
-    {
-        for (int j = 0; j < grid_map_.width_; ++j)
-        {
-            bool flag = true;
-            bool way = false;
-            for (Node* node : path)
-            {
-                if(node->x == j && node->y == i) {
-                    way = false;
-                    flag = false;
-                }
-            }
-            for (Node* node : waypoints)
-            {
-                if(node->x == j && node->y == i) {
-                    way = true;
-                    flag = false;
-                }
-            }
-            if(flag) {
-                if (grid_map_.data_[i * grid_map_.width_ + j]->block) {
-                    printf("%s ","x");
-                } else if (grid_map_.data_[i * grid_map_.width_ + j]->carve) {
-                    printf("%s ","c");
-                } else {
-                    printf("%s "," ");
-                }
-            }
-            else {
-                if(way) {
-                    printf("%s ", "o");
-                } else {
-                    printf("%s ", "+");
-                }
-            }
-        }
-        printf("\n");
-    }
-    */
+    
+    // for (int i = 0; i < grid_map_.length_; ++i)
+    // {
+    //     for (int j = 0; j < grid_map_.width_; ++j)
+    //     {
+    //         bool flag = true;
+    //         bool way = false;
+    //         for (auto node : path)
+    //         {
+    //             if(node->x == j && node->y == i) {
+    //                 way = false;
+    //                 flag = false;
+    //             }
+    //         }
+    //         for (auto node : waypoints)
+    //         {
+    //             if(node->x == j && node->y == i) {
+    //                 way = true;
+    //                 flag = false;
+    //             }
+    //         }
+    //         if(flag) {
+    //             if (grid_map_.data_[i * grid_map_.width_ + j]->block) {
+    //                 printf("%s ","x");
+    //             } else if (grid_map_.data_[i * grid_map_.width_ + j]->carve) {
+    //                 printf("%s ","c");
+    //             } else {
+    //                 printf("%s "," ");
+    //             }
+    //         }
+    //         else {
+    //             if(way) {
+    //                 printf("%s ", "o");
+    //             } else {
+    //                 printf("%s ", "+");
+    //             }
+    //         }
+    //     }
+    //     printf("\n");
+    // }
 
     return waypoints;
 }
@@ -782,6 +788,7 @@ void Navigation::Voxelization()
 
     // Raster
     depth_shader_.use();
+    depth_shader_.setFloat("radius", agent_radius_);
     depth_shader_.setMat4("view", view);
     depth_shader_.setMat4("projection", projection);
 

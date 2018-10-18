@@ -1,9 +1,9 @@
-#include "map.h"
+#include "map_grid.h"
 
 namespace xrobot
 {
 
-Map::~Map()
+MapGrid::~MapGrid()
 {
 	for (auto aabb : sections_AABB_)
 	{
@@ -23,7 +23,7 @@ Map::~Map()
 	world_ = nullptr;
 }
 
-Map::Map() : world_(nullptr),
+MapGrid::MapGrid() : Map(),
 on_floor_list_(0), on_object_list_(0), either_list_(0),
 sections_AABB_(0), sections_(1),
 first_layer_AABB_(0), first_layer_(1),
@@ -37,7 +37,7 @@ map_(nullptr), map_AABB_(nullptr)
 	srand(time(NULL));
 }
 
-void Map::CreateSectionType(const std::string& floor, 
+void MapGrid::CreateSectionType(const std::string& floor, 
 	const std::string& wall, const std::string& door)
 {
 	assert(!floor.empty());
@@ -47,7 +47,7 @@ void Map::CreateSectionType(const std::string& floor,
 	section_types_.push_back(st);
 }
 
-glm::vec3 Map::GenerateTestFloorPlan(const int w, const int l)
+glm::vec3 MapGrid::GenerateTestFloorPlan(const int w, const int l)
 {
 	assert(section_types_.size() > 0);
 
@@ -107,7 +107,7 @@ glm::vec3 Map::GenerateTestFloorPlan(const int w, const int l)
 	return random_center;
 }
 
-glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
+glm::vec3 MapGrid::GenerateFloorPlan(const int w, const int l)
 {
 	assert(section_types_.size() > 0);
 
@@ -189,13 +189,13 @@ glm::vec3 Map::GenerateFloorPlan(const int w, const int l)
 	return random_center;
 }
 
-void Map::GenerateCeiling(const float x, const float y, const float z, 
+void MapGrid::GenerateCeiling(const float x, const float y, const float z, 
 	const std::string& st)
 {
 
 }
 
-void Map::GenerateDoor(const float x, const float y, const float z, 
+void MapGrid::GenerateDoor(const float x, const float y, const float z, 
 	const int face, const std::string st)
 {
 	const int dir[4] = {0, 0, 1, 1};
@@ -211,7 +211,7 @@ void Map::GenerateDoor(const float x, const float y, const float z,
 }
 
 
-void Map::GenerateWall(const float x, const float y, const float z, 
+void MapGrid::GenerateWall(const float x, const float y, const float z, 
 	const int face, const std::string st)
 {
 	const int dir[4] = {0, 0, 1, 1};
@@ -226,7 +226,7 @@ void Map::GenerateWall(const float x, const float y, const float z,
 	);
 }
 
-void Map::GenerateFloor(const float x, const float y, const float z, 
+void MapGrid::GenerateFloor(const float x, const float y, const float z, 
 	const std::string& st)
 {
 	world_->LoadRobot(
@@ -239,7 +239,7 @@ void Map::GenerateFloor(const float x, const float y, const float z,
 	);
 }
 
-std::string Map::FindLabel(const std::string& path)
+std::string MapGrid::FindLabel(const std::string& path)
 {
 	assert(!path.empty());
 	if(labels_.find(path) != labels_.end())
@@ -248,7 +248,7 @@ std::string Map::FindLabel(const std::string& path)
 		return "not_found";
 }
 
-void Map::CreateLabel(const std::string& path,
+void MapGrid::CreateLabel(const std::string& path,
 		const std::string& label)
 {
 	if(!label.empty())
@@ -257,7 +257,7 @@ void Map::CreateLabel(const std::string& path,
 		labels_[path] = "unlabeled";
 }
 
-void Map::ClearRules()
+void MapGrid::ClearRules()
 {
 	on_floor_list_.clear();
 	on_object_list_.clear();
@@ -267,7 +267,7 @@ void Map::ClearRules()
 	section_types_.clear();
 }
 
-void Map::CreateSpawnOnFloor(const std::string name)
+void MapGrid::CreateSpawnOnFloor(const std::string name)
 {
 	if(!name.empty() &&
 		std::find(on_floor_list_.begin(), on_floor_list_.end(), name) == on_floor_list_.end())
@@ -276,7 +276,7 @@ void Map::CreateSpawnOnFloor(const std::string name)
 	}
 }
 
-void Map::CreateSpawnOnObject(const std::string name)
+void MapGrid::CreateSpawnOnObject(const std::string name)
 {
 	if(!name.empty() &&
 		std::find(on_object_list_.begin(), on_object_list_.end(), name) == on_object_list_.end())
@@ -285,7 +285,7 @@ void Map::CreateSpawnOnObject(const std::string name)
 	}
 }
 
-void Map::CreateSpawnEither(const std::string name)
+void MapGrid::CreateSpawnEither(const std::string name)
 {
 	if(!name.empty() &&
 		std::find(either_list_.begin(), either_list_.end(), name) == either_list_.end())
@@ -294,7 +294,7 @@ void Map::CreateSpawnEither(const std::string name)
 	}
 }
 
-void Map::CreateSectionWithSize(const float min_x, const float max_x, 
+void MapGrid::CreateSectionWithSize(const float min_x, const float max_x, 
 								const float min_z, const float max_z)
 {
 	assert(min_x < max_x && min_z < max_z);
@@ -308,7 +308,7 @@ void Map::CreateSectionWithSize(const float min_x, const float max_x,
 
 }
 
-void Map::CreateSpawnConstraint(const std::string cannot_be_topped)
+void MapGrid::CreateSpawnConstraint(const std::string cannot_be_topped)
 {
 	if(!cannot_be_topped.empty() &&
 	 cannot_be_topped_list.find(cannot_be_topped) == cannot_be_topped_list.end())
@@ -317,7 +317,7 @@ void Map::CreateSpawnConstraint(const std::string cannot_be_topped)
 	}
 }
 
-void Map::CreateEmptyVolume(const float min_x, const float max_x, 
+void MapGrid::CreateEmptyVolume(const float min_x, const float max_x, 
 							const float min_z, const float max_z)
 {
 	assert(min_x < max_x && min_z < max_z);
@@ -331,7 +331,7 @@ void Map::CreateEmptyVolume(const float min_x, const float max_x,
 										glm::vec3(bbox->maxX, 1, bbox->maxZ)));
 }
 
-void Map::CreateObjectAtTransform(
+void MapGrid::CreateObjectAtTransform(
 	const std::string name, 
 	const float tx, const float ty, const float tz,
 	const float rx, const float ry, const float rz, const float rw,
@@ -372,10 +372,12 @@ void Map::CreateObjectAtTransform(
 	}
 }
 
-void Map::ForceResetMap()
+void MapGrid::ForceResetMap()
 {
 	map_ = nullptr;
 	map_AABB_ = nullptr;
+
+	ClearRules();
 
 	world_->CleanEverything();
 
@@ -402,10 +404,12 @@ void Map::ForceResetMap()
 	first_layer_map_.clear();
 }
 
-void Map::ResetMap()
+void MapGrid::ResetMap()
 {
 	map_ = nullptr;
 	map_AABB_ = nullptr;
+
+	ClearRules();
 
 	if(world_->reset_count_ % 1000) {
 		world_->CleanEverything2();
@@ -436,7 +440,7 @@ void Map::ResetMap()
 	first_layer_map_.clear();
 }
 
-bool Map::Overlap(const std::vector<std::shared_ptr<AABB>> aabbs, 
+bool MapGrid::Overlap(const std::vector<std::shared_ptr<AABB>> aabbs, 
 				  const std::shared_ptr<AABB> other)
 {
 	for (auto bbox : aabbs)
@@ -447,13 +451,13 @@ bool Map::Overlap(const std::vector<std::shared_ptr<AABB>> aabbs,
 	return false;
 }
 
-float Map::GetRandom(const float low, const float high)
+float MapGrid::GetRandom(const float low, const float high)
 {
 	std::uniform_real_distribution<float> dist(low, high);
 	return dist(mt_);
 }
 
-void Map::SpawnOnFloor(const int num)
+void MapGrid::SpawnOnFloor(const int num)
 {
 	if(!on_floor_list_.size()) return;
 
@@ -492,7 +496,7 @@ void Map::SpawnOnFloor(const int num)
 
 				transform.setOrigin(btVector3(rand_position_on_tile.x, 0, rand_position_on_tile.z));
 				world_->SetTransformation(robot_sptr, transform);
-				//world_->BulletStep();
+				world_->BulletStep();
 
 				vec3 aabb_min, aabb_max;
 				robot_sptr->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
@@ -533,7 +537,7 @@ void Map::SpawnOnFloor(const int num)
 	}
 }
 
-void Map::SpawnOnObject(const int num)
+void MapGrid::SpawnOnObject(const int num)
 {
 	if(!on_object_list_.size()) return;
 
@@ -579,6 +583,7 @@ void Map::SpawnOnObject(const int num)
 
 				transform.setOrigin(btVector3(rand_position_on_object.x, 0, rand_position_on_object.z));
 				world_->SetTransformation(robot_sptr, transform);
+				world_->BulletStep();
 
 				vec3 aabb_min, aabb_max;
 				robot_sptr->robot_data_.root_part_->GetAABB(aabb_min, aabb_max);
@@ -616,7 +621,7 @@ void Map::SpawnOnObject(const int num)
 	}
 }
 
-void Map::SpawnEither(const int n)
+void MapGrid::SpawnEither(const int n)
 {
 	if(!either_list_.size()) return;
 
@@ -663,6 +668,7 @@ void Map::SpawnEither(const int n)
 
 					transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 					world_->SetTransformation(r_sptr, transform);
+					world_->BulletStep();
 
 					vec3 aabbMin, aabbMax;
 					r_sptr->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
@@ -744,6 +750,7 @@ void Map::SpawnEither(const int n)
 
 					transform.setOrigin(btVector3(randPos.x, 0, randPos.z));
 					world_->SetTransformation(r_sptr, transform);
+					world_->BulletStep();
 
 					vec3 aabbMin, aabbMax;
 					r_sptr->robot_data_.root_part_->GetAABB(aabbMin, aabbMax);
@@ -787,7 +794,7 @@ void Map::SpawnEither(const int n)
 
 }
 
-void Map::GetMapAABB()
+void MapGrid::GetMapAABB()
 {
 	AABB temp;
 
@@ -802,7 +809,7 @@ void Map::GetMapAABB()
 	world_->set_world_size(temp.minX, temp.minZ, temp.maxX, temp.maxZ);
 }
 
-void Map::Spawn(const int onFloor, const int onObject, const int onEither)
+void MapGrid::Spawn(const int onFloor, const int onObject, const int onEither)
 {
 	SpawnOnFloor(onFloor);
 

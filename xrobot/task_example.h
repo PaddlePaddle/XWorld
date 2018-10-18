@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "render_engine/render.h"
-#include "map.h"
+#include "map_grid.h"
 #include "map_suncg.h"
 #include "lidar.h"
 #include "task.h"
@@ -22,7 +22,7 @@ namespace xrobot
 	public:
 
 		Task_FollowRobot(std::shared_ptr<render_engine::Render> renderer,
-				   		 std::shared_ptr<Map> map);
+				   		 std::shared_ptr<MapGrid> map);
 		~Task_FollowRobot();
 
 		std::string Start();
@@ -34,7 +34,7 @@ namespace xrobot
 
 		std::weak_ptr<RobotBase> agent_;
 		std::weak_ptr<RobotBase> target_;
-		std::shared_ptr<Map> scene_;
+		std::shared_ptr<MapGrid> scene_;
 		std::shared_ptr<render_engine::Render> renderer_;
 
 		render_engine::GLContext * ctx_;
@@ -46,7 +46,7 @@ namespace xrobot
 	public:
 
 		Task_NavToLargeCrate(std::shared_ptr<render_engine::Render> renderer,
-				   		 	 std::shared_ptr<Map> map);
+				   		 	 std::shared_ptr<MapGrid> map);
 		~Task_NavToLargeCrate();
 
 		std::string Start();
@@ -57,7 +57,7 @@ namespace xrobot
 		float cam_pitch_;
 
 		std::weak_ptr<RobotBase> agent_;
-		std::shared_ptr<Map> scene_;
+		std::shared_ptr<MapGrid> scene_;
 		std::shared_ptr<Lidar> lidar_;
 		std::shared_ptr<render_engine::Render> renderer_;
 
@@ -70,7 +70,7 @@ namespace xrobot
 	public:
 
 		Task_NavToSmallCrate(std::shared_ptr<render_engine::Render> renderer,
-				   		 	 std::shared_ptr<Map> map);
+				   		 	 std::shared_ptr<MapGrid> map);
 		~Task_NavToSmallCrate();
 
 		std::string Start();
@@ -81,7 +81,7 @@ namespace xrobot
 		float cam_pitch_;
 		
 		std::weak_ptr<RobotBase> agent_;
-		std::shared_ptr<Map> scene_;
+		std::shared_ptr<MapGrid> scene_;
 		std::shared_ptr<Lidar> lidar_;
 		std::shared_ptr<render_engine::Render> renderer_;
 
@@ -161,7 +161,7 @@ namespace xrobot
 	public:
 
 		Task_NewFeatures(std::shared_ptr<render_engine::Render> renderer,
-				   		 std::shared_ptr<Map> map);
+				   		 std::shared_ptr<MapGrid> map);
 		~Task_NewFeatures();
 
 		std::string Start();
@@ -176,7 +176,7 @@ namespace xrobot
 		std::weak_ptr<RobotBase> door_anim_;
 		std::shared_ptr<render_engine::Render> renderer_;
 		std::shared_ptr<Inventory> inventory_;
-		std::shared_ptr<Map> scene_;
+		std::shared_ptr<MapGrid> scene_;
 
 		render_engine::GLContext * ctx_;
 		render_engine::Camera * main_camera_;
@@ -186,7 +186,7 @@ namespace xrobot
 	public:
 
 		Task_Crowd(std::shared_ptr<render_engine::Render> renderer,
-				   std::shared_ptr<Map> map);
+				   std::shared_ptr<MapGrid> map);
 		~Task_Crowd();
 
 		std::string Start();
@@ -197,7 +197,7 @@ namespace xrobot
 		float cam_pitch_;
 
 		std::weak_ptr<RobotBase> agent_;
-		std::shared_ptr<Map> scene_;
+		std::shared_ptr<MapGrid> scene_;
 		std::shared_ptr<Navigation> crowd_;
 		std::shared_ptr<render_engine::Render> renderer_;
 		

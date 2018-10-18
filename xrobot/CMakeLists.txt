@@ -53,7 +53,7 @@ add_subdirectory(render_engine)
 
 set(XROBOT_SOURCES
     vendor/json.cpp
-    map.cpp
+    map_grid.cpp
     map_suncg.cpp
     state_machine.cpp
     task_example.cpp

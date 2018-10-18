@@ -9,7 +9,7 @@ MapSuncg::~MapSuncg()
 	world_ = nullptr;
 }
 
-MapSuncg::MapSuncg() : world_(nullptr),
+MapSuncg::MapSuncg() : Map(),
 					   map_AABB_(nullptr),
 					   all_labels_(),
 					   map_bullet_label_(),
@@ -182,7 +182,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 	if (GetJsonObjectMember(json_value, &json_root, "scaleToMeters")) {
 		scaleToMeters = json_value->asDouble();
 	}
-	printf("scene id: %s\n", scene_id);
+	printf("Load Scene ID: %s\n", scene_id);
 
 
 	// Parse levels

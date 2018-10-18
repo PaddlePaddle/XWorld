@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import random
 
-class XRobot3DNavTarget(TaskInterface):
+class XRobot3DNavAgentTarget(TaskInterface):
 	def __init__(self, env):
 		self.env = env
 		self.agent = None
@@ -16,15 +16,19 @@ class XRobot3DNavTarget(TaskInterface):
 		return stages
 
 	def start(self):
-		self.env.EnableInventory(10)
 		self.env.Clear()
 		self.env.CreateAnTestScene()
-		self.env.SetLighting()
+		self.env.EnableInventory(10)
+		self.env.EnableNavigation([-2,-1,-2], [10,5,10], False)
 
-		x = random.randint(1, 8)
-		y = random.randint(1, 8)
+		self.env.SpawnAnObject("./crate_1/crate.urdf", [5,0,5], [1,0,0,0], 1.0, "Crate", False)
+		self.env.SpawnAnObject("./crate_1/crate.urdf", [4,0,4], [1,0,0,0], 1.0, "Crate", False)
+		self.env.AssignAgentRadius(0.5)
+		self.env.BakeNavigationMesh()
 
-		self.env.SpawnAnObject("./crate_1/crate.urdf", [x,0,y], [1,0,0,0], 1.0, "Crate", False)
+		nav_agent = self.env.SpawnNavigationAgent("./crate_0.3/crate.urdf", "NavAgent", [2,0,0])
+		self.env.AssignNavigationAgentTarget(nav_agent, [8, 0, 8])
+
 		self.agent = self.env.SpawnAnObject("husky/husky.urdf", [2,0,2], [-1,0,0,1.57], 1.0, "Agent", True)
 		self.env.AttachCameraTo(self.agent, [0.3,1.3,0.0])
 		self.env.Initialize()
@@ -32,9 +36,9 @@ class XRobot3DNavTarget(TaskInterface):
 		return "navigation"
 
 	def navigation(self):
-		# Query Object At Forward
-		if self.env.QueryObjectWithLabelAtForward("Crate"):
-			return "idle"
+		# # Query Object At Forward
+		# if self.env.QueryObjectWithLabelAtForward("NavAgent"):
+		# 	return "idle"
 
 		# Fetch Agent Status
 		position = self.agent.GetPosition()
@@ -46,9 +50,16 @@ class XRobot3DNavTarget(TaskInterface):
 		image_rgbd = cv2.cvtColor(image_rgbd, cv2.COLOR_BGRA2RGBA)
 		image_rgbd = cv2.flip(image_rgbd, 0)
 
-		image_rgb = image_rgbd[:,:,:3]
-		image_depth = image_rgbd[:,:,3]
+		image_rgb = np.array(image_rgbd[:,:,:3])
+		image_depth = np.array(image_rgbd[:,:,3])
+
+
+		frames = "frames: " + str(self.env.GetStatus()["frames"])
+		framerate = " | framerate: " + str(self.env.GetStatus()["framerate"])
+
+		cv2.putText(image_rgb, frames + framerate, (30,30), \
+    		cv2.FONT_HERSHEY_PLAIN, 1, (200,250,250), 1);
+
 		cv2.imshow("RGB", image_rgb)
-		cv2.imshow("Depth", image_depth)
 		return "navigation"
 

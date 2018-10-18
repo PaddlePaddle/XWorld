@@ -9,7 +9,7 @@
 #include <boost/python.hpp>
 
 #include "render_engine/render.h"
-#include "map.h"
+#include "map_grid.h"
 #include "map_suncg.h"
 #include "lidar.h"
 #include "task.h"
@@ -56,6 +56,7 @@ inline glm::vec4 list2vec4(const boost::python::list& ns)
 	return glm::vec4(ns_v[0], ns_v[1], ns_v[2], ns_v[3]);
 }
 
+// Range hold AABB struct
 struct Range {
 	glm::vec3 min, max;
 
@@ -64,23 +65,30 @@ struct Range {
 	bool __eq__(const Range& other) { min == max; }
 };
 
+// Thing hold object or robot in playground
 class Thing {
 public:
 	Thing();
 
+	// Returns current position in (x y z)
 	boost::python::tuple GetPosition();
+
+	// Return current orientation in (x y z w). It uses 
+	// normalized quaternion for orientation representation
 	boost::python::tuple GetOrientation();
+
+	// Return the label
 	std::string GetLabel();
 	
 	long __hash__() { return (long) (uintptr_t) robot_.lock().get(); }
 	bool __eq__(const Thing& other) { 
 		return robot_.lock().get() == other.robot_.lock().get();
 	}
-
 	std::weak_ptr<RobotBase> GetPtr() const { return robot_; }
 	void SetPtr(std::weak_ptr<RobotBase> robot) { robot_ = robot; Sync(); }
 
 private:
+	//  Update all the status
 	void Sync();
 	std::string label_;
 	boost::python::tuple position_;
@@ -88,23 +96,64 @@ private:
 	std::weak_ptr<RobotBase> robot_;
 };
 
+// NavAgent hold a object with navigation functionality
+class NavAgent {
+public:
+	explicit NavAgent(const int uid, const std::string& label);
+
+	std::string GetLabel() const { return label_; }
+	int GetUid() const { return uid_; }
+	bool __eq__(const NavAgent& other) { return uid_ == other.uid_; }
+
+private:
+	// Used to validate and access the agent in crowd. -1 means 
+	// this agent is invalid
+	int uid_;
+	std::string label_;
+};
+
+// Playground defines the scene and renderer. Used to control the robot,
+// generate a scene, enable certain feature and query the object.
+//
+// If you are going to seek some special functionalities, 
+// such as IK, constraints, carving while path-finding, multi-rays lidar 
+// and high quality rendering this wrapper is not supported, use C++ instead.
 class Playground {
 public:
-	Playground(const int w, const int h, const int headless = 0, const int quality = 0); 
+
+	// Create a empty playground with basic rendering parameters.
+	// 
+	// If you are going to flyover visualization, use DEBUG_VISUALIZATION
+	// 
+	// Quality also can be adjust by switch RENDER_QUALITY_LOW and 
+	// RENDER_QUALITY_NORMAL. However, low quality rendering 
+	// does not have anti-aliasing which means images could have jagged edges.
+	Playground(const int w, const int h,
+			   const int headless = 0, 
+			   const int quality = 0); 
 	~Playground();
 
-	// Rendering
-	void SetLighting();
+	void SetLighting(const boost::python::dict lighting);
 	void AttachCameraTo(Thing object, const boost::python::list offset_py);
 
-	// Functionality
 	void EnableLidar(const int num_rays, const float max_distance);
 	boost::python::list UpdateLidar(const boost::python::list front_py, 
 								    const boost::python::list up_py,
 								    const boost::python::list position_py);
 
 	void EnableInventory(const int max_capacity);
-	void EnableCrowds();
+	void EnableNavigation(const boost::python::list min_corner, 
+						  const boost::python::list max_corner,
+						  const bool kill_after_arrived);
+
+	// Navigation
+	void BakeNavigationMesh();
+	void AssignAgentRadius(const float radius);
+	void AssignNavigationAgentTarget(const NavAgent& agent,
+		                             const boost::python::list position);
+	NavAgent SpawnNavigationAgent(const std::string& path,
+							      const std::string& label,
+							      const boost::python::list position);
 
 	// Scene Generation
 	void Clear();
@@ -112,6 +161,19 @@ public:
 	void CreateSceneFromSUNCG();
 	void CreateRandomGenerateScene();
 	void CreateEmptySceneWithBuildingBlock();
+
+	// Random Scene
+	void LoadRandomSceneConfigure(const boost::python::dict conf);
+	boost::python::list LoadRandomScene(const int size, 
+										const int on_floor,
+										const int on_object,
+										const int on_either);
+
+	// Load SUNCG
+	void LoadSUNCG(const std::string& house,
+				   const std::string& metadata,
+				   const std::string& suncg_data_dir,
+				   const int filter = -1);
 
 	// Object Generation
 	Thing SpawnAnObject(const std::string& file, 
@@ -132,15 +194,10 @@ public:
 	boost::python::dict GetObservationSpace();
 	boost::python::dict GetActionSpace();
 
-	// Utils
-	bool GameOver() const { return gameover_; }
-
 	// Sensors
 	float GetNearClippingDistance();
 	float GetFarClippingDistance();
 	boost::python::object GetCameraRGBDRaw();
-	boost::python::object GetCameraRGBRaw();
-	boost::python::object GetCameraDepthRaw();
 
 	// Object (Robot) Movement
 	void MoveForward(const float speed = 1);
@@ -158,7 +215,9 @@ public:
 	void Rotate(const boost::python::list angle_py);
 	void TakeAction(const int action_id);
 	void Teleport(Thing object, const boost::python::list position_py);	
-	void ControlJoints(const Thing& object, const boost::python::list joint_positions);
+	void ControlJoints(const Thing& object, 
+					   const boost::python::dict joint_positions,
+					   const float max_force);
 	boost::python::list EnableInteraction();
 	void DisableInteraction();
 
@@ -169,6 +228,10 @@ public:
 	bool QueryObjectWithLabelNearMe(const std::string& label);
 	Thing QueryObjectAtCameraCenter();
 	boost::python::list QueryObjectByLabel(const std::string& label);
+
+	// Utils
+	boost::python::dict GetStatus() const;
+	bool GameOver() const { return gameover_; }
 
 	// Debug
 	bool GetKeyPressUp() { return ctx_->GetKeyPressUp(); }
@@ -188,11 +251,11 @@ private:
 	float camera_aspect_;
 	float camera_pitch_;
 	
+	bool kill_after_arrived_;
 	bool gameover_;
-
 	bool interact_;
 	Thing agent_;
-	
+
 	std::shared_ptr<Map> scene_;
 	std::shared_ptr<Inventory> inventory_;
 	std::shared_ptr<Navigation> crowd_;
@@ -220,13 +283,28 @@ void def_py_init()
 	.def("__eq__", &Thing::__eq__)
 	;
 
+	class_<NavAgent>("NavAgent", no_init)
+	.def("GetLabel", &NavAgent::GetLabel)
+	.def("__eq__", &NavAgent::__eq__)
+	;
+
 	class_<Playground>("Playground", init<int,int,int,int>())
 	.def("SetLighting", &Playground::SetLighting)
 	.def("EnableLidar", &Playground::EnableLidar)
 	.def("UpdateLidar", &Playground::UpdateLidar)
 	.def("EnableInventory", &Playground::EnableInventory)
+	.def("EnableNavigation", &Playground::EnableNavigation)
+	.def("AssignAgentRadius", &Playground::AssignAgentRadius)
+	.def("BakeNavigationMesh", &Playground::BakeNavigationMesh)
+	.def("AssignNavigationAgentTarget", &Playground::AssignNavigationAgentTarget)
+	.def("SpawnNavigationAgent", &Playground::SpawnNavigationAgent)
 	.def("Clear", &Playground::Clear)
 	.def("CreateAnTestScene", &Playground::CreateAnTestScene)
+	.def("CreateSceneFromSUNCG", &Playground::CreateSceneFromSUNCG)
+	.def("CreateRandomGenerateScene", &Playground::CreateRandomGenerateScene)
+	.def("LoadRandomSceneConfigure", &Playground::LoadRandomSceneConfigure)
+	.def("LoadRandomScene", &Playground::LoadRandomScene)
+	.def("LoadSUNCG", &Playground::LoadSUNCG)
 	.def("SpawnAnObject", &Playground::SpawnAnObject)
 	.def("AttachCameraTo", &Playground::AttachCameraTo)
 	.def("Initialize", &Playground::Initialize)
@@ -245,6 +323,7 @@ void def_py_init()
 	.def("Detach", &Playground::Detach)
 	.def("Rotate", &Playground::Rotate)
 	.def("TakeAction", &Playground::TakeAction)
+	.def("ControlJoints", &Playground::ControlJoints)
 	.def("Teleport", &Playground::Teleport)
 	.def("GetCameraRGBDRaw", &Playground::GetCameraRGBDRaw)
 	.def("QueryObjectAABBIntersect", &Playground::QueryObjectAABBIntersect)
@@ -258,6 +337,8 @@ void def_py_init()
 	.def("GetObservationSpace", &Playground::GetObservationSpace)
 	.def("GetActionSpace", &Playground::GetActionSpace)
 
+	.def("GetStatus", &Playground::GetStatus)
+
 	.def("GetKeyPressUp", &Playground::GetKeyPressUp)
 	.def("GetKeyPressDown", &Playground::GetKeyPressDown)
 	.def("GetKeyPressRight", &Playground::GetKeyPressRight)
@@ -270,15 +351,22 @@ void def_py_init()
 	.def("GetKeyPressKP6", &Playground::GetKeyPressKP6)
 	;
 
+	// scope().attr("NO_AA")               = 0;
+	// scope().attr("AA")                  = 1;
 	scope().attr("HEADLESS")            = 1;
-	scope().attr("VISUALIZATION")       = 0;
+	scope().attr("DEBUG_VISUALIZATION") = 0;
+	scope().attr("GRID")                = 0;
+	scope().attr("SUNCG")               = 1;
+	scope().attr("REMOVE_NONE")         = -1;
+	scope().attr("REMOVE_STAIR")        = 1;
+	scope().attr("REMOVE_DOOR")         = 2;
 	scope().attr("WORLD_UP")            = boost::python::make_tuple(0, 1, 0);
 	scope().attr("METACLASS_WALL")      = std::string("Wall");
 	scope().attr("METACLASS_FLOOR")     = std::string("Floor");
 	scope().attr("METACLASS_CEILING")   = std::string("Ceiling");
-	scope().attr("RENDER_QUALITY_LOW")  = render_engine::kLowQuality;
-	scope().attr("RENDER_QUALITY_MED")  = render_engine::kNormalQuality;
-	scope().attr("RENDER_QUALITY_HIGH") = render_engine::kHighQuality;
+	scope().attr("RENDER_QUALITY_LOW")     = render_engine::kLowQuality;
+	scope().attr("RENDER_QUALITY_NORMAL")  = render_engine::kNormalQuality;
+	scope().attr("RENDER_QUALITY_HIGH")    = render_engine::kHighQuality;
 }
 
 BOOST_PYTHON_MODULE(libxrobot)
