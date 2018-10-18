@@ -15,7 +15,7 @@ class XRobotEnv(object):
                                         RENDER_QUALITY_NORMAL)
 
         self.task_group = TaskGroup("TaskGroup")
-        self.task_group.add_task("Navigation_1", XRobot3DNavTarget(self.env))
+        self.task_group.add_task("Navigation_1", XRobot3DNavAgentTarget(self.env))
 
     def reset(self):
         self.env.Clear()
