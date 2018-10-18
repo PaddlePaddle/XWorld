@@ -1,16 +1,21 @@
 import cv2
 import numpy as np
-import libxrobot
+from libxrobot import *
 from teaching_task import *
-from test_task import *
+from py_nav_task import *
+from py_suncg_task import *
+from py_random_task import *
+from py_nav_agent_task import *
 
 class XRobotEnv(object):
     def __init__(self, contexts = 1):
-        self.env = libxrobot.Playground(640, 480, libxrobot.HEADLESS, 2)
+        self.env = libxrobot.Playground(640, \
+                                        480, \
+                                        HEADLESS, \
+                                        RENDER_QUALITY_NORMAL)
 
         self.task_group = TaskGroup("TaskGroup")
-        task_nav   = XRobot3DNavTarget(self.env)
-        self.task_group.add_task("Navigation", task_nav)
+        self.task_group.add_task("Navigation_1", XRobot3DNavTarget(self.env))
 
     def reset(self):
         self.env.Clear()
@@ -63,6 +68,9 @@ while (not env.game_over()):
         action = 8
     elif key == 51: # kp3
         action = 9
+    elif key == 27: # ESC
+        break;
 
+    # update
     env.step(action)
     env.render()

@@ -931,11 +931,10 @@ Render::~Render() {
         glDeleteVertexArrays(1, &voxel_vao_);
     }
 
-    glDeleteTextures(1, &reflection_map_);
-    glDeleteVertexArrays(1, &crosshair_vao_);
+    // glDeleteBuffers(1, &crosshair_vbo_);
+    // glDeleteVertexArrays(1, &crosshair_vao_);
     glDeleteVertexArrays(1, &cube_vao_);
     glDeleteVertexArrays(1, &quad_vao_);
-    glDeleteBuffers(1, &crosshair_vbo_);
     glDeleteBuffers(1, &cube_vbo_);
     glDeleteBuffers(1, &quad_vbo_);
     glDeleteBuffers(2, pixel_buffers_);
@@ -945,7 +944,9 @@ Render::~Render() {
         delete multiplied_framebuffer_list_[i];
     }
 
-    delete free_camera_framebuffer_;
+    if(free_camera_framebuffer_)
+      delete free_camera_framebuffer_;
+    
     img_buffers_.clear();
 
     CloseContext(ctx_);
@@ -1752,7 +1753,7 @@ void Render::Visualization() {
 
 int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     GetDeltaTime();
-    //GetFrameRate();
+    GetFrameRate();
 
     ProcessMouse();
     ProcessInput();
@@ -2063,9 +2064,9 @@ void Render::GetFrameRate() {
     all_rendered_frames_ += 1;
     max_framerate_ = glm::max(max_framerate_, current_framerate_);
 
-    std::string framerate_str = "FPS: " + std::to_string((int)current_framerate_);
+    //std::string framerate_str = "FPS: " + std::to_string((int)current_framerate_);
 
-    printf("%s\n", framerate_str.c_str());
+    //printf("%s\n", framerate_str.c_str());
     //ctx_->SetTitle(framerate_str.c_str());
 }
 

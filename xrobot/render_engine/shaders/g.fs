@@ -105,9 +105,17 @@ void main()
     }
 
     vec3 diffuse = kD;
+    float alpha = 0;
     if(diffuseMap == 1)
     {
-        diffuse = texture(texture_diffuse0, texcoords_).rgb;
+        vec4 color = texture(texture_diffuse0, texcoords_);
+        diffuse = color.rgb;
+        alpha = color.a;
+
+        if(alpha < 0.01)
+        {
+            discard;
+        }
     }
 
     float roughness = 1.0f - clamp(Ns / 100.0f, 0.0f, 1.0f);

@@ -57,6 +57,7 @@ namespace xrobot {
 		float speed_;
 		float distance_;
 		float angle_;
+		int uid_;
 		glm::vec3 last_direction_;
 		glm::vec3 current_position_;
 		glm::vec3 target_position_;
@@ -152,6 +153,7 @@ namespace xrobot {
 			const glm::vec3 world_min,
 			const glm::vec3 world_max);
 
+		void SetAgentRadius(const float radius) { agent_radius_ = radius; }
 		void SetSurfaceLevel(const float level) { surface_level_ = level; }
 		Grid GetGrid() { return grid_map_; }
 		GLuint GetGridTexture() { return grid_texture_; }
@@ -175,6 +177,7 @@ namespace xrobot {
 		// Voxelize
 		void Voxelization();
 
+		float agent_radius_;
 		float surface_level_;
 		glm::vec3 world_min_, world_max_;
 		unsigned int width_, length_;
@@ -188,6 +191,7 @@ namespace xrobot {
 		PathRequestManager request_manager_;
 		int update_counter_;
 		int counter_;
+		int agent_id_base_;
 	};
 }
 

@@ -1,19 +1,7 @@
 #ifndef MAP_SUNCG_H_
 #define MAP_SUNCG_H_
 
-#include <iostream>
-#include <random>
-#include <set>
-#include <string>
-#include <unordered_map>
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/matrix_decompose.hpp"
-
-#include "world.h"
-#include "AABB.h"
-#include "utils.h"
-#include "vendor/json.h"
+#include "map.h"
 
 using namespace glm;
 
@@ -30,7 +18,7 @@ namespace xrobot
 		bool concave;
 	};
 
-	class MapSuncg
+	class MapSuncg : public Map
 	{
 	public:
 		MapSuncg();
@@ -51,7 +39,6 @@ namespace xrobot
 
 		void AddPhysicalProperties(const std::string& label, const Properity& prop);
 
-		std::shared_ptr<World> world_;
 		std::shared_ptr<AABB> map_AABB_;
 		std::unordered_map<int, std::string> map_bullet_label_; // Not Useful?????
 		std::unordered_map<std::string, std::string> all_labels_;

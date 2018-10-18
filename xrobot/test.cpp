@@ -30,7 +30,7 @@ int main(int argc, char **argv)
         render_profile = render_engine::RenderSettings(atoi(argv[1]));
     }
 
-    std::shared_ptr<Map> scene(new Map());
+    std::shared_ptr<MapGrid> scene(new MapGrid());
     std::shared_ptr<MapSuncg> scene_suncg(new MapSuncg());
     std::shared_ptr<render_engine::Render> renderer(
         new render_engine::Render(w, h, 1, render_profile, false)
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 
     while(!renderer->ctx_->GetWindowShouldClose())
     {
-        group2.RunStage();
+        group4.RunStage();
     }
 
     return 0;

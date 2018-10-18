@@ -180,7 +180,7 @@ inline GLContext* CreateContext(int h, int w, int device=0) {
 }
 
 inline GLContext* CreateHeadlessContext(int h, int w, int device=0) {
-    // #define USE_EGL
+    //#define USE_EGL
     #ifdef USE_EGL
 	   return new EGLContext{h, w};		
     #else

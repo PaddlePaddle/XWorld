@@ -62,7 +62,7 @@ class TaskGroup(object):
 
 	def run_stage(self):
 		if self.busy_task == None or self.busy_task.is_idle():
-			rand = random.randint(0, len(self.task_list)) - 1
+			rand = random.randint(0, len(self.task_list) - 1)
 			self.busy_task = self.task_list[rand]
 			self.busy_task.reset()
 		if self.busy_task != None:
