@@ -182,6 +182,9 @@ void Agent::FollowPath() {
     if(path_.size() < 1)
         return;
 
+    if(target_index_ >= path_.size())
+	    return;
+
     if(auto robot_sptr = robot_.lock()) {
 
         //Update Current Status
