@@ -1497,7 +1497,7 @@ namespace xrobot
 
 		// Generate New Agent
 		if(iterations_ % 400 == 0) {
-			crowd_->SpawnAgent(glm::vec3(0,0,0), crate03, "moving_agent");
+			crowd_->SpawnAgent(glm::vec3(0,0,0), glm::quat(1,0,0,0), crate03, "moving_agent");
 			crowd_->crowd_.back().AssignTarget(glm::vec3(8,0,8));
 		}
 

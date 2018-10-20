@@ -20,10 +20,11 @@ class XRobot3DNavTarget(TaskInterface):
 		self.env.Clear()
 		self.env.CreateAnTestScene()
 
-		x = random.randint(1, 8)
-		y = random.randint(1, 8)
+		x = random.randint(2, 7)
+		y = random.randint(2, 7)
 
-		self.env.SpawnAnObject("./crate_1/crate.urdf", [x,0,y], [1,0,0,0], 1.0, "Crate", False)
+		self.env.SpawnAnObject("./data/door.json", [x,0,y], [-1,0,0,1.57], 1.0, "Door", False)
+		# self.env.SpawnAnObject("./crate_1/crate.urdf", [x,0,y], [1,0,0,0], 1.0, "Crate", False)
 		self.agent = self.env.SpawnAnObject("husky/husky.urdf", [2,0,2], [-1,0,0,1.57], 1.0, "Agent", True)
 		self.env.AttachCameraTo(self.agent, [0.3,1.3,0.0])
 		self.env.Initialize()

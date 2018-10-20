@@ -79,6 +79,24 @@ boost::python::dict Playground::GetStatus() const
 
 void Playground::SetLighting(const boost::python::dict lighting)
 {
+    if(lighting.has_key("direction_x"))
+    {
+        boost::python::extract<float> val(lighting["direction_x"]);
+        renderer_->sunlight_.direction.x = val;
+    }
+
+    if(lighting.has_key("direction_y"))
+    {
+        boost::python::extract<float> val(lighting["direction_y"]);
+        renderer_->sunlight_.direction.y = val;
+    }
+
+    if(lighting.has_key("direction_z"))
+    {
+        boost::python::extract<float> val(lighting["direction_z"]);
+        renderer_->sunlight_.direction.z = val;
+    }
+
     if(lighting.has_key("ambient"))
     {
         boost::python::extract<float> val(lighting["ambient"]);
@@ -234,6 +252,12 @@ void Playground::AssignAgentRadius(const float radius)
         crowd_->SetAgentRadius(radius);
 }
 
+void Playground::AssignSurfaceLevel(const float level)
+{
+    if(crowd_)
+        crowd_->SetSurfaceLevel(level);
+}
+
 void Playground::BakeNavigationMesh()
 {
     if(crowd_) {
@@ -244,10 +268,11 @@ void Playground::BakeNavigationMesh()
 
 NavAgent Playground::SpawnNavigationAgent(const std::string& path,
                                           const std::string& label,
-                                          const boost::python::list position)
+                                          const boost::python::list position,
+                                          const boost::python::list orientation)
 {
     if(crowd_) {
-        crowd_->SpawnAgent(list2vec3(position), path, label);
+        crowd_->SpawnAgent(list2vec3(position), list2quat(orientation), path, label);
         
         Agent agent_temp = crowd_->crowd_.back();
         NavAgent nav_agent(agent_temp.uid_, label);
@@ -596,8 +621,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 {
     assert(action < 14 && action > -1);
 
-    boost::python::list actions;
-
     if(!interact_) {
         if(action == 0) {
             MoveForward(25);
@@ -636,15 +659,16 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             rotate_angle.append(0);
             Rotate(rotate_angle);
         }
+        else if(action == 11) {
+            current_actions_ = EnableInteraction();
+        }
     } else {
-        if(action == 11) {
-            actions = EnableInteraction();
-        }
-        else if(action == 12) {
+        if(action == 12) {
             DisableInteraction();
+            current_actions_ = boost::python::list();
         }
-        else if(action == 13) {
-            //Do Nothing...
+        else if(action < 10) {
+            TakeAction(action);
         }
     }
 
@@ -659,7 +683,7 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 
     boost::python::dict ret;
     ret["reward"] = -0.1f;
-    ret["actions"] = actions;
+    ret["actions"] = current_actions_;
 
     // reward, possible interactions
     return ret;

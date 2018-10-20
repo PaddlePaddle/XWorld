@@ -11,11 +11,11 @@ namespace render_engine {
 
 const EGLint EGLconfigAttribs[] = {
     EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
-  EGL_BLUE_SIZE, 8,
-  EGL_GREEN_SIZE, 8,
-  EGL_RED_SIZE, 8,
-  EGL_DEPTH_SIZE, 24,
-  EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+    EGL_BLUE_SIZE, 8,
+    EGL_GREEN_SIZE, 8,
+    EGL_RED_SIZE, 8,
+    EGL_DEPTH_SIZE, 8,
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
     EGL_NONE
 };
 
@@ -27,16 +27,16 @@ const EGLint EGLpbufferAttribs[] = {
 
 const EGLint ctxattr[] = {
     EGL_CONTEXT_MAJOR_VERSION, 3,
-    EGL_CONTEXT_MINOR_VERSION, 3,
+    EGL_CONTEXT_MINOR_VERSION, 0,
     EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
     EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
     EGL_NONE
 };
 
 const int GLXcontextAttribs[] = {
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+    GLX_CONTEXT_MAJOR_VERSION_ARB, 1,
     GLX_CONTEXT_MINOR_VERSION_ARB, 4,
-    GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+    //GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
     None
 };
 
@@ -176,6 +176,32 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
                                          visualAttribs,
                                          &numberOfFramebufferConfigurations);
     
+    printf("num of conf: %d\n", numberOfFramebufferConfigurations);
+
+
+    std::cout << "Getting best XVisualInfo\n";
+    int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
+    for (int i = 0; i < numberOfFramebufferConfigurations; ++i) {
+        XVisualInfo *vi = glXGetVisualFromFBConfig( dpy_, fbc[i] );
+        if ( vi != 0) {
+            int samp_buf, samples;
+            glXGetFBConfigAttrib( dpy_, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
+            glXGetFBConfigAttrib( dpy_, fbc[i], GLX_SAMPLES       , &samples  );
+            
+            if ( best_fbc < 0 || (samp_buf && samples > best_num_samp) ) {
+                best_fbc = i;
+                best_num_samp = samples;
+            }
+            if ( worst_fbc < 0 || !samp_buf || samples < worst_num_samp ) {
+                worst_fbc = i;
+            }
+            worst_num_samp = samples;
+        }
+        XFree( vi );
+    }
+    std::cout << "Best visual info index: " << best_fbc << "\n";
+    GLXFBConfig bestFbc = fbc[ best_fbc ]; 
+
     // setup function pointers
     typedef GLXContext (*glXCreateContextAttribsARBProc)
                        (Display*, GLXFBConfig, GLXContext, Bool, const int*);
@@ -183,11 +209,26 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
     glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc) 
             glXGetProcAddressARB((const GLubyte *)"glXCreateContextAttribsARB");
 
+    printf("pass glx context\n");
+
+    int context_attribs[] =
+    {
+        GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+        GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+        //GLX_CONTEXT_FLAGS_ARB        , GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+        None
+    };
+
     GLXContext openGLContext = glXCreateContextAttribsARB(
-            dpy_, fbc[0], 0, True, GLXcontextAttribs);
+            dpy_, bestFbc, 0, True, context_attribs);
     
-    GLXPbuffer pbuffer = glXCreatePbuffer(dpy_, fbc[0], GLXpbufferAttribs);
+    printf("pass gl context\n");
+
+    GLXPbuffer pbuffer = glXCreatePbuffer(dpy_, bestFbc, GLXpbufferAttribs);
     
+    printf("pass pbuffer\n");
+
     XFree(fbc);
     XSync(dpy_, False);
     if (!glXMakeContextCurrent(dpy_, pbuffer, pbuffer, openGLContext)) {
@@ -196,6 +237,7 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
         exit(1);
     }
     
+    printf("pass glx make current\n");
     this->Init();
 }
 
@@ -412,7 +454,8 @@ GLFWContext::GLFWContext(int h, int w, bool core) :
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, false);
-        //glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
+        // glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
+        // glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
     }
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     
@@ -539,14 +582,14 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
     
     GLint glxAttribs[] = {
         GLX_X_RENDERABLE    , True,
-        //GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-        //GLX_RENDER_TYPE     , GLX_RGBA_BIT,
-        //GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
+        GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
+        GLX_RENDER_TYPE     , GLX_RGBA_BIT,
+        GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
         GLX_RED_SIZE        , 8,
         GLX_GREEN_SIZE      , 8,
         GLX_BLUE_SIZE       , 8,
-        // GLX_ALPHA_SIZE      , 8,
-        //GLX_DEPTH_SIZE      , 24,
+        GLX_ALPHA_SIZE      , 8,
+        GLX_DEPTH_SIZE      , 24,
         //GLX_STENCIL_SIZE    , 8,
         //GLX_DOUBLEBUFFER    , True,
         None
@@ -597,6 +640,8 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
         exit(1);
     }
     
+    printf("pass conf\n");
+
     XSetWindowAttributes windowAttribs;
     windowAttribs.border_pixel = BlackPixel(dpy_, scnId_);
     windowAttribs.background_pixel = WhitePixel(dpy_, scnId_);
@@ -606,6 +651,9 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
                                              visual->visual,
                                              AllocNone);
     windowAttribs.event_mask = ExposureMask;
+
+    printf("pass color map\n");
+
     win_ = XCreateWindow(dpy_,
                          RootWindow(dpy_, scnId_),
                          0,
@@ -619,6 +667,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
                          CWBackPixel | CWColormap | CWBorderPixel | CWEventMask,
                          &windowAttribs);
     
+    printf("pass create window\n");
     
     // setup function pointers
     typedef GLXContext (*glXCreateContextAttribsARBProc)
@@ -628,8 +677,10 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
             glXGetProcAddressARB((const GLubyte *)"glXCreateContextAttribsARB");
 
     GLXContext openGLContext = glXCreateContextAttribsARB(
-            dpy_, fbc[0], 0, true, GLXcontextAttribs);
+            dpy_, bestFbc, 0, true, GLXcontextAttribs);
     
+    printf("pass gl context\n");
+
     XFree( fbc );
     XSync(dpy_, false);
     

@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 
     while(!renderer->ctx_->GetWindowShouldClose())
     {
-        group4.RunStage();
+        group2.RunStage();
     }
 
     return 0;

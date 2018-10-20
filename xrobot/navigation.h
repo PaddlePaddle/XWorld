@@ -143,6 +143,7 @@ namespace xrobot {
 		~Navigation();
 
 		void SpawnAgent(const glm::vec3 position,
+						const glm::quat orientation,
 						const std::string& path, 
 						const std::string& label);
 		void KillAgentOnceArrived();

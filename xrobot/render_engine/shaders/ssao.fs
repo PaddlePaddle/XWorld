@@ -9,21 +9,21 @@ in vec2 TexCoords;
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D texNoise;
-
 uniform vec3 samples[64];
+uniform float height = 640;
+uniform float width = 480;
 
 int kernelSize = 64;
 float radius = 0.5;
 float bias = 0.025;
 float scale = 1.2f;
 
-const vec2 noiseScale = vec2(640.0/4.0, 480.0/4.0); 
-
 uniform mat4 projection;
 uniform mat4 view;
 
 void main()
 {
+    vec2 noiseScale = vec2(height/4.0, width/4.0); 
     vec3 fragPos = vec3(view * vec4(texture(gPosition, TexCoords).xyz, 1));
     vec3 normal = -normalize(mat3(view) * texture(gNormal, TexCoords).xyz);
     vec3 randomVec = normalize(texture(texNoise, TexCoords * noiseScale).xyz);

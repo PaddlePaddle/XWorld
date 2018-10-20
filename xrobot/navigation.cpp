@@ -138,6 +138,7 @@ void Navigation::Reset()
 
 // Testing
 void Navigation::SpawnAgent(const glm::vec3 position,
+                            const glm::quat orientation,
                             const std::string& path, 
                             const std::string& label)
 {
@@ -145,7 +146,7 @@ void Navigation::SpawnAgent(const glm::vec3 position,
     std::weak_ptr<RobotBase> robot = world_->LoadRobot(
         path,
         btVector3(position.x, 0.001, position.z),
-        btQuaternion(btVector3(1,0,0),0),
+        btQuaternion(orientation.x,orientation.y,orientation.z,orientation.w),
         btVector3(1, 1, 1),
         label,
         false
@@ -689,20 +690,33 @@ void Navigation::Update()
         }
 
         // Update Agent Status
+        
+        // TODO
+        // Agent Rotation
         auto robot = crowd_[i].robot_;
 
         if(auto robot_sptr = robot.lock()) {
 
+            btQuaternion orn = btQuaternion(btVector3(-1,0,0), 1.57);
+
             glm::vec3 next_position = crowd_[i].current_position_;
             
             glm::vec3 current_direction = glm::normalize(next_position - last_position);
-            float cos_angle = glm::dot(current_direction, glm::vec3(0,0,1));
-            float angle = glm::acos(glm::clamp(cos_angle, -1.0f, 1.0f));    
+            float angle = glm::angle(current_direction, glm::vec3(-1,0,0));
+
+            // if(glm::abs(angle - crowd_[i].angle_) > 0.05f)
+            // {
+            //     crowd_[i].current_position_ = last_position;
+            //     next_position = last_position;
+            // }
+
             crowd_[i].angle_ = crowd_[i].angle_ + glm::sign(angle - crowd_[i].angle_) * 0.01f;
+
+            btQuaternion angle_orn = btQuaternion(btVector3(0,1,0), crowd_[i].angle_);
 
             btTransform transform_temp;
             transform_temp.setIdentity();
-            transform_temp.setRotation(btQuaternion(btVector3(0,1,0), crowd_[i].angle_));
+            transform_temp.setRotation(angle_orn * orn);
             transform_temp.setOrigin(
                 btVector3(next_position.x, next_position.y, next_position.z)
             );
@@ -862,7 +876,7 @@ void Navigation::Voxelization()
                 if(count > depth_map_.size() / 2) {
                     // Find Surface Level
                     surface_level_ = depth_map_[i];
-                    printf("Find Surface Level: %f\n", surface_level_);
+                    //printf("Find Surface Level: %f\n", surface_level_);
                     break;
                 } else {
                     major[depth_map_[i]] = count;

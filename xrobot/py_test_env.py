@@ -8,20 +8,19 @@ from py_random_task import *
 from py_nav_agent_task import *
 
 class XRobotEnv(object):
-    def __init__(self, contexts = 1):
+    def __init__(self):
         self.env = libxrobot.Playground(640, \
                                         480, \
-                                        HEADLESS, \
-                                        RENDER_QUALITY_NORMAL)
+                                        # DEBUG_VISUALIZATION, \
+					                    HEADLESS, \
+                                        RENDER_QUALITY_LOW)
 
         self.task_group = TaskGroup("TaskGroup")
-        self.task_group.add_task("Navigation_1", XRobot3DNavAgentTarget(self.env))
+        self.task_group.add_task("Navigation_1", XRobot3DRandom(self.env))
+        # self.task_group.add_task("Navigation_2", XRobot3DNavAgentTarget(self.env))
 
     def reset(self):
         self.env.Clear()
-
-    def get_max_steps(self):
-        return 100 # self.gym_env._max_episode_steps
 
     def step(self, action, actrep=1):
         self.task_group.run_stage()
@@ -65,9 +64,9 @@ while (not env.game_over()):
     elif key == 57: # 0
         action = 5
     elif key == 54: # kp6
-        action = 8
+        action = 11
     elif key == 51: # kp3
-        action = 9
+        action = 12
     elif key == 27: # ESC
         break;
 
