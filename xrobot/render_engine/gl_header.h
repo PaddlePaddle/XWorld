@@ -7,6 +7,8 @@
 #ifndef GL_HEADER_H_
 #define GL_HEADER_H_
 
+// #include <GL/glew.h>
+
 #ifdef __linux__
 	#define GL_GLEXT_PROTOTYPES
 	#include <GL/gl.h>

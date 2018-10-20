@@ -172,6 +172,7 @@ protected:
 };
 
 inline GLContext* CreateContext(int h, int w, int device=0) {
+    //#define USE_GLX
     #ifdef USE_GLX
         return new GLXVisualizationContext{h, w};
     #else
@@ -180,6 +181,10 @@ inline GLContext* CreateContext(int h, int w, int device=0) {
 }
 
 inline GLContext* CreateHeadlessContext(int h, int w, int device=0) {
+
+    //glewExperimental = GL_TRUE;
+    //glewInit();
+
     //#define USE_EGL
     #ifdef USE_EGL
 	   return new EGLContext{h, w};		

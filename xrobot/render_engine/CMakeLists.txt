@@ -1,4 +1,5 @@
 find_package(OpenGL REQUIRED)
+# find_package(GLEW REQUIRED)
 
 include(assimp)
 include(glm)
@@ -26,7 +27,7 @@ set(EGL_LIBRARIES "/usr/lib/nvidia-396/libEGL.so")
 
 
 target_include_directories(render_engine PUBLIC
-    ${EGL_INCLUDE_DIRS}
+    # ${GLEW_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
     ${EGL_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
@@ -34,6 +35,7 @@ target_include_directories(render_engine PUBLIC
     ${BULLET_INCLUDE_DIRS})
 
 set(DEP_LIBS
+    # ${GLEW_LIBRARIES}
     ${DEP_LIBS}
     ${EGL_LIBRARIES}
     ${ASSIMP_LIBRARIES}
@@ -43,6 +45,7 @@ set(DEP_LIBS
     PARENT_SCOPE)
 
 set(DEP_INCLUDES
+    # ${GLEW_INCLUDE_DIRS}
     ${DEP_INCLUDES}
     ${EGL_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}

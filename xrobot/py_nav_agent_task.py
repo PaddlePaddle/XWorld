@@ -24,10 +24,10 @@ class XRobot3DNavAgentTarget(TaskInterface):
 
 		self.env.SpawnAnObject("./crate_1/crate.urdf", [5,0,5], [1,0,0,0], 1.0, "Crate", True)
 		self.env.SpawnAnObject("./crate_1/crate.urdf", [4,0,4], [1,0,0,0], 1.0, "Crate", True)
-		self.env.AssignAgentRadius(0.5)
+		self.env.AssignAgentRadius(0.2)
 		self.env.BakeNavigationMesh()
 
-		self.nav_agent = self.env.SpawnNavigationAgent("./crate_0.3/crate.urdf", "NavAgent", [2,0,0])
+		self.nav_agent = self.env.SpawnNavigationAgent("./crate_0.3/crate.urdf", "NavAgent", [2,0,0], [1,0,0,0])
 		self.env.AssignNavigationAgentTarget(self.nav_agent, [8, 0, 8])
 
 		self.agent = self.env.SpawnAnObject("husky/husky.urdf", [2,0,2], [-1,0,0,1.57], 1.0, "Agent", True)

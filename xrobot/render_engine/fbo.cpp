@@ -17,14 +17,16 @@ FBO::FBO(GLuint w,
 	this->needDepthBuffer = depthBuffer;
     this->needSigBuffer = sigBuffer;
 
-	// GLint previousFrameBuffer;
-	// glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFrameBuffer);
+	GLint previousFrameBuffer;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFrameBuffer);
+
 
 	glGenFramebuffers(1, &frameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
 	glGenTextures(1, &textureColorBuffer);
 	glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
