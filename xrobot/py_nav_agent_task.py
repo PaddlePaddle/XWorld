@@ -17,6 +17,8 @@ class XRobot3DNavAgentTarget(TaskInterface):
 		return stages
 
 	def start(self):
+		self.env.SetLighting({ "ssr": True })
+
 		self.env.Clear()
 		self.env.CreateAnTestScene()
 		self.env.EnableInventory(10)

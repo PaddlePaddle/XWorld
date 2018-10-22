@@ -103,6 +103,12 @@ void Playground::SetLighting(const boost::python::dict lighting)
         renderer_->sunlight_.ambient = glm::vec3(val);
     }
 
+    if(lighting.has_key("ssr"))
+    {
+        boost::python::extract<float> val(lighting["ssr"]);
+        renderer_->lighting_.use_ssr = val > 0;
+    }
+
     if(lighting.has_key("exposure"))
     {
         boost::python::extract<float> val(lighting["exposure"]);

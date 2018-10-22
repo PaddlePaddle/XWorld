@@ -20,6 +20,8 @@ class XRobot3DSUNCG(TaskInterface):
 		return stages
 
 	def start(self):
+		self.env.SetLighting({ "ssr": True })
+
 		self.env.EnableInventory(1)
 		self.env.Clear()
 		self.env.CreateSceneFromSUNCG()

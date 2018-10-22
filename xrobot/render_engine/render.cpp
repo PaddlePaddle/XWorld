@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 //#define DYN_VOXEL
 
 #include <unistd.h>
@@ -121,8 +121,8 @@ Render::Render(const int width,
     else
     {
         InitGBuffer(); // Deferred
-        // InitFXAA();
         InitSSAO();
+        InitSSR();
 
         if(settings_.use_vct)
         {
@@ -910,6 +910,12 @@ Render::~Render() {
     glDeleteTextures(1, &ssao_tex_);
     glDeleteTextures(1, &ssao_tex_blur_);
 
+    if(lighting_.use_ssr)
+    {
+        glDeleteFramebuffers(1, &ssr_fbo_);
+        glDeleteTextures(1, &ssr_tex_);
+    }
+
     if(settings_.use_deferred)
     {
         glDeleteFramebuffers(1, &g_buffer_fbo_);
@@ -1565,7 +1571,6 @@ void Render::StepRenderAllCameras(RenderWorld* world,
 
         // TODO
         // Shadow / SSAO in FS
-
         glBindFramebuffer(
                 GL_FRAMEBUFFER, camera_framebuffer_list_[i]->frameBuffer); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1621,7 +1626,10 @@ void Render::StepRenderGetDepthAllCameras() {
         if(!settings_.use_deferred) {
             camera_framebuffer_list_[i]->ActivateAsTexture(multiply_shader.id(), "tex", 0);
         } else {
-            glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
+            if(lighting_.use_ssr)
+                glBindTexture(GL_TEXTURE_2D, ssr_tex_);
+            else
+                glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
             glUniform1i(glGetUniformLocation(multiply_shader.id(), "tex"), 0);
         }
 
@@ -1738,17 +1746,25 @@ void Render::Visualization() {
         shaders_[kColor].use();
         free_camera_framebuffer_->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
         RenderQuad();
-    #endif
 
-    glViewport(0, 0, width_, height_);
-    shaders_[kColor].use();
-    multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
-    RenderQuad();
+        glViewport(0, 0, width_, height_);
+        shaders_[kColor].use();
+        multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kColor].id(), "tex", 0);
+        RenderQuad();
 
-    glViewport(2 * width_ / 3, 2 * height_ / 3, width_ / 3, height_ / 3);
-    shaders_[kDepth].use();
-    multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
-    RenderQuad();
+        glViewport(2 * width_ / 3, 2 * height_ / 3, width_ / 3, height_ / 3);
+        shaders_[kDepth].use();
+        multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
+        RenderQuad();
+
+    // glViewport(width_, 0, width_, height_);
+    // shaders_[kColor].use();
+    // shaders_[kColor].setInt("tex", 0);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, ssr_tex_);
+    // RenderQuad();
+
+  #endif
 }
 
 int Render::StepRender(RenderWorld* world, int pick_camera_id) {
@@ -1783,6 +1799,8 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     } else {
         StepRenderAllCamerasDeferred(world, picks, pick_camera_id >= 0);
         SSAO(world);
+        if(lighting_.use_ssr)
+            SSR(world);
     }
 
     if(pick_camera_id >= 0)
@@ -1793,6 +1811,55 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
 
     num_frames_++;
     return pick_result;
+}
+
+void Render::InitSSR() {
+    glGenFramebuffers(1, &ssr_fbo_);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssr_fbo_);
+    glGenTextures(1, &ssr_tex_);
+    glBindTexture(GL_TEXTURE_2D, ssr_tex_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width_, height_, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssr_tex_, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "SSR Framebuffer not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Render::SSR(RenderWorld* world) {
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glClearColor(0,0,0,0);
+
+    // SSR Pass
+    {
+        auto shaderSSR = shaders_[kSSR];
+
+        Camera* camera = world->camera(0);
+        glm::mat4 projection = camera->GetProjectionMatrix();
+        glm::mat4 view = camera->GetViewMatrix();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, ssr_fbo_);
+            glViewport(0, 0, width_, height_);
+            glClear(GL_COLOR_BUFFER_BIT);
+            shaderSSR.use();
+            shaderSSR.setMat4("projection", projection);
+            shaderSSR.setMat4("view", view);
+            shaderSSR.setInt("renderedTexture", 0);
+            shaderSSR.setInt("gPositionDepth", 1);
+            shaderSSR.setInt("gNormal", 2);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, g_position_);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, g_normal_);
+            RenderQuad();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 }
 
 void Render::InitSSAO() {
@@ -1903,7 +1970,7 @@ void Render::SSAO(RenderWorld* world) {
             shaderSSAO.setInt("gNormal", 1);
             shaderSSAO.setInt("texNoise", 2);
             shaderSSAO.setFloat("height", height_);
-            shaderSSAO.setFloat("width_", width_);
+            shaderSSAO.setFloat("width", width_);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, g_position_);
             glActiveTexture(GL_TEXTURE1);
@@ -2051,6 +2118,9 @@ void Render::InitShaders() {
 
     shaders_[kComposite] = Shader(pwd+"/shaders/quad.vs",
                                pwd+"/shaders/comp.fs");
+
+    shaders_[kSSR] = Shader(pwd+"/shaders/quad.vs",
+                               pwd+"/shaders/ssr.fs");
 }
 
 void Render::GetDeltaTime() {

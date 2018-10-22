@@ -23,8 +23,7 @@ add_dependencies(render_engine assimp glm glfw)
 
 set(EGL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
 # set(EGL_LIBRARIES "/usr/lib/x86_64-linux-gnu/libEGL.so")
-set(EGL_LIBRARIES "/usr/lib/nvidia-396/libEGL.so")
-
+set(EGL_LIBRARIES "/usr/local/lib/libEGL.so")
 
 target_include_directories(render_engine PUBLIC
     # ${GLEW_INCLUDE_DIRS}

@@ -10,7 +10,8 @@ namespace render_engine {
 
 class GLContext {
 public:
-    GLContext(const int h, const int w): h_(h), w_(w) {}
+    GLContext(const int h, const int w, const int device = 0) 
+        : h_(h), w_(w), device_(device) {}
 
     ~GLContext() {}
 
@@ -64,6 +65,7 @@ protected:
 protected:
     int h_;
     int w_;
+    int device_;
 };
 
 
@@ -172,7 +174,6 @@ protected:
 };
 
 inline GLContext* CreateContext(int h, int w, int device=0) {
-    //#define USE_GLX
     #ifdef USE_GLX
         return new GLXVisualizationContext{h, w};
     #else
@@ -180,14 +181,10 @@ inline GLContext* CreateContext(int h, int w, int device=0) {
     #endif
 }
 
-inline GLContext* CreateHeadlessContext(int h, int w, int device=0) {
-
-    //glewExperimental = GL_TRUE;
-    //glewInit();
-
-    //#define USE_EGL
+inline GLContext* CreateHeadlessContext(int h, int w, int device=1) {
+    #define USE_EGL
     #ifdef USE_EGL
-	   return new EGLContext{h, w};		
+	   return new EGLContext{h, w, device};		
     #else
         return new GLXHeadlessContext{h, w};
     #endif

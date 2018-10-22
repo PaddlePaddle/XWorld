@@ -14,7 +14,7 @@ uniform float height = 640;
 uniform float width = 480;
 
 int kernelSize = 64;
-float radius = 0.5;
+float radius = 0.3;
 float bias = 0.025;
 float scale = 1.2f;
 
@@ -23,7 +23,12 @@ uniform mat4 view;
 
 void main()
 {
-    vec2 noiseScale = vec2(height/4.0, width/4.0); 
+
+    if(texture(gNormal, TexCoords).a == 0) {
+        discard;
+    }
+
+    vec2 noiseScale = vec2(width/4.0, height/4.0); 
     vec3 fragPos = vec3(view * vec4(texture(gPosition, TexCoords).xyz, 1));
     vec3 normal = -normalize(mat3(view) * texture(gNormal, TexCoords).xyz);
     vec3 randomVec = normalize(texture(texNoise, TexCoords * noiseScale).xyz);

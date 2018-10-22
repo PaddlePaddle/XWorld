@@ -11,6 +11,43 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ## -Wno-error for gcc 5.x
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
 
+# SSE2
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+  add_compile_options(-msse2)
+  message(STATUS "SSE2 instruction set")
+elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
+  add_compile_options(/QxSSE2)
+  message(STATUS "Intel SSE2 instruction set")
+endif()
+
+# SSE3
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+  add_compile_options(-msse3)
+  message(STATUS "SSE3 instruction set")
+elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
+  add_compile_options(/QxSSE3)
+  message(STATUS "Intel SSE3 instruction set")
+endif()
+
+# AVX
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+  add_compile_options(-mavx)
+  message(STATUS "AVX instruction set")
+elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
+  add_compile_options(/QxAVX)
+  message(STATUS "Intel AVX instruction set")
+endif()
+
+# AVX2
+if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+  add_compile_options(-mavx2)
+  message(STATUS "AVX2 instruction set")
+elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
+  add_compile_options(/QxAVX2)
+  message(STATUS "Intel AVX2 instruction set")
+endif()
+
+
 include(ExternalProject)
 
 set(EXTERNAL_PROJECT_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external")
