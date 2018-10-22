@@ -39,7 +39,7 @@ public:
         GLenum minFilter = GL_NEAREST,
 		GLint internalFormat = GL_RGBA,
         GLint format = GL_UNSIGNED_BYTE,
-		GLint wrap = GL_REPEAT);
+		GLint wrap = GL_CLAMP_TO_BORDER);
 
 	~FBO();
 

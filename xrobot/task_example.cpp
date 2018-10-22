@@ -826,8 +826,6 @@ namespace xrobot
         	return "idle";
         }
 
-        printf("framerate: %d\n", (int) renderer_->current_framerate_);
-
         // Reset After N Steps
         if(iterations_++ > 12000) 
         	return "idle";
@@ -1068,8 +1066,6 @@ namespace xrobot
 
 	        }
         }
-
-        printf("framerate: %d\n", (int) renderer_->current_framerate_);
 
         if(ctx_->GetKeyPressSpace()) {
         	ctx_->PollEvent();

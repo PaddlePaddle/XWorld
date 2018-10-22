@@ -83,7 +83,7 @@ public:
 	boost::python::tuple GetPosition();
 
 	// Return current orientation in (x y z w). It uses 
-	// normalized quaternion for orientation representation
+	// normalized quaternion for orientation representation!
 	boost::python::tuple GetOrientation();
 
 	// Return the label
@@ -140,6 +140,7 @@ public:
 	Playground(const int w, const int h,
 			   const int headless = 0, 
 			   const int quality = 0); 
+
 	~Playground();
 
 	// Adjust directional light setting. Use python dict to update
@@ -268,8 +269,10 @@ public:
 				   const std::string& suncg_data_dir,
 				   const int filter = -1);
 
-	// Object Generation
+	// Generate object at position with orientation. It uses 
+	// normalized quaternion for orientation representation!
 	// 
+	// Only uniform scale is supported in Python
 	Thing SpawnAnObject(const std::string& file, 
 					    const boost::python::list position_py,
 					    const boost::python::list orentation_py,
@@ -277,57 +280,145 @@ public:
 					    const std::string& label,
 					    const bool fixed = true);
 
-	// Update
+	// Initialize camera
+	//
+	// Make sure call this member function before rendering loop
 	void Initialize();
+
+	// Update simulation and renderer
 	void Update();
+
+	// Update renderer 
+	//
+	// This also swap buffer in back
 	void UpdateRenderer();
+
+	// Update simulation Only
+	//
+	// This member function will not return any of available actions for 
+	// robot. To "UpdateSimulationWithAction" for actions return
 	boost::python::dict UpdateSimulation();
+
+	// Update simulation with action applied
+	//
+	// This member function will return the actions which available to robot
+	// in Python dict
+	//
+	// The number of actions are limited to 10! It cannot execute any action
+	// id are larger than 10
 	boost::python::dict UpdateSimulationWithAction(const int action);
 
-	// Observation and Action Space
+	// Get observation
+	//
+	// Velocities and Accelerations are not supported
 	boost::python::dict GetObservationSpace();
+
+	// Get actions
+	//
+	// Action ids are the continuous order numbers in the list
+	//
+	// Attach/Detach and Pickup/Putdown cannot use simultaneously.
 	boost::python::dict GetActionSpace();
 
-	// Sensors
+	// Get camera near clipping plane's distance
+	//
+	// Could be useful for calculating real depth
 	float GetNearClippingDistance();
+
+	// Get camera far clipping plane's distance
+	//
+	// Could be useful for calculating real depth
 	float GetFarClippingDistance();
+
+	// Get raw renderered images
+	//
+	// 8-bit unsigned char RGBA raw 
 	boost::python::object GetCameraRGBDRaw();
 
-	// Object (Robot) Movement
+	// Move the object or robot 
+	//
+	// The actual distance offset per step is 0.005 * speed
 	void MoveForward(const float speed = 1);
 	void MoveBackward(const float speed = 1);
-	void TurnLeft( const float speed = 1);
+	
+	// Turn the object or robot
+	//
+	// The actual radius offset per step is 0.005 * speed
+	void TurnLeft(const float speed = 1);
 	void TurnRight(const float speed = 1);
+	
+	// Pitch up or down in 0.5 deg angle
+	//
+	// The angle will be clamped down in -45 to 45 deg 
 	void LookUp();
 	void LookDown();
 
-	// Object (Robot) Actions
+	// Pick up the object in the center of camera (also with in 3 unit length)
 	void Grasp();
+
+	// Put down the object in the center of camera (also with in 3 unit length)
 	void PutDown();
+
+	// Attach or stick the object root base at the center of camera (also with in 3 unit length)
 	void Attach();
+
+	// Detach the object which already been attached
 	void Detach();
+
+	// Rotate an object a certain degree angles
 	void Rotate(const boost::python::list angle_py);
+
+	// Take an action to a object with action id
+	//
+	// action id are limited from 0 to 10
 	void TakeAction(const int action_id);
-	void Teleport(Thing object, const boost::python::list position_py);	
+
+	// Teleport an object or robot to a certain position in scene
+	void Teleport(Thing object, const boost::python::list position_py);
+
+	// Move or rotate the joint in certain position with maximum forces	
+	//
+	// "joint_position" should follow { joint_id : joint_position }
 	void ControlJoints(const Thing& object, 
 					   const boost::python::dict joint_positions,
 					   const float max_force);
+
+	// Enable or disable the interaction for further actions
+	//
+	// Actions only can be executed after enable interaction
 	boost::python::list EnableInteraction();
 	void DisableInteraction();
 
-	// Query
+	// Query two objects' (Bouding Box) are intersect
 	bool QueryObjectAABBIntersect(Thing& object_a, Thing& object_b);
+
+	// Query a certain object is at camera center
+	//
+	// This will use ray-cast to test ray intersection with object 
+	// concave or convex hull
 	bool QueryObjectWithLabelAtCameraCenter(const std::string& label);
+
+	// Query a certain object is at forward
+	//
+	// Only use distance and angle
 	bool QueryObjectWithLabelAtForward(const std::string& label);
+
+	// Query a certain object is near the robot
 	bool QueryObjectWithLabelNearMe(const std::string& label);
+
+	// Return object at camera center
 	Thing QueryObjectAtCameraCenter();
+
+	// Return a list contains all object with certain label
 	boost::python::list QueryObjectByLabel(const std::string& label);
 
-	// Utils
+	// Get the framerate, rendered frames count and cache information
 	boost::python::dict GetStatus() const;
-	bool GameOver() const { return gameover_; }
 
-	// Debug
+
+	// Debug and Unfinished Member Functions
+	//
+	// You should not use any of this member functions
 	bool GetKeyPressUp() { return ctx_->GetKeyPressUp(); }
 	bool GetKeyPressDown() { return ctx_->GetKeyPressDown(); }
 	bool GetKeyPressRight() { return ctx_->GetKeyPressRight(); }
@@ -338,6 +429,7 @@ public:
 	bool GetKeyPress4() { return ctx_->GetKeyPress4(); }
 	bool GetKeyPressKP9() { return ctx_->GetKeyPressKP9(); }
 	bool GetKeyPressKP6() { return ctx_->GetKeyPressKP6(); }
+	bool GameOver() const { return gameover_; }
 
 private:
 	int w_, h_;
@@ -384,7 +476,7 @@ void def_py_init()
 	.def("__eq__", &NavAgent::__eq__)
 	;
 
-	class_<Playground>("Playground", init<int,int,int,int>())
+	class_<Playground>("Playground", init<int,int,optional<int,int>>())
 	.def("SetLighting", &Playground::SetLighting)
 	.def("EnableLidar", &Playground::EnableLidar)
 	.def("UpdateLidar", &Playground::UpdateLidar)

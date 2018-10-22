@@ -26,16 +26,16 @@ const EGLint EGLpbufferAttribs[] = {
 };
 
 const EGLint ctxattr[] = {
-    EGL_CONTEXT_MAJOR_VERSION, 3,
-    EGL_CONTEXT_MINOR_VERSION, 0,
+    EGL_CONTEXT_MAJOR_VERSION, 4,
+    EGL_CONTEXT_MINOR_VERSION, 3,
     EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
     EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
     EGL_NONE
 };
 
 const int GLXcontextAttribs[] = {
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 1,
-    GLX_CONTEXT_MINOR_VERSION_ARB, 4,
+    GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+    GLX_CONTEXT_MINOR_VERSION_ARB, 3,
     //GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
     None
 };
@@ -59,7 +59,7 @@ void GLContext::PrintInfo() {
 }
 
 // https://devblogs.nvidia.com/parallelforall/egl-eye-opengl-visualization-without-x-server/
-EGLContext::EGLContext(int h, int w, int device): GLContext{h, w} {
+EGLContext::EGLContext(int h, int w, int device): GLContext{h, w, device} {
     auto checkError = [](EGLBoolean succ) {
         EGLint err = eglGetError();
         if (err != EGL_SUCCESS) {
@@ -99,9 +99,9 @@ EGLContext::EGLContext(int h, int w, int device): GLContext{h, w} {
                 device_ids.push_back(i);
             }
         }
-        // cout << "[EGL] Detected " << numDevices << " devices, among which "
-        //      << (device_ids.size() ? getenv("CUDA_VISIBLE_DEVICES") : "all")
-        //      << " are visible. ";
+        cout << "[EGL] Detected " << numDevices << " devices, among which "
+             << (device_ids.size() ? getenv("CUDA_VISIBLE_DEVICES") : "all")
+             << " are visible. ";
         assert(device < (int)device_ids.size());
         device = device_ids[device];
         cout << "Using device " << device << endl;

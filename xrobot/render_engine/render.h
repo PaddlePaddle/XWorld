@@ -131,6 +131,7 @@ struct Lighting {
     float ibl_factor = 0.0f;
     bool force_disable_propagation = false;
     bool linear_voxelize = false;
+    bool use_ssr = false;
 };
 
 struct DirectionalLight {
@@ -176,6 +177,7 @@ class Render {
         kSSAO = 26,
         kBlur = 27,
         kComposite = 28,
+        kSSR = 29,
         kShaderTypeSize
     };
 
@@ -277,6 +279,8 @@ public:
     GLuint ssao_blur_fbo_;
     GLuint ssao_tex_;
     GLuint ssao_tex_blur_;
+    GLuint ssr_fbo_;
+    GLuint ssr_tex_;
 
     // High Res Lidar
     GLuint cubemap_capture_fbo_;
@@ -356,6 +360,10 @@ public:
     std::vector<Image> GetRenderedImages() {
         return img_buffers_;
     }
+
+    void InitSSR();
+
+    void SSR(RenderWorld* world);
 
     void InitSSAO();
 
