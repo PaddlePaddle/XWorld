@@ -7,9 +7,10 @@ import time
 import os
 import os.path
 
-suncg_dir   = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/data/suncg";
+# suncg_dir   = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/data/suncg";
+suncg_dir   = "/home/ziyuli/Desktop/suncg";
 suncg_meta  = suncg_dir + "/metadata/ModelCategoryMapping.csv";
-suncg_house = suncg_dir + "/house/7c16efebdfe46f3f14fa81abe500589c/house.obj";
+suncg_house = suncg_dir + "/house/00065ecbdd7300d35ef4328ffe871505/house.obj";
 
 def worker(device, id):
 	env = Playground(args.w, args.h, 1, args.quality, device)

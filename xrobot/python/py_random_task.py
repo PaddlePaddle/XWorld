@@ -40,6 +40,8 @@ class XRobot3DRandom(TaskInterface):
 		self.env.AttachCameraTo(self.agent, [0.3,1.3,0.0])
 		self.env.Initialize()
 
+		print str(self.agent)
+
 		return "navigation"
 
 	def navigation(self):
@@ -57,8 +59,8 @@ class XRobot3DRandom(TaskInterface):
 		image_rgbd = cv2.cvtColor(image_rgbd, cv2.COLOR_BGRA2RGBA)
 		image_rgbd = cv2.flip(image_rgbd, 0)
 
-		image_rgb = np.array(image_rgbd[:,:,:3])
-		image_depth = np.array(image_rgbd[:,:,3])
+		image_rgbd_resize = cv2.resize(image_rgbd, None, fx=0.5, fy=0.5)
+		image_rgb = np.array(image_rgbd_resize[:,:,:3])
 
 
 		frames = "frames: " + str(self.env.GetStatus()["frames"])
@@ -68,6 +70,6 @@ class XRobot3DRandom(TaskInterface):
     		cv2.FONT_HERSHEY_PLAIN, 1, (200,250,250), 1);
 
 		cv2.imshow("RGB", image_rgb)
-		cv2.imshow("Depth", image_depth)
+		# cv2.imshow("Depth", image_depth)
 		return "navigation"
 
