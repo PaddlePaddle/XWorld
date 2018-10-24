@@ -17,9 +17,9 @@ class XRobotEnv(object):
                               1)
 
         self.task_group = TaskGroup("TaskGroup")
-        # self.task_group.add_task("Navigation_1", XRobot3DRandom(self.env))
+        self.task_group.add_task("Navigation_1", XRobot3DRandom(self.env))
         # self.task_group.add_task("Navigation_2", XRobot3DNavAgentTarget(self.env))
-        self.task_group.add_task("Navigation_SUNCG", XRobot3DSUNCG(self.env))
+        # self.task_group.add_task("Navigation_SUNCG", XRobot3DSUNCG(self.env))
 
     def reset(self):
         self.env.Clear()
