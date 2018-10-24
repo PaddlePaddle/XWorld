@@ -180,7 +180,7 @@ public:
 	// Enable inventory for robot temporary storage. 
 	//
 	// This member function is nessecary for use "Pickup" and "Putdown" actions
-	void EnableInventory(const int max_capacity);
+	void EnableInventory(const int max_capacity = 1);
 
 	// Enable navigations to use path-finding for a object or robot
 	//
@@ -329,6 +329,12 @@ public:
 	// Attach/Detach and Pickup/Putdown cannot use simultaneously.
 	boost::python::dict GetActionSpace();
 
+	// Get camera position and orientation
+	boost::python::tuple GetCameraPosition() const;
+	boost::python::tuple GetCameraFront() const;
+	boost::python::tuple GetCameraRight() const;
+	boost::python::tuple GetCameraUp() const;
+
 	// Get camera near clipping plane's distance
 	//
 	// Could be useful for calculating real depth
@@ -462,10 +468,33 @@ private:
 	render_engine::Camera * main_camera_;
 };
 
+// Python Binding
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(EnableInventory_member_overloads, 
+									   Playground::EnableInventory, 0, 1)
+
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CreateEmptyScene_member_overloads, 
 									   Playground::CreateEmptyScene, 0, 4)
 
-void def_py_init()
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(LoadSUNCG_member_overloads, 
+									   Playground::LoadSUNCG, 3, 4)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SpawnAnObject_member_overloads, 
+									   Playground::SpawnAnObject, 5, 6)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(MoveForward_member_overloads, 
+									   Playground::MoveForward, 0, 1)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(MoveBackward_member_overloads, 
+									   Playground::MoveBackward, 0, 1)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(TurnLeft_member_overloads, 
+									   Playground::TurnLeft, 0, 1)
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(TurnRight_member_overloads, 
+									   Playground::TurnRight, 0, 1)
+
+BOOST_PYTHON_MODULE(libxrobot)
 {
 	using namespace boost::python;
 
@@ -492,7 +521,11 @@ void def_py_init()
 	.def("SetLighting", &Playground::SetLighting)
 	.def("EnableLidar", &Playground::EnableLidar)
 	.def("UpdateLidar", &Playground::UpdateLidar)
-	.def("EnableInventory", &Playground::EnableInventory)
+	.def("EnableInventory", &Playground::EnableInventory,
+		EnableInventory_member_overloads(
+			args("max_capacity"), "capacity"
+		)
+	)
 	.def("EnableNavigation", &Playground::EnableNavigation)
 	.def("AssignSurfaceLevel", &Playground::AssignSurfaceLevel)
 	.def("AssignAgentRadius", &Playground::AssignAgentRadius)
@@ -510,8 +543,17 @@ void def_py_init()
 	.def("CreateRandomGenerateScene", &Playground::CreateRandomGenerateScene)
 	.def("LoadRandomSceneConfigure", &Playground::LoadRandomSceneConfigure)
 	.def("LoadRandomScene", &Playground::LoadRandomScene)
-	.def("LoadSUNCG", &Playground::LoadSUNCG)
-	.def("SpawnAnObject", &Playground::SpawnAnObject)
+	.def("LoadSUNCG", &Playground::LoadSUNCG,
+		LoadSUNCG_member_overloads(
+			args("house", "metadata", "suncg_data_dir", "filter"), "suncg"
+		)
+	)
+	.def("SpawnAnObject", &Playground::SpawnAnObject,
+		SpawnAnObject_member_overloads(
+			args("file", "position_py", "orentation_py", "scale", "label", "fixed"),
+			"spawn"
+		)
+	)
 	.def("AttachCameraTo", &Playground::AttachCameraTo)
 	.def("FreeCamera", &Playground::FreeCamera)
 	.def("UpdateFreeCamera", &Playground::UpdateFreeCamera)
@@ -519,10 +561,26 @@ void def_py_init()
 	.def("UpdateSimulation", &Playground::UpdateSimulation)
 	.def("UpdateRenderer", &Playground::UpdateRenderer)
 	.def("Update", &Playground::Update)
-	.def("MoveForward", &Playground::MoveForward)
-	.def("MoveBackward", &Playground::MoveBackward)
-	.def("TurnLeft", &Playground::TurnLeft)
-	.def("TurnRight", &Playground::TurnRight)
+	.def("MoveForward", &Playground::MoveForward,
+		MoveForward_member_overloads(
+			args("speed"), "speed"
+		)
+	)
+	.def("MoveBackward", &Playground::MoveBackward,
+		MoveBackward_member_overloads(
+			args("speed"), "speed"
+		)
+	)
+	.def("TurnLeft", &Playground::TurnLeft,
+		TurnLeft_member_overloads(
+			args("speed"), "speed"
+		)
+	)
+	.def("TurnRight", &Playground::TurnRight,
+		TurnRight_member_overloads(
+			args("speed"), "speed"
+		)
+	)
 	.def("LookUp", &Playground::LookUp)
 	.def("LookDown", &Playground::LookDown)
 	.def("Grasp", &Playground::Grasp)
@@ -544,6 +602,11 @@ void def_py_init()
 	.def("UpdateSimulationWithAction", &Playground::UpdateSimulationWithAction)
 	.def("GetObservationSpace", &Playground::GetObservationSpace)
 	.def("GetActionSpace", &Playground::GetActionSpace)
+
+	.def("GetCameraPosition", &Playground::GetCameraPosition)
+	.def("GetCameraRight", &Playground::GetCameraRight)
+	.def("GetCameraFront", &Playground::GetCameraFront)
+	.def("GetCameraUp", &Playground::GetCameraUp)
 
 	.def("GetStatus", &Playground::GetStatus)
 
@@ -574,11 +637,6 @@ void def_py_init()
 	scope().attr("RENDER_QUALITY_LOW")     = render_engine::kLowQuality;
 	scope().attr("RENDER_QUALITY_NORMAL")  = render_engine::kNormalQuality;
 	scope().attr("RENDER_QUALITY_HIGH")    = render_engine::kHighQuality;
-}
-
-BOOST_PYTHON_MODULE(libxrobot)
-{
-	def_py_init();
 }
 
 #endif // PLAYGROUND_PY_H_

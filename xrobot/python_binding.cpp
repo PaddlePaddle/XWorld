@@ -646,6 +646,30 @@ boost::python::dict Playground::GetObservationSpace()
     return dictionary;
 }
 
+boost::python::tuple Playground::GetCameraPosition() const
+{
+    glm::vec3 position = main_camera_->Position;
+    return boost::python::make_tuple(position.x, position.y, position.z);
+}
+
+boost::python::tuple Playground::GetCameraRight() const
+{
+    glm::vec3 right = main_camera_->Right;
+    return boost::python::make_tuple(right.x, right.y, right.z);
+}
+
+boost::python::tuple Playground::GetCameraFront() const
+{
+    glm::vec3 front = main_camera_->Front;
+    return boost::python::make_tuple(front.x, front.y, front.z);
+}
+
+boost::python::tuple Playground::GetCameraUp() const
+{
+    glm::vec3 up = main_camera_->Up;
+    return boost::python::make_tuple(up.x, up.y, up.z);
+}
+
 boost::python::dict Playground::GetActionSpace()
 {
     boost::python::dict dictionary;
