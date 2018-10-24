@@ -69,9 +69,55 @@ inline glm::quat list2quat(const boost::python::list& ns)
 struct Range {
 	glm::vec3 min, max;
 
+	Range() {
+		min = glm::vec3(0);
+		max = glm::vec3(0);
+	}
+
+	Range(boost::python::list min_py, boost::python::list max_py) {
+		min = list2vec3(min_py);
+		max = list2vec3(max_py);
+	}
+
+	// Two AABBs are equal
+	bool __eq__(const Range& other) { 
+		return min == other.min && max == other.max;
+	}
+
+	// Two AABBs are intersect
+	bool __ne__(const Range& other) { 
+		return glm::all(glm::lessThanEqual(min, other.max)) &&
+			   glm::all(glm::greaterThanEqual(max, other.min));
+	}
+
+	// Contains
+	bool __gt__(const Range& other) {
+		return glm::all(glm::lessThan(min, other.min)) &&
+			   glm::all(glm::greaterThan(max, other.max));
+	}
+
+	// Contains
+	bool __lt__(const Range& other) {
+		return glm::all(glm::lessThan(other.min, min)) &&
+			   glm::all(glm::greaterThan(other.max, max));
+	}
+
+	// To String
+	static std::string __str__(const Range& self) {
+		return std::string( 
+			"(" +
+				std::to_string(self.min.x) + ", " + 
+				std::to_string(self.min.y) + ", " +
+				std::to_string(self.min.z) + ", " +
+				std::to_string(self.max.x) + ", " +
+				std::to_string(self.max.y) + ", " +
+				std::to_string(self.max.z) +
+			")"
+		);
+	}
+
 	boost::python::tuple GetMin() const { return vec2tuple(min); }
 	boost::python::tuple GetMax() const { return vec2tuple(max); }
-	bool __eq__(const Range& other) { min == max; }
 };
 
 // Thing hold object or robot in playground
@@ -93,6 +139,8 @@ public:
 	bool __eq__(const Thing& other) { 
 		return robot_.lock().get() == other.robot_.lock().get();
 	}
+	static std::string __str__(const Thing& self) { return self.label_; }
+
 	std::weak_ptr<RobotBase> GetPtr() const { return robot_; }
 	void SetPtr(std::weak_ptr<RobotBase> robot) { robot_ = robot; Sync(); }
 
@@ -113,6 +161,7 @@ public:
 	std::string GetLabel() const { return label_; }
 	int GetUid() const { return uid_; }
 	bool __eq__(const NavAgent& other) { return uid_ == other.uid_; }
+	static std::string __str__(const NavAgent& self) { return self.label_; }
 
 private:
 	// Used to validate and access the agent in crowd. -1 means 
@@ -498,10 +547,14 @@ BOOST_PYTHON_MODULE(libxrobot)
 {
 	using namespace boost::python;
 
-	class_<Range>("Range", no_init)
+	class_<Range>("Range", init<boost::python::list, boost::python::list>())
 	.add_property("GetMin", &Range::GetMin)
 	.add_property("GetMax", &Range::GetMax)
-	.def("__eq__", &Thing::__eq__)
+	.def("__eq__", &Range::__eq__)
+	.def("__ne__", &Range::__ne__)
+	.def("__lt__", &Range::__lt__)
+	.def("__gt__", &Range::__gt__)
+	.def("__str__", &Range::__str__)
 	;
 
 	class_<Thing>("Thing", no_init)
@@ -510,39 +563,27 @@ BOOST_PYTHON_MODULE(libxrobot)
 	.def("GetLabel", &Thing::GetLabel)
 	.def("__hash__", &Thing::__hash__)
 	.def("__eq__", &Thing::__eq__)
+	.def("__str__", &Thing::__str__)
 	;
 
 	class_<NavAgent>("NavAgent", no_init)
 	.def("GetLabel", &NavAgent::GetLabel)
 	.def("__eq__", &NavAgent::__eq__)
+	.def("__str__", &NavAgent::__str__)
 	;
 
 	class_<Playground>("Playground", init<int,int,optional<int,int,int>>())
-	.def("SetLighting", &Playground::SetLighting)
-	.def("EnableLidar", &Playground::EnableLidar)
-	.def("UpdateLidar", &Playground::UpdateLidar)
+
 	.def("EnableInventory", &Playground::EnableInventory,
 		EnableInventory_member_overloads(
 			args("max_capacity"), "capacity"
 		)
 	)
-	.def("EnableNavigation", &Playground::EnableNavigation)
-	.def("AssignSurfaceLevel", &Playground::AssignSurfaceLevel)
-	.def("AssignAgentRadius", &Playground::AssignAgentRadius)
-	.def("BakeNavigationMesh", &Playground::BakeNavigationMesh)
-	.def("AssignNavigationAgentTarget", &Playground::AssignNavigationAgentTarget)
-	.def("SpawnNavigationAgent", &Playground::SpawnNavigationAgent)
-	.def("Clear", &Playground::Clear)
 	.def("CreateEmptyScene", &Playground::CreateEmptyScene, 
 		CreateEmptyScene_member_overloads(
 			args("min_x", "max_x", "min_z", "max_z"), "range"
 		)
 	)
-	.def("CreateAnTestScene", &Playground::CreateAnTestScene)
-	.def("CreateSceneFromSUNCG", &Playground::CreateSceneFromSUNCG)
-	.def("CreateRandomGenerateScene", &Playground::CreateRandomGenerateScene)
-	.def("LoadRandomSceneConfigure", &Playground::LoadRandomSceneConfigure)
-	.def("LoadRandomScene", &Playground::LoadRandomScene)
 	.def("LoadSUNCG", &Playground::LoadSUNCG,
 		LoadSUNCG_member_overloads(
 			args("house", "metadata", "suncg_data_dir", "filter"), "suncg"
@@ -554,13 +595,6 @@ BOOST_PYTHON_MODULE(libxrobot)
 			"spawn"
 		)
 	)
-	.def("AttachCameraTo", &Playground::AttachCameraTo)
-	.def("FreeCamera", &Playground::FreeCamera)
-	.def("UpdateFreeCamera", &Playground::UpdateFreeCamera)
-	.def("Initialize", &Playground::Initialize)
-	.def("UpdateSimulation", &Playground::UpdateSimulation)
-	.def("UpdateRenderer", &Playground::UpdateRenderer)
-	.def("Update", &Playground::Update)
 	.def("MoveForward", &Playground::MoveForward,
 		MoveForward_member_overloads(
 			args("speed"), "speed"
@@ -581,6 +615,29 @@ BOOST_PYTHON_MODULE(libxrobot)
 			args("speed"), "speed"
 		)
 	)
+
+	.def("SetLighting", &Playground::SetLighting)
+	.def("EnableLidar", &Playground::EnableLidar)
+	.def("UpdateLidar", &Playground::UpdateLidar)
+	.def("EnableNavigation", &Playground::EnableNavigation)
+	.def("AssignSurfaceLevel", &Playground::AssignSurfaceLevel)
+	.def("AssignAgentRadius", &Playground::AssignAgentRadius)
+	.def("BakeNavigationMesh", &Playground::BakeNavigationMesh)
+	.def("AssignNavigationAgentTarget", &Playground::AssignNavigationAgentTarget)
+	.def("SpawnNavigationAgent", &Playground::SpawnNavigationAgent)
+	.def("Clear", &Playground::Clear)
+	.def("CreateAnTestScene", &Playground::CreateAnTestScene)
+	.def("CreateSceneFromSUNCG", &Playground::CreateSceneFromSUNCG)
+	.def("CreateRandomGenerateScene", &Playground::CreateRandomGenerateScene)
+	.def("LoadRandomSceneConfigure", &Playground::LoadRandomSceneConfigure)
+	.def("LoadRandomScene", &Playground::LoadRandomScene)
+	.def("AttachCameraTo", &Playground::AttachCameraTo)
+	.def("FreeCamera", &Playground::FreeCamera)
+	.def("UpdateFreeCamera", &Playground::UpdateFreeCamera)
+	.def("Initialize", &Playground::Initialize)
+	.def("UpdateSimulation", &Playground::UpdateSimulation)
+	.def("UpdateRenderer", &Playground::UpdateRenderer)
+	.def("Update", &Playground::Update)
 	.def("LookUp", &Playground::LookUp)
 	.def("LookDown", &Playground::LookDown)
 	.def("Grasp", &Playground::Grasp)
@@ -598,30 +655,28 @@ BOOST_PYTHON_MODULE(libxrobot)
 	.def("QueryObjectWithLabelNearMe", &Playground::QueryObjectWithLabelNearMe)
 	.def("QueryObjectAtCameraCenter", &Playground::QueryObjectAtCameraCenter)
 	.def("QueryObjectByLabel", &Playground::QueryObjectByLabel)
-
 	.def("UpdateSimulationWithAction", &Playground::UpdateSimulationWithAction)
 	.def("GetObservationSpace", &Playground::GetObservationSpace)
 	.def("GetActionSpace", &Playground::GetActionSpace)
-
 	.def("GetCameraPosition", &Playground::GetCameraPosition)
 	.def("GetCameraRight", &Playground::GetCameraRight)
 	.def("GetCameraFront", &Playground::GetCameraFront)
 	.def("GetCameraUp", &Playground::GetCameraUp)
-
 	.def("GetStatus", &Playground::GetStatus)
-
-	.def("GetKeyPressUp", &Playground::GetKeyPressUp)
-	.def("GetKeyPressDown", &Playground::GetKeyPressDown)
-	.def("GetKeyPressRight", &Playground::GetKeyPressRight)
-	.def("GetKeyPressLeft", &Playground::GetKeyPressLeft)
-	.def("GetKeyPress1", &Playground::GetKeyPress1)
-	.def("GetKeyPress2", &Playground::GetKeyPress2)
-	.def("GetKeyPress3", &Playground::GetKeyPress3)
-	.def("GetKeyPress4", &Playground::GetKeyPress4)
-	.def("GetKeyPressKP9", &Playground::GetKeyPressKP9)
-	.def("GetKeyPressKP6", &Playground::GetKeyPressKP6)
+	// .def("GetKeyPressUp", &Playground::GetKeyPressUp)
+	// .def("GetKeyPressDown", &Playground::GetKeyPressDown)
+	// .def("GetKeyPressRight", &Playground::GetKeyPressRight)
+	// .def("GetKeyPressLeft", &Playground::GetKeyPressLeft)
+	// .def("GetKeyPress1", &Playground::GetKeyPress1)
+	// .def("GetKeyPress2", &Playground::GetKeyPress2)
+	// .def("GetKeyPress3", &Playground::GetKeyPress3)
+	// .def("GetKeyPress4", &Playground::GetKeyPress4)
+	// .def("GetKeyPressKP9", &Playground::GetKeyPressKP9)
+	// .def("GetKeyPressKP6", &Playground::GetKeyPressKP6)
 	;
 
+	scope().attr("ENABLE_INTERACTION")  = 11;
+	scope().attr("DISABLE_INTERACTION") = 12;
 	scope().attr("NO_ACTION")           = 13;
 	scope().attr("HEADLESS")            = 1;
 	scope().attr("DEBUG_VISUALIZATION") = 0;

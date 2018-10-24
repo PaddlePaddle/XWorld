@@ -166,7 +166,7 @@ def start(self):
     ## Reset the scene. This will remove any object in the environment including the camera
     self.env.Clear()
 
-    ## Create a checkerboard-like scene for testing
+    ## Create a square arena with checkerboard-pattern for testing
     self.env.CreateAnTestScene()
 
     ## Generate a random position (2D) for spawning target object
