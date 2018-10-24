@@ -15,7 +15,8 @@ Render::Render(const int width,
                const int height,
                const int num_cameras,
                const RenderSettings render_profile,
-               const bool headless) : current_framerate_(0.0f),
+               const bool headless,
+               const int device)    : current_framerate_(0.0f),
                                       max_framerate_(0.0f),
                                       avg_framerate_(0.0),
                                       all_rendered_frames_(0.0),
@@ -79,7 +80,7 @@ Render::Render(const int width,
                                       need_voxelize_(true) {
 
     if(headless) {
-        ctx_ = render_engine::CreateHeadlessContext(height, width);
+        ctx_ = render_engine::CreateHeadlessContext(height, width, device);
     } else {
         #ifdef DEBUG
         ctx_ = render_engine::CreateContext(height, width * 2);
@@ -94,7 +95,7 @@ Render::Render(const int width,
     free_camera_.Front = glm::vec3(1, 0, 0);
     free_camera_.Aspect = (float)width / height;
     free_camera_.Near = 0.05f;
-    free_camera_.Far = 120.0f;
+    free_camera_.Far = 200.0f;
     
     last_x_ = width / 2.0f;
     last_y_ = height / 2.0f;
@@ -332,14 +333,15 @@ void Render::GetViewFrusrumBoundingVolume(Camera* camera,
     glm::mat4 view2world_mat4 = glm::inverse(camera->GetViewMatrix());
 
     float far = camera->Far;
+    float near = camera->Near;
     float ar = camera->Aspect;
     float tanHalfHHOV = tanf(glm::radians((camera->Zoom + 0.0f) / 2.0f));
     float tanHalfVHOV = tanf(glm::radians((camera->Zoom + 0.0f) * ar / 2.0f));
 
-    float xn = 0 * tanHalfHHOV;
-    float xf = -far / 1.1f * tanHalfHHOV;
-    float yn = 0 * tanHalfVHOV;
-    float yf = -far / 1.1f * tanHalfVHOV;
+    float xn = near * tanHalfHHOV;
+    float xf = -far / 1.0f * tanHalfHHOV;
+    float yn = near * tanHalfVHOV;
+    float yf = -far / 1.0f * tanHalfVHOV;
     
     glm::vec4 frustumCorners[8] = 
     {
@@ -376,6 +378,31 @@ void Render::GetViewFrusrumBoundingVolume(Camera* camera,
     aabb_min = glm::vec3(minX, minY, minZ);
     aabb_max = glm::vec3(maxX, maxY, maxZ);
 }
+
+// MIT License
+//
+// Copyright (c) 2017 José Villegas
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// Following Source Code is adapted from José Villegas
+//---------------------------------------------------------------------------------------------
 
 void Render::UpdateProjectionMatrices(RenderWorld * world)
 {
@@ -829,6 +856,8 @@ void Render::InitVoxelization()
 
     glGenVertexArrays(1, &voxel_vao_);
 }
+
+//---------------------------------------------------------------------------------------------
 
 void Render::InitGBuffer()
 {
@@ -1297,6 +1326,9 @@ void Render::Draw(RenderWorld* world,
         }
     };
 
+    //printf("size %d\n",  world->size());
+    int r = 0;
+
     for (size_t i = 0; i < world->size(); ++i) {
         RenderBody* body = world->render_body_ptr(i);
 
@@ -1328,8 +1360,11 @@ void Render::Draw(RenderWorld* world,
                     do_drawing(body->render_part_ptr(j), false);
                 }
             }
+            r++;
         }
     }
+    //rintf("r size %d\n",  r);
+
 }
 
 void Render::StepRenderFreeCamera(RenderWorld *world) {
@@ -1480,6 +1515,13 @@ void Render::StepCombineTexture() {
     glUniform1i(glGetUniformLocation(shaders_[kCubemapVisualization].id(), "tex"), 0);
     RenderQuad();
 
+    // glFlush();
+    // glFinish();
+    // glReadBuffer(GL_COLOR_ATTACHMENT0); 
+
+    // float data[4];
+    // glReadPixels(0, 0, 256, 64, GL_RGBA, GL_FLOAT, data); 
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -1586,7 +1628,8 @@ void Render::StepRenderAllCameras(RenderWorld* world,
 
         glm::vec3 minAABB, maxAABB;
         GetViewFrusrumBoundingVolume(camera, minAABB, maxAABB);
-        Draw(world, lambert_shader, minAABB - glm::vec3(3), maxAABB + glm::vec3(3));
+        Draw(world, lambert_shader, minAABB - glm::vec3(2), maxAABB + glm::vec3(2));
+        //Draw(world, lambert_shader);
 
         if(color_pick)
         {
@@ -1771,19 +1814,21 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     GetDeltaTime();
     GetFrameRate();
 
-    ProcessMouse();
-    ProcessInput();
+    #ifdef DEBUG
+        ProcessMouse();
+        ProcessInput();
+    #endif
 
     int pick_result = -1;
     std::vector<int> picks(camera_framebuffer_list_.size(), -1);
 
     // StepRenderCubemap(world);
     // StepCombineTexture();
+
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_LINE_SMOOTH);
     glDepthMask(GL_TRUE);
     glColorMask(true, true, true, true);
     glViewport(0, 0, width_, height_);
@@ -1791,6 +1836,7 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
             background_color_.x, background_color_.y, background_color_.z, 1.0f); 
 
     #ifdef DEBUG
+        glEnable(GL_LINE_SMOOTH);
         StepRenderFreeCamera(world);
     #endif
 
@@ -1807,7 +1853,10 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
         pick_result = picks[pick_camera_id];
 
     StepRenderGetDepthAllCameras();
-    Visualization();  
+
+    #ifdef DEBUG
+        Visualization();  
+    #endif
 
     num_frames_++;
     return pick_result;

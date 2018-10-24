@@ -139,7 +139,8 @@ public:
 	// does not have anti-aliasing which means images could have jagged edges.
 	Playground(const int w, const int h,
 			   const int headless = 0, 
-			   const int quality = 0); 
+			   const int quality = 0,
+			   const int device = 0); 
 
 	~Playground();
 
@@ -159,6 +160,10 @@ public:
 
 	// Create a camera and attach it to a certain object in the scene
 	void AttachCameraTo(Thing object, const boost::python::list offset_py);
+
+	// Create a free camera
+	void FreeCamera(const boost::python::list position, const float yaw, const float pitch);
+	void UpdateFreeCamera(const boost::python::list position, const float yaw, const float pitch);
 
 	// Enable single ray lidar in the scene
 	// 
@@ -233,6 +238,10 @@ public:
 
 	// Generate a empty SUNCG scene
 	void CreateSceneFromSUNCG();
+
+	// Generate a empty scene
+	void CreateEmptyScene(const float min_x = -5, const float max_x = 5,
+                          const float min_z = -5, const float max_z = 5);
 
 	// Generate a random size room
 	void CreateRandomGenerateScene();
@@ -453,6 +462,9 @@ private:
 	render_engine::Camera * main_camera_;
 };
 
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CreateEmptyScene_member_overloads, 
+									   Playground::CreateEmptyScene, 0, 4)
+
 void def_py_init()
 {
 	using namespace boost::python;
@@ -476,7 +488,7 @@ void def_py_init()
 	.def("__eq__", &NavAgent::__eq__)
 	;
 
-	class_<Playground>("Playground", init<int,int,optional<int,int>>())
+	class_<Playground>("Playground", init<int,int,optional<int,int,int>>())
 	.def("SetLighting", &Playground::SetLighting)
 	.def("EnableLidar", &Playground::EnableLidar)
 	.def("UpdateLidar", &Playground::UpdateLidar)
@@ -488,6 +500,11 @@ void def_py_init()
 	.def("AssignNavigationAgentTarget", &Playground::AssignNavigationAgentTarget)
 	.def("SpawnNavigationAgent", &Playground::SpawnNavigationAgent)
 	.def("Clear", &Playground::Clear)
+	.def("CreateEmptyScene", &Playground::CreateEmptyScene, 
+		CreateEmptyScene_member_overloads(
+			args("min_x", "max_x", "min_z", "max_z"), "range"
+		)
+	)
 	.def("CreateAnTestScene", &Playground::CreateAnTestScene)
 	.def("CreateSceneFromSUNCG", &Playground::CreateSceneFromSUNCG)
 	.def("CreateRandomGenerateScene", &Playground::CreateRandomGenerateScene)
@@ -496,6 +513,8 @@ void def_py_init()
 	.def("LoadSUNCG", &Playground::LoadSUNCG)
 	.def("SpawnAnObject", &Playground::SpawnAnObject)
 	.def("AttachCameraTo", &Playground::AttachCameraTo)
+	.def("FreeCamera", &Playground::FreeCamera)
+	.def("UpdateFreeCamera", &Playground::UpdateFreeCamera)
 	.def("Initialize", &Playground::Initialize)
 	.def("UpdateSimulation", &Playground::UpdateSimulation)
 	.def("UpdateRenderer", &Playground::UpdateRenderer)
@@ -540,6 +559,7 @@ void def_py_init()
 	.def("GetKeyPressKP6", &Playground::GetKeyPressKP6)
 	;
 
+	scope().attr("NO_ACTION")           = 13;
 	scope().attr("HEADLESS")            = 1;
 	scope().attr("DEBUG_VISUALIZATION") = 0;
 	scope().attr("GRID")                = 0;

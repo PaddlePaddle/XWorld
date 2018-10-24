@@ -19,14 +19,14 @@ const EGLint EGLconfigAttribs[] = {
     EGL_NONE
 };
 
-const EGLint EGLpbufferAttribs[] = {
+EGLint EGLpbufferAttribs[] = {
     EGL_WIDTH, 9,
     EGL_HEIGHT, 9,
     EGL_NONE,
 };
 
 const EGLint ctxattr[] = {
-    EGL_CONTEXT_MAJOR_VERSION, 4,
+    EGL_CONTEXT_MAJOR_VERSION, 3,
     EGL_CONTEXT_MINOR_VERSION, 3,
     EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
     EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
@@ -34,7 +34,7 @@ const EGLint ctxattr[] = {
 };
 
 const int GLXcontextAttribs[] = {
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+    GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
     GLX_CONTEXT_MINOR_VERSION_ARB, 3,
     //GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
     None

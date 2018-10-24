@@ -62,8 +62,8 @@ void ModelData::Reset() {
 void ModelData::LoadModel(const std::string& path) {
     Assimp::Importer importer;
     aiMatrix4x4 root_trans;
-    importer.SetPropertyInteger(AI_CONFIG_PP_PTV_ADD_ROOT_TRANSFORMATION, 1);
-    importer.SetPropertyMatrix(AI_CONFIG_PP_PTV_ROOT_TRANSFORMATION, root_trans); 
+    // importer.SetPropertyInteger(AI_CONFIG_PP_PTV_ADD_ROOT_TRANSFORMATION, 1);
+    // importer.SetPropertyMatrix(AI_CONFIG_PP_PTV_ROOT_TRANSFORMATION, root_trans); 
 
     int flag = aiProcess_JoinIdenticalVertices
                | aiProcess_GenNormals 
@@ -73,7 +73,7 @@ void ModelData::LoadModel(const std::string& path) {
                | aiProcess_CalcTangentSpace
                | aiProcess_OptimizeGraph
                | aiProcess_OptimizeMeshes
-               //| aiProcess_GenSmoothNormals
+               | aiProcess_FindInstances
                | aiProcess_SplitLargeMeshes;
 
     const aiScene* scene = importer.ReadFile(path, flag);

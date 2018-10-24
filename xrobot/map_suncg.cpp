@@ -414,6 +414,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 					);
 
 					if(auto object_sptr = object.lock()) {
+						// object_sptr->DisableSleeping();
 						object_sptr->robot_data_.root_part_->ChangeLinearDamping(0.9f);
 						object_sptr->robot_data_.root_part_->ChangeAngularDamping(0.9f);
 						map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = all_labels_[modelId];

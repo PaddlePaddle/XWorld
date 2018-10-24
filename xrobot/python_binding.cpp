@@ -37,13 +37,16 @@ void Thing::Sync()
 }
 
 Playground::Playground(const int w, const int h,
-                       const int headless, const int quality)
+                       const int headless, const int quality, const int device)
 {
 	assert(quality > -1 && quality < 2);
 	
 	render_engine::RenderSettings render_profile(quality);
 
-	renderer_ = std::make_shared<render_engine::Render>(w, h, 1, render_profile, headless);
+	renderer_ = std::make_shared<render_engine::Render>(w, h, 1, 
+                                                        render_profile, 
+                                                        headless,
+                                                        device);
 
 	ctx_ = renderer_->ctx_;
 	main_camera_ = nullptr;
@@ -481,6 +484,27 @@ void Playground::CreateSceneFromSUNCG()
     renderer_->lighting_.force_disable_shadow = true;
 }
 
+void Playground::CreateEmptyScene(const float min_x, const float max_x,
+                                  const float min_z, const float max_z)
+{
+    if(!scene_)
+        scene_ = std::make_shared<Map>();
+
+    std::shared_ptr<Map> scene_generic 
+        = std::dynamic_pointer_cast<Map>(scene_);
+
+    scene_generic->GenerateGenetricMap();
+
+    scene_generic->world_->set_world_size(min_x, min_z, max_x, max_z);
+
+    renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
+    renderer_->lighting_.exposure = 1.0f;
+    renderer_->lighting_.indirect_strength = 1.5f;
+    renderer_->lighting_.traceshadow_distance = 0.3f;
+    renderer_->lighting_.propagation_distance = 0.3f;
+    renderer_->lighting_.force_disable_shadow = true;
+}
+
 void Playground::LoadSUNCG(const std::string& house,
                            const std::string& metadata,
                            const std::string& suncg_data_dir,
@@ -565,6 +589,30 @@ void Playground::AttachCameraTo(Thing object, const boost::python::list offset_p
 	}
 
     agent_ = object;
+}
+
+void Playground::FreeCamera(const boost::python::list position, 
+                            const float yaw, const float pitch)
+{
+    glm::vec3 pos = list2vec3(position);
+
+    main_camera_ = scene_->world_->add_camera(pos,
+        vec3(0, 0, 0), camera_aspect_);
+
+    main_camera_->Yaw = yaw;
+    main_camera_->Pitch = pitch;
+    main_camera_->updateCameraVectors();
+}
+
+void Playground::UpdateFreeCamera(const boost::python::list position, 
+                                  const float yaw, const float pitch)
+{
+    glm::vec3 pos = list2vec3(position);
+
+    main_camera_->Position = pos;
+    main_camera_->Yaw = yaw;
+    main_camera_->Pitch = pitch;
+    main_camera_->updateCameraVectors();
 }
 
 void Playground::Initialize()

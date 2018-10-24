@@ -53,7 +53,7 @@ void main()
     error *= backfacingFactor;
     
     FragColor = texture(renderedTexture, TexCoords.xy) * 0.9
-        + vec4(mix(ssr, vec3(0), max(1.0 - error, 0.0)), 1) * 0.2;
+        + vec4(mix(ssr, vec3(0), max(1.0 - error, 0.0)), 1) * 0.3;
 }
  
 vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)

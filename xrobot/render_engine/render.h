@@ -18,28 +18,6 @@
 namespace xrobot {
 namespace render_engine {
 
-//
-// Low Quality
-// Lambert + Blinn-Phong + Ambient + Cubemap Reflection
-//
-// Normal Quality
-// Lambert + Blinn-Phong + Ambient 
-// Normal / Parrallex Mapping
-// Shadow: 3 Cascades
-//
-// High Quality
-// Cook-Torrance + IBL
-// Normal / Parrallex Mapping
-// VXGI + VXAO 256
-// Shadow: 4 Cascades
-//
-// Very High Quality (Baked)
-// Cook-Torrance + IBL
-// Normal / Parrallex Mapping
-// VXGI + VXAO 512
-// Shadow: 5 Cascades
-//
-
 constexpr unsigned int kLowQuality = 0;
 constexpr unsigned int kNormalQuality = 1;
 constexpr unsigned int kHighQuality   = 2;
@@ -300,7 +278,8 @@ public:
            const int height,
            const int num_cameras,
            const RenderSettings render_profile,
-           const bool headless);
+           const bool headless,
+           const int device = 0);
 
     ~Render();
 
