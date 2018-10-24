@@ -26,7 +26,14 @@ namespace xrobot
 	public:
 		Map() : world_(nullptr) {}
 		virtual ~Map() {}
-		virtual void ResetMap() =0;
+		virtual void ResetMap() { world_->CleanEverything(); }
+
+		void GenerateGenetricMap() { 
+			if(!world_) {
+				world_ = std::make_shared<World>();
+				world_->BulletInit(-9.81f, 0.01f);
+			}
+		}
 
 		std::shared_ptr<World> world_;
 	};

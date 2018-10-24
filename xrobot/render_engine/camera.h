@@ -89,7 +89,6 @@ public:
     // input on the vertical wheel-axis
     void ProcessMouseScroll(float yoffset);    
 
-private:
     // Calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors();
 };

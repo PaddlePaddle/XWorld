@@ -5,7 +5,7 @@ out vec4 FragColor;
 in mediump vec2 TexCoords;
 
 uniform mediump float zNear = 0.02;
-uniform mediump float zFar = 30.0;
+uniform mediump float zFar = 25.0;
 uniform lowp float deferred = 0;
 
 uniform sampler2D tex;
