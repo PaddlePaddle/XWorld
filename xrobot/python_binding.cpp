@@ -638,10 +638,10 @@ boost::python::dict Playground::GetObservationSpace()
     dictionary["lidar"]  = boost::python::make_tuple(lidar_rays, 0, lidar_dist);
     dictionary["pos"]    = boost::python::make_tuple(3, -100, 100);
     dictionary["orn"]    = boost::python::make_tuple(3, -3.14, 3.14);
-    dictionary["vel"]    = boost::python::make_tuple(3, -100, 100);
-    dictionary["avel"]   = boost::python::make_tuple(3, -100, 100);
-    dictionary["acc"]    = boost::python::make_tuple(3, -100, 100);
-    dictionary["aacc"]   = boost::python::make_tuple(3, -100, 100);
+    // dictionary["vel"]    = boost::python::make_tuple(3, -100, 100);
+    // dictionary["avel"]   = boost::python::make_tuple(3, -100, 100);
+    // dictionary["acc"]    = boost::python::make_tuple(3, -100, 100);
+    // dictionary["aacc"]   = boost::python::make_tuple(3, -100, 100);
 
     return dictionary;
 }
@@ -991,9 +991,9 @@ void Playground::TakeAction(const int action_id)
     }
 }
 
-void Playground::ControlJoints(const Thing& object, 
-                               const boost::python::dict joint_positions,
-                               const float max_force)
+void Playground::ControlJointPositions(const Thing& object, 
+                                       const boost::python::dict joint_positions,
+                                       const float max_force)
 {
     if(auto object_sptr = object.GetPtr().lock())
     {
@@ -1006,6 +1006,25 @@ void Playground::ControlJoints(const Thing& object,
 
             auto joint_ptr = object_sptr->robot_data_.joints_list_[joint_id];
             joint_ptr->SetJointMotorControlPosition(position, 0.1f, 1.0f, max_force);
+        }
+    }
+}
+
+void Playground::ControlJointVelocities(const Thing& object, 
+                                        const boost::python::dict joint_velocities,
+                                        const float max_force)
+{
+    if(auto object_sptr = object.GetPtr().lock())
+    {
+        boost::python::list joint_velocities_keys = joint_velocities.keys();
+
+        for (int i = 0; i < boost::python::len(joint_velocities_keys); ++i)
+        {
+            int joint_id   = boost::python::extract<int>(joint_velocities_keys[i]);
+            float velocity = boost::python::extract<float>(joint_velocities[joint_id]);
+
+            auto joint_ptr = object_sptr->robot_data_.joints_list_[joint_id];
+            joint_ptr->SetJointMotorControlVelocity(velocity, 1.0f, max_force);
         }
     }
 }

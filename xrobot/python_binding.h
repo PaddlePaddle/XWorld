@@ -443,9 +443,14 @@ public:
 	// Move or rotate the joint in certain position with maximum forces	
 	//
 	// "joint_position" should follow { joint_id : joint_position }
-	void ControlJoints(const Thing& object, 
-					   const boost::python::dict joint_positions,
-					   const float max_force);
+	void ControlJointPositions(const Thing& object, 
+					   		   const boost::python::dict joint_positions,
+					   		   const float max_force);
+
+	// "joint_velocity" should follow { joint_id : joint_velocity }
+	void ControlJointVelocities(const Thing& object, 
+					   		    const boost::python::dict joint_velocities,
+					   		    const float max_force);
 
 	// Enable or disable the interaction for further actions
 	//
@@ -646,7 +651,8 @@ BOOST_PYTHON_MODULE(libxrobot)
 	.def("Detach", &Playground::Detach)
 	.def("Rotate", &Playground::Rotate)
 	.def("TakeAction", &Playground::TakeAction)
-	.def("ControlJoints", &Playground::ControlJoints)
+	.def("ControlJointPositions", &Playground::ControlJointPositions)
+	.def("ControlJointVelocities", &Playground::ControlJointVelocities)
 	.def("Teleport", &Playground::Teleport)
 	.def("GetCameraRGBDRaw", &Playground::GetCameraRGBDRaw)
 	.def("QueryObjectAABBIntersect", &Playground::QueryObjectAABBIntersect)
