@@ -10,16 +10,15 @@ from py_nav_agent_task import *
 
 class XRobotEnv(object):
     def __init__(self):
-        self.env = Playground(640, \
-                              480, \
-		                      HEADLESS, \
-                              RENDER_QUALITY_NORMAL, \
+        self.env = Playground(1280, \
+                              720, \
+		                      0, \
+                              RENDER_QUALITY_HIGH, \
                               1)
 
         self.task_group = TaskGroup("TaskGroup")
         self.task_group.add_task("Navigation_1", XRobot3DRandom(self.env))
-        # self.task_group.add_task("Navigation_2", XRobot3DNavAgentTarget(self.env))
-        # self.task_group.add_task("Navigation_SUNCG", XRobot3DSUNCG(self.env))
+        self.task_group.add_task("Navigation_2", XRobot3DNavTarget(self.env))
 
     def reset(self):
         self.env.Clear()

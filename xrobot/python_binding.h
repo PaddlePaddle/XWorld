@@ -384,6 +384,10 @@ public:
 	boost::python::tuple GetCameraRight() const;
 	boost::python::tuple GetCameraUp() const;
 
+	// Capture Size
+	int GetWidth() const { return w_; }
+	int GetHeight() const { return h_; }
+
 	// Get camera near clipping plane's distance
 	//
 	// Could be useful for calculating real depth
@@ -621,6 +625,8 @@ BOOST_PYTHON_MODULE(libxrobot)
 		)
 	)
 
+	.def("GetWidth", &Playground::GetWidth)
+	.def("GetHeight", &Playground::GetHeight)
 	.def("SetLighting", &Playground::SetLighting)
 	.def("EnableLidar", &Playground::EnableLidar)
 	.def("UpdateLidar", &Playground::UpdateLidar)

@@ -15,7 +15,7 @@ suncg_house = suncg_dir + "/house/00065ecbdd7300d35ef4328ffe871505/house.obj";
 def worker(device, id):
 	env = Playground(args.w, args.h, 1, args.quality, device)
 
-	env.CreateEmptyScene(-5,5,-5,5)
+	env.CreateEmptyScene()
 
 	house = env.SpawnAnObject(suncg_house, \
 		[-40,0,-40], [1,0,0,0], 1.0, "House", True)
@@ -31,7 +31,7 @@ def worker(device, id):
 
 	for i in xrange(args.num_iter):
 		env.UpdateRenderer()
-		env.UpdateSimulationWithAction(NO_ACTION)
+		# env.UpdateSimulationWithAction(NO_ACTION)
 		image_str = env.GetCameraRGBDRaw()
 
 	end = time.time()

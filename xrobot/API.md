@@ -13,6 +13,11 @@ The playground is essential to the simulation environment and rendering engine. 
 
 Rendering Quality can be chosen between low and normal. Low quality does not have any of post-processing but is quite fast. However, normal quality uses SSAO to increase some small occlusion-like details and use FXAA to reduce some of the jagged edges. Exposure control is also available in normal rendering quality. To switch to low-quality mode, change the "HEADLESS" to "RENDER_QUALITY_LOW"
 
+|          Low Quality         |            Normal Quality          |
+|:----------------------------:|:----------------------------------:|
+| ![low quality](imgs/low.png) | ![normal quality](imgs/normal.png) |
+
+
 Headless context is used for rendering a scene without associating a window. The default rendering backend is EGL, and GLX Headless is also supported. To disable headless context, change the "HEADLESS" to "Debug_Visualization" for visualizing the scene with a flyover camera. (This only available when rendering is debugged mode)
 
 To create a playground, use `Playground(width, height, mode, quality, GPU)`
@@ -749,3 +754,5 @@ You can get some performance information use `GetStatus()`.
 * Inverse Kinematics
 * Changing Object Physics Properties
 * High-Quality Rendering
+
+# 

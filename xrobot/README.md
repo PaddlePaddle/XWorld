@@ -35,7 +35,7 @@ For C++ users:
 
 # Code Overview
 
-The code in the `xrobot/ directory` is organized as follows:
+The code in the `xrobot/directory` is organized as follows:
 
 - data/ contains all necessary models and textures for running basic tests and tutorials
 - vendor/ contains code for loading json and images
@@ -48,7 +48,7 @@ The code in the `xrobot/ directory` is organized as follows:
 
 On Ubuntu and derivatives, use following script to benchmark:
 
-    sh run_python_benchmark.sh --num-proc 3 --num-gpu 1
+    sh run_benchmark.sh --num-proc 3 --num-gpu 1
 
 The results are approx. framerates in each process (include rendering and simulation). The total framerate should reach approx. 500 - 1500 fps on decent Nvidia GPU with EGL backend.
 
@@ -269,13 +269,13 @@ def navigation(self):
 
 d) Run the task you just created
 
-You can use `xrobot\python\py_test_env.py` for testing
+You can use `xrobot\python\py_taskground_navigation.py` for testing
 
 ```python
 
 """
 this tutorial is adapted from the task file below:
-xrobot/python/py_test_env.py
+xrobot/python/py_taskground_navigation.py
 """
 class XRobotEnv(object):
     def __init__(self):
@@ -296,6 +296,6 @@ class XRobotEnv(object):
 
 On Ubuntu and derivatives, run:
 
-    PYTHONPATH=..:$PYTHONPATH __GL_SYNC_TO_VBLANK=0 python py_test_env.py
+    PYTHONPATH=..:$PYTHONPATH __GL_SYNC_TO_VBLANK=0 python py_taskground_navigation.py
 
 Do not forget to use `__GL_SYNC_TO_VBLANK=0` to disable V-Sync.

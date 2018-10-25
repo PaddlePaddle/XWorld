@@ -41,14 +41,16 @@ class XRobot3DNavTarget(TaskInterface):
 		orientation = self.agent.GetOrientation()
 
 		# Fetch Raw Images
+		image_width  = self.env.GetWidth()
+		image_height = self.env.GetHeight()
+
 		image_str = self.env.GetCameraRGBDRaw()
-		image_rgbd = np.fromstring(image_str, np.uint8).reshape( 480, 640, 4 )
+		image_rgbd = np.fromstring(image_str, np.uint8).reshape( image_height, image_width, 4 )
 		image_rgbd = cv2.cvtColor(image_rgbd, cv2.COLOR_BGRA2RGBA)
 		image_rgbd = cv2.flip(image_rgbd, 0)
 
-		image_rgb = np.array(image_rgbd[:,:,:3])
-		image_depth = np.array(image_rgbd[:,:,3])
-
+		image_rgbd_resize = cv2.resize(image_rgbd, None, fx=0.5, fy=0.5)
+		image_rgb = np.array(image_rgbd_resize[:,:,:3])
 
 		frames = "frames: " + str(self.env.GetStatus()["frames"])
 		framerate = " | framerate: " + str(self.env.GetStatus()["framerate"])

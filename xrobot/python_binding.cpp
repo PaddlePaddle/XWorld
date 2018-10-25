@@ -48,6 +48,8 @@ Playground::Playground(const int w, const int h,
                                                         headless,
                                                         device);
 
+    renderer_->ctx_->Hide();
+
 	ctx_ = renderer_->ctx_;
 	main_camera_ = nullptr;
 	camera_aspect_ = (float) w / h;
