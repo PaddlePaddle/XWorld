@@ -781,8 +781,8 @@ void Render::VoxelizeScene(RenderWorld* world)
     #ifdef DYN_VOXEL
         int x = ceil(camera->Position.x);
         int z = ceil(camera->Position.z);
-        minAABB = glm::vec3(x - 10, -2, z - 10);
-        maxAABB = glm::vec3(x + 10,  6, z + 10);
+        minAABB = glm::vec3(x - 14, -2, z - 14);
+        maxAABB = glm::vec3(x + 14,  6, z + 14);
     #else
         GetViewFrusrumBoundingVolume(camera, minAABB, maxAABB);
     #endif
@@ -1899,12 +1899,15 @@ void Render::SSR(RenderWorld* world) {
             shaderSSR.setMat4("view", view);
             shaderSSR.setInt("renderedTexture", 0);
             shaderSSR.setInt("gPositionDepth", 1);
-            shaderSSR.setInt("gNormal", 2);
+            shaderSSR.setInt("gPBR", 2);
+            shaderSSR.setInt("gNormal", 3);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, ssao_composite_tex_);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, g_position_);
             glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, g_pbr_);
+            glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, g_normal_);
             RenderQuad();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

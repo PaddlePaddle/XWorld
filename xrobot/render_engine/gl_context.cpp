@@ -99,12 +99,10 @@ EGLContext::EGLContext(int h, int w, int device): GLContext{h, w, device} {
                 device_ids.push_back(i);
             }
         }
-        cout << "[EGL] Detected " << numDevices << " devices, among which "
-             << (device_ids.size() ? getenv("CUDA_VISIBLE_DEVICES") : "all")
-             << " are visible. ";
+        cout << "[EGL] Detected " << numDevices;
         assert(device < (int)device_ids.size());
         device = device_ids[device];
-        cout << "Using device " << device << endl;
+        cout << ", using device " << device << endl;
         eglDpy_ = eglGetPlatformDisplayEXT(
                 EGL_PLATFORM_DEVICE_EXT, eglDevs[device], 0);
     }
@@ -176,10 +174,10 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
                                          visualAttribs,
                                          &numberOfFramebufferConfigurations);
     
-    printf("num of conf: %d\n", numberOfFramebufferConfigurations);
+    // printf("num of conf: %d\n", numberOfFramebufferConfigurations);
 
 
-    std::cout << "Getting best XVisualInfo\n";
+    // std::cout << "Getting best XVisualInfo\n";
     int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
     for (int i = 0; i < numberOfFramebufferConfigurations; ++i) {
         XVisualInfo *vi = glXGetVisualFromFBConfig( dpy_, fbc[i] );
@@ -199,7 +197,7 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
         }
         XFree( vi );
     }
-    std::cout << "Best visual info index: " << best_fbc << "\n";
+    // std::cout << "Best visual info index: " << best_fbc << "\n";
     GLXFBConfig bestFbc = fbc[ best_fbc ]; 
 
     // setup function pointers
@@ -209,7 +207,7 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
     glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc) 
             glXGetProcAddressARB((const GLubyte *)"glXCreateContextAttribsARB");
 
-    printf("pass glx context\n");
+    // printf("pass glx context\n");
 
     int context_attribs[] =
     {
@@ -223,11 +221,11 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
     GLXContext openGLContext = glXCreateContextAttribsARB(
             dpy_, bestFbc, 0, True, context_attribs);
     
-    printf("pass gl context\n");
+    // printf("pass gl context\n");
 
     GLXPbuffer pbuffer = glXCreatePbuffer(dpy_, bestFbc, GLXpbufferAttribs);
     
-    printf("pass pbuffer\n");
+    // printf("pass pbuffer\n");
 
     XFree(fbc);
     XSync(dpy_, False);
@@ -237,7 +235,9 @@ GLXHeadlessContext::GLXHeadlessContext(int h, int w): GLContext{h, w} {
         exit(1);
     }
     
-    printf("pass glx make current\n");
+    printf("[GLX] Headless mode\n");
+
+    // printf("pass glx make current\n");
     this->Init();
 }
 
@@ -463,7 +463,7 @@ GLFWContext::GLFWContext(int h, int w, bool core) :
     GLFWmonitor* pMonitor = isFullScreen ? glfwGetPrimaryMonitor() : NULL;
     
     // Create a GLFWwindow object that we can use for GLFW's functions
-    window_ = glfwCreateWindow(w, h, "GLFW", pMonitor, nullptr);
+    window_ = glfwCreateWindow(w, h, "XRobot Debug", pMonitor, nullptr);
     if (window_ == nullptr) {
         fprintf(stderr, "Failed to make GLFW window current!");
         fflush(stderr);
@@ -483,6 +483,11 @@ GLFWContext::GLFWContext(int h, int w, bool core) :
 
 GLFWContext::~GLFWContext() {
     glfwTerminate();
+}
+
+void GLFWContext::Hide() {
+    glfwHideWindow(window_);
+    printf("[GLFW] Hide the window.\n");
 }
 
 bool GLXVisualizationContext::GetKeyPressUp()
@@ -601,7 +606,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
             dpy_, scnId_, glxAttribs, &numberOfFramebufferConfigurations);
     
     
-    std::cout << "Getting best XVisualInfo\n";
+    // std::cout << "Getting best XVisualInfo\n";
     int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
     for (int i = 0; i < numberOfFramebufferConfigurations; ++i) {
         XVisualInfo *vi = glXGetVisualFromFBConfig( dpy_, fbc[i] );
@@ -621,7 +626,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
         }
         XFree( vi );
     }
-    std::cout << "Best visual info index: " << best_fbc << "\n";
+    // std::cout << "Best visual info index: " << best_fbc << "\n";
     GLXFBConfig bestFbc = fbc[ best_fbc ]; 
     
     XVisualInfo* visual = glXGetVisualFromFBConfig( dpy_, bestFbc );
@@ -640,7 +645,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
         exit(1);
     }
     
-    printf("pass conf\n");
+    // printf("pass conf\n");
 
     XSetWindowAttributes windowAttribs;
     windowAttribs.border_pixel = BlackPixel(dpy_, scnId_);
@@ -652,7 +657,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
                                              AllocNone);
     windowAttribs.event_mask = ExposureMask;
 
-    printf("pass color map\n");
+    // printf("pass color map\n");
 
     win_ = XCreateWindow(dpy_,
                          RootWindow(dpy_, scnId_),
@@ -667,7 +672,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
                          CWBackPixel | CWColormap | CWBorderPixel | CWEventMask,
                          &windowAttribs);
     
-    printf("pass create window\n");
+    // printf("pass create window\n");
     
     // setup function pointers
     typedef GLXContext (*glXCreateContextAttribsARBProc)
@@ -679,7 +684,7 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
     GLXContext openGLContext = glXCreateContextAttribsARB(
             dpy_, bestFbc, 0, true, GLXcontextAttribs);
     
-    printf("pass gl context\n");
+    // printf("pass gl context\n");
 
     XFree( fbc );
     XSync(dpy_, false);
@@ -691,15 +696,17 @@ GLXVisualizationContext::GLXVisualizationContext(int h, int w) : GLContext{h, w}
     
     XSelectInput(dpy_, win_, KeyPressMask | KeymapStateMask);
     
-    std::cout << "GL Vendor: " << glGetString(GL_VENDOR) << "\n";
-    std::cout << "GL Renderer: " << glGetString(GL_RENDERER) << "\n";
-    std::cout << "GL Version: " << glGetString(GL_VERSION) << "\n";
-    std::cout << "GL Shading Language: "
-              << glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
+    // std::cout << "GL Vendor: " << glGetString(GL_VENDOR) << "\n";
+    // std::cout << "GL Renderer: " << glGetString(GL_RENDERER) << "\n";
+    // std::cout << "GL Version: " << glGetString(GL_VERSION) << "\n";
+    // std::cout << "GL Shading Language: "
+    //           << glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
     
     XClearWindow(dpy_, win_);
     XMapRaised(dpy_, win_);
     
+    printf("[GLX] Display connected\n");
+
     this->Init();
 }
 

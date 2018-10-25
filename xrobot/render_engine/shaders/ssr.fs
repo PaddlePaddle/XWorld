@@ -1,8 +1,11 @@
-#version 330 core
+// SSR
+// Adapted from JoeyDeVries
 
+#version 330 core
  
 uniform sampler2D renderedTexture;
 uniform sampler2D gPositionDepth;
+uniform sampler2D gPBR;
 uniform sampler2D gNormal;
 
 uniform mat4 projection;
@@ -27,10 +30,11 @@ void main()
         discard;
     }
 
-    vec3 worldPos = texture(gPositionDepth, TexCoords).xyz;
-    vec3 viewPos  = vec3(view * vec4(worldPos, 1));
+    vec3 worldPos  = texture(gPositionDepth, TexCoords).xyz;
+    vec3 viewPos   = vec3(view * vec4(worldPos, 1));
     vec3 worldNorm = normalize(texture(gNormal, TexCoords).xyz);
     vec3 viewNorm  = normalize(mat3(view) * worldNorm);
+    float rough    = texture(gPBR, TexCoords).g;
 
     vec3 N = normalize(viewNorm);
     vec3 V = normalize(-viewPos);
@@ -38,7 +42,6 @@ void main()
     vec3 hitPos = viewPos;
     float dDepth;
     
-
     vec4 coords = rayMarch(R * max(minRayStep, -viewPos.z), hitPos, dDepth);
     vec2 dCoords = smoothstep(0.2, 0.6, abs(vec2(0.5, 0.5) - coords.xy));
     float error = coords.w;
@@ -51,9 +54,11 @@ void main()
     float backfacingFactor = 1.0 - smoothstep(-1.0, -0.8, R.z);
     ssr *= backfacingFactor;
     error *= backfacingFactor;
-    
+        
+    // TODO
+    // mix between blur tex, error area use vxgi
     FragColor = texture(renderedTexture, TexCoords.xy) * 0.9
-        + vec4(mix(ssr, vec3(0), max(1.0 - error, 0.0)), 1) * 0.3;
+        + vec4(mix(ssr, vec3(0), max(1.0 - error, 0.0)), 1) * 0.5 * (1 - rough);
 }
  
 vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)

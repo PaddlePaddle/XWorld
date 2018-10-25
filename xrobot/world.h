@@ -608,7 +608,7 @@ public:
     void ResetSimulation();
     int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
     void BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& result,
-        const int num_threads = 0);
+        const int num_threads = 8);
     void SetTransformation(std::weak_ptr<RobotBase> robot_tr, const btTransform& tranform);
     void SetVelocity(std::weak_ptr<RobotBase> robot_vel, const btVector3& velocity);
 

@@ -15,6 +15,7 @@ public:
 
     ~GLContext() {}
 
+    virtual void Hide() {};
     virtual void Terminate() {};
     virtual void PollEvent() {};
     virtual void SwapBuffer() {};
@@ -85,6 +86,7 @@ class GLFWContext : public GLContext {
     GLFWContext(int h, int w, bool core = true);
     ~GLFWContext();
 
+    void Hide() override;
     void Terminate() override;
     void PollEvent() override;
     void SwapBuffer() override;

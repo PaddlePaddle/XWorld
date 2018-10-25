@@ -39,16 +39,15 @@ class XRobot3DSUNCG(TaskInterface):
 
 	def navigation(self):
 		# Query Object At Forward
-		# if self.env.QueryObjectWithLabelAtForward("car"):
-		# 	return "idle"
-
-		# Fetch Agent Status
-		# position = self.agent.GetPosition()
-		# orientation = self.agent.GetOrientation()
+		if self.env.QueryObjectWithLabelAtForward("car"):
+			return "idle"
 
 		# Fetch Raw Images
+		image_width  = self.env.GetWidth()
+		image_height = self.env.GetHeight()
+
 		image_str = self.env.GetCameraRGBDRaw()
-		image_rgbd = np.fromstring(image_str, np.uint8).reshape( 480, 640, 4 )
+		image_rgbd = np.fromstring(image_str, np.uint8).reshape( image_height, image_width, 4 )
 		image_rgbd = cv2.cvtColor(image_rgbd, cv2.COLOR_BGRA2RGBA)
 		image_rgbd = cv2.flip(image_rgbd, 0)
 
