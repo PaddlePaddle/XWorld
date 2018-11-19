@@ -31,8 +31,10 @@ def worker(device, id):
 
 	for i in xrange(args.num_iter):
 		env.UpdateRenderer()
-		# env.UpdateSimulationWithAction(NO_ACTION)
+		if args.simulation:
+			env.UpdateSimulationWithAction(NO_ACTION)
 		image_str = env.GetCameraRGBDRaw()
+		time.sleep(0.1)
 
 	end = time.time()
 
@@ -47,8 +49,9 @@ if __name__ == '__main__':
 	parser.add_argument('--num-gpu', type=int, default=1)
 	parser.add_argument('--w', type=int, default=120)
 	parser.add_argument('--h', type=int, default=90)
-	parser.add_argument('--num-iter', type=int, default=5000)
+	parser.add_argument('--num-iter', type=int, default=2000)
 	parser.add_argument('--quality', type=int, default=0)
+	parser.add_argument('--simulation', type=int, default=1)
 	args = parser.parse_args()
 
 	procs = []
@@ -58,8 +61,14 @@ if __name__ == '__main__':
 
 	print "\n"
 
+	start = time.time()
+
 	for p in procs:
 		p.start()
 
 	for p in procs:
 		p.join()
+
+	end = time.time()
+
+	print str(end - start)

@@ -22,6 +22,57 @@ Joint::Joint() : bullet_robot_(),
 
 Joint::~Joint() {}
 
+void Joint::EnableJointSensor(const bool enable)
+{
+    if(auto bullet_robot = bullet_robot_.lock()) 
+    {
+        auto bullet_world = bullet_world_.lock();
+
+        CommandHandle cmd_handle = b3CreateSensorCommandInit(
+            bullet_world->client_,
+            bullet_robot->robot_data_.bullet_handle_
+        );
+
+        b3CreateSensorEnable6DofJointForceTorqueSensor(
+            cmd_handle, bullet_joint_id_, enable);
+
+        b3SubmitClientCommandAndWaitStatus(
+            bullet_world->client_,
+            cmd_handle
+        );
+    }
+}
+
+void Joint::GetJointState(glm::vec3& force, glm::vec3& torque)
+{
+    if(auto bullet_robot = bullet_robot_.lock()) 
+    {
+        auto bullet_world = bullet_world_.lock();
+
+        CommandHandle cmd_handle = b3RequestActualStateCommandInit(
+            bullet_world->client_,
+            bullet_robot->robot_data_.bullet_handle_
+        );
+
+        StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(
+            bullet_world->client_, 
+            cmd_handle
+        );
+
+        struct b3JointSensorState sensorState;
+
+        b3GetJointState(bullet_world->client_, status_handle, 
+                        bullet_joint_id_, &sensorState);
+
+        force.x = sensorState.m_jointForceTorque[0];
+        force.y = sensorState.m_jointForceTorque[1];
+        force.z = sensorState.m_jointForceTorque[2];
+        torque.x = sensorState.m_jointForceTorque[3];
+        torque.y = sensorState.m_jointForceTorque[4];
+        torque.z = sensorState.m_jointForceTorque[5];
+    }
+}
+
 void Joint::SetJointMotorControlTorque(const float torque) 
 {
 
@@ -140,8 +191,9 @@ void Object::GetMass(float& mass)
 
         int status_type = b3GetStatusType(status_handle);
         if (status_type != CMD_GET_DYNAMICS_INFO_COMPLETED) {
-            printf("Get Mass Failed! Or Could Be Static Object\n");
-            return;
+            //printf("Get Mass Failed! Or Could Be Static Object\n");
+            mass = 0.0f;
+	    return;
         }
 
         struct b3DynamicsInfo dynamics_info;
@@ -417,6 +469,8 @@ void RobotWithConvertion::RemoveRobotTemp()
 
         // Remove Label
         bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
+
+        //bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] = nullptr;
     }
 }
 
@@ -495,7 +549,8 @@ void RobotWithConvertion::LoadConvertedObject(
     const btVector3 position,
     const btQuaternion rotation,
     const float scale,
-    const std::string& label) 
+    const std::string& label,
+    const bool concave) 
 {
     FILE* fp = fopen(filename.c_str(), "rb");
     if (!fp) {
@@ -580,7 +635,7 @@ void RobotWithConvertion::LoadConvertedObject(
 
         if((int) index == 0) {
             LoadURDFFile(std::string(object_path), position, rotation, scale, 
-                std::string(label), false);
+                std::string(label), false, false, true, concave);
         }
 
         object_path_list_.push_back(std::string(object_path));
@@ -592,6 +647,8 @@ RobotWithAnimation::RobotWithAnimation(std::weak_ptr<World> bullet_world)
     : RobotBase(bullet_world),
       status_(0),
       joint_(1),
+      lock_(false),
+      unlock_tag_(""),
       positions_() {}
 
 RobotWithAnimation::~RobotWithAnimation() {}
@@ -643,18 +700,33 @@ void RobotWithAnimation::RemoveRobotTemp() {
 
         // Remove Label
         bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
+
+        //bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] = nullptr;
     }
+}
+
+bool RobotWithAnimation::InteractWith(const std::string& tag)
+{
+    assert(tag.size());
+
+    if(tag == unlock_tag_) { 
+        lock_ = false; 
+        printf("Actions Unlocked!\n");
+        return true;
+    }
+
+    return false;
 }
 
 bool RobotWithAnimation::TakeAction(const int act_id) {
     assert(act_id > -1 && status_ > -1);
     assert(positions_.size() > 0);
 
-    if(positions_.find(act_id) != positions_.end()) {
-        SetJointPosition(joint_, positions_[act_id], 0.1f, .1f, 5.0f);
+    if(positions_.find(act_id) != positions_.end() && !lock_) {
+        SetJointPosition(joint_, positions_[act_id], 1.0f, 0.1f, 200000.0f);
         return true;
     } else {
-        printf("Cannot Find Action ID");
+        printf("Cannot Find Action ID or Object Actions Locked!\n");
         return false;
     }
 }
@@ -664,7 +736,8 @@ void RobotWithAnimation::LoadAnimatedObject(
     const btVector3 position,
     const btQuaternion rotation,
     const float scale,
-    const std::string& label) 
+    const std::string& label,
+    const bool concave) 
 {
     FILE* fp = fopen(filename.c_str(), "rb");
     if (!fp) {
@@ -717,6 +790,13 @@ void RobotWithAnimation::LoadAnimatedObject(
         //printf("animated joint: %d\n", joint_id);
     }
 
+    // Get Trigger
+    char unlock[1024];
+    strncpy(unlock, "", 1024);
+    if (GetJsonObjectMember(json_value, &json_root, "unlock", Json::stringValue)) {
+        strncpy(unlock, json_value->asString().c_str(), 1024);
+    }
+
     // Get Object Path
     char object_path[1024];
     strncpy(object_path, "NoObjectPath", 1024);
@@ -725,12 +805,19 @@ void RobotWithAnimation::LoadAnimatedObject(
          //printf("object path: %s\n", object_path);
     }
 
-    LoadURDFFile(object_path, position, rotation, scale, label, true);
+    LoadURDFFile(object_path, position, rotation, scale, label, true,false,true,concave);
     move(true);
     DisableSleeping();
     SetStatus(0);
     SetJoint(joint_id);
     path_ = filename;
+
+    if(strcmp(unlock, "")==0) {
+        lock_ = false;
+    } else {
+        lock_ = true;
+        unlock_tag_ = std::string(unlock);
+    }
 
 
     // Parse Actions
@@ -821,8 +908,10 @@ void Robot::CalculateInverseKinematics(
 
 RobotData::RobotData() : scale_(btVector3(1.0, 1.0, 1.0)),
                          fixed_(true),
+                         concave_(false),
                          mass_(0.0f),
                          label_("unlabeled"),
+                         pickable_(false),
                          urdf_name_(""),
                          path_(""),
                          bullet_handle_(-1),
@@ -839,6 +928,7 @@ RobotData::RobotData(btVector3 scale, bool fixed, float mass,
                      std::vector<std::shared_ptr<Joint>> joints_list)
         : scale_(scale),
           fixed_(fixed),
+          concave_(false),
           mass_(mass),
           label_(label),
           urdf_name_(urdf_name),
@@ -872,9 +962,16 @@ RobotBase::~RobotBase()
     }
 }
 
+bool RobotBase::InteractWith(const std::string& tag)
+{
+    printf("No Interactions\n");
+    return false;
+}
+
 bool RobotBase::TakeAction(const int act_id) 
 {
     printf("No Actions\n");
+    return false;
 }
 
 std::vector<std::string> RobotBase::GetActions() const
@@ -887,14 +984,16 @@ void RobotBase::LoadConvertedObject(
     const btVector3 position,
     const btQuaternion rotation,
     const float scale,
-    const std::string& label) {}
+    const std::string& label,
+    const bool concave) {}
 
 void RobotBase::LoadAnimatedObject(
     const std::string& filename,
     const btVector3 position,
     const btQuaternion rotation,
     const float scale,
-    const std::string& label) {}
+    const std::string& label,
+    const bool concave) {}
 
 void RobotBase::LoadURDF(
     const std::string& filename,
@@ -916,7 +1015,8 @@ void RobotBase::LoadURDFFile(
     const std::string& label,
     const bool fixed_base,
     const bool self_collision,
-    const bool use_multibody) 
+    const bool use_multibody,
+    const bool concave) 
 {
     if(auto bullet_world = bullet_world_.lock()) 
     {
@@ -925,6 +1025,7 @@ void RobotBase::LoadURDFFile(
         robot_data_.scale_ = btVector3(scale, scale, scale);
         robot_data_.fixed_ = fixed_base;
         robot_data_.mass_ = 0;
+        robot_data_.concave_ = concave;
         recycle(false);
 
         CommandHandle cmd_handle = b3LoadUrdfCommandInit(bullet_world->client_,
@@ -943,7 +1044,7 @@ void RobotBase::LoadURDFFile(
             b3LoadUrdfCommandSetFlags(
                     cmd_handle, kURDFSelfCollision | kURDFSelfCollisionExParents);
         } else {
-            b3LoadUrdfCommandSetFlags(cmd_handle, 0);
+            b3LoadUrdfCommandSetFlags(cmd_handle, 0); // kURDFEnableSleeping
         }
 
         StatusHandle status_handle =
@@ -967,7 +1068,7 @@ void RobotBase::LoadURDFFile(
         bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] 
             = shared_from_this();
 
-        bullet_world->AddObjectWithLabel(label, robot_data_.bullet_handle_);
+        // bullet_world->AddObjectWithLabel(label, robot_data_.bullet_handle_);
 
         robot_data_.label_ = label;
     }
@@ -1010,6 +1111,7 @@ void RobotBase::LoadOBJFile(
         robot_data_.scale_ = scale;
         robot_data_.fixed_ = true;
         robot_data_.mass_ = mass;
+        robot_data_.concave_ = concave;
         recycle(false);
 
         CommandHandle cmd_handle = b3LoadObjCommandInit(bullet_world->client_,
@@ -1076,7 +1178,7 @@ void RobotBase::LoadOBJFile(
         bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] 
             = shared_from_this();
 
-        bullet_world->AddObjectWithLabel(label, robot_data_.bullet_handle_);
+        // bullet_world->AddObjectWithLabel(label, robot_data_.bullet_handle_);
 
         robot_data_.label_ = label;
     }
@@ -1420,13 +1522,64 @@ void RobotBase::Move(const float move, const float rotate, const bool remit)
 
         for (int i = 0; i < contact_points.size(); ++i)
         {
+
+            // if(rotate > 0.0f) {
+            //     robot_transform.setOrigin(robot_position);
+            //     robot_transform.setRotation(robot_rotation);
+            //     bullet_world->SetTransformation(shared_from_this(), robot_transform);
+            //     bullet_world->BulletStep();
+            //     return;
+            // }
+
+            glm::vec3 current_position_vec3(robot_position_new[0],0,robot_position_new[2]);
+
             ContactPoint cp = contact_points[i];
 
-            float dir = abs(glm::dot(cp.contact_normal, glm::vec3(0,1,0)));
+            glm::vec3 cn   = glm::normalize(cp.contact_normal);
+            glm::vec3 cp_b = cp.contact_position_b;
+            glm::vec3 cp_a = cp.contact_position_a;
+
+            cp_b.y = 0;
+
+            glm::vec3 to_object = glm::normalize(cp_b - current_position_vec3);
+
+            float dir = abs(glm::dot(cn, glm::vec3(0,1,0)));
 
             if(cp.contact_distance < -0.01 && dir < 0.2f){
 
-                robot_transform.setOrigin(robot_position);
+
+                float sign = 1;
+                float dist = glm::clamp(cp.contact_distance, -0.05f, 0.0f);
+
+                auto& object_b = bullet_world->bullet_handle_to_robot_map_[cp.bullet_id_b];
+                auto& object_a = bullet_world->bullet_handle_to_robot_map_[cp.bullet_id_a];   
+
+                // printf("collide: %s with %s ", object_b->robot_data_.label_.c_str(), 
+                //                                object_a->robot_data_.label_.c_str());
+
+
+                // if(object_b && object_b->robot_data_.concave_) {
+                //     sign = -1;
+                //     printf("concave\n");
+                // } else {
+                //     printf("Not concave\n");
+                // }
+                
+                //btVector3 head_dir_bt = robot_position_new - robot_position;
+                //vec3 head_dir = glm::normalize(vec3(head_dir_bt[0], head_dir_bt[1], head_dir_bt[2]));
+
+                // vec3 contact_dir(contact_normal[0],contact_normal[1],contact_normal[2]);
+
+                // float dd = glm::dot(contact_dir, head_dir);
+                // if(dd < 0 || isnan(dd) && rotate == 0.0f) {
+                //     sign = -1;   
+                // }
+
+                // btVector3 contact_normal(cn.x, cn.y, cn.z);
+                btVector3 contact_normal(to_object.x, to_object.y, to_object.z);
+                btVector3 new_robot_position = robot_position + sign * contact_normal * dist;
+                
+                robot_transform.setOrigin(new_robot_position);
                 robot_transform.setRotation(robot_rotation);
                 bullet_world->SetTransformation(shared_from_this(), robot_transform);
                 bullet_world->BulletStep();
@@ -1569,15 +1722,21 @@ void RobotBase::PickUp(std::shared_ptr<Inventory> inventory,
 
         bullet_world->BatchRayTest(temp_ray, temp_res);
 
+        // printf("ray-cast: %d\n", temp_res[0].bullet_id);
+
         if(temp_res[0].bullet_id >= 0) {
 
             auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
 
-            if(inventory->IsPickableObject(object->robot_data_.label_)) {
+            // printf("find\n");
 
-                
+            if(object->robot_data_.pickable_) {
+
+                // printf("pick\n");
 
                 inventory->PutObject(object);
+
+                // printf("ok\n");
                 //scene_->map_bullet_label_.erase(
                 //        scene_->map_bullet_label_.find(temp_res[0].bullet_id));
             }
@@ -1910,6 +2069,7 @@ void RobotBase::RemoveRobotTemp() {
         // Remove Label
         bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
 
+        //bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] = nullptr;
     }
 }
 
@@ -2022,12 +2182,160 @@ World::World() : robot_list_(0),
                  bullet_timestep_sent_(0),
                  bullet_skip_frames_sent_(0),
                  bullet_ts_(0),
-                 reset_count_(0) {}
+                 reset_count_(0),
+                 pickable_list_(),
+                 tag_list_() {}
 
 World::~World() {
     CleanEverything();
     ClearCache();
     b3DisconnectSharedMemory(client_);
+}
+
+void World::UpdatePickableList(const std::string& tag, const bool pick)
+{
+    //printf("[Update Pickable List] Tag: %s\n", tag.c_str());
+    pickable_list_[tag] = pick;
+}
+
+void World::AssignTag(const std::string& path, const std::string& tag)
+{
+    //printf("[Assign Tag] Tag: %s\n", tag.c_str());
+    tag_list_[path] = tag;
+}
+
+void World::LoadMetadata(const char * filename)
+{
+    errno = 0;
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(stderr, "[%d] Unable to open metadata file %s\n", errno, filename);
+        return;
+    }
+
+    int line_number = 1;
+    char key_buffer[4096];
+    std::vector<char *> keys;
+    if (fgets(key_buffer, 4096, fp)) {
+        char *token = strtok(key_buffer, ",\n");
+        while (token) {
+            keys.push_back(token);
+            token = strtok(NULL, ",\n");
+        }
+    }
+
+    // Check index
+    int model_id_k = -1;
+    for (int i = 0; i < keys.size(); i++) {
+        if (!strcmp(keys[i], "index")) {
+            model_id_k = i;
+            break;
+        }
+    }
+
+    if (model_id_k < 0) {
+        fprintf(stderr, "Did not find \"index\" in header on line %d of %s\n",
+                line_number, filename);
+        return;
+    }
+
+    // Check path
+    int path_k = -1;
+    for (int i = 0; i < keys.size(); i++) {
+        if (!strcmp(keys[i], "path")) {
+            path_k = i;
+            break;
+        }
+    }
+
+    if (path_k < 0) {
+        fprintf(stderr, "Did not find \"path\" in header on line %d of %s\n",
+                line_number, filename);
+        return;
+    }
+
+    // Check tag
+    int tag_k = -1;
+    for (int i = 0; i < keys.size(); i++) {
+        if (!strcmp(keys[i], "tag")) {
+            tag_k = i;
+            break;
+        }
+    }
+
+    if (tag_k < 0) {
+        fprintf(stderr, "Did not find \"tag\" in header on line %d of %s\n",
+                line_number, filename);
+        return;
+    }
+
+    // Check pickable
+    int pickable_k = -1;
+    for (int i = 0; i < keys.size(); i++) {
+        if (!strcmp(keys[i], "pickable")) {
+            pickable_k = i;
+            break;
+        }
+    }
+
+    if (pickable_k < 0) {
+        fprintf(stderr, "Did not find \"pickable\" in header on line %d of %s\n",
+                line_number, filename);
+        return;
+    }
+
+    char value_buffer[4096];
+        while (fgets(value_buffer, 4096, fp)) {
+        line_number++;
+
+        std::vector<char *> values;
+        char *token = strtok(value_buffer, ",\n");
+        while (token) {
+            values.push_back(token);
+            token = strtok(NULL, ",\n");
+        }
+
+        if (values.size() == 0) continue;
+        if (values.size() != keys.size()) {
+            fprintf(stderr, "Invalid number of entries at line %d in %s\n",
+                    line_number, filename);
+            return;
+        }
+
+        const char *model_id = values[model_id_k];
+        if (!model_id) continue;
+        int model_id_length = strlen(model_id);
+        if (model_id_length == 0) continue;
+
+        const char *path = values[path_k];
+        if (!path) continue;
+        int path_length = strlen(path);
+        if (path_length == 0) continue;
+
+        const char *tag = values[tag_k];
+        if (!tag) continue;
+        int tag_length = strlen(tag);
+        if (tag_length == 0) continue;
+
+        const char *pickable = values[pickable_k];
+        if (!pickable) continue;
+        int pickable_length = strlen(pickable);
+        if (pickable_length == 0) continue;
+
+        std::string rel_path(path);
+        // std::string dir_str(filename);
+        // size_t p = dir_str.find_last_of("/");
+        // std::string abs_path(dir_str.substr(0, p) + std::string(path));
+
+        bool pickable_bool = !strcmp(pickable, "0");
+
+        pickable_list_[std::string(tag)] = pickable_bool;
+        tag_list_[rel_path] = std::string(tag);        
+
+        //printf("[Object Category] %s %s %s %d\n", model_id, tag, rel_path.c_str(), pickable_bool);
+    }
+
+    fclose(fp);
 }
 
 std::weak_ptr<RobotBase> World::LoadRobot(
@@ -2042,6 +2350,27 @@ std::weak_ptr<RobotBase> World::LoadRobot(
     const bool concave) 
 {
     assert(filename.size());
+
+    // If label is valid overide
+    // Otherwise, load meta
+    std::string tag(label);
+    bool pick = false;
+
+    if(!label.length() || !label.compare("unlabeled")) {
+        if(tag_list_.find(filename) != tag_list_.end()) {
+            // Invalid label but find in csv
+            tag = tag_list_[filename];
+            //printf("[Load Robot] Find Tag: %s\n", tag.c_str());
+        }
+    } else {
+        //printf("[Load Robot] Load Tag: %s\n", tag.c_str());
+    }
+
+    if(pickable_list_.find(tag) != pickable_list_.end()) {
+        // Invalid label but find in csv
+        pick = pickable_list_[tag];
+       // printf("[Load Robot] Find Pickable Object: %s\n", tag.c_str());
+    }
 
     int find = (int) filename.find(".obj");
     if(find > -1) {
@@ -2058,12 +2387,17 @@ std::weak_ptr<RobotBase> World::LoadRobot(
         if(!robot) {
             robot = std::make_shared<Robot>(shared_from_this());
             robot->LoadOBJFile(filename, position, rotation, scale,
-                label, mass, flip, concave);
+                tag, mass, flip, concave);
             robot->Wake();
         }
 
-        return robot;
+        robot->UpdatePickable(pick);
 
+        robot->recycle(false);
+
+        AddObjectWithLabel(tag, robot->robot_data_.bullet_handle_);
+
+        return robot;
     } 
 
     find = (int) filename.find(".urdf");
@@ -2086,15 +2420,19 @@ std::weak_ptr<RobotBase> World::LoadRobot(
             for (auto part : robot->robot_data_.other_parts_) {
                 part->ChangeMass(part->GetMassOriginal());
             }
-
-           AddObjectWithLabel(label, robot->robot_data_.bullet_handle_);
         } else {
             robot = std::make_shared<Robot>(shared_from_this());
             robot->LoadURDFFile(filename, position, rotation, scale[0],
-                label, fixed_base);
+                tag, fixed_base, concave);
             robot->recycle(false);
             robot->Wake();
         }
+
+        robot->UpdatePickable(pick);
+
+        robot->recycle(false);
+
+        AddObjectWithLabel(tag, robot->robot_data_.bullet_handle_);
 
         return robot;
     }
@@ -2148,12 +2486,12 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                 strncpy(type, json_value->asString().c_str(), 1024);
                 if (strcmp(type, "convert")== 0) {
                     robot = std::make_shared<RobotWithConvertion>(shared_from_this());
-                    robot->LoadConvertedObject(filename, position, rotation, scale[0], label);
+                    robot->LoadConvertedObject(filename, position, rotation, scale[0], tag, concave);
                     robot->recycle(false);
                     robot->Wake();
                 } else if (strcmp(type, "animate")== 0) {
                     robot = std::make_shared<RobotWithAnimation>(shared_from_this());
-                    robot->LoadAnimatedObject(filename, position, rotation, scale[0], label);
+                    robot->LoadAnimatedObject(filename, position, rotation, scale[0], tag, concave);
                     robot->recycle(false);
                     robot->Wake();
                 } else {
@@ -2177,12 +2515,28 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                 part->Wake();
             }
 
-           AddObjectWithLabel(label, robot->robot_data_.bullet_handle_);
+           if(auto robot_anim = std::dynamic_pointer_cast<RobotWithAnimation>(robot))
+           {
+                if(robot_anim->unlock_tag_.size()) {
+                    robot_anim->SetLock(false);
+                    robot_anim->TakeAction(1);
+                    robot_anim->SetLock(true);
+                } else {
+                    robot_anim->TakeAction(1);
+                }
 
-           BulletStep();
+           } else {
+                robot_anim->TakeAction(0);
+           }
 
-           robot->TakeAction(0);
+            BulletStep();
         }
+
+        robot->recycle(false);
+
+        robot->UpdatePickable(pick);
+
+        AddObjectWithLabel(tag, robot->robot_data_.bullet_handle_);
 
         return robot;
     }
@@ -2234,6 +2588,8 @@ void World::RemoveRobot(std::weak_ptr<RobotBase> rm_robot)
 
 void World::CleanEverything2()
 {
+    // PrintCacheInfo();
+
     for (auto robot : robot_list_)
     {
         if(!robot->recycle())
@@ -2257,6 +2613,9 @@ void World::CleanEverything2()
     reset_count_++;
 
     remove_all_cameras();
+
+    tag_list_.clear();
+    pickable_list_.clear();
 }
 
 void World::PrintCacheInfo()
@@ -2272,10 +2631,10 @@ void World::PrintCacheInfo()
 
 void World::CleanEverything()
 {
+
     for (unsigned int i = 0; i < robot_list_.size(); ++i)
     {
         if(robot_list_[i]){
-            //delete robot_list_[i];
             robot_list_[i] = nullptr;
         }
     }
@@ -2283,6 +2642,9 @@ void World::CleanEverything()
     reset_count_++;
 
     remove_all_cameras();
+
+    tag_list_.clear();
+    pickable_list_.clear();
 
     recycle_robot_map_.clear();
     robot_list_.clear();
@@ -2331,6 +2693,15 @@ void World::BulletStep(const int skip_frames)
                 SetTransformation(attach_object_sptr,
                     new_transform * robot->robot_data_.other_parts_[robot->robot_data_.attach_to_id_]->attach_transform_);
             } 
+        }
+
+        // Lock
+        if(auto anim_robot = std::dynamic_pointer_cast<RobotWithAnimation>(robot)) {
+            if(anim_robot->GetLock()) {
+                int joint = anim_robot->GetJoint();
+                float position = anim_robot->GetPosition(1);
+                anim_robot->SetJointPosition(joint, position, 1.0f, 0.1f, 100000000.0f);
+            }
         }
 
         CommandHandle cmd_handle = 0;
@@ -2447,15 +2818,73 @@ void World::BulletInit(const float gravity, const float timestep)
     b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
 }
 
+void World::GetRootClosestPoints(
+    std::weak_ptr<RobotBase> robot_in,
+    std::weak_ptr<Object> part_in,
+    std::vector<ContactPoint>& contact_points)
+{
+    if(auto robot = robot_in.lock()) 
+    {
+        auto part  = part_in.lock();
+
+        int bodyUniqueIdA = robot->robot_data_.root_part_->bullet_handle_;
+        int linkIndexA = part->bullet_link_id_;
+
+        struct b3ContactInformation contact_point_data;
+
+        CommandHandle cmd_handle = b3InitClosestDistanceQuery(client_);
+
+        b3SetClosestDistanceFilterBodyA(cmd_handle, bodyUniqueIdA);
+        b3SetClosestDistanceThreshold(cmd_handle, 0.f);
+
+        StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
+        int status_type = b3GetStatusType(status_handle);
+        if (status_type == CMD_CONTACT_POINT_INFORMATION_COMPLETED)
+        {
+            b3GetContactPointInformation(client_, &contact_point_data);
+
+            contact_points.clear();
+
+            for (int i = 0; i < contact_point_data.m_numContactPoints; ++i)
+            {
+                ContactPoint point;
+
+                float normal_x, normal_y, normal_z;
+                normal_x = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[0];
+                normal_y = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[1];
+                normal_z = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[2];
+
+                float pos_a_x, pos_a_y, pos_a_z;
+                pos_a_x = contact_point_data.m_contactPointData[i].m_positionOnAInWS[0];
+                pos_a_y = contact_point_data.m_contactPointData[i].m_positionOnAInWS[1];
+                pos_a_z = contact_point_data.m_contactPointData[i].m_positionOnAInWS[2];
+
+                float pos_b_x, pos_b_y, pos_b_z;
+                pos_b_x = contact_point_data.m_contactPointData[i].m_positionOnBInWS[0];
+                pos_b_y = contact_point_data.m_contactPointData[i].m_positionOnBInWS[1];
+                pos_b_z = contact_point_data.m_contactPointData[i].m_positionOnBInWS[2];
+
+                point.contact_normal = glm::vec3(normal_x, normal_y, normal_z);
+                point.contact_force = contact_point_data.m_contactPointData[i].m_normalForce;
+                point.contact_distance = contact_point_data.m_contactPointData[i].m_contactDistance;
+                point.bullet_id_a = contact_point_data.m_contactPointData[i].m_bodyUniqueIdA;
+                point.bullet_id_b = contact_point_data.m_contactPointData[i].m_bodyUniqueIdB;
+                point.contact_position_a = glm::vec3(pos_a_x, pos_a_y, pos_a_z);
+                point.contact_position_b = glm::vec3(pos_b_x, pos_b_y, pos_b_z);
+                contact_points.push_back(point);
+            }
+            //printf("contact: %d\n", contact_point_data.m_numContactPoints);
+        }
+    }
+}
+
 void World::GetRootContactPoints(
     std::weak_ptr<RobotBase> robot_in,
     std::weak_ptr<Object> part_in,
     std::vector<ContactPoint>& contact_points)
 {
-
     if(auto robot = robot_in.lock()) 
     {
-
         auto part  = part_in.lock();
 
         int bodyUniqueIdA = robot->robot_data_.root_part_->bullet_handle_;
@@ -2484,10 +2913,24 @@ void World::GetRootContactPoints(
                 normal_x = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[0];
                 normal_y = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[1];
                 normal_z = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[2];
+
+                float pos_a_x, pos_a_y, pos_a_z;
+                pos_a_x = contact_point_data.m_contactPointData[i].m_positionOnAInWS[0];
+                pos_a_y = contact_point_data.m_contactPointData[i].m_positionOnAInWS[1];
+                pos_a_z = contact_point_data.m_contactPointData[i].m_positionOnAInWS[2];
+
+                float pos_b_x, pos_b_y, pos_b_z;
+                pos_b_x = contact_point_data.m_contactPointData[i].m_positionOnBInWS[0];
+                pos_b_y = contact_point_data.m_contactPointData[i].m_positionOnBInWS[1];
+                pos_b_z = contact_point_data.m_contactPointData[i].m_positionOnBInWS[2];
+
                 point.contact_normal = glm::vec3(normal_x, normal_y, normal_z);
+                point.contact_force = contact_point_data.m_contactPointData[i].m_normalForce;
                 point.contact_distance = contact_point_data.m_contactPointData[i].m_contactDistance;
                 point.bullet_id_a = contact_point_data.m_contactPointData[i].m_bodyUniqueIdA;
                 point.bullet_id_b = contact_point_data.m_contactPointData[i].m_bodyUniqueIdB;
+                point.contact_position_a = glm::vec3(pos_a_x, pos_a_y, pos_a_z);
+                point.contact_position_b = glm::vec3(pos_b_x, pos_b_y, pos_b_z);
                 contact_points.push_back(point);
             }
             //printf("contact: %d\n", contact_point_data.m_numContactPoints);
@@ -2890,8 +3333,10 @@ render_engine::ModelData* World::FindInCache(
 
 void World::ClearCache()
 {
-    for (auto index = model_cache_.begin(); index != model_cache_.end(); index++)
+    for (auto index = model_cache_.begin(); index != model_cache_.end(); index++){
+        delete index->second;
         index->second = nullptr;
+    }
 
     model_cache_.clear();
 }

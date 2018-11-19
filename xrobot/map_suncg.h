@@ -56,15 +56,6 @@ namespace xrobot
 
 		std::random_device rand_device_;
 		std::mt19937 mt_;
-
-		// std::vector<AABB *> sections_AABB_;
-		// Boardphase sections_;
-
-		// std::vector<AABB *> first_layer_AABB_;
-		// Boardphase first_layer_;
-
-		// std::vector<AABB *> second_layer_AABB_;
-		// Boardphase second_layer_;
 	};
 }
 

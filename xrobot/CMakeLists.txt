@@ -3,50 +3,15 @@ cmake_minimum_required(VERSION 3.0)
 project(xrobot CXX C)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
+option(CPP_EXAMPLES_ENABLE "c++ examples" ON)
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ## -Wno-error for gcc 5.x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
-
-# SSE2
-if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  add_compile_options(-msse2)
-  message(STATUS "SSE2 instruction set")
-elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
-  add_compile_options(/QxSSE2)
-  message(STATUS "Intel SSE2 instruction set")
-endif()
-
-# SSE3
-if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  add_compile_options(-msse3)
-  message(STATUS "SSE3 instruction set")
-elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
-  add_compile_options(/QxSSE3)
-  message(STATUS "Intel SSE3 instruction set")
-endif()
-
-# AVX
-if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  add_compile_options(-mavx)
-  message(STATUS "AVX instruction set")
-elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
-  add_compile_options(/QxAVX)
-  message(STATUS "Intel AVX instruction set")
-endif()
-
-# AVX2
-if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  add_compile_options(-mavx2)
-  message(STATUS "AVX2 instruction set")
-elseif((CMAKE_CXX_COMPILER_ID MATCHES "Intel"))
-  add_compile_options(/QxAVX2)
-  message(STATUS "Intel AVX2 instruction set")
-endif()
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
 
 include(ExternalProject)
 
@@ -93,7 +58,6 @@ set(XROBOT_SOURCES
     map_grid.cpp
     map_suncg.cpp
     state_machine.cpp
-    task_example.cpp
     room_generator.cpp
     utils.cpp
     lidar.cpp
@@ -103,9 +67,26 @@ set(XROBOT_SOURCES
     python_binding.cpp
 )
 
-add_library(xrobot SHARED
-    ${XROBOT_SOURCES}
-    $<TARGET_OBJECTS:render_engine>)
+set(XROBOT_CPP_EXAMPLE_SOURCES
+    cpp_example/task_example_navigation_in_maze.cpp
+    cpp_example/task_example_follow_robot.cpp
+    cpp_example/task_example_suncg.cpp
+    cpp_example/task_example_crowd.cpp
+    cpp_example/task_example_obj.cpp
+)
+
+if(CPP_EXAMPLES_ENABLE)
+    add_library(xrobot SHARED
+        ${XROBOT_CPP_EXAMPLE_SOURCES}
+        ${XROBOT_SOURCES}
+        $<TARGET_OBJECTS:render_engine>
+    )
+else()
+    add_library(xrobot SHARED
+        ${XROBOT_SOURCES}
+        $<TARGET_OBJECTS:render_engine>
+    )
+endif()
 
 add_dependencies(xrobot render_engine bullet)
 
@@ -116,19 +97,57 @@ target_include_directories(xrobot PUBLIC ${DEP_INCLUDES})
 set_target_properties(xrobot
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(xrobot_test test.cpp)
-# add_executable(xrobot_playround test_playground.cpp)
+if(CPP_EXAMPLES_ENABLE)
+    # Navigation in Maze
+    add_executable(xrobot_test_nav cpp_example/test_navigation_in_maze.cpp)
 
-target_link_libraries(xrobot_test PUBLIC xrobot ${DEP_LIBS})
-# target_link_libraries(xrobot_playround PUBLIC xrobot ${DEP_LIBS})
+    target_link_libraries(xrobot_test_nav PUBLIC xrobot ${DEP_LIBS})
 
-target_include_directories(xrobot_test PUBLIC ${DEP_INCLUDES})
-# target_include_directories(xrobot_playround PUBLIC ${DEP_INCLUDES})
+    target_include_directories(xrobot_test_nav PUBLIC ${DEP_INCLUDES})
 
-set_target_properties(xrobot_test
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-# set_target_properties(xrobot_playround
-#     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set_target_properties(xrobot_test_nav
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
 
+
+    # Follow Robot
+    add_executable(xrobot_test_follow_robot cpp_example/test_follow_robot.cpp)
+
+    target_link_libraries(xrobot_test_follow_robot PUBLIC xrobot ${DEP_LIBS})
+
+    target_include_directories(xrobot_test_follow_robot PUBLIC ${DEP_INCLUDES})
+
+    set_target_properties(xrobot_test_follow_robot
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+
+    # SUNCG
+    add_executable(xrobot_test_suncg cpp_example/test_suncg.cpp)
+
+    target_link_libraries(xrobot_test_suncg PUBLIC xrobot ${DEP_LIBS})
+
+    target_include_directories(xrobot_test_suncg PUBLIC ${DEP_INCLUDES})
+
+    set_target_properties(xrobot_test_suncg
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+
+    # Crowd
+    add_executable(xrobot_test_crowd cpp_example/test_crowd.cpp)
+
+    target_link_libraries(xrobot_test_crowd PUBLIC xrobot ${DEP_LIBS})
+
+    target_include_directories(xrobot_test_crowd PUBLIC ${DEP_INCLUDES})
+
+    set_target_properties(xrobot_test_crowd
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+
+    # OBJ Scene
+    add_executable(xrobot_test_obj cpp_example/test_obj.cpp)
+
+    target_link_libraries(xrobot_test_obj PUBLIC xrobot ${DEP_LIBS})
+
+    target_include_directories(xrobot_test_obj PUBLIC ${DEP_INCLUDES})
+
+    set_target_properties(xrobot_test_obj
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+endif()
 
 

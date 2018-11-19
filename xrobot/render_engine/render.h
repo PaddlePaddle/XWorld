@@ -22,8 +22,10 @@ constexpr unsigned int kLowQuality = 0;
 constexpr unsigned int kNormalQuality = 1;
 constexpr unsigned int kHighQuality   = 2;
 constexpr unsigned int kVeryHighQuality = 3;
+constexpr float kUniformScale = 2.0f;
 constexpr float kMin = -1000.0f;
 constexpr float kMax =  1000.0f;
+constexpr float kHeight = 10.0f;
 
 typedef std::chrono::high_resolution_clock::time_point TimeFrame;
 
@@ -38,7 +40,7 @@ struct RenderSettings {
     RenderSettings(const unsigned int quality = kLowQuality) : use_deferred(quality < 1 ? 0 : 1),
                                                                use_vct(quality < 2 ? 0 : 1),
                                                                vct_bake_before_simulate(quality < 3 ? false : true),
-                                                               vct_resolution(quality < 3 ? 256 : 512),
+                                                               vct_resolution(quality < 3 ? 256 : 256),
                                                                use_shadow(quality < 1 ? 0 : 1),
                                                                shadow_split(quality + 3),
                                                                shadow_lamda(0.7f),
@@ -283,6 +285,8 @@ public:
 
     ~Render();
 
+    GLContext* GetContext() { return ctx_; }
+
     void ProcessInput();
 
     void ProcessMouse();
@@ -304,6 +308,10 @@ public:
               const bool skip_robot = false);
 
     void DrawRootAABB(RenderWorld* world, const Shader& shader);
+
+    void DrawSubTiles(RenderWorld* world, const Shader& shader);
+
+    void DrawWorldAABB(RenderWorld* world, const Shader& shader);
 
     void InitDrawBatchRay(const int rays);
 

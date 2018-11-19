@@ -20,6 +20,7 @@ public:
 
 	bool PutObject(std::weak_ptr<RobotBase> put_object);
 	std::weak_ptr<RobotBase> GetObjectLast();
+	std::vector<std::string> GetObjectTagInInventory();
 	bool GetObject(std::weak_ptr<RobotBase> get_object, const std::string& label);
 	bool DiscardObject(const std::string& object_label);
 	void ClearInventory();
@@ -28,13 +29,8 @@ public:
 	int GetNumUsedSpace() { return size_ - rest_; }
 	int GetNumFreeSpace() { return rest_; }
 
-	bool IsPickableObject(const std::string& name);
-	void AddNonPickableObjectTag(const std::string& name);
-	void ResetNonPickableObjectTag();
-
 private:
 	std::vector<std::weak_ptr<RobotBase>> inventory_;
-	std::vector<std::string> non_pickable_list_;
 	int size_;
 	int rest_;
 };

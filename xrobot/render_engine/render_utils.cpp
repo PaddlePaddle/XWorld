@@ -78,6 +78,8 @@ unsigned int TextureFromFile(
         bool gamma) {
     std::string filename = directory + "/" + path;
 
+    // printf("file: %s\n", filename.c_str());
+
     unsigned int textureID;
     glGenTextures(1, &textureID);
 

@@ -510,11 +510,19 @@ void MapSuncg::LoadCategoryCSV(const char * metadataFile)
 		all_labels_.insert(std::pair<std::string, std::string>
 				(std::string(model_id), std::string(fine_grained_class)));
 	}
+
+	fclose(fp);
 }
 
 void MapSuncg::ResetMap()
 {
-	world_->CleanEverything();
+	
+	printf("[Reset] %d\n", world_->reset_count_);
+
+	if(world_->reset_count_ % 1000 == 0)
+		world_->CleanEverything();
+	else
+		world_->CleanEverything2();
 	map_bullet_label_.clear();
 	all_labels_.clear();
 	map_labels_properity.clear();

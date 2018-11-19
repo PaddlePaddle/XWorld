@@ -1,22 +1,19 @@
 #version 330 core
 
-#pragma optionNV(unroll all)
-
 out float FragColor;
-
 in vec2 TexCoords;
 
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 uniform sampler2D texNoise;
-uniform vec3 samples[64];
 uniform float height = 640;
 uniform float width = 480;
+uniform mediump vec3 samples[64];
 
-int kernelSize = 64;
-float radius = 0.3;
-float bias = 0.025;
-float scale = 1.2f;
+mediump int kernelSize = 64;
+highp float radius = 0.3;
+highp float bias = 0.025;
+highp float scale = 1.2f;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -37,8 +34,8 @@ void main()
     vec3 bitangent = cross(normal, tangent);
     mat3 TBN = mat3(tangent, bitangent, normal);
 
-    float occlusion = 0.0;
-    for(int i = 0; i < kernelSize; ++i)
+    highp float occlusion = 0.0;
+    for(lowp int i = 0; i < kernelSize; ++i)
     {
         vec3 sample = TBN * samples[i];
         sample = fragPos + sample * radius; 
@@ -48,10 +45,10 @@ void main()
         offset.xyz /= offset.w;
         offset.xyz = offset.xyz * 0.5 + 0.5;
         
-        float sampleDepth = vec3(view * vec4(texture(gPosition, offset.xy).xyz, 1)).z;
+        highp float sampleDepth = vec3(view * vec4(texture(gPosition, offset.xy).xyz, 1)).z;
 
         if(texture(gNormal, offset.xy).a > 0) {
-            float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
+            float rangeCheck = clamp(smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth)), 0, 1);
             occlusion += (sampleDepth >= sample.z + bias ? 1.0 : 0.0) * rangeCheck;      
         }     
     }

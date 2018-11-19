@@ -120,6 +120,7 @@ struct Range {
 	boost::python::tuple GetMax() const { return vec2tuple(max); }
 };
 
+
 // Thing hold object or robot in playground
 class Thing {
 public:
@@ -192,6 +193,12 @@ public:
 			   const int device = 0); 
 
 	~Playground();
+
+
+	void AssignTag(const std::string& path, const std::string& tag);
+	void LoadTag(const std::string& path);
+	void MakeObjectPickable(const std::string& tag);
+
 
 	// Adjust directional light setting. Use python dict to update
 	// the configurations
@@ -302,21 +309,24 @@ public:
 	//	conf["room"] = [floor_path, wall_apth, door_path,...]
 	//	conf["on_floor"] = [crate_path, "crate_label",...]
 	//  conf["on_object"] = [crate_path, "crate_label",...]
-	//  conf["on_either"] = [crate_path, "crate_label",...]
 	//  env.LoadRandomSceneConfigure(conf)
 	//
-	void LoadRandomSceneConfigure(const boost::python::dict conf);
 
-	// Generate radom scene
-	//
-	// "on_floor" means how many random object will generate on floor
-	// "on_object" means how many random object will generate on object
-	// "on_either" means how many random object will generate either on 
-	// floor or object
-	boost::python::list LoadRandomScene(const int size, 
-										const int on_floor,
-										const int on_object,
-										const int on_either);
+	boost::python::list LocateObjectInGrid(Thing& object);
+	boost::python::list LocatePositionInGrid(const float x, const float z);
+	boost::python::list GetRoomVisitSequence();
+	boost::python::list GetRoomGroups();
+	boost::python::list LoadSceneConfigure(const int w, const int l, 
+										   const int n, const int d);
+	void LoadBasicObjects(const boost::python::list doors,
+						  const boost::python::list keys,
+						  const boost::python::list key_tags,
+						  const std::string unlocked_door,
+						  const std::string& wall,
+						  const boost::python::list tiles);
+	void LoadModels(const boost::python::list models,
+					const boost::python::list tags);
+	void SpawnModels(const boost::python::dict conf);
 
 	// Load SUNCG
 	//
@@ -436,11 +446,6 @@ public:
 	// Rotate an object a certain degree angles
 	void Rotate(const boost::python::list angle_py);
 
-	// Take an action to a object with action id
-	//
-	// action id are limited from 0 to 10
-	void TakeAction(const int action_id);
-
 	// Teleport an object or robot to a certain position in scene
 	void Teleport(Thing object, const boost::python::list position_py);
 
@@ -461,6 +466,22 @@ public:
 	// Actions only can be executed after enable interaction
 	boost::python::list EnableInteraction();
 	void DisableInteraction();
+
+	// Take an action to a object with action id
+	//
+	// action id are limited from 0 to 3
+	void TakeAction(const int action_id);
+
+	// Open / Close Inventory
+	// TODO
+	boost::python::list OpenInventory();
+	void CloseInventory();
+	void Use(const int object_id);
+
+	bool UseObject(const int inventory_id);
+
+	// Check Contact
+	bool QueryContact(Thing& object);
 
 	// Query two objects' (Bouding Box) are intersect
 	bool QueryObjectAABBIntersect(Thing& object_a, Thing& object_b);
@@ -513,9 +534,11 @@ private:
 	bool kill_after_arrived_;
 	bool gameover_;
 	bool interact_;
+	bool inventory_opened_;
 	Thing agent_;
 
 	boost::python::list current_actions_;
+	boost::python::list current_objects_;
 
 	std::shared_ptr<Map> scene_;
 	std::shared_ptr<Inventory> inventory_;
@@ -625,6 +648,18 @@ BOOST_PYTHON_MODULE(libxrobot)
 		)
 	)
 
+	.def("LocatePositionInGrid", &Playground::LocatePositionInGrid)
+	.def("LocateObjectInGrid", &Playground::LocateObjectInGrid)
+	.def("GetRoomVisitSequence", &Playground::GetRoomVisitSequence)
+	.def("QueryContact", &Playground::QueryContact)
+	.def("GetRoomGroups", &Playground::GetRoomGroups)
+	.def("LoadBasicObjects", &Playground::LoadBasicObjects)
+	.def("OpenInventory", &Playground::OpenInventory)
+	.def("CloseInventory", &Playground::CloseInventory)
+	.def("Use", &Playground::Use)
+	.def("AssignTag", &Playground::AssignTag)
+	.def("LoadTag", &Playground::LoadTag)
+	.def("MakeObjectPickable", &Playground::MakeObjectPickable)
 	.def("GetWidth", &Playground::GetWidth)
 	.def("GetHeight", &Playground::GetHeight)
 	.def("SetLighting", &Playground::SetLighting)
@@ -640,8 +675,9 @@ BOOST_PYTHON_MODULE(libxrobot)
 	.def("CreateAnTestScene", &Playground::CreateAnTestScene)
 	.def("CreateSceneFromSUNCG", &Playground::CreateSceneFromSUNCG)
 	.def("CreateRandomGenerateScene", &Playground::CreateRandomGenerateScene)
-	.def("LoadRandomSceneConfigure", &Playground::LoadRandomSceneConfigure)
-	.def("LoadRandomScene", &Playground::LoadRandomScene)
+	.def("LoadSceneConfigure", &Playground::LoadSceneConfigure)
+	.def("SpawnModels", &Playground::SpawnModels)
+	.def("LoadModels", &Playground::LoadModels)
 	.def("AttachCameraTo", &Playground::AttachCameraTo)
 	.def("FreeCamera", &Playground::FreeCamera)
 	.def("UpdateFreeCamera", &Playground::UpdateFreeCamera)
@@ -689,7 +725,7 @@ BOOST_PYTHON_MODULE(libxrobot)
 
 	scope().attr("ENABLE_INTERACTION")  = 11;
 	scope().attr("DISABLE_INTERACTION") = 12;
-	scope().attr("NO_ACTION")           = 13;
+	scope().attr("NO_ACTION")           = 14;
 	scope().attr("HEADLESS")            = 1;
 	scope().attr("DEBUG_VISUALIZATION") = 0;
 	scope().attr("GRID")                = 0;
