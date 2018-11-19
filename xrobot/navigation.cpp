@@ -149,7 +149,7 @@ void Navigation::SpawnAgent(const glm::vec3 position,
         btQuaternion(orientation.x,orientation.y,orientation.z,orientation.w),
         btVector3(1, 1, 1),
         label,
-        false
+        true
     );
 
     if(auto robot_sptr = robot.lock()) 
@@ -660,7 +660,7 @@ void Navigation::Update()
 
         // Check Arrive?
         float dist = glm::distance(crowd_[i].current_position_, crowd_[i].target_position_);
-        if(dist > 0.5f) {
+        if(dist > 0.4f) {
 
             // Apply Path Finding
             crowd_[i].FollowPath();
@@ -687,6 +687,8 @@ void Navigation::Update()
             if(counter_ % 3 == 0 && update) {
                 Blocking(i, current_position);
             }
+        } else if(crowd_[i].target_index_ >= crowd_[i].path_.size() - 1){
+            continue;
         }
 
         // Update Agent Status

@@ -1,5 +1,5 @@
-//#define DEBUG
-//#define DYN_VOXEL
+#define DEBUG
+// #define DYN_VOXEL
 
 #include <unistd.h>
 
@@ -415,12 +415,12 @@ void Render::UpdateProjectionMatrices(RenderWorld * world)
         Camera* camera = world->camera(0);
         int x = ceil(camera->Position.x);
         int z = ceil(camera->Position.z);
-        vct_bbox_min_ = glm::vec3(x - 10, -2, z - 10);
-        vct_bbox_max_ = glm::vec3(x + 10,  6, z + 10);
+        vct_bbox_min_ = glm::vec3(x - 12 * kUniformScale, -2, z - 12 * kUniformScale);
+        vct_bbox_max_ = glm::vec3(x + 12 * kUniformScale,  8, z + 12 * kUniformScale);
     #else
         world->get_world_size(min_x, min_z, max_x, max_z);
         vct_bbox_min_ = glm::vec3(min_x - 1, -2, min_z - 1);
-        vct_bbox_max_ = glm::vec3(max_x + 1,  6, max_z + 1);
+        vct_bbox_max_ = glm::vec3(max_x + 1, kHeight, max_z + 1);
     #endif
 
     glm::vec3 center = (vct_bbox_min_ + vct_bbox_max_) * 0.5f;
@@ -771,9 +771,8 @@ void Render::VoxelizeScene(RenderWorld* world)
     glBindImageTexture(2, voxel_emissive_->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32UI);
 
 
-    assert(world->cameras_size() > 0);
+    assert(world->cameras_size() == 1);
     Camera* camera = world->camera(0);
-    //Camera* camera = &free_camera_; 
 
     glm::vec3 minAABB, maxAABB;
     
@@ -781,8 +780,8 @@ void Render::VoxelizeScene(RenderWorld* world)
     #ifdef DYN_VOXEL
         int x = ceil(camera->Position.x);
         int z = ceil(camera->Position.z);
-        minAABB = glm::vec3(x - 14, -2, z - 14);
-        maxAABB = glm::vec3(x + 14,  6, z + 14);
+        minAABB = glm::vec3(x - 12 * kUniformScale, -2, z - 12 * kUniformScale);
+        maxAABB = glm::vec3(x + 12 * kUniformScale,  8, z + 12 * kUniformScale);
     #else
         GetViewFrusrumBoundingVolume(camera, minAABB, maxAABB);
     #endif
@@ -1258,7 +1257,61 @@ void Render::DrawRootAABB(RenderWorld* world, const Shader& shader) {
     glEnable( GL_POLYGON_OFFSET_FILL );
 }
 
-// void Render::DrawEmptyAABB(Map* map, const Shader& shader) {
+void Render::DrawSubTiles(RenderWorld* world, const Shader& shader) {
+    glDisable( GL_POLYGON_OFFSET_FILL );
+
+    for (size_t i = 0; i < world->debug_subtiles_.size(); i++)
+    {
+        glm::vec2 bbox_min = world->debug_subtiles_[i].first;
+        glm::vec2 bbox_max = world->debug_subtiles_[i].second;
+
+        glm::vec3 aabb_min(bbox_min.x, 0, bbox_min.y);
+        glm::vec3 aabb_max(bbox_max.x, 0, bbox_max.y);
+
+        if (world->debug_subtile_status_[i] == 0) {
+            shader.setVec3("color", glm::vec3(1,0,0));
+        } else if (world->debug_subtile_status_[i] == 2){
+            shader.setVec3("color", glm::vec3(0,0,1));
+            aabb_max.y = 0.01f;
+            aabb_min.y = 0.001f;
+        } else if (world->debug_subtile_status_[i] == 1){
+            shader.setVec3("color", glm::vec3(1,1,0));
+            aabb_max.y = 0.01f;
+            aabb_min.y = 0.001f;
+        }
+
+        shader.setVec3("aabbMin", aabb_min);
+        shader.setVec3("aabbMax", aabb_max);
+        RenderCube();
+    }
+
+    glPolygonOffset(1.0f, 1.0f);
+    glEnable( GL_POLYGON_OFFSET_FILL );
+}
+
+void Render::DrawWorldAABB(RenderWorld* world, const Shader& shader) {
+    glDisable( GL_POLYGON_OFFSET_FILL );
+
+    float world_min_x;
+    float world_min_z;
+    float world_max_x;
+    float world_max_z;
+
+    world->get_world_size(world_min_x, world_min_z, world_max_x, world_max_z);
+
+    glm::vec3 aabb_min(world_min_x, 0, world_min_z);
+    glm::vec3 aabb_max(world_max_x, kHeight, world_max_z);
+
+    shader.setVec3("color", glm::vec3(0,1,1));
+    shader.setVec3("aabbMin", aabb_min);
+    shader.setVec3("aabbMax", aabb_max);
+    RenderCube();
+
+    glPolygonOffset(1.0f, 1.0f);
+    glEnable( GL_POLYGON_OFFSET_FILL );
+}
+
+// void Render::DrawEmptyAABB(RenderWorld* map, const Shader& shader) {
 //    glDisable( GL_POLYGON_OFFSET_FILL );
 
 //    for (int i = 0; i < map->empty_map_.size(); ++i)
@@ -1275,22 +1328,22 @@ void Render::DrawRootAABB(RenderWorld* world, const Shader& shader) {
 //    glEnable( GL_POLYGON_OFFSET_FILL );
 // }
 
-//void Render::DrawRoomAABB(Map* map, const Shader& shader) {
+// void Render::DrawRoomAABB(RenderWorld* map, const Shader& shader) {
 //    glDisable( GL_POLYGON_OFFSET_FILL );
-//
+
 //    for (int i = 0; i < map->sections_map_.size(); ++i)
 //    {
 //        vec3 aabb_min = map->sections_map_[i].first;
 //        vec3 aabb_max = map->sections_map_[i].second;
-//
+
 //        shader.setVec3("aabbMin", aabb_min);
 //        shader.setVec3("aabbMax", aabb_max);
 //        RenderCube();
 //    }
-//
+
 //    glPolygonOffset(1.0f, 1.0f);
 //    glEnable( GL_POLYGON_OFFSET_FILL );
-//}
+// }
 
 void Render::Draw(RenderWorld* world, 
                   const Shader& shader,
@@ -1339,6 +1392,7 @@ void Render::Draw(RenderWorld* world,
         if(skip_robot && body->move())
             continue;
 
+        // TODO
         if(body->hide())
             continue;
 
@@ -1378,6 +1432,7 @@ void Render::StepRenderFreeCamera(RenderWorld *world) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     lambert_shader.use();
+    //lambert_shader.setFloat("translucent", 0.4f);
     lambert_shader.setMat4("projection", projection);
     lambert_shader.setMat4("view", view);
     lambert_shader.setVec3("camPos", free_camera_.Position);
@@ -1397,17 +1452,21 @@ void Render::StepRenderFreeCamera(RenderWorld *world) {
     line_shader.use();
     line_shader.setMat4("projection", projection);
     line_shader.setMat4("view", view);
-
-    line_shader.setVec3("color", glm::vec3(0.7,0.7,0.7));
+    line_shader.setVec3("color", glm::vec3(1,0,0));
     DrawRootAABB(world, line_shader);
+    DrawSubTiles(world, line_shader);
+    DrawWorldAABB(world, line_shader);
+
+    // line_shader.setVec3("color", glm::vec3(0,1,0));
+    // DrawEmptyAABB(map, line_shader);
 
     glEnable(GL_PROGRAM_POINT_SIZE);
     DrawBatchRay();
 
-    //line_shader.setVec3("color", glm::vec3(0,1,0));
-    //DrawEmptyAABB(map, line_shader);
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    lambert_shader.use();
+    lambert_shader.setFloat("translucent", 1.0f);
 }
 
 // Deferred Shading
@@ -1800,7 +1859,7 @@ void Render::Visualization() {
         multiplied_framebuffer_list_[0]->ActivateAsTexture(shaders_[kDepth].id(), "tex", 0);
         RenderQuad();
 
-    // glViewport(width_, 0, width_, height_);
+    // glViewport(0, 0, 256, 64);
     // shaders_[kColor].use();
     // shaders_[kColor].setInt("tex", 0);
     // glActiveTexture(GL_TEXTURE0);
@@ -1832,8 +1891,8 @@ int Render::StepRender(RenderWorld* world, int pick_camera_id) {
     glDepthMask(GL_TRUE);
     glColorMask(true, true, true, true);
     glViewport(0, 0, width_, height_);
-    glClearColor(
-            background_color_.x, background_color_.y, background_color_.z, 1.0f); 
+    glClearColor(background_color_.x, background_color_.y, background_color_.z, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
     #ifdef DEBUG
         glEnable(GL_LINE_SMOOTH);

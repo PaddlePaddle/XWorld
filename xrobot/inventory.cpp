@@ -2,7 +2,6 @@
 #include "world.h"
 namespace xrobot {
 	Inventory::Inventory(const int size) : inventory_(),
-										   non_pickable_list_(0),
 										   size_(size),
 										   rest_(size) {
 		if(size < 1) {
@@ -13,23 +12,6 @@ namespace xrobot {
 
 	Inventory::~Inventory() {
 		ClearInventory();
-		non_pickable_list_.clear();
-	}
-
-
-	bool Inventory::IsPickableObject(const std::string& name) {
-		return std::find(non_pickable_list_.begin(),
-					 	 non_pickable_list_.end(),
-						 name) == non_pickable_list_.end();
-	}
-
-	void Inventory::AddNonPickableObjectTag(const std::string& name) {
-		assert(!name.empty());
-		non_pickable_list_.push_back(name);
-	}
-
-	void Inventory::ResetNonPickableObjectTag() {
-		non_pickable_list_.clear();
 	}
 
 	bool Inventory::PutObject(std::weak_ptr<RobotBase> put_object) {
@@ -85,6 +67,20 @@ namespace xrobot {
 		}
 
 		return false;
+	}
+
+	std::vector<std::string> Inventory::GetObjectTagInInventory() {
+		std::vector<std::string> ret;
+
+		for (int i = 0; i < inventory_.size(); ++i)
+		{
+			if(auto object = inventory_[i].lock()) 
+			{
+				ret.push_back(object->robot_data_.label_);
+			}
+		}
+
+		return ret;
 	}
 
 	std::weak_ptr<RobotBase> Inventory::GetObjectLast() {
@@ -172,6 +168,16 @@ namespace xrobot {
 	}
 
 	void Inventory::ClearInventory() {
+
+		for (int i = 0; i < inventory_.size(); ++i)
+		{
+			if(auto object = inventory_[i].lock()) 
+			{
+				object->hide(false);
+				object->RemoveRobotTemp();
+			}
+		}
+
 		inventory_.clear();
 		rest_ = size_;
 	}

@@ -1,5 +1,6 @@
 #include "task_example.h"
 
+static std::string bed        = "./bed_1/bed.urdf";
 static std::string door       = "./door/door.urdf";
 static std::string wall       = "./wall0/floor.urdf";
 static std::string floor_0    = "./floor0/floor.urdf";
@@ -52,10 +53,11 @@ namespace xrobot
         renderer_->lighting_.indirect_strength = 0.3f;
 		iterations_ = 0;
 		scene_->ResetMap();
-		scene_->ClearRules();
-		scene_->CreateLabel(r2d2, "r2d2");
-		scene_->CreateSectionType(test_floor, test_wall, door);
-		scene_->GenerateTestFloorPlan(5, 5);
+		scene_->LoadWallURDF(test_wall);
+		scene_->CreateAndLoadTileURDF(test_floor);
+		scene_->GenerateArena(5, 5);
+
+		scene_->world_->AssignTag(r2d2, "r2d2");
 
 		// Load Target Robot
 		target_ = scene_->world_->LoadRobot(
@@ -99,6 +101,7 @@ namespace xrobot
 	}
 
 	std::string Task_FollowRobot::NavTarget() {
+
 		// TODO
 		// Remove Freeze Parameter
 		if(auto agent_sptr = agent_.lock()) {
@@ -202,30 +205,48 @@ namespace xrobot
 
 	std::string Task_NavToLargeCrate::Start() {
 		
-		renderer_->sunlight_.ambient = glm::vec3(0.15,0.15,0.15);
-        renderer_->lighting_.exposure = 1.5f;
-        renderer_->lighting_.indirect_strength = 0.4f;
-        renderer_->lighting_.traceshadow_distance = 0.5f;
-        renderer_->lighting_.propagation_distance = 0.5f;
+		renderer_->sunlight_.ambient = glm::vec3(0.05,0.05,0.05);
+		renderer_->lighting_.use_ssr = false;
+        renderer_->lighting_.exposure = 0.4f;
+        renderer_->lighting_.indirect_strength = 0.2f;
+        renderer_->lighting_.traceshadow_distance = 0.2f;
+        renderer_->lighting_.propagation_distance = 0.2f;
         renderer_->lighting_.sample_factor = 0.4f;
-        renderer_->lighting_.boost_ambient = 0.02f;
+        renderer_->lighting_.boost_ambient = 0.01f;
         renderer_->lighting_.shadow_bias_scale = 0.0003f;
         renderer_->lighting_.linear_voxelize = false;
 
 		iterations_ = 0;
 		scene_->ResetMap();
-		scene_->ClearRules();
 
-		scene_->CreateLabel(crate1, "crate1");
-	    scene_->CreateSectionType(floor_0, wall, door);
-	    scene_->CreateSectionType(floor_1, wall, door);
-	    scene_->CreateSpawnOnFloor(crate1);
-	    scene_->CreateSpawnOnFloor(crate03);
-	    scene_->CreateSpawnOnObject(crate03);
+		//scene_->world_->LoadMetadata("/home/ziyuli/XWorld/xrobot/data/ModelCategoryMapping.csv");
 
-	    // Generata Scene
-	    glm::vec3 startPosition = scene_->GenerateFloorPlan(10, 10);
-	    scene_->Spawn(3, 0, 0);
+		scene_->world_->AssignTag(apple, "apple");
+
+		scene_->CreateAndLoadTileURDF(test_floor);
+		scene_->LoadWallURDF(test_wall);
+		scene_->CreateAndLoadKeyURDF("./key_red/key.urdf", "red");
+		scene_->CreateAndLoadKeyURDF("./key_blue/key.urdf", "blue");
+		scene_->CreateAndLoadKeyURDF("./key_yellow/key.urdf", "yellow");
+		scene_->LoadUnlockedDoorJSON("/home/ziyuli/XWorld/xrobot/data/door_green/door.json");
+		scene_->CreateAndLoadLockedDoorJSON("/home/ziyuli/XWorld/xrobot/data/door_red/door.json");
+		scene_->CreateAndLoadLockedDoorJSON("/home/ziyuli/XWorld/xrobot/data/door_blue/door.json");
+	    scene_->CreateAndLoadLockedDoorJSON("/home/ziyuli/XWorld/xrobot/data/door_yellow/door.json");
+	    scene_->CreateAndLoadObjectFILE("/home/ziyuli/XWorld/xrobot/data/crate_1/crate.urdf", "crate");
+	    scene_->CreateAndLoadObjectFILE("/home/ziyuli/XWorld/xrobot/data/crate_0.3/crate.urdf", "crate");
+	    // scene_->CreateAndLoadObjectFILE(apple, "apple");
+
+	    glm::vec3 startPosition = scene_->GenerateLayout(5, 5, 3, 2);
+	    scene_->ResolvePath();
+
+	    for(int i = 0; i < 5; ++i) 
+	    	scene_->SpawnSingleObject(0);
+	    for(int i = 0; i < 5; ++i) 
+	    	scene_->SpawnSingleObject(1);
+	    for(int i = 0; i < 5; ++i) 
+	    	scene_->SpawnStackOfObjects(1,0,2);
+	    scene_->GenerateObjects();
+
 
 	   	// Load Agent
 		agent_ = scene_->world_->LoadRobot(
@@ -243,12 +264,13 @@ namespace xrobot
 
 		    // Create a Camera and Attach to the Agent
 		    main_camera_ = scene_->world_->add_camera(vec3(0, 0, 0),
-		    		vec3(0.3,1.3,0.0), (float) 4 / 3);
+		    		vec3(0.3,1.5,0.0), (float) 4 / 3);
 		    scene_->world_->attach_camera(main_camera_, agent_sptr.get());
 		}
 
 	    renderer_->Init(main_camera_);
 	    scene_->world_->BulletStep();
+	    renderer_->BakeScene(scene_->world_.get());
 
 	    return "NavTarget";
 	}
@@ -260,16 +282,16 @@ namespace xrobot
 			agent_sptr->Freeze(!iterations_);
 
 			if(ctx_->GetKeyPressUp())
-	            agent_sptr->MoveForward(1);
+	            agent_sptr->MoveForward(2);
 
 	        if(ctx_->GetKeyPressDown())
-	            agent_sptr->MoveBackward(1);
+	            agent_sptr->MoveBackward(2);
 
 	        if(ctx_->GetKeyPressLeft())
-	            agent_sptr->TurnLeft(1);
+	            agent_sptr->TurnLeft(2);
 
 	        if(ctx_->GetKeyPressRight())
-	            agent_sptr->TurnRight(1);
+	            agent_sptr->TurnRight(2);
     	}
 
         if(ctx_->GetKeyPressKP9())
@@ -283,7 +305,7 @@ namespace xrobot
 
         // Check In-Range
         std::vector<ObjectAttributes> temp;
-        scene_->world_->QueryObjectByLabel("crate1", temp);
+        scene_->world_->QueryObjectByLabel("apple", temp);
 
         for(int i = 0; i < temp.size(); ++i)
         {
@@ -297,7 +319,7 @@ namespace xrobot
         	{
         		// Check Aim
         		glm::vec3 fromPosition = main_camera_->Position;
-        		glm::vec3 toPosition = main_camera_->Front * 2.0f + fromPosition;
+        		glm::vec3 toPosition = main_camera_->Front * 3.0f + fromPosition;
         		int res = scene_->world_->RayTest(fromPosition, toPosition);
 
         		if(res == temp[i].bullet_id)
@@ -331,8 +353,8 @@ namespace xrobot
         }
 
         // Reset After N Steps
-        if(iterations_++ > 12000) 
-        	return "idle";
+        // if(iterations_++ > 12000) 
+        // 	return "idle";
 
         // THIS IS ONLY FOR TESTING! 
         // Force to Switch a New Scene
@@ -350,7 +372,7 @@ namespace xrobot
         return "NavTarget";
 	}
 
-
+/*
 	//=======================================Task 2=============================
 
 	Task_NavToSmallCrate::Task_NavToSmallCrate(
@@ -395,14 +417,17 @@ namespace xrobot
 		iterations_ = 0;
 		scene_->ResetMap();
 		scene_->ClearRules();
-		scene_->CreateLabel(crate03, "crate03");
+
+		scene_->world_->LoadMetadata("/home/ziyuli/XWorld/xrobot/data/ModelCategoryMapping.csv");
+
 	    scene_->CreateSectionType(floor_0, wall, door);
 	    scene_->CreateSpawnOnFloor(crate03);
 	    scene_->CreateSpawnOnObject(crate03);
+	    scene_->CreateSpawnConstraint(crate03);
 
 	    // Generata Scene
 	    glm::vec3 startPosition = scene_->GenerateFloorPlan(10, 10);
-	    scene_->Spawn(8, 2, 0);
+	    scene_->Spawn(4, 0, 0);
 
 	   	// Load Agent
 	   	agent_ = scene_->world_->LoadRobot(
@@ -460,7 +485,7 @@ namespace xrobot
 
         // Check In-Range
         std::vector<ObjectAttributes> temp;
-        scene_->world_->QueryObjectByLabel("crate03", temp);
+        scene_->world_->QueryObjectByLabel("small crate", temp);
 
         for(int i = 0; i < temp.size(); ++i)
         {
@@ -474,7 +499,7 @@ namespace xrobot
         	{
         		// Check Object Center is Within 30 deg Viewing Angle
         		std::vector<ObjectDirections> temp_dir;
-        		scene_->world_->QueryObjectDirectionByLabel("crate03", 
+        		scene_->world_->QueryObjectDirectionByLabel("small crate", 
         				main_camera_->Front, main_camera_->Position, temp_dir);
         		if(temp_dir[i].dirs[0] < 0.52f)
         			return "idle";
@@ -526,7 +551,7 @@ namespace xrobot
         return "NavTarget";
 	}
 
-
+*/
 	//=======================================Task 3=============================
 
 
@@ -566,26 +591,25 @@ namespace xrobot
         renderer_->lighting_.traceshadow_distance = 0.3f;
         renderer_->lighting_.propagation_distance = 0.3f;
         renderer_->lighting_.force_disable_shadow = true;
+        renderer_->lighting_.use_ssr = true;
 
         // Load SUNCG Scene
         iterations_ = 0;
         scene_->ResetMap();
        	scene_->SetRemoveAll( kRemoveStairs );
         scene_->LoadCategoryCSV(suncg_meta.c_str());
+        scene_->world_->UpdatePickableList("kettle", true);
+	    scene_->world_->UpdatePickableList("knife_rack", true);
+	    scene_->world_->UpdatePickableList("coffee_machine", true);
         scene_->AddPhysicalProperties("chair", {100, false});
 	    scene_->AddPhysicalProperties("fruit_bowl", {100, false});
 	    scene_->AddPhysicalProperties("trash_can", {100, false});
 	    scene_->AddPhysicalProperties("coffee_machine", {100, false});
 	    scene_->AddPhysicalProperties("knife_rack", {100, false});
 	    scene_->AddPhysicalProperties("knife", {10, false});
-	    scene_->AddPhysicalProperties("teapot", {100, false});
+	    scene_->AddPhysicalProperties("kettle", {100, false});
 	    scene_->LoadJSON(suncg_house.c_str(), suncg_dir.c_str(), true);
 	    scene_->SetMapSize(-8, -8, 6, 6);
-
-	    inventory_->ResetNonPickableObjectTag();
-	    inventory_->AddNonPickableObjectTag("Wall");
-	    inventory_->AddNonPickableObjectTag("Floor");
-	    inventory_->AddNonPickableObjectTag("Ceiling");
 
 	    // Reset Joint Pose
 	    pos_0_ = 0.0f;
@@ -729,7 +753,7 @@ namespace xrobot
         //     pos_6_ += 0.0025f;
 
         // if(ctx_->GetKeyPressKP5())
-            pos_6_ -= 0.0025f;
+            // pos_6_ -= 0.0025f;
 
         if(ctx_->GetKeyPressKP7())
             pos_7_ = 0.05f;
@@ -754,23 +778,30 @@ namespace xrobot
 	   	{
 
 	        j = agent_sptr->robot_data_.joints_list_[2];
-	        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[3];
-	        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[4];
-	        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[5];
-	        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[6];
-	        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[7];
-	        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[8];
-	        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,1000.0f);
+	        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[10];
-	        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,50.0f);
+	        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,1000000.0f);
 	        j = agent_sptr->robot_data_.joints_list_[12];
-	        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,50.0f);
+	        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,1000000.0f);
+	        
+	        // static bool once = [j]() { j->EnableJointSensor(true); return true; } ();
+
+	       	// glm::vec3 force, torque;
+	        // j->GetJointState(force, torque);
+
+	        // printf("Joint 12: %f %f %f\n", force.x, force.y, force.z);
 	    }
 
         // Check In-Range
@@ -827,8 +858,8 @@ namespace xrobot
         }
 
         // Reset After N Steps
-        if(iterations_++ > 12000) 
-        	return "idle";
+        // if(iterations_++ > 12000) 
+        // 	return "idle";
 
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   
@@ -839,6 +870,7 @@ namespace xrobot
         return "NavTarget";
 	}
 
+/*
 	//=======================================Task 4=============================
 
 
@@ -1128,17 +1160,11 @@ namespace xrobot
 		iterations_ = 0;
 		scene_->ResetMap();
 		scene_->ClearRules();
-		scene_->CreateLabel(object_with_action_0, "obj");
-		scene_->CreateLabel(object_with_action_1, "door");
-		scene_->CreateLabel(crate03, "crate");
 		scene_->CreateSectionType(test_floor, test_wall, door);
 		scene_->GenerateTestFloorPlan(5, 5);
 
-		inventory_->ResetNonPickableObjectTag();
-	    inventory_->AddNonPickableObjectTag("Wall");
-	    inventory_->AddNonPickableObjectTag("Floor");
-	    inventory_->AddNonPickableObjectTag("Ceiling");
-
+		scene_->world_->UpdatePickableList("crate", true);
+		scene_->world_->UpdatePickableList("key", true);
 
 	    door_anim_ = scene_->world_->LoadRobot(
 	        object_with_action_1,
@@ -1157,14 +1183,23 @@ namespace xrobot
 	        "OBJ_Conv",
 	        true
 	    );
-	  	
-		scene_->world_->LoadRobot(
-	        crate03,
+
+	    scene_->world_->LoadRobot(
+	    	crate03,
 	        btVector3(2, 0, 2),
 	        btQuaternion(btVector3(1,0,0),0),
 	        btVector3(1, 1, 1),
 	        "crate",
 	        false
+	    );
+	  	
+		scene_->world_->LoadRobot(
+	        bed,
+	        btVector3(4, 0, 2),
+	        btQuaternion(btVector3(1,0,0),0),
+	        btVector3(2, 2, 2),
+	        "key",
+	        true
 	    );
 
 	   	// Load Agent
@@ -1231,14 +1266,14 @@ namespace xrobot
 	            door_anim_sptr->TakeAction(1);
 	    }
 
-	    if(auto obj_conv_sptr = obj_conv_.lock()) {
+	    if(auto door_anim_sptr = door_anim_.lock()) {
 
 	        if(ctx_->GetKeyPress5()) {
-	            obj_conv_sptr->TakeAction(0);
+	            door_anim_sptr->InteractWith("key");
 	        }
 
 	        if(ctx_->GetKeyPress6())
-	            obj_conv_sptr->TakeAction(1);
+	            door_anim_sptr->InteractWith("00a0");
 
 	    }
 
@@ -1351,7 +1386,6 @@ namespace xrobot
 		crowd_->Reset();
 		scene_->ResetMap();
 		scene_->ClearRules();
-		scene_->CreateLabel(crate1, "crate");
 		scene_->CreateSectionType(test_floor, test_wall, door);
 		scene_->GenerateTestFloorPlan(5, 5);
 	  	
@@ -1516,4 +1550,6 @@ namespace xrobot
 
         return "NavTarget";
 	}
+
+	*/
 }

@@ -1,6 +1,22 @@
 import random
+from context_free_grammar import CFG
 
-class TaskInterface(object):
+class XWorld3DTask(object):
+	def __init__(self, env):
+		self.env = env
+		self.event = ""
+		self.cfg = CFG(*self._define_grammar())
+		self.sentence = ""
+
+	def _define_grammar(self):
+		return "",""
+
+	def print_grammar(self):
+		self.cfg.show()
+
+	def total_possible_sentences(self):
+		return self.cfg.total_possible_sentences()
+
 	def get_stages():
 		return "idle"
 

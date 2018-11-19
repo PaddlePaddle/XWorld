@@ -92,7 +92,9 @@ public:
                     world_min_x_(-2),
                     world_min_z_(-2),
                     world_max_x_( 2),
-                    world_max_z_( 2) {}
+                    world_max_z_( 2),
+                    debug_subtiles_(0),
+                    debug_subtile_status_(0) {}
 
     virtual size_t size() const = 0;
 
@@ -135,7 +137,7 @@ public:
                        const float aspect_ratio = 4.0f / 3.0f,
                        const float fov = 60.0f,
                        const float near = 0.02f,
-                       const float far = 35.0f);
+                       const float far = 60.0f);
             
     void detach_camera(Camera* camera);
 
@@ -151,6 +153,11 @@ protected:
     float world_min_z_;
     float world_max_x_;
     float world_max_z_;
+
+// DEBUG
+public:
+    std::vector<std::pair<glm::vec2, glm::vec2>> debug_subtiles_;
+    std::vector<int> debug_subtile_status_;
 };
 
 } } // xrobot::render_engine

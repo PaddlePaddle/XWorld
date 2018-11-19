@@ -48,7 +48,7 @@ Playground::Playground(const int w, const int h,
                                                         headless,
                                                         device);
 
-    renderer_->ctx_->Hide();
+    //renderer_->ctx_->Hide();
 
 	ctx_ = renderer_->ctx_;
 	main_camera_ = nullptr;
@@ -56,6 +56,7 @@ Playground::Playground(const int w, const int h,
 	camera_pitch_ = 0.0f;
     w_ = w;
     h_ = h;
+    inventory_opened_ = false;
     interact_ = false;
     gameover_ = false;
     kill_after_arrived_ = true;
@@ -66,6 +67,21 @@ Playground::Playground(const int w, const int h,
 }
 
 Playground::~Playground() {}
+
+void Playground::AssignTag(const std::string& path, const std::string& tag)
+{
+    scene_->world_->AssignTag(path, tag);
+}
+
+void Playground::LoadTag(const std::string& path)
+{
+    scene_->world_->LoadMetadata(path.c_str());
+}
+
+void Playground::MakeObjectPickable(const std::string& tag)
+{
+    scene_->world_->UpdatePickableList(tag, true);
+}
 
 boost::python::dict Playground::GetStatus() const
 {
@@ -319,7 +335,8 @@ void Playground::Clear()
         crowd_->Reset();
 
 	if(inventory_)
-		inventory_->ResetNonPickableObjectTag();
+		inventory_->ClearInventory();
+        //inventory_->ResetPickableObjectTag();
 	
 	iterations_ = 0;
     camera_pitch_ = 0;
@@ -337,13 +354,12 @@ void Playground::CreateAnTestScene()
     std::shared_ptr<MapGrid> scene_grid 
         = std::dynamic_pointer_cast<MapGrid>(scene_);
 
-	scene_grid->CreateSectionType(test_floor, test_wall, door);
-	scene_grid->GenerateTestFloorPlan(5, 5);
+    scene_grid->LoadWallURDF(test_wall);
+    scene_grid->CreateAndLoadTileURDF(test_floor);
+	scene_grid->GenerateArena(5, 5);
 
 	if(inventory_) {
-	    inventory_->AddNonPickableObjectTag("Wall");
-	    inventory_->AddNonPickableObjectTag("Floor");
-	    inventory_->AddNonPickableObjectTag("Ceiling");
+	    
 	}
 
     renderer_->sunlight_.ambient = glm::vec3(0.02,0.02,0.02);
@@ -376,90 +392,192 @@ void Playground::CreateRandomGenerateScene()
     renderer_->lighting_.linear_voxelize = false;
 }
 
-void Playground::LoadRandomSceneConfigure(const boost::python::dict conf)
+void Playground::LoadBasicObjects(const boost::python::list doors,
+                                  const boost::python::list keys,
+                                  const boost::python::list key_tags,
+                                  const std::string unlocked_door,
+                                  const std::string& wall,
+                                  const boost::python::list tiles)
 {
     std::shared_ptr<MapGrid> scene_grid 
         = std::dynamic_pointer_cast<MapGrid>(scene_);
 
-    if(conf.has_key("room"))
+    int num_pairs = boost::python::len(keys);
+    int num_tiles = boost::python::len(tiles);
+
+    for (int i = 0; i < num_pairs; ++i)
     {
-        boost::python::list val =
-            boost::python::extract<boost::python::list>(conf["room"]);
+        boost::python::extract<std::string> door(doors[i]);
+        boost::python::extract<std::string> key(keys[i]);
+        boost::python::extract<std::string> tag(key_tags[i]);
+        scene_grid->CreateAndLoadLockedDoorJSON(door);
+        scene_grid->CreateAndLoadKeyURDF(key, tag);
+    }
 
-        assert(boost::python::len(val) % 3 == 0);
-        int num_conf_room = boost::python::len(val) / 3;
+    for (int i = 0; i < num_tiles; ++i)
+    {
+        boost::python::extract<std::string> tile(tiles[i]);
+        scene_grid->CreateAndLoadTileURDF(tile);
+    }
 
-        for (int i = 0; i < num_conf_room; ++i)
+    scene_grid->LoadUnlockedDoorJSON(unlocked_door);
+    scene_grid->LoadWallURDF(wall);
+}
+
+void Playground::SpawnModels(const boost::python::dict conf)
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    if(conf.has_key("single"))
+    {
+        boost::python::list val = 
+            boost::python::extract<boost::python::list>(conf["single"]);
+        for (int i = 0; i < boost::python::len(val) / 3; ++i)
         {
-            boost::python::extract<std::string> str_0(val[0 + i * 3]);
-            boost::python::extract<std::string> str_1(val[1 + i * 3]);
-            boost::python::extract<std::string> str_2(val[2 + i * 3]);
-            scene_grid->CreateSectionType(str_0, str_1, str_2);
+            std::string path = boost::python::extract<std::string>(val[3 * i + 0]);
+            int room = boost::python::extract<int>(val[3 * i + 1]);
+            int num = boost::python::extract<int>(val[3 * i + 2]);
+
+            for (int j = 0; j < num; ++j)
+                scene_grid->SpawnSingleObject(path, room);
+        }
+    }
+    
+    if(conf.has_key("stack"))
+    {
+        boost::python::list val = 
+            boost::python::extract<boost::python::list>(conf["stack"]);
+        for (int i = 0; i < boost::python::len(val) / 5; ++i)
+        {
+            std::string path_0 = boost::python::extract<std::string>(val[5 * i + 0]);
+            std::string path_1 = boost::python::extract<std::string>(val[5 * i + 1]);
+            int room = boost::python::extract<int>(val[5 * i + 2]);
+            int num_top = boost::python::extract<int>(val[5 * i + 3]);
+            int num = boost::python::extract<int>(val[5 * i + 4]);
+
+            for (int j = 0; j < num; ++j)
+                scene_grid->SpawnStackOfObjects(path_0, path_1, 
+                    num_top, room);
         }
     }
 
-    if(conf.has_key("on_floor"))
+    scene_grid->GenerateObjects();
+}
+
+void Playground::LoadModels(const boost::python::list models,
+                            const boost::python::list tags) 
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    for (int i = 0; i < boost::python::len(models); ++i)
     {
-        boost::python::list val =
-            boost::python::extract<boost::python::list>(conf["on_floor"]);
-
-        assert(boost::python::len(val) % 2 == 0);
-        int num_conf_room = boost::python::len(val) / 2;
-
-        for (int i = 0; i < num_conf_room; ++i)
-        {
-            boost::python::extract<std::string> str_path (val[0 + i * 2]);
-            boost::python::extract<std::string> str_label(val[1 + i * 2]);
-            scene_grid->CreateSpawnOnFloor(str_path);
-            scene_grid->CreateLabel(str_path, str_label);
-        }
-    }
-
-    if(conf.has_key("on_object"))
-    {
-        boost::python::list val =
-            boost::python::extract<boost::python::list>(conf["on_object"]);
-
-        assert(boost::python::len(val) % 2 == 0);
-        int num_conf_room = boost::python::len(val) / 2;
-
-        for (int i = 0; i < num_conf_room; ++i)
-        {
-            boost::python::extract<std::string> str_path (val[0 + i * 2]);
-            boost::python::extract<std::string> str_label(val[1 + i * 2]);
-            scene_grid->CreateSpawnOnObject(str_path);
-            scene_grid->CreateLabel(str_path, str_label);
-        }
-    }
-
-    if(conf.has_key("on_either"))
-    {
-        boost::python::list val =
-            boost::python::extract<boost::python::list>(conf["on_either"]);
-
-        assert(boost::python::len(val) % 2 == 0);
-        int num_conf_room = boost::python::len(val) / 2;
-
-        for (int i = 0; i < num_conf_room; ++i)
-        {
-            boost::python::extract<std::string> str_path (val[0 + i * 2]);
-            boost::python::extract<std::string> str_label(val[1 + i * 2]);
-            scene_grid->CreateSpawnEither(str_path);
-            scene_grid->CreateLabel(str_path, str_label);
-        }
+        boost::python::extract<std::string> model(models[i]);
+        boost::python::extract<std::string> tag(tags[i]);
+        scene_grid->CreateAndLoadObjectFILE(model, tag);
     }
 }
 
-boost::python::list Playground::LoadRandomScene(const int size, 
-                                                const int on_floor,
-                                                const int on_object,
-                                                const int on_either)
+boost::python::list Playground::LocateObjectInGrid(Thing& object)
 {
     std::shared_ptr<MapGrid> scene_grid 
         = std::dynamic_pointer_cast<MapGrid>(scene_);
 
-    glm::vec3 start = scene_grid->GenerateFloorPlan(size, size);
-    scene_grid->Spawn(on_floor, on_object, on_either);
+    boost::python::list locate;
+
+    if(!scene_grid) return locate;
+
+    boost::python::tuple position = object.GetPosition();
+    float pos_x = boost::python::extract<float>(position[0]);
+    float pos_z = boost::python::extract<float>(position[2]);
+    auto sub = scene_grid->GetSubTileFromWorldPosition(glm::vec2(pos_x, pos_z));
+    
+    if(sub) {
+        if(auto parent_sptr = sub->parent.lock()) {
+            bool occupy = sub->occupied;
+            int room_id = parent_sptr->room_id;
+            int roomgroup_id = parent_sptr->roomgroup_id;
+
+            locate.append(room_id - 1);
+            locate.append(roomgroup_id);
+            locate.append(occupy ? 1 : 0);
+        }
+    }
+
+    return locate;
+}
+
+boost::python::list Playground::LocatePositionInGrid(const float x, const float z)
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    boost::python::list locate;
+
+    if(!scene_grid) return locate;
+
+    auto sub = scene_grid->GetSubTileFromWorldPosition(glm::vec2(x, z));
+    
+    if(sub) {
+        if(auto parent_sptr = sub->parent.lock()) {
+            bool occupy = sub->occupied;
+            int room_id = parent_sptr->room_id;
+            int roomgroup_id = parent_sptr->roomgroup_id;
+
+            locate.append(room_id - 1);
+            locate.append(roomgroup_id);
+            locate.append(occupy ? 1 : 0);
+        }
+    }
+
+    return locate;
+}
+
+boost::python::list Playground::GetRoomVisitSequence()
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    boost::python::list visit_sequence;
+
+    if(!scene_grid) return visit_sequence;
+    
+    for (const auto& room : scene_grid->rooms_)
+    {
+        int visit = room.visit_sequence;
+        visit_sequence.append(visit);
+    }
+
+    return visit_sequence;
+}
+
+boost::python::list Playground::GetRoomGroups()
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    boost::python::list room_to_group;
+
+    if(!scene_grid) return room_to_group;
+    
+    for (const auto& room : scene_grid->rooms_)
+    {
+        int group_id = room.tiles[0]->roomgroup_id;
+        room_to_group.append(group_id);
+    }
+
+    return room_to_group;
+}
+
+boost::python::list Playground::LoadSceneConfigure(const int w, const int l, 
+    const int n, const int d)
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    glm::vec3 start = scene_grid->GenerateLayout(w, l, n, d);
+    scene_grid->ResolvePath();
 
     boost::python::list ret;
     ret.append(start.x);
@@ -535,9 +653,9 @@ void Playground::LoadSUNCG(const std::string& house,
     // Assign Map Size
 
     if(inventory_) {
-        inventory_->AddNonPickableObjectTag("Wall");
-        inventory_->AddNonPickableObjectTag("Floor");
-        inventory_->AddNonPickableObjectTag("Ceiling");
+        // inventory_->AddNonPickableObjectTag("Wall");
+        // inventory_->AddNonPickableObjectTag("Floor");
+        // inventory_->AddNonPickableObjectTag("Ceiling");
     }
 }
 
@@ -699,9 +817,11 @@ boost::python::dict Playground::GetActionSpace()
 
 boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 {
-    assert(action < 14 && action > -1);
+    assert(action < 16 && action > -1);
 
-    if(!interact_) {
+    // printf("action: %d\n", action);
+
+    if(!interact_ && !inventory_opened_) {
         if(action == 0) {
             MoveForward(25);
         } 
@@ -742,13 +862,24 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
         else if(action == 11) {
             current_actions_ = EnableInteraction();
         }
-    } else {
-        if(action == 12) {
+        else if(action == 12) {
+            current_objects_ = OpenInventory();
+        }
+    } else if(interact_) {
+        if(action == 13) {
             DisableInteraction();
             current_actions_ = boost::python::list();
         }
-        else if(action < 10) {
+        else if(action < boost::python::len(current_actions_)) {
             TakeAction(action);
+        }
+    } else if(inventory_opened_) {
+        if(action == 13) {
+            CloseInventory();
+            current_objects_ = boost::python::list();
+        }
+        else if(action < boost::python::len(current_objects_)) {
+            Use(action);
         }
     }
 
@@ -762,12 +893,15 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
     scene_->world_->BulletStep();
 
     boost::python::dict ret;
-    ret["reward"] = -0.1f;
+    //ret["reward"] = -0.1f;
     ret["actions"] = current_actions_;
+    ret["inventory"] = current_objects_;
 
     // reward, possible interactions
     return ret;
 }
+
+
 
 boost::python::dict Playground::UpdateSimulation()
 {
@@ -869,28 +1003,91 @@ void Playground::LookDown()
     scene_->world_->rotate_camera(main_camera_, camera_pitch_);
 }
 
+boost::python::list Playground::OpenInventory()
+{
+    boost::python::list ret;
+
+    if(inventory_) {
+        std::vector<std::string> objects = inventory_->GetObjectTagInInventory();
+
+        inventory_opened_ = true;
+
+        for (int i = 0; i < objects.size(); ++i) 
+            ret.append(objects[i]);
+    }
+
+    return ret;
+}
+
+void Playground::CloseInventory()
+{
+    inventory_opened_ = false;
+}
+
 boost::python::list Playground::EnableInteraction()
 {
-    glm::vec3 from = main_camera_->Position;
-    glm::vec3 to = main_camera_->Front * 3.0f + from;
+    // glm::vec3 from = main_camera_->Position;
+    // glm::vec3 to = main_camera_->Front * 3.0f + from;
     
-    auto bullet_world = scene_->world_;
-    std::vector<RayTestInfo> temp_res;
-    std::vector<Ray> temp_ray;
-    temp_ray.push_back({from, to});
+    // auto bullet_world = scene_->world_;
+    // std::vector<RayTestInfo> temp_res;
+    // std::vector<Ray> temp_ray;
+    // temp_ray.push_back({from, to});
 
-    bullet_world->BatchRayTest(temp_ray, temp_res);
+    // bullet_world->BatchRayTest(temp_ray, temp_res);
+
+    int bullet_id = -1;
+
+    glm::vec3 from = main_camera_->Position;
+    glm::vec3 frnt = main_camera_->Front;
+    glm::vec2 from_2d(from.x, from.z);
+    glm::vec2 frnt_2d(frnt.x, frnt.z);
+
+    auto bullet_world = scene_->world_;
+
+    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
+    {
+        auto body = bullet_world->robot_list_[i];
+
+        if (!body->recycle()) {
+
+            if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
+               std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
+
+                printf("body: %s\n", body->robot_data_.label_.c_str());
+
+                btTransform object_tr_bt = body->robot_data_.root_part_->object_position_;
+                btVector3 object_pos_bt = object_tr_bt.getOrigin();
+                glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
+
+                float dist_tmp = glm::distance(object_pos, from_2d);
+                float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
+
+                printf("dir: %f, dist: %f\n", dir_tmp, dist_tmp);
+
+                if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
+                    bullet_id = body->robot_data_.bullet_handle_;
+                }
+            }
+        }
+    }
+
+    printf("bullet_id: %d\n", bullet_id);
 
     boost::python::list ret;
 
-    if(temp_res[0].bullet_id > 0) {
+    if(bullet_id >= 0) {
 
-        auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
+        // TODO
+        // Is bullet_handle_to_robot_map_fuuly functional?
+        auto object = bullet_world->bullet_handle_to_robot_map_[bullet_id];
 
         std::vector<std::string> actions = object->GetActions();
 
-        for (int i = 0; i < actions.size(); ++i)
+        for (int i = 0; i < actions.size(); ++i) {
+            printf("action: %s\n", actions[i].c_str());
             ret.append(actions[i]);
+        }
 
         interact_ = true;
     }
@@ -915,7 +1112,7 @@ void Playground::Attach()
 
     bullet_world->BatchRayTest(temp_ray, temp_res);
 
-    if(temp_res[0].bullet_id > 0) {
+    if(temp_res[0].bullet_id >= 0) {
 
         auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
 
@@ -976,20 +1173,109 @@ void Playground::Rotate(const boost::python::list angle_py)
 
 void Playground::TakeAction(const int action_id)
 {
-	glm::vec3 from = main_camera_->Position;
-	glm::vec3 to = main_camera_->Front * 3.0f + from;
+	// glm::vec3 from = main_camera_->Position;
+	// glm::vec3 to = main_camera_->Front * 3.0f + from;
 	
-	auto bullet_world = scene_->world_;
-    std::vector<RayTestInfo> temp_res;
-    std::vector<Ray> temp_ray;
-    temp_ray.push_back({from, to});
+	// auto bullet_world = scene_->world_;
+    // std::vector<RayTestInfo> temp_res;
+    // std::vector<Ray> temp_ray;
+    // temp_ray.push_back({from, to});
 
-    bullet_world->BatchRayTest(temp_ray, temp_res);
+    // bullet_world->BatchRayTest(temp_ray, temp_res);
 
-    if(temp_res[0].bullet_id > 0) {
-    	auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
+    int bullet_id = -1;
+
+    glm::vec3 from = main_camera_->Position;
+    glm::vec3 frnt = main_camera_->Front;
+    glm::vec2 from_2d(from.x, from.z);
+    glm::vec2 frnt_2d(frnt.x, frnt.z);
+
+    auto bullet_world = scene_->world_;
+
+    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
+    {
+        auto body = bullet_world->robot_list_[i];
+        if (!body->recycle()) {
+
+            if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
+               std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
+
+                btTransform object_tr_bt = body->robot_data_.root_part_->object_position_;
+                btVector3 object_pos_bt = object_tr_bt.getOrigin();
+                glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
+
+                float dist_tmp = glm::distance(object_pos, from_2d);
+                float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
+
+                if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
+                    bullet_id = body->robot_data_.bullet_handle_;
+                }
+            }
+        }
+    }
+
+
+
+    if(bullet_id >= 0 && action_id < boost::python::len(current_actions_)) {
+    	auto object = bullet_world->bullet_handle_to_robot_map_[bullet_id];
 
     	object->TakeAction(action_id);
+    }
+}
+
+void Playground::Use(const int object_id)
+{
+    // glm::vec3 from = main_camera_->Position;
+    // glm::vec3 to = main_camera_->Front * 3.0f + from;
+    
+    // auto bullet_world = scene_->world_;
+    // std::vector<RayTestInfo> temp_res;
+    // std::vector<Ray> temp_ray;
+    // temp_ray.push_back({from, to});
+
+    // bullet_world->BatchRayTest(temp_ray, temp_res);
+
+    int bullet_id = -1;
+
+    glm::vec3 from = main_camera_->Position;
+    glm::vec3 frnt = main_camera_->Front;
+    glm::vec2 from_2d(from.x, from.z);
+    glm::vec2 frnt_2d(frnt.x, frnt.z);
+
+    auto bullet_world = scene_->world_;
+
+    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
+    {
+        auto body = bullet_world->robot_list_[i];
+
+        if (!body->recycle()) {
+
+            if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
+               std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
+
+                btTransform object_tr_bt = body->robot_data_.root_part_->object_position_;
+                btVector3 object_pos_bt = object_tr_bt.getOrigin();
+                glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
+
+                float dist_tmp = glm::distance(object_pos, from_2d);
+                float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
+
+                if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
+                    bullet_id = body->robot_data_.bullet_handle_;
+                }
+            }
+        }
+    }
+
+    if(bullet_id >= 0) {
+        auto object = bullet_world->bullet_handle_to_robot_map_[bullet_id];
+
+        if(object_id < inventory_->GetNumUsedSpace()) {
+
+            std::string use_tag = boost::python::extract<std::string>(current_objects_[object_id]);
+
+            object->InteractWith(use_tag);
+        }
     }
 }
 
@@ -1031,6 +1317,22 @@ void Playground::ControlJointVelocities(const Thing& object,
     }
 }
 
+bool Playground::QueryContact(Thing& object)
+{
+    if(auto object_sptr = object.GetPtr().lock())
+    {
+        auto object_root_ptr = object_sptr->robot_data_.root_part_;
+
+        std::vector<ContactPoint> contact_points;
+        scene_->world_->GetRootContactPoints(object_sptr, object_root_ptr, contact_points);
+
+        if(contact_points.size())
+            return true;
+    }
+
+    return false;
+}
+
 bool Playground::QueryObjectWithLabelAtCameraCenter(const std::string& label)
 {
 	std::vector<ObjectAttributes> temp;
@@ -1069,12 +1371,21 @@ boost::python::list Playground::QueryObjectByLabel(const std::string& label)
 	std::vector<ObjectAttributes> temp;
     scene_->world_->QueryObjectByLabel(label, temp);
 
+    auto bullet_world = scene_->world_;
+
     for(int i = 0; i < temp.size(); ++i)
     {
-    	Range r;
-    	r.min = temp[i].aabb_min;
-    	r.max = temp[i].aabb_max;
-    	result.append(r);
+    	// Range r;
+    	// r.min = temp[i].aabb_min;
+    	// r.max = temp[i].aabb_max;
+    	// result.append(r);
+
+        Thing object_temp;
+        if(temp[i].bullet_id >= 0) {
+            auto object = bullet_world->bullet_handle_to_robot_map_[temp[i].bullet_id];
+            object_temp.SetPtr(object);
+        }
+        result.append(object_temp);
     }
 
     return result;
@@ -1093,7 +1404,7 @@ Thing Playground::QueryObjectAtCameraCenter()
     bullet_world->BatchRayTest(temp_ray, temp_res);
 
     Thing object_temp;
-    if(temp_res[0].bullet_id > 0) {
+    if(temp_res[0].bullet_id >= 0) {
     	auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
     	object_temp.SetPtr(object);
     }

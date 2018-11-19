@@ -3,40 +3,36 @@ import cv2
 import numpy as np
 import random
 
-door       = "./door/door.urdf";
-wall       = "./wall0/floor.urdf";
-floor_0    = "./floor0/floor.urdf";
-floor_1    = "./floor1/floor.urdf";
-crate1     = "./crate_1/crate.urdf";
-crate03    = "./crate_0.3/crate.urdf";
-
-class XRobot3DRandom(TaskInterface):
+class XRobot3DNavTarget(XWorld3DTask):
 	def __init__(self, env):
 		self.env = env
 		self.agent = None
 
 	def get_stages(self):
-		stages = dict()
-		stages["idle"] = self.start
-		stages["navigation"] = self.navigation
+		stages = { 
+			"idle" : self.start,
+			"navigation" : self.navigation
+		}
 		return stages
 
 	def start(self):
-		self.env.SetLighting({ "ssr" : True })
-
-		self.env.EnableInventory(1)
+		self.env.EnableInventory(10)
 		self.env.Clear()
-		self.env.CreateRandomGenerateScene()
-		
-		conf = dict()
-		conf["room"] = [floor_0, wall, door, floor_1, wall, door]
-		conf["on_floor"] = [crate1, "Crate1"]
-		self.env.LoadRandomSceneConfigure(conf)
+		self.env.CreateAnTestScene()
 
-		start = self.env.LoadRandomScene(7, 1, 0, 0)
+		self.env.MakeObjectPickable("key_crate")
 
-		self.agent = self.env.SpawnAnObject("husky/husky.urdf", \
-			start, [-1,0,0,1.57], 0.6, "Agent", True)
+		x = random.randint(4, 7)
+		y = random.randint(4, 7)
+
+		self.env.SpawnAnObject("/home/ziyuli/XWorld/xrobot/data/door1/door.json", [x,1,y], [1,0,0,0], 1.0, "Door", False)
+
+		x = random.randint(2, 4)
+		y = random.randint(2, 4)
+
+		self.env.SpawnAnObject("crate_0.3/crate.urdf", [x,0,y], [1,0,0,0], 1.0, "key_crate", False)
+
+		self.agent = self.env.SpawnAnObject("husky/husky.urdf", [2,0,2], [-1,0,0,1.57], 1.0, "Agent", True)
 		self.env.AttachCameraTo(self.agent, [0.3,1.3,0.0])
 		self.env.Initialize()
 
@@ -44,8 +40,8 @@ class XRobot3DRandom(TaskInterface):
 
 	def navigation(self):
 		# Query Object At Forward
-		if self.env.QueryObjectWithLabelAtForward("Crate1"):
-			return "idle"
+		# if self.env.QueryObjectWithLabelAtForward("Crate"):
+		# 	return "idle"
 
 		# Fetch Agent Status
 		position = self.agent.GetPosition()
@@ -60,9 +56,8 @@ class XRobot3DRandom(TaskInterface):
 		image_rgbd = cv2.cvtColor(image_rgbd, cv2.COLOR_BGRA2RGBA)
 		image_rgbd = cv2.flip(image_rgbd, 0)
 
-		image_rgbd_resize = cv2.resize(image_rgbd, None, fx=0.5, fy=0.5)
+		image_rgbd_resize = cv2.resize(image_rgbd, None, fx=0.8, fy=0.8)
 		image_rgb = np.array(image_rgbd_resize[:,:,:3])
-
 
 		frames = "frames: " + str(self.env.GetStatus()["frames"])
 		framerate = " | framerate: " + str(self.env.GetStatus()["framerate"])
@@ -71,6 +66,5 @@ class XRobot3DRandom(TaskInterface):
     		cv2.FONT_HERSHEY_PLAIN, 1, (200,250,250), 1);
 
 		cv2.imshow("RGB", image_rgb)
-		# cv2.imshow("Depth", image_depth)
 		return "navigation"
 

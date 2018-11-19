@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import random
 
-class XRobot3DNavAgentTarget(TaskInterface):
+class XRobot3DNavAgentTarget(XWorld3DTask):
 	def __init__(self, env):
 		self.env = env
 		self.agent = None
@@ -57,13 +57,6 @@ class XRobot3DNavAgentTarget(TaskInterface):
 
 		frames = "frames: " + str(self.env.GetStatus()["frames"])
 		framerate = " | framerate: " + str(self.env.GetStatus()["framerate"])
-
-		if self.env.GetStatus()["frames"] % 800 == 0:
-			x = random.randint(1, 8)
-			y = random.randint(1, 8)
-			self.env.BakeNavigationMesh()
-			self.env.AssignNavigationAgentTarget(self.nav_agent, [x, 0, y])
-
 
 		cv2.putText(image_rgb, frames + framerate, (30,30), \
     		cv2.FONT_HERSHEY_PLAIN, 1, (200,250,250), 1);

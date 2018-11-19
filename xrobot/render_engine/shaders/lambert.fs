@@ -82,7 +82,7 @@ void main()
 
     // Blinn-Phong
     float NdotH = dot(N, H);
-    float specular = pow(clamp(NdotH, 0, 1), Ns) * 0.6;
+    float specular = pow(clamp(NdotH, 0, 1), Ns) * 0.3;
     if(Ns < 0.01) specular = 0;
 
     // Lambert
@@ -98,7 +98,7 @@ void main()
     float linear_depth = linearize(gl_FragCoord.z);
 
     FragColor.rgb = outColor;
-    FragColor.a = alpha;
+    FragColor.a = alpha * translucent;
 
     if(linear_depth * (zFar - zNear) < 2.0f)
         LabelAndDepth = vec4(id_color, 1);

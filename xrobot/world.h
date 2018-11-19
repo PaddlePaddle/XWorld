@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <queue>
 #include <unistd.h>
+#include <errno.h>
 #include <utility>
 #include <chrono>
 #include <thread>
@@ -77,7 +78,8 @@ enum LoadingFlags
 {
     kOBJConcave = FORCE_CONCAVE,
     kURDFSelfCollision = URDF_USE_SELF_COLLISION,
-    kURDFSelfCollisionExParents = URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS
+    kURDFSelfCollisionExParents = URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS,
+    kURDFEnableSleeping = URDF_ENABLE_SLEEPING
 };
 
 inline glm::mat4 TransformToMat4(const btTransform& transform) 
@@ -219,6 +221,8 @@ public:
     Joint();
     ~Joint();
 
+    void EnableJointSensor(const bool enable);
+    void GetJointState(glm::vec3& force, glm::vec3& torque);
     void ResetJointState(const float pos, const float vel);
     void SetJointMotorControlTorque(const float torque);
     void SetJointMotorControlVelocity(const float speed,
@@ -304,8 +308,10 @@ public:
 
 	btVector3 scale_;
     bool fixed_;
+    bool concave_;
     float mass_; // Only for .Obj
     std::string label_;
+    bool pickable_;
     std::string urdf_name_;
     std::string path_;
     int bullet_handle_;
@@ -322,8 +328,12 @@ public:
 
     RobotBase(std::weak_ptr<World> bullet_world);
 
+    void UpdatePickable(const bool pick) { robot_data_.pickable_ = pick; }
+    void UpdateTag(const std::string& tag) { robot_data_.label_ = tag; }
+
     virtual ~RobotBase();
 
+    virtual bool InteractWith(const std::string& tag);
     virtual bool TakeAction(const int act_id);
     virtual std::vector<std::string> GetActions() const;
 
@@ -332,14 +342,16 @@ public:
         const btVector3 position,
         const btQuaternion rotation,
         const float scale = 1.0f,
-        const std::string& label = ""
+        const std::string& label = "",
+        const bool concave = false
     );
     virtual void LoadAnimatedObject(
         const std::string& filename,
         const btVector3 position,
         const btQuaternion rotation,
         const float scale = 1.0f,
-        const std::string& label = ""
+        const std::string& label = "",
+        const bool concave = false
     );
 
     void LoadOBJ(
@@ -370,7 +382,8 @@ public:
         const std::string& label = "unlabeled",
         const bool fixed_base = false,
         const bool self_collision = false,
-        const bool use_multibody = true
+        const bool use_multibody = true,
+        const bool concave = false
     );
 
 
@@ -473,7 +486,8 @@ public:
         const btVector3 position,
         const btQuaternion rotation,
         const float scale = 1.0f,
-        const std::string& label = ""
+        const std::string& label = "",
+        const bool concave = false
     );
 
     bool TakeAction(const int act_id);
@@ -506,20 +520,28 @@ public:
         const btVector3 position,
         const btQuaternion rotation,
         const float scale = 1.0f,
-        const std::string& label = ""
+        const std::string& label = "",
+        const bool concave = false
     );
 
+    bool InteractWith(const std::string& tag);
     bool TakeAction(const int act_id);
     void SetStatus(const int status) { status_ = status; }
     void SetJoint(const int joint) { joint_ = joint; }
+    void SetLock(const bool lock) { lock_ = lock; }
+    bool GetLock() const { return lock_; }
+    int GetJoint() const { return joint_; }
+    float GetPosition(const int id) { return positions_[id]; }
     void RemoveRobotTemp();
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
 
+    std::string unlock_tag_;
     std::string path_;
     std::vector<std::string> object_name_list_;
 
 private:
+    bool lock_;
     int status_;
     int joint_;
     std::map<int, float> positions_;
@@ -527,6 +549,9 @@ private:
 
 struct ContactPoint {
     glm::vec3 contact_normal;
+    glm::vec3 contact_position_a;
+    glm::vec3 contact_position_b;
+    float contact_force;
     float contact_distance;
     int bullet_id_a;
     int bullet_id_b;
@@ -563,6 +588,10 @@ public:
     ~World();
 
     b3PhysicsClientHandle client_;
+    
+    std::map<std::string, std::string> tag_list_;
+    std::map<std::string, bool> pickable_list_;
+
     std::vector<std::shared_ptr<RobotBase>> robot_list_;
     std::map<int, std::shared_ptr<RobotBase>> bullet_handle_to_robot_map_;
     std::map<std::string, std::vector<std::shared_ptr<RobotBase>>> recycle_robot_map_;
@@ -575,6 +604,10 @@ public:
     float bullet_skip_frames_sent_;
     double bullet_ts_;
     int reset_count_;
+
+    void LoadMetadata(const char * filename);
+    void AssignTag(const std::string& path, const std::string& tag);
+    void UpdatePickableList(const std::string& tag, const bool pick);
 
     std::weak_ptr<RobotBase> LoadRobot(
         const std::string& filename,
@@ -608,10 +641,12 @@ public:
     void ResetSimulation();
     int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
     void BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& result,
-        const int num_threads = 8);
+        const int num_threads = 0);
     void SetTransformation(std::weak_ptr<RobotBase> robot_tr, const btTransform& tranform);
     void SetVelocity(std::weak_ptr<RobotBase> robot_vel, const btVector3& velocity);
 
+    void GetRootClosestPoints(std::weak_ptr<RobotBase> robot_in, std::weak_ptr<Object> part_in,
+        std::vector<ContactPoint>& contact_points);
     void GetRootContactPoints(std::weak_ptr<RobotBase> robot_in, std::weak_ptr<Object> part_in,
         std::vector<ContactPoint>& contact_points);
 

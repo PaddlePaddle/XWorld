@@ -3,29 +3,27 @@ import numpy as np
 import time
 from libxrobot import *
 from teaching_task import *
-from py_random_task import *
-from py_nav_task import *
-from py_suncg_task import *
-from py_nav_agent_task import *
+from py_interaction_task import *
 
 class XRobotEnv(object):
     def __init__(self):
-        self.env = Playground(1280, \
-                              720, \
-		                      0, \
-                              RENDER_QUALITY_HIGH, \
+        self.env = Playground(640, \
+                              360, \
+		                      DEBUG_VISUALIZATION, \
+                              RENDER_QUALITY_NORMAL, \
                               1)
 
+        #DEBUG_VISUALIZATION
+
         self.task_group = TaskGroup("TaskGroup")
-        self.task_group.add_task("Navigation_1", XRobot3DRandom(self.env))
-        self.task_group.add_task("Navigation_2", XRobot3DNavTarget(self.env))
+        self.task_group.add_task("Navigation_1", XRobot3DInteractions(self.env))
 
     def reset(self):
         self.env.Clear()
 
     def step(self, action):
         self.task_group.run_stage()
-        return self.env.UpdateSimulationWithAction(action)
+        print self.env.UpdateSimulationWithAction(action)
 
     def render(self):
         self.env.UpdateRenderer()
@@ -61,16 +59,24 @@ while (not env.game_over()):
         action = 1
     elif key == 100: # D
         action = 3
-    elif key == 48: # 9
+    elif key == 49:  # 1 Pick
+        action = 8
+    elif key == 50:  # 2 Drop
+        action = 9
+    elif key == 48:  # kp9 Up
         action = 4
-    elif key == 57: # 0
+    elif key == 57: # kp0 Down
         action = 5
-    elif key == 54: # kp6
-        action = 11
-    elif key == 51: # kp3
+    elif key == 54: # kp6 Open
         action = 12
+    elif key == 51: # kp3 Close
+        action = 13
+    elif key == 55: # kp7 Enable Interact
+        action = 11
+    elif key == 56: # kp8 Disable Interact
+        action = 13
     elif key == 27: # ESC
-        break;
+        break
 
     # update
     env.step(action)

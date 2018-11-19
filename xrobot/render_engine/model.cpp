@@ -446,7 +446,7 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
         kD = glm::vec3(diffuse[0], diffuse[1], diffuse[2]);
     }
 
-    glm::vec3 kS(0, 0, 0);
+    glm::vec3 kS(0.2, 0.2, 0.2);
     aiColor4D specular;
     if (aiGetMaterialColor(material, AI_MATKEY_COLOR_SPECULAR, &specular) 
             == AI_SUCCESS) {
@@ -466,6 +466,9 @@ Mesh ModelData::ProcessMesh(const aiMesh *mesh, const aiScene *scene) {
             == AI_SUCCESS) {
         Ns = shininess;
     }
+
+    // if(glm::dot(kD, glm::vec3(1)) == 0.0f)
+    //    kD = glm::vec3(0.8, 0.8, 0.8);
 
 
     // Diffuse Maps
