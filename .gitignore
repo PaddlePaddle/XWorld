@@ -16,7 +16,5 @@ CMakeCache.txt
 HPPL_ERROR_LOG
 external
 build
-examples/test_atari
-examples/test_xworld
-examples/test_simple_race
-examples/test_xworld3d
+data
+games/xworld3d/XWorld3D-model-zoo/
