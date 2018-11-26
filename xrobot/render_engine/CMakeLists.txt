@@ -1,5 +1,4 @@
 find_package(OpenGL REQUIRED)
-# find_package(GLEW REQUIRED)
 
 include(assimp)
 include(glm)
@@ -21,12 +20,20 @@ add_library(render_engine OBJECT
 
 add_dependencies(render_engine assimp glm glfw) 
 
-set(EGL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
-# set(EGL_LIBRARIES "/usr/lib/x86_64-linux-gnu/libEGL.so")
-set(EGL_LIBRARIES "/usr/local/lib/libEGL.so")
+
+find_library(EGL_LIBRARY EGL PATHS
+    /usr/local/lib
+    /usr/lib)
+
+if(NOT EGL_LIBRARY) 
+    set(EGL_LIBRARY "")
+    set(EGL_INCLUDE_DIRS "")
+else()
+    add_definitions(-DUSE_EGL)
+    set(EGL_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 
 target_include_directories(render_engine PUBLIC
-    # ${GLEW_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}
     ${EGL_INCLUDE_DIRS}
     ${GLM_INCLUDE_DIRS}
@@ -34,17 +41,16 @@ target_include_directories(render_engine PUBLIC
     ${BULLET_INCLUDE_DIRS})
 
 set(DEP_LIBS
-    # ${GLEW_LIBRARIES}
     ${DEP_LIBS}
-    ${EGL_LIBRARIES}
+    ${EGL_LIBRARY}
     ${ASSIMP_LIBRARIES}
+    ${EGL_LIBRARY}
     ${OPENGL_gl_LIBRARY}
     ${GLFW_LIBRARIES}
     ${BULLET_LIBRARIES}
     PARENT_SCOPE)
 
 set(DEP_INCLUDES
-    # ${GLEW_INCLUDE_DIRS}
     ${DEP_INCLUDES}
     ${EGL_INCLUDE_DIRS}
     ${ASSIMP_INCLUDE_DIRS}

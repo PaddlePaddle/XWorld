@@ -1,3 +1,4 @@
+#include <string>
 #include "navigation.h"
 #include "world.h"
 
@@ -775,13 +776,29 @@ void Navigation::SetBakeArea(const glm::vec3 world_min, const glm::vec3 world_ma
 
 void Navigation::BakeNavMesh()
 {
-    // Conservative Rasterization EXT
-    // At Least NVIDIA Maxwell
-    glEnable(GL_CONSERVATIVE_RASTERIZATION_NV);
+    auto gl_extension_supported = [](const std::string& name) -> bool {
+        // Conservative Rasterization EXT
+        // At Least NVIDIA Maxwell
+        int num_extenstions;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &num_extenstions);
+        for(int i = 0; i < num_extenstions; i++) {
+            std::string ext(reinterpret_cast<const char*>(
+                        glGetStringi(GL_EXTENSIONS, i)));
+            if (ext == name) {
+                return true;
+            }
+        }
+        return false;
+    };
+    
+    bool supported = gl_extension_supported("GL_NV_conservative_raster");
 
 	Voxelization();
 
-    glDisable(GL_CONSERVATIVE_RASTERIZATION_NV);
+    if (supported) {
+        #define GL_CONSERVATIVE_RASTERIZATION_NV 0x9346
+        glDisable(GL_CONSERVATIVE_RASTERIZATION_NV);
+    }
 
     request_manager_.UpdateGrid(grid_map_);
 
