@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 
     std::shared_ptr<MapGrid> scene(new MapGrid());
     std::shared_ptr<render_engine::Render> renderer(
-        new render_engine::Render(w, h, 1, render_profile, false)
+        new render_engine::Render(w, h, 1, render_profile, /*headless*/false)
     );
 
     TaskGroup group("TaskGroup_Crowd");
