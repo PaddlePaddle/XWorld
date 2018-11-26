@@ -105,7 +105,7 @@ if(CPP_EXAMPLES_ENABLE)
     target_include_directories(xrobot_test_nav PUBLIC ${DEP_INCLUDES})
 
     set_target_properties(xrobot_test_nav
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 
 
     # Follow Robot
@@ -116,7 +116,7 @@ if(CPP_EXAMPLES_ENABLE)
     target_include_directories(xrobot_test_follow_robot PUBLIC ${DEP_INCLUDES})
 
     set_target_properties(xrobot_test_follow_robot
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 
     # SUNCG
     add_executable(xrobot_test_suncg cpp_example/test_suncg.cpp)
@@ -126,7 +126,7 @@ if(CPP_EXAMPLES_ENABLE)
     target_include_directories(xrobot_test_suncg PUBLIC ${DEP_INCLUDES})
 
     set_target_properties(xrobot_test_suncg
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 
     # Crowd
     add_executable(xrobot_test_crowd cpp_example/test_crowd.cpp)
@@ -136,7 +136,17 @@ if(CPP_EXAMPLES_ENABLE)
     target_include_directories(xrobot_test_crowd PUBLIC ${DEP_INCLUDES})
 
     set_target_properties(xrobot_test_crowd
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp_example)
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
+
+    # OBJ Scene
+    add_executable(xrobot_test_obj cpp_example/test_obj.cpp)
+
+    target_link_libraries(xrobot_test_obj PUBLIC xrobot ${DEP_LIBS})
+
+    target_include_directories(xrobot_test_obj PUBLIC ${DEP_INCLUDES})
+
+    set_target_properties(xrobot_test_obj
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 endif()
 
 
