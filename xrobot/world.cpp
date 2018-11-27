@@ -171,15 +171,6 @@ Object::Object() : RenderPart(),
     object_angular_speed_ = btVector3(0,0,0);
 }
 
-Object::~Object() 
-{
-    for (size_t i = 0; i < transform_list_.size(); ++i) {
-        delete transform_list_[i];
-        transform_list_[i] = nullptr;
-    }
-    transform_list_.clear();
-}
-
 void Object::GetMass(float& mass) 
 {
     if(auto bullet_world = bullet_world_.lock()) 
@@ -1153,17 +1144,13 @@ void RobotBase::LoadOBJFile(
 
         glm::mat4 transform = TransformToMat4(btTransform(rotation, position));
 
-        OriginTransformation * origin_transform = new OriginTransformation();
+        std::shared_ptr<OriginTransformation> origin_transform =
+                std::make_shared<OriginTransformation>();
+        origin_transform->origin = transform;
         origin_transform->scale = 1.0f;
         origin_transform->local_scale = vec3(scale[0], scale[1], scale[2]);
-        origin_transform->origin = transform;
         origin_transform->color = glm::vec4(1);
-
-        if (flip) {
-            origin_transform->flip = -1.0f;
-        } else {
-            origin_transform->flip = 1.0f;
-        }
+        origin_transform->flip = flip ? -1.0f : 1.0f;
 
         robot_data_.root_part_->transform_list_.push_back(origin_transform);
 
@@ -1361,7 +1348,7 @@ void RobotBase::LoadRobotShape(const float scale)
                 filename = std::to_string(geometry_type);
 
             bool reset = true;
-            ModelData* model_data = bullet_world->FindInCache(filename, 
+            ModelDataPtr model_data = bullet_world->FindInCache(filename, 
                     part->model_list_, reset);
 
             glm::vec4 color(1,1,1,1);
@@ -1388,10 +1375,11 @@ void RobotBase::LoadRobotShape(const float scale)
 
             glm::mat4 transform = TransformToMat4(btTransform(rotation, position));
 
-            OriginTransformation * origin_transform = new OriginTransformation();
+            std::shared_ptr<OriginTransformation> origin_transform =
+                    std::make_shared<OriginTransformation>();
+            origin_transform->origin = transform;
             origin_transform->scale = scale;
             origin_transform->local_scale = local_scale;
-            origin_transform->origin = transform;
             origin_transform->color = color;
             part->transform_list_.push_back(origin_transform);
             
@@ -3308,22 +3296,20 @@ void World::RemoveObjectWithLabel(const int id) {
     }
 }
 
-render_engine::ModelData* World::FindInCache(
-    const std::string &key, 
-    std::vector<render_engine::ModelData*> &model_list,
-    bool& reset)
-{
-    auto has_find = model_cache_.find(key);
-    if (has_find != model_cache_.end())
-    {
-        auto model_data = has_find->second;
+render_engine::ModelDataPtr World::FindInCache(
+        const std::string &key, 
+        std::vector<render_engine::ModelDataPtr> &model_list,
+        bool& reset) {
+    auto it = model_cache_.find(key);
+    if (it != model_cache_.end()) {
+        auto model_data = it->second;
         model_list.push_back(model_data);
         reset = false;
-        if(model_data) return model_data;
-    }
-    else
-    {
-        auto model_data  = new ModelData();
+        if (model_data) {
+            return model_data;
+        }
+    } else {
+        auto model_data  = std::make_shared<ModelData>();
         model_list.push_back(model_data);
         model_cache_[key] = model_data;
         return model_data;
@@ -3331,13 +3317,7 @@ render_engine::ModelData* World::FindInCache(
     return nullptr;
 }
 
-void World::ClearCache()
-{
-    for (auto index = model_cache_.begin(); index != model_cache_.end(); index++){
-        delete index->second;
-        index->second = nullptr;
-    }
-
+void World::ClearCache() {
     model_cache_.clear();
 }
 

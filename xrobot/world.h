@@ -249,7 +249,7 @@ public:
 class Object : public render_engine::RenderPart {
 public:
     Object();
-    ~Object();
+    ~Object() {};
 
     void Sleep();
     void Wake();
@@ -445,12 +445,14 @@ public:
             const glm::vec3 from, const glm::vec3 to);
     virtual void AttachObject(std::weak_ptr<RobotBase> object, const int id = -1);
     virtual void DetachObject();
+    virtual const RenderPart* render_root_ptr() const override;
+    virtual RenderPart* render_root_ptr() override;
+    virtual const RenderPart* render_part_ptr(const size_t i) const override;
+    virtual RenderPart* render_part_ptr(const size_t i) override;
+
 
     size_t size() const override { return robot_data_.other_parts_.size(); }
-    RenderPart* render_root_ptr() override;
-    const RenderPart* render_root_ptr() const override;
-    const RenderPart* render_part_ptr(const size_t i) const override;
-    RenderPart* render_part_ptr(const size_t i) override;
+
     void attach_camera(const glm::vec3& offset,
                        const float pitch,
                        glm::vec3& loc,
@@ -595,7 +597,7 @@ public:
     std::vector<std::shared_ptr<RobotBase>> robot_list_;
     std::map<int, std::shared_ptr<RobotBase>> bullet_handle_to_robot_map_;
     std::map<std::string, std::vector<std::shared_ptr<RobotBase>>> recycle_robot_map_;
-    std::map<std::string, render_engine::ModelData*> model_cache_;
+    std::map<std::string, render_engine::ModelDataPtr> model_cache_;
     std::map<std::string, std::vector<int>> object_locations_;
 
     float bullet_gravity_;
@@ -627,8 +629,11 @@ public:
         const btQuaternion rotation
     );
 
-    render_engine::ModelData* FindInCache(const std::string &key,
-        std::vector<render_engine::ModelData*> &model_list, bool& reset);
+    render_engine::ModelDataPtr FindInCache(
+            const std::string &key,
+            std::vector<render_engine::ModelDataPtr> &model_list,
+            bool& reset);
+
     void ClearCache();
     void PrintCacheInfo();
     void BulletInit(const float gravity = 9.81f, const float timestep = 1.0/100.0);
@@ -673,7 +678,6 @@ public:
         const glm::vec3 eye, std::vector<ObjectDirections>& result);
     void QueryObjectByLabel(const std::string& label,
         std::vector<ObjectAttributes>& result);
-
     
 public:
     size_t size() const override { return robot_list_.size(); }

@@ -830,8 +830,8 @@ void Navigation::Voxelization()
 
     auto do_drawing = [&](const xrobot::render_engine::RenderPart* c, bool is_root) {
         for (size_t i = 0; i < c->size(); ++i) {
-            xrobot::render_engine::ModelData* model = c->model_data(i);
-            xrobot::render_engine::OriginTransformation* transform = c->transform(i);
+            auto model = c->model_data(i);
+            auto transform = c->transform(i);
 
             glm::mat4 translate = c->translation_matrix();
             glm::mat4 local_frame = 

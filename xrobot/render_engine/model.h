@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -90,6 +91,8 @@ private:
                                               aiTextureType type,
                                               const std::string& typeName);
 };
+
+typedef std::shared_ptr<ModelData> ModelDataPtr;
 
 } } // xrobot::render_engine
 

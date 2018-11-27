@@ -2,6 +2,7 @@
 #define RENDER_ENGINE_RENDER_WORLD_H
 
 #include <cassert>
+#include <memory>
 #include <vector>
 
 #include "glm/glm.hpp"
@@ -16,23 +17,18 @@ class RenderPart {
 public:
     RenderPart() : model_list_(0), transform_list_(0) {}
 
-    virtual ~RenderPart() {
-        for (size_t i = 0; i < transform_list_.size(); ++i) {
-            delete transform_list_[i];
-        }
-        transform_list_.clear();
-    }
+    virtual ~RenderPart() {}
 
     virtual int id() const = 0;
 
     size_t size() const { return model_list_.size(); }
 
-    ModelData* model_data(const size_t i) const {
+    std::shared_ptr<ModelData> model_data(const size_t i) const {
         assert(i < model_list_.size() && model_list_[i]);
         return model_list_[i];
     }
 
-    OriginTransformation* transform(const size_t i) const {
+    std::shared_ptr<OriginTransformation> transform(const size_t i) const {
         assert(i < transform_list_.size());
         return transform_list_[i];
     }
@@ -44,8 +40,8 @@ public:
     virtual glm::mat4 local_inertial_frame() const = 0;
 
 public:
-    std::vector<ModelData*> model_list_;
-    std::vector<OriginTransformation*> transform_list_;
+    std::vector<std::shared_ptr<ModelData>> model_list_;
+    std::vector<std::shared_ptr<OriginTransformation>> transform_list_;
 };
 
 class RenderBody {

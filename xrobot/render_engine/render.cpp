@@ -1357,8 +1357,8 @@ void Render::Draw(RenderWorld* world,
         glm::vec3 id_color(id_r/255.0f, id_g/255.0f, id_b/255.0f);
 
         for (size_t i = 0; i < c->size(); ++i) {
-            ModelData* model = c->model_data(i);
-            OriginTransformation* transform = c->transform(i);
+            auto model = c->model_data(i);
+            auto transform = c->transform(i);
 
             glm::mat4 translate = c->translation_matrix();
             glm::mat4 local_frame = 
