@@ -1243,7 +1243,7 @@ void Render::DrawRootAABB(RenderWorld* world, const Shader& shader) {
     {
         RenderBody* body = world->render_body_ptr(i);
         RenderPart * part = body->render_root_ptr();
-        if (part && !body->recycle())
+        if (part && !body->is_recycled())
         {
             glm::vec3 aabb_min, aabb_max;
             part->GetAABB(aabb_min, aabb_max);
@@ -1393,7 +1393,7 @@ void Render::Draw(RenderWorld* world,
             continue;
 
         // TODO
-        if(body->hide())
+        if(body->is_hiding())
             continue;
 
         // Root
@@ -1406,7 +1406,7 @@ void Render::Draw(RenderWorld* world,
                 (aabb_min.z < root_aabb_max.z && aabb_max.z > root_aabb_min.z))
         ) continue;
 
-        if (root && !body->recycle()) {
+        if (root && !body->is_recycled()) {
             do_drawing(root, true);
             // Parts
             for (size_t j = 0; j < body->size(); ++j) {

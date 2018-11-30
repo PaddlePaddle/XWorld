@@ -1049,7 +1049,7 @@ boost::python::list Playground::EnableInteraction()
     {
         auto body = bullet_world->robot_list_[i];
 
-        if (!body->recycle()) {
+        if (!body->is_recycled()) {
 
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
@@ -1195,7 +1195,7 @@ void Playground::TakeAction(const int action_id)
     for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
     {
         auto body = bullet_world->robot_list_[i];
-        if (!body->recycle()) {
+        if (!body->is_recycled()) {
 
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
@@ -1248,7 +1248,7 @@ void Playground::Use(const int object_id)
     {
         auto body = bullet_world->robot_list_[i];
 
-        if (!body->recycle()) {
+        if (!body->is_recycled()) {
 
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {

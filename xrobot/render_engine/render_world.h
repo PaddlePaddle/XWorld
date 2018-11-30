@@ -19,9 +19,11 @@ public:
 
     virtual ~RenderPart() {}
 
-    virtual int id() const = 0;
-
     size_t size() const { return model_list_.size(); }
+
+    virtual int id() const = 0;
+    
+    virtual void set_id(int id) = 0;
 
     std::shared_ptr<ModelData> model_data(const size_t i) const {
         assert(i < model_list_.size() && model_list_[i]);
@@ -50,31 +52,36 @@ public:
 
     virtual ~RenderBody() {}
 
-    bool hide() const { return hide_; }
+    bool is_hiding() const { return hide_; }
 
-    void hide(const bool value) { hide_ = value; } 
+    virtual void hide(const bool value) = 0; 
 
     bool move() const { return move_; }
 
     void move(const bool value) { move_ = value; }
 
-    bool recycle() const { return recycle_; }
+    bool is_recycled() const { return recycle_; }
 
-    void recycle(const bool value) { recycle_ = value; }
+    virtual void recycle() = 0;
+
+    virtual void reuse() = 0;
 
     virtual size_t size() const = 0;
 
     virtual const RenderPart* render_root_ptr() const = 0;
+
     virtual RenderPart* render_root_ptr() = 0;
+
     virtual const RenderPart* render_part_ptr(const size_t i) const = 0;
+
     virtual RenderPart* render_part_ptr(const size_t i) = 0;
+
     virtual void attach_camera(const glm::vec3& offset,
                                const float pitch,
                                glm::vec3& loc,
                                glm::vec3& front,
                                glm::vec3& right,
                                glm::vec3& up) = 0;
-
 protected:
     bool hide_;
     bool move_;

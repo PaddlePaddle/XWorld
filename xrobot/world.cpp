@@ -1,404 +1,159 @@
 #include "world.h"
+#include "utils.h"
 
 namespace xrobot {
 
 using namespace glm;
 using namespace render_engine;
+using namespace bullet_engine;
 
-Joint::Joint() : bullet_robot_(),
+Joint::Joint() : BulletJoint(),
                  bullet_world_(),
-                 joint_name_(""),
-                 joint_type_(0),
-                 bullet_joint_id_(-1),
-                 bullet_q_index_(-1),
-                 bullet_u_index_(-1),
-                 joint_current_position_(0),
-                 joint_current_speed_(0),
-                 joint_limit_1_(-1),
-                 joint_limit_2_(-2),
-                 joint_max_force_(1.0f),
-                 joint_max_velocity_(1.0f),
-                 joint_has_limits_(false) {}
+                 bullet_robot_() {}
 
 Joint::~Joint() {}
 
-void Joint::EnableJointSensor(const bool enable)
-{
-    if(auto bullet_robot = bullet_robot_.lock()) 
-    {
-        auto bullet_world = bullet_world_.lock();
-
-        CommandHandle cmd_handle = b3CreateSensorCommandInit(
-            bullet_world->client_,
-            bullet_robot->robot_data_.bullet_handle_
-        );
-
-        b3CreateSensorEnable6DofJointForceTorqueSensor(
-            cmd_handle, bullet_joint_id_, enable);
-
-        b3SubmitClientCommandAndWaitStatus(
-            bullet_world->client_,
-            cmd_handle
-        );
-    }
+void Joint::EnableJointSensor(const bool enable) {
+    auto robot = wptr_to_sptr(bullet_robot_);
+    auto world = wptr_to_sptr(bullet_world_);
+    enable_sensor(world->client_, robot->bullet_handle(), enable);
 }
 
-void Joint::GetJointState(glm::vec3& force, glm::vec3& torque)
-{
-    if(auto bullet_robot = bullet_robot_.lock()) 
-    {
-        auto bullet_world = bullet_world_.lock();
-
-        CommandHandle cmd_handle = b3RequestActualStateCommandInit(
-            bullet_world->client_,
-            bullet_robot->robot_data_.bullet_handle_
-        );
-
-        StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(
-            bullet_world->client_, 
-            cmd_handle
-        );
-
-        struct b3JointSensorState sensorState;
-
-        b3GetJointState(bullet_world->client_, status_handle, 
-                        bullet_joint_id_, &sensorState);
-
-        force.x = sensorState.m_jointForceTorque[0];
-        force.y = sensorState.m_jointForceTorque[1];
-        force.z = sensorState.m_jointForceTorque[2];
-        torque.x = sensorState.m_jointForceTorque[3];
-        torque.y = sensorState.m_jointForceTorque[4];
-        torque.z = sensorState.m_jointForceTorque[5];
-    }
+void Joint::GetJointMotorState(glm::vec3& force, glm::vec3& torque) {
+    auto robot = wptr_to_sptr(bullet_robot_);
+    auto world = wptr_to_sptr(bullet_world_);
+    get_motor_state(world->client_, robot->bullet_handle(), force, torque);
 }
 
-void Joint::SetJointMotorControlTorque(const float torque) 
-{
+void Joint::ResetJointState(const float pos, const float vel) {
+    auto robot = wptr_to_sptr(bullet_robot_);
+    auto world = wptr_to_sptr(bullet_world_);
+    reset_state(world->client_, robot->bullet_handle(), pos, vel);
+}
 
-    if(auto bullet_robot = bullet_robot_.lock()) 
-    {
-        auto bullet_world = bullet_world_.lock();
-
-        CommandHandle cmd_handle = b3JointControlCommandInit2(
-            bullet_world->client_,
-            bullet_robot->robot_data_.bullet_handle_,
-            kTorque
-        );
-
-        b3JointControlSetDesiredForceTorque(cmd_handle, bullet_u_index_, torque);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
+void Joint::SetJointMotorControlTorque(const float torque) {
+    auto robot = wptr_to_sptr(bullet_robot_);
+    auto world = wptr_to_sptr(bullet_world_);
+    set_motor_control_torque(world->client_, robot->bullet_handle(), torque);
 }
 
 void Joint::SetJointMotorControlVelocity(const float speed,
                                          const float k_d,
-                                         const float max_force) 
-{
+                                         const float max_force) {
     
-    if(auto bullet_robot = bullet_robot_.lock()) 
-    {
-
-        auto bullet_world = bullet_world_.lock();
-
-        CommandHandle cmd_handle = b3JointControlCommandInit2(
-            bullet_world->client_,
-            bullet_robot->robot_data_.bullet_handle_,
-            kVelocity
-        );
-
-        b3JointControlSetDesiredVelocity(cmd_handle, bullet_u_index_, speed);
-        b3JointControlSetKd(cmd_handle, bullet_u_index_, k_d);
-        b3JointControlSetMaximumForce(cmd_handle, bullet_u_index_, max_force);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
+    auto robot = wptr_to_sptr(bullet_robot_);
+    auto world = wptr_to_sptr(bullet_world_);
+    set_motor_control_velocity(
+            world->client_, robot->bullet_handle(), speed, k_d, max_force);
 }
 
 void Joint::SetJointMotorControlPosition(
         const float target,
         const float k_p,
         const float k_d,
-        const float max_force)
-{
-    if(auto bullet_robot = bullet_robot_.lock()) 
-    {
-
-        auto bullet_world = bullet_world_.lock();
-
-        CommandHandle cmd_handle = b3JointControlCommandInit2(
-            bullet_world->client_,
-            bullet_robot->robot_data_.bullet_handle_,
-            kPositionVelocity
-        );
-
-        b3JointControlSetDesiredPosition(cmd_handle, bullet_q_index_, target);
-        b3JointControlSetKd(cmd_handle, bullet_u_index_, k_d);
-        b3JointControlSetKp(cmd_handle, bullet_u_index_, k_p);
-        b3JointControlSetMaximumForce(cmd_handle, bullet_u_index_, max_force);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Joint::ResetJointState(const float pos, const float vel) 
-{
-    if(auto bullet_robot = bullet_robot_.lock()) 
-    {
-
-        auto bullet_world = bullet_world_.lock();
-
-        CommandHandle cmd_handle = b3CreatePoseCommandInit(
-            bullet_world->client_, bullet_robot->robot_data_.bullet_handle_);
-        b3CreatePoseCommandSetJointPosition(
-                bullet_world->client_, cmd_handle, bullet_joint_id_, pos);
-        b3CreatePoseCommandSetJointVelocity(
-                bullet_world->client_, cmd_handle, bullet_joint_id_, vel);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
+        const float max_force) {
+    auto robot = wptr_to_sptr(bullet_robot_);
+    auto world = wptr_to_sptr(bullet_world_);
+    set_motor_control_position(
+            world->client_, robot->bullet_handle(), target, k_p, k_d, max_force);
 }
 
 Object::Object() : RenderPart(),
-                   attach_object_(),
+                   BulletObject(),
                    bullet_world_(),
-                   object_name_(),
-                   bullet_handle_(-1),
-                   bullet_link_id_(-1),
-                   object_mass_original_(0) 
-{
-    object_position_.setIdentity();
-    object_link_position_.setIdentity();
-    object_local_inertial_frame_.setIdentity();
-    object_speed_ = btVector3(0,0,0);
-    object_angular_speed_ = btVector3(0,0,0);
+                   body_uid_(-1),
+                   object_name_() {}
+
+void Object::Sleep() {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::sleep(world->client_, id());
 }
 
-void Object::GetMass(float& mass) 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3GetDynamicsInfoCommandInit(
-                bullet_world->client_, bullet_handle_, bullet_link_id_);
-        StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(
-                bullet_world->client_, cmd_handle);
-
-        int status_type = b3GetStatusType(status_handle);
-        if (status_type != CMD_GET_DYNAMICS_INFO_COMPLETED) {
-            //printf("Get Mass Failed! Or Could Be Static Object\n");
-            mass = 0.0f;
-	    return;
-        }
-
-        struct b3DynamicsInfo dynamics_info;
-        b3GetDynamicsInfo(status_handle, &dynamics_info);
-
-        mass = static_cast<float>(dynamics_info.m_mass);
-    }
+void Object::EnableSleeping() {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::enable_sleeping(world->client_, id());
 }
 
-void Object::GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max)
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3RequestCollisionInfoCommandInit(
-                bullet_world->client_, bullet_handle_);
-        StatusHandle status_handle = b3SubmitClientCommandAndWaitStatus(
-                bullet_world->client_, cmd_handle);
+void Object::DisableSleeping() {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::disable_sleeping(world->client_, id());
+}
 
-        int status_type = b3GetStatusType(status_handle);
-        if (status_type != CMD_REQUEST_COLLISION_INFO_COMPLETED) {
-            printf("Get AABB Failed!\n");
-            return;
-        }
+void Object::Wake() {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::wake(world->client_, id());
+}
 
-        double aabb_min_temp[3];
-        double aabb_max_temp[3];
-        b3GetStatusAABB(
-                status_handle, bullet_link_id_, aabb_min_temp, aabb_max_temp);
+void Object::GetMass(float& mass) {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::get_mass(world->client_, id(), mass);
+}
 
-        aabb_min = vec3(aabb_min_temp[0], aabb_min_temp[1], aabb_min_temp[2]);
-        aabb_max = vec3(aabb_max_temp[0], aabb_max_temp[1], aabb_max_temp[2]);
-    }
+void Object::SetStatic() {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::get_mass(world->client_, id(), object_mass_original_);
+    BulletObject::change_mass(world->client_, id(), 0.0f);
+}
+
+void Object::RecoverFromStatic() {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_mass(
+            world->client_, id(), object_mass_original_);
+}
+
+void Object::GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max) {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::get_AABB(world->client_, id(), aabb_min, aabb_max);
+}
+
+void Object::ChangeLinearDamping(const float damping) {
+    assert(damping >= 0);
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_linear_damping(world->client_, id(), damping);
+}
+
+void Object::ChangeAngularDamping(const float damping) {
+    assert(damping >= 0);
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_angular_damping(world->client_, id(), damping);
+}
+
+void Object::ChangeLateralFriction(const float friction) {
+    assert(friction >= 0);
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_lateral_friction(world->client_, id(), friction);
+}
+
+void Object::ChangeSpinningFriction(const float friction) {
+    assert(friction >= 0);
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_spinning_friction(world->client_, id(), friction);
+}
+
+void Object::ChangeRollingFriction(float friction) {
+    assert(friction >= 0);
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_rolling_friction(world->client_, id(), friction);
 }
 
 void Object::ApplyForce(
-        const float x, const float y, const float z, const int flags) 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        printf("Apply Force Has Not Been Implemented Yet!\n");
-    }
+        const float x, const float y, const float z, const int flags) {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::apply_force(world->client_, id(), x, y, z, flags);
 }
 
 void Object::ApplyTorque(
-        const float x, const float y, const float z, const int flags) 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = 
-            b3ApplyExternalForceCommandInit(bullet_world->client_);
-
-        double torque_temp[3];
-        torque_temp[0] = x;
-        torque_temp[1] = y;
-        torque_temp[2] = z;
-
-        b3ApplyExternalTorque(
-                cmd_handle, bullet_handle_, bullet_link_id_, torque_temp, flags);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
+        const float x, const float y, const float z, const int flags) {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::apply_torque(world->client_, id(), x, y, z, flags);
 }
 
-void Object::EnableSleeping() 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetActivationState(
-                cmd_handle, bullet_handle_, eActivationStateEnableSleeping);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
+glm::mat4 Object::translation_matrix() const {
+    return BulletObject::translation_matrix();
 }
 
-void Object::DisableSleeping() 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetActivationState(
-                cmd_handle, bullet_handle_, eActivationStateDisableSleeping);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-
-void Object::Sleep() 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetActivationState(
-                cmd_handle, bullet_handle_, eActivationStateSleep);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::Wake() 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetActivationState(
-                cmd_handle, bullet_handle_, eActivationStateWakeUp);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::ChangeMass(const float mass) 
-{
-    if(mass < 0) return;
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetMass(
-                cmd_handle, bullet_handle_, bullet_link_id_, mass);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::ChangeLinearDamping(const float damping) 
-{
-    if(damping < 0) return;
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetLinearDamping(cmd_handle, bullet_handle_, damping);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::ChangeAngularDamping(const float damping) 
-{
-    if(damping < 0) return;
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetAngularDamping(cmd_handle, bullet_handle_, damping);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-
-void Object::ChangeLateralFriction(const float friction) 
-{
-    if(friction < 0) return;
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetLateralFriction(
-                cmd_handle, bullet_handle_, bullet_link_id_, friction);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::ChangeSpinningFriction(const float friction) 
-{
-    if(friction < 0) return;
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetSpinningFriction(
-                cmd_handle, bullet_handle_, bullet_link_id_, friction);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::ChangeRollingFriction(float friction) 
-{
-    if(friction < 0) return;
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        CommandHandle cmd_handle = b3InitChangeDynamicsInfo(bullet_world->client_);
-
-        b3ChangeDynamicsInfoSetRollingFriction(
-                cmd_handle, bullet_handle_, bullet_link_id_, friction);
-        b3SubmitClientCommandAndWaitStatus(bullet_world->client_, cmd_handle);
-    }
-}
-
-void Object::SetMassOriginal(const float mass) 
-{
-    if(mass < 0) return;
-
-    object_mass_original_ = mass;
-}
-
-float Object::GetMassOriginal()
-{
-    return object_mass_original_;
-}
-
-glm::mat4 Object::translation_matrix() const 
-{
-    return TransformToMat4(object_position_);
-}
-
-glm::mat4 Object::local_inertial_frame() const 
-{
-    return TransformToMat4(object_local_inertial_frame_);
+glm::mat4 Object::local_inertial_frame() const {
+    return BulletObject::local_inertial_frame();
 }
 
 RobotWithConvertion::RobotWithConvertion(std::weak_ptr<World> bullet_world) 
@@ -412,57 +167,9 @@ RobotWithConvertion::RobotWithConvertion(std::weak_ptr<World> bullet_world)
 
 RobotWithConvertion::~RobotWithConvertion() {}
 
-void RobotWithConvertion::RemoveRobotTemp() 
-{
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        // Mark as Recycle
-        recycle(true);
-
-        // Move to Bottom
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(btVector3(0, -10, 0));
-
-        // Set Velocity to 0
-        bullet_world->SetTransformation(shared_from_this(), transform);
-        bullet_world->SetVelocity(shared_from_this(), btVector3(0,0,0));
-
-        // Change Root to Static
-        float mass;
-        robot_data_.root_part_->GetMass(mass);
-        robot_data_.root_part_->ChangeMass(0.0f);
-        robot_data_.root_part_->SetMassOriginal(mass);
-        robot_data_.root_part_->Sleep();
-
-         // Change Rest to Static
-        for (auto part : robot_data_.other_parts_)
-        {
-            part->GetMass(mass);
-            part->ChangeMass(0.0f);
-            part->SetMassOriginal(mass);
-            part->Sleep();
-        }
-
-        // Push Into Recycles
-        if(bullet_world->recycle_robot_map_.find(path_) != 
-                bullet_world->recycle_robot_map_.end()) {
-            bullet_world->recycle_robot_map_[path_].push_back(shared_from_this());
-        }
-        else
-        {
-            std::vector<std::shared_ptr<RobotBase>> robot_list_temp;
-            robot_list_temp.push_back(shared_from_this());
-            bullet_world->recycle_robot_map_[path_] = robot_list_temp;
-        }
-
-        robot_data_.attach_to_id_ = -2;
-
-        // Remove Label
-        bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
-
-        //bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] = nullptr;
-    }
+void RobotWithConvertion::recycle() {
+    hide(true);
+    do_recycle(path_);
 }
 
 void RobotWithConvertion::Remove() {
@@ -470,17 +177,17 @@ void RobotWithConvertion::Remove() {
     {
         if (robot_data_.root_part_) {
             //delete robot_data_.root_part_;
-            robot_data_.root_part_ = nullptr;
+            robot_data_.root_part_.reset();
         }
         for (size_t i = 0; i < robot_data_.other_parts_.size(); ++i) {
             //delete robot_data_.other_parts_[i];
-            robot_data_.other_parts_[i] = nullptr;
+            robot_data_.other_parts_[i].reset();
         }
         robot_data_.other_parts_.clear();
 
         for (size_t i = 0; i < robot_data_.joints_list_.size(); ++i) {
             //delete robot_data_.joints_list_[i];
-            robot_data_.joints_list_[i] = nullptr;
+            robot_data_.joints_list_[i].reset();
         }
 
         RemoveRobotFromBullet();
@@ -644,56 +351,9 @@ RobotWithAnimation::RobotWithAnimation(std::weak_ptr<World> bullet_world)
 
 RobotWithAnimation::~RobotWithAnimation() {}
 
-void RobotWithAnimation::RemoveRobotTemp() {
-
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        recycle(true);
-
-        // Move to Bottom
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(btVector3(0, -10, 0));
-
-        // Set Velocity to 0
-        bullet_world->SetTransformation(shared_from_this(), transform);
-        bullet_world->SetVelocity(shared_from_this(), btVector3(0,0,0));
-
-        // Change Root to Static
-        float mass;
-        robot_data_.root_part_->GetMass(mass);
-        robot_data_.root_part_->ChangeMass(0.0f);
-        robot_data_.root_part_->SetMassOriginal(mass);
-        robot_data_.root_part_->Sleep();
-
-         // Change Rest to Static
-        for (auto part : robot_data_.other_parts_)
-        {
-            part->GetMass(mass);
-            part->ChangeMass(0.0f);
-            part->SetMassOriginal(mass);
-            part->Sleep();
-        }
-
-        // Push Into Recycles
-        if(bullet_world->recycle_robot_map_.find(path_) != 
-                bullet_world->recycle_robot_map_.end()) {
-            bullet_world->recycle_robot_map_[path_].push_back(shared_from_this());
-        }
-        else
-        {
-            std::vector<std::shared_ptr<RobotBase>> robot_list_temp;
-            robot_list_temp.push_back(shared_from_this());
-            bullet_world->recycle_robot_map_[path_] = robot_list_temp;
-        }
-
-        robot_data_.attach_to_id_ = -2;
-
-        // Remove Label
-        bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
-
-        //bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] = nullptr;
-    }
+void RobotWithAnimation::recycle() {
+    hide(true);
+    do_recycle(path_);
 }
 
 bool RobotWithAnimation::InteractWith(const std::string& tag)
@@ -1017,7 +677,7 @@ void RobotBase::LoadURDFFile(
         robot_data_.fixed_ = fixed_base;
         robot_data_.mass_ = 0;
         robot_data_.concave_ = concave;
-        recycle(false);
+        reuse();
 
         CommandHandle cmd_handle = b3LoadUrdfCommandInit(bullet_world->client_,
                 filename.c_str());
@@ -1051,7 +711,7 @@ void RobotBase::LoadURDFFile(
         LoadRobotJoint(filename);
         LoadRobotShape(scale);
 
-        robot_data_.root_part_->bullet_handle_ = robot_data_.bullet_handle_;
+        robot_data_.root_part_->set_id(robot_data_.bullet_handle_);
         robot_data_.root_part_->EnableSleeping();
 
         bullet_world->robot_list_.push_back(shared_from_this());
@@ -1103,7 +763,7 @@ void RobotBase::LoadOBJFile(
         robot_data_.fixed_ = true;
         robot_data_.mass_ = mass;
         robot_data_.concave_ = concave;
-        recycle(false);
+        reuse();
 
         CommandHandle cmd_handle = b3LoadObjCommandInit(bullet_world->client_,
                 filename.c_str());
@@ -1134,7 +794,7 @@ void RobotBase::LoadOBJFile(
 
         robot_data_.root_part_ = std::make_shared<Object>();
         robot_data_.root_part_->object_name_ = root.m_baseName;
-        robot_data_.root_part_->bullet_handle_ = robot_data_.bullet_handle_;
+        robot_data_.root_part_->set_id(robot_data_.bullet_handle_);
         robot_data_.root_part_->bullet_link_id_ = -1;
         robot_data_.root_part_->bullet_world_ = bullet_world;
 
@@ -1254,7 +914,7 @@ void RobotBase::LoadRobotJoint(const std::string &filename)
 
         robot_data_.root_part_ = std::make_shared<Object>();
         robot_data_.root_part_->object_name_ = root.m_baseName;
-        robot_data_.root_part_->bullet_handle_ = robot_data_.bullet_handle_;
+        robot_data_.root_part_->set_id(robot_data_.bullet_handle_);
         robot_data_.root_part_->bullet_link_id_ = -1;
         robot_data_.root_part_->bullet_world_ = bullet_world;
         robot_data_.urdf_name_ = filename;
@@ -1291,7 +951,7 @@ void RobotBase::LoadRobotJoint(const std::string &filename)
 
             auto part = robot_data_.other_parts_[c];
             part = std::make_shared<Object>();
-            part->bullet_handle_ = robot_data_.bullet_handle_;
+            part->set_id(robot_data_.bullet_handle_);
             part->bullet_link_id_ = c;
             part->bullet_world_ = bullet_world;
             part->object_name_ = info.m_linkName;
@@ -1823,7 +1483,7 @@ void RobotBase::PutDown(std::shared_ptr<Inventory> inventory,
                             for (size_t i = 0; i < bullet_world->size(); i++) {
                                 auto body = bullet_world->robot_list_[i];
                                 auto part = body->robot_data_.root_part_;
-                                if (part && !body->recycle() 
+                                if (part && !body->is_recycled() 
                                     && part->id()!=temp_obj->robot_data_.bullet_handle_
                                     && part->id()!=object->robot_data_.bullet_handle_
                                     && body->robot_data_.label_!= "Wall"
@@ -2007,58 +1667,23 @@ void RobotBase::RemoveRobotFromBullet() {
     }
 }
 
-void RobotBase::RemoveRobotTemp() {
-    
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
+void RobotBase::do_recycle(const std::string& key) {
+    auto bullet_world = bullet_world_.lock();
+    assert(bullet_world);
+    recycle_ = true;
+    bullet_world->recycle_robot_map_[key].push_back(shared_from_this());
+    robot_data_.attach_to_id_ = -2;
+    // Remove Label
+    bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
+    //bullet_world->bullet_handle_to_robot_map_[key] = nullptr;
 
-        // Mark as Recycle
-        recycle(true);
+}
 
-        // Move to Bottom
-        btTransform transform;
-        transform.setIdentity();
-        transform.setOrigin(btVector3(0, -10, 0));
-
-        // Set Velocity to 0
-        bullet_world->SetTransformation(shared_from_this(), transform);
-        bullet_world->SetVelocity(shared_from_this(), btVector3(0,0,0));
-
-        // Change Root to Static
-        float mass;
-        robot_data_.root_part_->GetMass(mass);
-        robot_data_.root_part_->ChangeMass(0.0f);
-        robot_data_.root_part_->SetMassOriginal(mass);
-        robot_data_.root_part_->Sleep();
-
-         // Change Rest to Static
-        for (auto part : robot_data_.other_parts_)
-        {
-            part->GetMass(mass);
-            part->ChangeMass(0.0f);
-            part->SetMassOriginal(mass);
-            part->Sleep();
-        }
-
-        // Push Into Recycles
-        if(bullet_world->recycle_robot_map_.find(robot_data_.urdf_name_) != 
-                bullet_world->recycle_robot_map_.end()) {
-            bullet_world->recycle_robot_map_[robot_data_.urdf_name_].push_back(shared_from_this());
-        }
-        else
-        {
-            std::vector<std::shared_ptr<RobotBase>> robot_list_temp;
-            robot_list_temp.push_back(shared_from_this());
-            bullet_world->recycle_robot_map_[robot_data_.urdf_name_] = robot_list_temp;
-        }
-
-        robot_data_.attach_to_id_ = -2;
-
-        // Remove Label
-        bullet_world->RemoveObjectWithLabel(robot_data_.bullet_handle_);
-
-        //bullet_world->bullet_handle_to_robot_map_[robot_data_.bullet_handle_] = nullptr;
-    }
+void RobotBase::recycle() {
+    // hide
+    hide(true);
+    // recycle
+    do_recycle(robot_data_.urdf_name_);
 }
 
 void RobotBase::Sleep()
@@ -2157,6 +1782,44 @@ void RobotBase::attach_camera(const glm::vec3& offset,
     auto base_position = pose.getOrigin();
     loc = glm::vec3(base_position[0], base_position[1], base_position[2]) 
           + camera_aim;
+}
+
+void RobotBase::hide(const bool hide) {
+    if (hide == is_hiding()) { return; }
+    hide_ = hide;
+    if (hide_) {
+        btTransform transform = robot_data_.root_part_->object_position_;
+        transform.setOrigin(btVector3(0, -10, 0));
+        // Set Velocity to 0
+        auto bullet_world = bullet_world_.lock();
+        assert(bullet_world);
+        bullet_world->SetTransformation(shared_from_this(), transform);
+        bullet_world->SetVelocity(shared_from_this(), btVector3(0,0,0));
+        // Change Root to Static
+        float mass;
+        robot_data_.root_part_->SetStatic();
+        robot_data_.root_part_->Sleep();
+         // Change Rest to Static
+        for (auto part : robot_data_.other_parts_) {
+            part->SetStatic();
+            part->Sleep();
+        }
+    } else {
+        float mass;
+        robot_data_.root_part_->RecoverFromStatic();
+        robot_data_.root_part_->Wake();
+
+        for (auto joint : robot_data_.joints_list_) {
+            if (joint) {
+                joint->ResetJointState(0.0f, 0.005f);
+            }
+        }
+
+        for (auto part : robot_data_.other_parts_) {
+            part->RecoverFromStatic();
+        }
+
+    }
 }
 
 World::World() : robot_list_(0),
@@ -2381,7 +2044,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
 
         robot->UpdatePickable(pick);
 
-        robot->recycle(false);
+        robot->reuse();
 
         AddObjectWithLabel(tag, robot->robot_data_.bullet_handle_);
 
@@ -2395,8 +2058,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
             filename, position, rotation);
 
         if(robot) {
-            robot->robot_data_.root_part_->ChangeMass(
-                    robot->robot_data_.root_part_->GetMassOriginal());
+            robot->robot_data_.root_part_->RecoverFromStatic();
             robot->robot_data_.root_part_->Wake();
 
             for (auto joint : robot->robot_data_.joints_list_) {
@@ -2406,19 +2068,19 @@ std::weak_ptr<RobotBase> World::LoadRobot(
             }
 
             for (auto part : robot->robot_data_.other_parts_) {
-                part->ChangeMass(part->GetMassOriginal());
+                part->RecoverFromStatic();
             }
         } else {
             robot = std::make_shared<Robot>(shared_from_this());
             robot->LoadURDFFile(filename, position, rotation, scale[0],
                 tag, fixed_base, concave);
-            robot->recycle(false);
+            robot->reuse();
             robot->Wake();
         }
 
         robot->UpdatePickable(pick);
 
-        robot->recycle(false);
+        robot->reuse();
 
         AddObjectWithLabel(tag, robot->robot_data_.bullet_handle_);
 
@@ -2475,12 +2137,12 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                 if (strcmp(type, "convert")== 0) {
                     robot = std::make_shared<RobotWithConvertion>(shared_from_this());
                     robot->LoadConvertedObject(filename, position, rotation, scale[0], tag, concave);
-                    robot->recycle(false);
+                    robot->reuse();
                     robot->Wake();
                 } else if (strcmp(type, "animate")== 0) {
                     robot = std::make_shared<RobotWithAnimation>(shared_from_this());
                     robot->LoadAnimatedObject(filename, position, rotation, scale[0], tag, concave);
-                    robot->recycle(false);
+                    robot->reuse();
                     robot->Wake();
                 } else {
                     fprintf(stderr, "Incorrect Action File [%s]\n", type);
@@ -2488,8 +2150,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                 }
             }
         } else {
-            robot->robot_data_.root_part_->ChangeMass(
-                    robot->robot_data_.root_part_->GetMassOriginal());
+            robot->robot_data_.root_part_->RecoverFromStatic();
             robot->robot_data_.root_part_->Wake();
 
             for (auto joint : robot->robot_data_.joints_list_) {
@@ -2499,7 +2160,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
             }
 
             for (auto part : robot->robot_data_.other_parts_) {
-                part->ChangeMass(part->GetMassOriginal());
+                part->RecoverFromStatic();
                 part->Wake();
             }
 
@@ -2520,7 +2181,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
             BulletStep();
         }
 
-        robot->recycle(false);
+        robot->reuse();
 
         robot->UpdatePickable(pick);
 
@@ -2580,8 +2241,8 @@ void World::CleanEverything2()
 
     for (auto robot : robot_list_)
     {
-        if(!robot->recycle())
-            robot->RemoveRobotTemp();
+        if(!robot->is_recycled())
+            robot->recycle();
     }
 
     for(auto &recycle_robot : recycle_robot_map_)
@@ -2815,7 +2476,7 @@ void World::GetRootClosestPoints(
     {
         auto part  = part_in.lock();
 
-        int bodyUniqueIdA = robot->robot_data_.root_part_->bullet_handle_;
+        int bodyUniqueIdA = robot->robot_data_.root_part_->id();
         int linkIndexA = part->bullet_link_id_;
 
         struct b3ContactInformation contact_point_data;
@@ -2875,7 +2536,7 @@ void World::GetRootContactPoints(
     {
         auto part  = part_in.lock();
 
-        int bodyUniqueIdA = robot->robot_data_.root_part_->bullet_handle_;
+        int bodyUniqueIdA = robot->robot_data_.root_part_->id();
         int linkIndexA = part->bullet_link_id_;
 
         struct b3ContactInformation contact_point_data;
@@ -3183,7 +2844,7 @@ std::shared_ptr<RobotBase> World::LoadModelFromCache(
 
         robot = recycle_robot_map_[filename].back();
         recycle_robot_map_[filename].pop_back();
-        robot->recycle(false);
+        robot->reuse();
 
         btTransform transform;
         transform.setIdentity();

@@ -1,9 +1,5 @@
 find_package(OpenGL REQUIRED)
 
-include(assimp)
-include(glm)
-include(glfw)
-
 add_library(render_engine OBJECT 
     render_utils.cpp
     csm.cpp
@@ -18,7 +14,7 @@ add_library(render_engine OBJECT
     #render2d.cpp
     texture3d.cpp)
 
-add_dependencies(render_engine assimp glm glfw) 
+add_dependencies(render_engine assimp glm glfw utils) 
 
 
 find_library(EGL_LIBRARY EGL PATHS

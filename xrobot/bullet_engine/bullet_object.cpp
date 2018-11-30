@@ -1,0 +1,168 @@
+#include "bullet_object.h"
+
+namespace xrobot {
+namespace bullet_engine {
+
+BulletObject::BulletObject() : bullet_link_id_(-1) {
+    object_position_.setIdentity();
+    object_link_position_.setIdentity();
+    object_local_inertial_frame_.setIdentity();
+    object_speed_ = btVector3(0,0,0);
+    object_angular_speed_ = btVector3(0,0,0);
+    attach_transform_.setIdentity();
+}
+
+void BulletObject::sleep(const ClientHandle client, const int body_uid) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetActivationState(
+            cmd_handle, body_uid, eActivationStateSleep);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::enable_sleeping(
+        const ClientHandle client, const int body_uid) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetActivationState(
+            cmd_handle, body_uid, eActivationStateEnableSleeping);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::disable_sleeping(
+        const ClientHandle client, const int body_uid) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetActivationState(
+            cmd_handle, body_uid, eActivationStateDisableSleeping);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::wake(const ClientHandle client, const int body_uid) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetActivationState(
+                cmd_handle, body_uid, eActivationStateWakeUp);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::get_mass(
+        const ClientHandle client, const int body_uid, float& mass) {
+    CommandHandle cmd_handle = b3GetDynamicsInfoCommandInit(
+            client, body_uid, bullet_link_id_);
+    StatusHandle status_handle =
+            b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+    int status_type = b3GetStatusType(status_handle);
+    if (status_type != CMD_GET_DYNAMICS_INFO_COMPLETED) {
+        //printf("Get Mass Failed! Or Could Be Static Object\n");
+        mass = 0.0f;
+    } else {
+        struct b3DynamicsInfo dynamics_info;
+        b3GetDynamicsInfo(status_handle, &dynamics_info);
+        mass = static_cast<float>(dynamics_info.m_mass);
+    }
+}
+
+void BulletObject::change_mass(
+        const ClientHandle client, const int body_uid, const float mass) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetMass(
+            cmd_handle, body_uid, bullet_link_id_, mass);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::get_AABB(const ClientHandle client,
+                            const int body_uid,
+                            glm::vec3& aabb_min,
+                            glm::vec3& aabb_max) {
+    CommandHandle cmd_handle =
+            b3RequestCollisionInfoCommandInit(client, body_uid);
+    StatusHandle status_handle =
+            b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+
+    int status_type = b3GetStatusType(status_handle);
+    if (status_type != CMD_REQUEST_COLLISION_INFO_COMPLETED) {
+        printf("Get AABB Failed!\n");
+        return;
+    }
+
+    double aabb_min_temp[3];
+    double aabb_max_temp[3];
+    b3GetStatusAABB(
+            status_handle, bullet_link_id_, aabb_min_temp, aabb_max_temp);
+    aabb_min = glm::vec3(aabb_min_temp[0], aabb_min_temp[1], aabb_min_temp[2]);
+    aabb_max = glm::vec3(aabb_max_temp[0], aabb_max_temp[1], aabb_max_temp[2]);
+}
+
+void BulletObject::change_linear_damping(
+        const ClientHandle client, const int body_uid, const float damping) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetLinearDamping(cmd_handle, body_uid, damping);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::change_angular_damping(
+        const ClientHandle client, const int body_uid, const float damping) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetAngularDamping(cmd_handle, body_uid, damping);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::change_lateral_friction(
+        const ClientHandle client, const int body_uid, const float friction) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetLateralFriction(
+            cmd_handle, body_uid, bullet_link_id_, friction);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::change_spinning_friction(
+        const ClientHandle client, const int body_uid, const float friction) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetSpinningFriction(
+            cmd_handle, body_uid, bullet_link_id_, friction);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::change_rolling_friction(
+        const ClientHandle client, const int body_uid, float friction) {
+    CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
+    b3ChangeDynamicsInfoSetRollingFriction(
+            cmd_handle, body_uid, bullet_link_id_, friction);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletObject::apply_force(const ClientHandle client,
+                               const int body_uid,
+                               const float x,
+                               const float y,
+                               const float z,
+                               const int flags) {
+    printf("BulletObject::apply_force not implemented!\n");
+    assert(false);
+}
+
+void BulletObject::apply_torque(const ClientHandle client,
+                                const int body_uid,
+                                const float x,
+                                const float y,
+                                const float z,
+                                const int flags) {
+    CommandHandle cmd_handle = 
+            b3ApplyExternalForceCommandInit(client);
+
+    double torque_temp[3];
+    torque_temp[0] = x;
+    torque_temp[1] = y;
+    torque_temp[2] = z;
+
+    b3ApplyExternalTorque(
+            cmd_handle, body_uid, bullet_link_id_, torque_temp, flags);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+glm::mat4 BulletObject::translation_matrix() const {
+    return TransformToMat4(object_position_);
+}
+
+glm::mat4 BulletObject::local_inertial_frame() const {
+    return TransformToMat4(object_local_inertial_frame_);
+}
+
+}} // namespace xrobot::bullet_engine
