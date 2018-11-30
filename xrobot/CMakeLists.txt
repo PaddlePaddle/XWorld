@@ -34,7 +34,11 @@ if(NOT GFLAGS_LIBRARIES)
   find_package(Gflags REQUIRED)
 endif()
 
+include(assimp)
+include(glm)
+include(glfw)
 include(bullet)
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${PYTHON_INCLUDE_DIRS})
 
@@ -51,15 +55,20 @@ set(DEP_INCLUDES
     ${GFLAGS_INCLUDE_DIRS}
     ${GLOG_INCLUDE_DIRS})
 
+add_library(utils OBJECT
+    vendor/json.cpp
+    utils.cpp
+)
+
 add_subdirectory(render_engine)
 
+add_subdirectory(bullet_engine)
+
 set(XROBOT_SOURCES
-    vendor/json.cpp
     map_grid.cpp
     map_suncg.cpp
     state_machine.cpp
     room_generator.cpp
-    utils.cpp
     lidar.cpp
     navigation.cpp
     inventory.cpp
@@ -79,15 +88,19 @@ if(CPP_EXAMPLES_ENABLE)
         ${XROBOT_CPP_EXAMPLE_SOURCES}
         ${XROBOT_SOURCES}
         $<TARGET_OBJECTS:render_engine>
+        $<TARGET_OBJECTS:bullet_engine>
+        $<TARGET_OBJECTS:utils>
     )
 else()
     add_library(xrobot SHARED
         ${XROBOT_SOURCES}
         $<TARGET_OBJECTS:render_engine>
+        $<TARGET_OBJECTS:bullet_engine>
+        $<TARGET_OBJECTS:utils>
     )
 endif()
 
-add_dependencies(xrobot render_engine bullet)
+add_dependencies(xrobot utils render_engine bullet bullet_engine)
 
 target_link_libraries(xrobot PUBLIC ${DEP_LIBS})
 

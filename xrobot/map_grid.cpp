@@ -85,7 +85,7 @@ void MapGrid::CreateAndLoadObjectFILE(const std::string& file_path,
 	
 		object_height_list_.push_back(vec2(min_aabb.y, max_aabb.y));
 
-		obj_sptr->RemoveRobotTemp();
+		obj_sptr->recycle();
 	}
 }
 

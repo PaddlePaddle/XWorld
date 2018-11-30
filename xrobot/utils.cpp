@@ -1,12 +1,10 @@
 #include "utils.h"
 
-void startBenchmark()
-{
+void startBenchmark() {
     benchmark_timer = std::clock();
 }
 
-void endBenchmark()
-{
+void endBenchmark() {
     double duration = (std::clock() - benchmark_timer) / (double) CLOCKS_PER_SEC;
     std::cout << "Duration: " << duration << std::endl;
 }
@@ -73,7 +71,97 @@ void cuda_visible_devices(std::vector<int>& device_ids) {
     }
 }
 
-void padTo(std::string &str, const size_t num, const char paddingChar)
-{
+void padTo(std::string &str, const size_t num, const char paddingChar) {
     if(num > str.size()) str.insert(0, num - str.size(), paddingChar);
 }
+
+int GetJsonArrayEntry(Json::Value *&result,
+                      Json::Value *array,
+                      unsigned int k,
+                      int expected_type) {
+    // Check array type
+    if (array->type() != Json::arrayValue) {
+        fprintf(stderr, "JSON: not an array\n");
+        return 0;
+    }
+  
+    // Check array size
+    if (array->size() <= k) {
+        fprintf(stderr, "JSON array has no member %d\n", k);
+        return 0;
+    }
+  
+    // Get entry
+    result = &((*array)[k]);
+    if (result->type() == Json::nullValue) {
+        fprintf(stderr, "JSON array has null member %d\n", k);
+        return 0;
+    }
+  
+    // Check entry type
+    if (expected_type > 0) {
+        if (result->type() != expected_type) {
+            fprintf(stderr,
+                    "JSON array entry %d has unexpected type %d"
+                    " (rather than %d)\n",
+                    k,
+                    result->type(),
+                    expected_type);
+            return 0;
+        }
+    }
+    
+    // Return success
+    return 1;
+}
+
+int GetJsonObjectMember(Json::Value *&result,
+                        Json::Value *object,
+                        const char *str,
+                        int expected_type) {
+    // Check object type
+    if (object->type() != Json::objectValue) {
+        fprintf(stderr, "JSON: not an object\n");
+        return 0;
+    }
+  
+    // Check object member
+    if (!object->isMember(str)) {
+        fprintf(stderr, "JSON object has no member named %s\n", str);
+        return 0;
+    }
+  
+    // Get object member
+    result = &((*object)[str]);
+    if (result->type() == Json::nullValue) {
+        fprintf(stderr, "JSON object has null member named %s\n", str);
+        return 0;
+    }
+  
+    // Check member type
+    if (expected_type > 0) {
+        if (result->type() != expected_type) {
+            fprintf(stderr,
+                    "JSON object member %s has unexpected type %d" 
+                    " (rather than %d)\n",
+                    str,
+                    result->type(),
+                    expected_type);
+            return 0;
+        }
+    }
+    
+    // Check for empty strings
+    if (result->type() == Json::stringValue) {
+        if (result->asString().length() == 0) {
+            fprintf(stderr,
+                    "JSON object has zero length string named %s\n",
+                    str);
+            return 0;
+        }
+    }
+  
+    // Return success
+    return 1;
+}
+

@@ -13,292 +13,111 @@
 #include <chrono>
 #include <thread>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/glm.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtx/vector_angle.hpp"
-#include "glm/gtx/quaternion.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "bullet/LinearMath/btTransform.h"
-#include "bullet/PhysicsClientC_API.h"
-
+#include "bullet_engine/common.h"
+#include "bullet_engine/bullet_joint.h"
+#include "bullet_engine/bullet_object.h"
 #include "render_engine/model.h"
 #include "render_engine/render_world.h"
 
 #include "inventory.h"
-#include "vendor/json.h"
 
 namespace xrobot {
 
-class Inventory;
-
-constexpr int kCacheSize = 32;
-const glm::vec3 kVec3Zero = glm::vec3(0); 
-const glm::vec3 kVec3Up = glm::vec3(0,1,0);
-const glm::vec3 kVec3Front = glm::vec3(1,0,0);
-const glm::vec3 kVec3Right = glm::vec3(0,0,1);
-
-typedef b3SharedMemoryCommandHandle CommandHandle;
-typedef b3SharedMemoryStatusHandle StatusHandle;
-
-enum SleepState
-{
-    kSleep = eActivationStateSleep,
-    kWakeUp = eActivationStateWakeUp,
-    kDisableSleeping = eActivationStateDisableSleeping,
-    kEnableSleeping = eActivationStateEnableSleeping,
-};
-
-enum ComputeState
-{
-    kComputeVelocity = ACTUAL_STATE_COMPUTE_LINKVELOCITY
-};
-
-enum ControlModes
-{
-    kTorque = CONTROL_MODE_TORQUE,
-    kVelocity = CONTROL_MODE_VELOCITY,
-    kPositionVelocity = CONTROL_MODE_POSITION_VELOCITY_PD
-};
-
-enum ConstaintTypes
-{
-    kFixed = eFixedType,
-    kRevolute = eRevoluteType,
-    kPrismatic = ePrismaticType
-};
-
-enum JointTypes 
-{
-    kRotationMotor,
-    kLinearMotor
-};
-
-enum LoadingFlags
-{
-    kOBJConcave = FORCE_CONCAVE,
-    kURDFSelfCollision = URDF_USE_SELF_COLLISION,
-    kURDFSelfCollisionExParents = URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS,
-    kURDFEnableSleeping = URDF_ENABLE_SLEEPING
-};
-
-inline glm::mat4 TransformToMat4(const btTransform& transform) 
-{
-    btScalar mat[16];
-    transform.getOpenGLMatrix(mat);
-    return glm::make_mat4(mat);
-}
-
-inline btTransform TransformFromDoubles(const double* position, const double* orientation) {
-    btVector3 position_temp;
-    btQuaternion orientation_temp;
-    {
-        position_temp[0] = position[0];
-        position_temp[1] = position[1];
-        position_temp[2] = position[2];
-        orientation_temp[0] = orientation[0];
-        orientation_temp[1] = orientation[1];
-        orientation_temp[2] = orientation[2];
-        orientation_temp[3] = orientation[3];
-    }
-    return btTransform(orientation_temp, position_temp);
-}
-
-// http://www.opengl-tutorial.org
-// Rotation
-inline glm::quat RotationBetweenVectors(const glm::vec3 start, const glm::vec3 dest)
-{
-    glm::vec3 start_norm = glm::normalize(start);
-    glm::vec3 dest_norm = glm::normalize(dest);
-
-    float cosTheta = glm::dot(start_norm, dest_norm);
-    glm::vec3 rotationAxis;
-
-    if (cosTheta < -1 + 0.0001f){
-        rotationAxis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), start_norm);
-        if (glm::length2(rotationAxis) < 0.001f)
-            rotationAxis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), start_norm);
-
-        rotationAxis = glm::normalize(rotationAxis);
-        return glm::angleAxis(glm::radians(180.0f), rotationAxis);
-    }
-
-    // Implementation from Stan Melax's Game Programming Gems 1 article
-    rotationAxis = glm::cross(start_norm, dest_norm);
-
-    float s = sqrt( (1+cosTheta)*2 );
-    float invs = 1 / s;
-
-    return glm::quat(
-        s * 0.5f, 
-        rotationAxis.x * invs,
-        rotationAxis.y * invs,
-        rotationAxis.z * invs
-    );
-}
-
-inline int GetJsonArrayEntry(Json::Value *&result,
-        Json::Value *array, unsigned int k, int expected_type = -1)
-{
-      // Check array type
-  if (array->type() != Json::arrayValue) {
-    fprintf(stderr, "JSON: not an array\n");
-    return 0;
-  }
-
-  // Check array size
-  if (array->size() <= k) {
-    // fprintf(stderr, "JSON array has no member %d\n", k);
-    return 0;
-  }
-
-  // Get entry
-  result = &((*array)[k]);
-  if (result->type() == Json::nullValue) {
-    // fprintf(stderr, "JSON array has null member %d\n", k);
-    return 0;
-  }
-
-  // Check entry type
-  if (expected_type > 0) {
-    if (result->type() != expected_type) {
-      // fprintf(stderr, "JSON array entry %d has unexpected type %d (rather than %d)\n", k, result->type(), expected_type);
-      return 0;
-    }
-  }
-  
-  // Return success
-  return 1;
-}
-
-inline int GetJsonObjectMember(Json::Value *&result, Json::Value *object,
-        const char *str, int expected_type = 0)
-{
-    // Check object type
-  if (object->type() != Json::objectValue) {
-    // fprintf(stderr, "JSON: not an object\n");
-    return 0;
-  }
-
-  // Check object member
-  if (!object->isMember(str)) {
-    // fprintf(stderr, "JSON object has no member named %s\n", str);
-    return 0;
-  }
-
-  // Get object member
-  result = &((*object)[str]);
-  if (result->type() == Json::nullValue) {
-    // fprintf(stderr, "JSON object has null member named %s\n", str);
-    return 0;
-  }
-
-  // Check member type
-  if (expected_type > 0) {
-    if (result->type() != expected_type) {
-      // fprintf(stderr, "JSON object member %s has unexpected type %d (rather than %d)\n", str, result->type(), expected_type);
-      return 0;
-    }
-  }
-  
-  // Check for empty strings
-  if (result->type() == Json::stringValue) {
-    if (result->asString().length() == 0) {
-      // fprintf(stderr, "JSON object has zero length string named %s\n", str);
-      return 0;
-    }
-  }
-
-  // Return success
-  return 1;
-}
-
-class RobotBase;
-class World;
-
-class Joint {
+class Joint : public bullet_engine::BulletJoint {
 public:
     Joint();
+    
     ~Joint();
 
     void EnableJointSensor(const bool enable);
-    void GetJointState(glm::vec3& force, glm::vec3& torque);
-    void ResetJointState(const float pos, const float vel);
-    void SetJointMotorControlTorque(const float torque);
-    void SetJointMotorControlVelocity(const float speed,
-        const float k_d, const float max_force);
-    void SetJointMotorControlPosition(const float target,
-        const float k_p, const float k_d, const float max_force);
+    
+    void GetJointMotorState(glm::vec3& force, glm::vec3& torque);
 
+    void ResetJointState(const float pos, const float vel);
+
+    void SetJointMotorControlTorque(const float torque);
+
+    void SetJointMotorControlVelocity(
+            const float speed, const float k_d, const float max_force);
+
+    void SetJointMotorControlPosition(
+            const float target,
+            const float k_p,
+            const float k_d,
+            const float max_force);
+
+    std::weak_ptr<World> bullet_world_;    
     std::weak_ptr<RobotBase> bullet_robot_;
-    std::weak_ptr<World> bullet_world_;
-    std::string joint_name_;
-    int joint_type_;
-    int bullet_joint_id_;
-    int bullet_q_index_;
-    int bullet_u_index_;
-    float joint_current_position_;
-    float joint_current_speed_;
-    float joint_limit_1_;
-    float joint_limit_2_;
-    float joint_max_force_;
-    float joint_max_velocity_;
-    bool joint_has_limits_;
 };
 
-class Object : public render_engine::RenderPart {
+class Object : public render_engine::RenderPart,
+               public bullet_engine::BulletObject {
 public:
     Object();
+
     ~Object() {};
 
     void Sleep();
-    void Wake();
-    void EnableSleeping();
-    void DisableSleeping();
-    void ChangeMass(const float mass);
-    void ChangeLinearDamping(const float damping);
-    void ChangeAngularDamping(const float damping);
-    void ChangeLateralFriction(const float friction);
-    void ChangeSpinningFriction(const float friction);
-    void ChangeRollingFriction(const float friction);
-    void ApplyForce(const float x, const float y, const float z,
-                    const int flags = EF_LINK_FRAME);
-    void ApplyTorque(const float x, const float y, const float z, 
-                     const int flags = EF_LINK_FRAME);
-    void GetMass(float& mass);
-    float GetMassOriginal();
-    void SetMassOriginal(const float mass);
 
+    void EnableSleeping();
+    
+    void DisableSleeping();
+
+    void Wake();
+
+    void GetMass(float& mass);
+
+    void SetStatic();
+    
+    void RecoverFromStatic();
+
+    void ChangeLinearDamping(const float damping);
+
+    void ChangeAngularDamping(const float damping);
+
+    void ChangeLateralFriction(const float friction);
+
+    void ChangeSpinningFriction(const float friction);
+
+    void ChangeRollingFriction(const float friction);
+
+    void ApplyForce(const float x,
+                    const float y,
+                    const float z,
+                    const int flags = EF_LINK_FRAME);
+
+    void ApplyTorque(const float x,
+                     const float y,
+                     const float z, 
+                     const int flags = EF_LINK_FRAME);
 public:
     std::weak_ptr<World> bullet_world_;
+
+    int body_uid_; // id of Robot this Object belongs to
+
     std::string object_name_;
-    
-    int bullet_handle_;
-    int bullet_link_id_;
 
-    btTransform object_position_;
-    btTransform object_link_position_;
-    btTransform object_local_inertial_frame_;
-    btVector3   object_speed_;
-    btVector3   object_angular_speed_;
-
-    float object_mass_original_;
-
-    // Attach
-    btTransform attach_transform_;
     std::weak_ptr<RobotBase> attach_object_;
+
+private:
+    float object_mass_original_;
 
 // xrobot::render_engine::RenderPart
 public:
-    int id() const override { return bullet_handle_; }
+    int id() const override { return body_uid_; }
+
+    void set_id(int id) override { body_uid_ = id; }
+
     void GetAABB(glm::vec3& aabb_min, glm::vec3& aabb_max) override;
+
     glm::mat4 translation_matrix() const override;
+
     glm::mat4 local_inertial_frame() const override;
 };
 
-class RobotData {
-public:
+struct RobotData {
 	RobotData();
+
 	RobotData(btVector3 scale, bool fixed, float mass,
 			std::string label, std::string urdf_name,
 			std::string path, int bullet_handle,
@@ -407,7 +226,12 @@ public:
 
     void Sleep();
 
-    virtual void RemoveRobotTemp();
+    virtual void recycle() override;
+
+    void reuse() override {
+        recycle_ = false;
+        hide_ = false;
+    }
 
     void RemoveRobotFromBullet();
 
@@ -445,11 +269,15 @@ public:
             const glm::vec3 from, const glm::vec3 to);
     virtual void AttachObject(std::weak_ptr<RobotBase> object, const int id = -1);
     virtual void DetachObject();
-    virtual const RenderPart* render_root_ptr() const override;
-    virtual RenderPart* render_root_ptr() override;
-    virtual const RenderPart* render_part_ptr(const size_t i) const override;
-    virtual RenderPart* render_part_ptr(const size_t i) override;
 
+    // RenderBody
+    virtual const RenderPart* render_root_ptr() const override;
+
+    virtual RenderPart* render_root_ptr() override;
+
+    virtual const RenderPart* render_part_ptr(const size_t i) const override;
+
+    virtual RenderPart* render_part_ptr(const size_t i) override;
 
     size_t size() const override { return robot_data_.other_parts_.size(); }
 
@@ -460,8 +288,15 @@ public:
                        glm::vec3& right,
                        glm::vec3& up) override;
 
+    void hide(const bool hide) override;
+
+    int bullet_handle() { return robot_data_.bullet_handle_; }
+
     std::weak_ptr<World> bullet_world_;
     RobotData robot_data_;
+
+protected:
+    void do_recycle(const std::string& key);
 };
 
 class Robot : public xrobot::RobotBase {
@@ -495,7 +330,7 @@ public:
     bool TakeAction(const int act_id);
     void SetCycle(const bool cycle) { cycle_ = cycle; }
     void SetStatus(const int status) { status_ = status; }
-    void RemoveRobotTemp();
+    void recycle() override;
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
 
@@ -534,7 +369,7 @@ public:
     bool GetLock() const { return lock_; }
     int GetJoint() const { return joint_; }
     float GetPosition(const int id) { return positions_[id]; }
-    void RemoveRobotTemp();
+    void recycle() override;
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
 

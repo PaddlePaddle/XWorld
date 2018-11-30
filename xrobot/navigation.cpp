@@ -860,12 +860,12 @@ void Navigation::Voxelization()
     for (size_t i = 0; i < world_->size(); ++i) {
         xrobot::render_engine::RenderBody* body = world_->render_body_ptr(i);
 
-        if(body->move() || body->hide())
+        if(body->move() || body->is_hiding())
             continue;
 
         // Root
         xrobot::render_engine::RenderPart* root = body->render_root_ptr();
-        if (root && !body->recycle()) {
+        if (root && !body->is_recycled()) {
             do_drawing(root, true);
             // Parts
             for (size_t j = 0; j < body->size(); ++j) {
