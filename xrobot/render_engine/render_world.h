@@ -25,7 +25,7 @@ public:
     
     virtual void set_id(int id) = 0;
 
-    std::shared_ptr<ModelData> model_data(const size_t i) const {
+    ModelDataSPtr model_data(const size_t i) const {
         assert(i < model_list_.size() && model_list_[i]);
         return model_list_[i];
     }
@@ -42,9 +42,11 @@ public:
     virtual glm::mat4 local_inertial_frame() const = 0;
 
 public:
-    std::vector<std::shared_ptr<ModelData>> model_list_;
+    std::vector<ModelDataSPtr> model_list_;
     std::vector<std::shared_ptr<OriginTransformation>> transform_list_;
 };
+
+typedef std::shared_ptr<RenderPart> RenderPartSPtr;
 
 class RenderBody {
 public:

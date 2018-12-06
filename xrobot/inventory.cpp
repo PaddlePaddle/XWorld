@@ -25,8 +25,8 @@ bool Inventory::PutObject(std::weak_ptr<RobotBase> put_object) {
     if (object) {
         auto bullet_world = object->bullet_world_.lock();
 
-        if(object->robot_data_.label_ == "" ||
-           object->robot_data_.label_ == "unlabeled") {
+        if(object->body_data_.label == "" ||
+           object->body_data_.label == "unlabeled") {
             printf("Please Assigned A Label For This Object!\n");
             return false;
         }
@@ -49,7 +49,7 @@ std::vector<std::string> Inventory::GetObjectTagInInventory() {
 
     for (int i = 0; i < inventory_.size(); ++i) {
         if(auto object = inventory_[i].lock()) {
-            ret.push_back(object->robot_data_.label_);
+            ret.push_back(object->body_data_.label);
         }
     }
 
@@ -85,7 +85,7 @@ bool Inventory::GetObject(std::weak_ptr<RobotBase> get_object, const std::string
 
     for (int i = 0; i < inventory_.size(); ++i) {
         if(auto object = inventory_[i].lock()) {
-            if(object->robot_data_.label_ == label) {
+            if(object->body_data_.label == label) {
                 get_object = object;
                 inventory_.erase(inventory_.begin() + i);
                 rest_++;
@@ -107,7 +107,7 @@ bool Inventory::DiscardObject(const std::string& object_label) {
 
     for (int i = 0; i < inventory_.size(); ++i) {
         if(auto object = inventory_[i].lock()) {
-            if(object->robot_data_.label_ == object_label) {
+            if(object->body_data_.label == object_label) {
                 object.reset();
                 inventory_.erase(inventory_.begin() + i);
                 rest_++;
@@ -136,7 +136,7 @@ void Inventory::PrintInventory() {
     printf("---------------------------------------\n");
     for (int i = 0; i < inventory_.size(); ++i) {
         if(auto object = inventory_[i].lock()) {
-            printf("%s\n", object->robot_data_.label_.c_str());
+            printf("%s\n", object->body_data_.label.c_str());
         }
     }
     printf("---------------------------------------\n");

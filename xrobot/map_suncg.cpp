@@ -274,7 +274,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						);
 
 						if(auto object_sptr = object.lock())
-							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Floor";
+							map_bullet_label_[object_sptr->id()] = "Floor";
 					}
 				}
 				else if(!strcmp(node_type, "Room"))
@@ -295,7 +295,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						);
 
 						if(auto object_sptr = object.lock())
-							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Floor";
+							map_bullet_label_[object_sptr->id()] = "Floor";
 					}
 
 
@@ -316,7 +316,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						);
 
 						if(auto object_sptr = object.lock())
-							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Wall";
+							map_bullet_label_[object_sptr->id()] = "Wall";
 					}
 
 					sprintf(obj_name, "%s/room/%s/%sc.obj", input_data_directory, scene_id, modelId); 
@@ -341,7 +341,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						);
 
 						if(auto object_sptr = object.lock())
-							map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = "Ceiling";
+							map_bullet_label_[object_sptr->id()] = "Ceiling";
 					}
 				}
 				else if(!strcmp(node_type, "Object"))
@@ -415,9 +415,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 
 					if(auto object_sptr = object.lock()) {
 						// object_sptr->DisableSleeping();
-						object_sptr->robot_data_.root_part_->ChangeLinearDamping(0.9f);
-						object_sptr->robot_data_.root_part_->ChangeAngularDamping(0.9f);
-						map_bullet_label_[object_sptr->robot_data_.bullet_handle_] = all_labels_[modelId];
+						object_sptr->root_part_->ChangeLinearDamping(0.9f);
+						object_sptr->root_part_->ChangeAngularDamping(0.9f);
+						map_bullet_label_[object_sptr->id()] = all_labels_[modelId];
 					}
 					//printf("    label: %s\n", all_labels_[modelId].c_str());
 				}

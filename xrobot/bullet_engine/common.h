@@ -19,6 +19,8 @@ class Inventory;
 class RobotBase;
 class World;
 
+typedef btScalar xScalar;
+
 namespace bullet_engine {
 
 typedef std::shared_ptr<RobotBase> RobotBaseSPtr;
@@ -73,13 +75,26 @@ enum LoadingFlags {
 
 glm::mat4 TransformToMat4(const btTransform& transform);
 
-btTransform TransformFromDoubles(
-        const double* position, const double* orientation);
+template <typename T>
+glm::mat4 TransformToMat4(const T* p, T* r);
+
+template <typename T>
+btTransform TransformFromReals(const T* p, const T* r);
+
+int get_num_joints(const ClientHandle client, const int id);
+
+template <typename T>
+void set_pose(
+        const ClientHandle client,
+        const int id,
+        const T* pos,
+        const T* quat = nullptr);
+
+void rotate(const ClientHandle client, const int id, const glm::vec3 angle);
 
 // http://www.opengl-tutorial.org
 // Rotation
-glm::quat RotationBetweenVectors(
-        const glm::vec3 start, const glm::vec3 dest);
+glm::quat RotationBetweenVectors(const glm::vec3 start, const glm::vec3 dest);
 
 }} // namespace xrobot::bullet_engine
 

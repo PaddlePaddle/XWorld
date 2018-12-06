@@ -78,7 +78,7 @@ void MapGrid::CreateAndLoadObjectFILE(const std::string& file_path,
 
 	glm::vec3 min_aabb, max_aabb;
 	if(auto obj_sptr = obj.lock()) {
-		obj_sptr->robot_data_.root_part_->GetAABB(min_aabb, max_aabb);
+		obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 	
 		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
 		object_bbox_list_.push_back(b);
@@ -128,7 +128,7 @@ void MapGrid::GenerateWall(const vec3 position, const int d) {
 
 	glm::vec3 min_aabb, max_aabb;
 	if(auto obj_sptr = obj.lock()) {
-		obj_sptr->robot_data_.root_part_->GetAABB(min_aabb, max_aabb);
+		obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 	}
 
 	BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
@@ -151,7 +151,7 @@ void MapGrid::GenerateKey(const vec3 position, const int key_id) {
 
 		glm::vec3 min_aabb, max_aabb;
 		if(auto obj_sptr = obj.lock()) {
-			obj_sptr->robot_data_.root_part_->GetAABB(min_aabb, max_aabb);
+			obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 		}
 
 		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
@@ -185,7 +185,7 @@ void MapGrid::GenerateLockedDoor(const vec3 position, const int d, const int doo
 
 		glm::vec3 min_aabb, max_aabb;
 		if(auto obj_sptr = obj.lock()) {
-			obj_sptr->robot_data_.root_part_->GetAABB(min_aabb, max_aabb);
+			obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 		}
 
 		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
@@ -208,7 +208,7 @@ void MapGrid::GenerateUnlockedDoor(const vec3 position, const int d) {
 
 		glm::vec3 min_aabb, max_aabb;
 		if(auto obj_sptr = obj.lock()) {
-			obj_sptr->robot_data_.root_part_->GetAABB(min_aabb, max_aabb);
+			obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 		}
 
 		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));

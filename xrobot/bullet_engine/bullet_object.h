@@ -10,7 +10,7 @@ class BulletObject {
 public:
     BulletObject();
 
-    ~BulletObject() {};
+    virtual ~BulletObject() {};
 
 protected:
     void sleep(const ClientHandle client, const int body_uid);
@@ -21,52 +21,60 @@ protected:
 
     void wake(const ClientHandle client, const int body_uid);
 
-    void get_mass(const ClientHandle client, const int body_uid, float& mass);
+    void get_mass(const ClientHandle client, const int body_uid, xScalar& mass);
 
     void change_mass(
-            const ClientHandle client, const int body_uid, const float mass);
+            const ClientHandle client, const int body_uid, const xScalar mass);
 
-    void get_AABB(const ClientHandle client,
-                  const int body_uid,
-                  glm::vec3& aabb_min,
-                  glm::vec3& aabb_max);
+    void get_AABB(
+            const ClientHandle client,
+            const int body_uid,
+            glm::vec3& aabb_min,
+            glm::vec3& aabb_max);
 
     void change_linear_damping(
-            const ClientHandle client, const int body_uid, const float damping);
+            const ClientHandle client, const int body_uid, const xScalar damping);
 
     void change_angular_damping
-        (const ClientHandle client, const int body_uid, const float damping);
+        (const ClientHandle client, const int body_uid, const xScalar damping);
 
     void change_lateral_friction(
-            const ClientHandle client, const int body_uid, const float friction);
+            const ClientHandle client, const int body_uid, const xScalar friction);
 
     void change_spinning_friction(
-            const ClientHandle client, const int body_uid, const float friction);
+            const ClientHandle client, const int body_uid, const xScalar friction);
 
     void change_rolling_friction(
-            const ClientHandle client, const int body_uid, const float friction);
+            const ClientHandle client, const int body_uid, const xScalar friction);
     
-    void apply_force(const ClientHandle client,
-                     const int body_uid,
-                     const float x,
-                     const float y,
-                     const float z,
-                     const int flags = EF_LINK_FRAME);
+    void apply_force(
+            const ClientHandle client,
+            const int body_uid,
+            const xScalar x,
+            const xScalar y,
+            const xScalar z,
+            const int flags = EF_LINK_FRAME);
 
-    void apply_torque(const ClientHandle client,
-                      const int body_uid,
-                      const float x,
-                      const float y,
-                      const float z, 
-                      const int flags = EF_LINK_FRAME);
+    void apply_torque(
+            const ClientHandle client,
+            const int body_uid,
+            const xScalar x,
+            const xScalar y,
+            const xScalar z, 
+            const int flags = EF_LINK_FRAME);
+
+    void detach() { attach_transform_ = btTransform(); }
 
     glm::mat4 translation_matrix() const;
 
     glm::mat4 local_inertial_frame() const;
 
+    void pose(btVector3& pos, btQuaternion& quat);
+
 public:
     int bullet_link_id_;
 
+    std::string object_name_;
     btTransform object_position_;
     btTransform object_link_position_;
     btTransform object_local_inertial_frame_;
@@ -74,6 +82,8 @@ public:
     btVector3   object_angular_speed_;
     btTransform attach_transform_;
 };
+
+typedef std::shared_ptr<BulletObject> BulletObjectSPtr;
 
 }} // namespace xrobot::bullet_engine
 
