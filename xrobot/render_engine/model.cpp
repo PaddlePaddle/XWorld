@@ -28,21 +28,6 @@ ModelData::~ModelData() {
         glDeleteBuffers(1, &mesh.EBO_);
         glDeleteBuffers(1, &mesh.VBO_);
     }
-
-    if (cylinder_) {
-        delete cylinder_;
-        cylinder_ = nullptr;
-    }
-
-    if (sphere_) {
-        delete sphere_;
-        sphere_ = nullptr;
-    }
-
-    if (box_) {
-        delete box_;
-        box_ = nullptr;
-    }
 }
 
 void ModelData::Draw(const Shader& shader) {
@@ -56,6 +41,49 @@ void ModelData::Reset() {
         LoadModel(directory_);
     } else {
         meshes_.push_back(ProcessPrim());
+    }
+}
+
+void ModelData::Reset(
+        int geometry_type,
+        bool create_new,
+        const glm::vec3& scale,
+        std::shared_ptr<OriginTransformation>& T) {
+
+    primitive_type_ = geometry_type;
+
+    float ex = scale[0], ey = scale[1], ez = scale[2];
+    switch (geometry_type) {
+        case kSphere:
+            T->local_scale = glm::vec3(ex);
+            if (create_new) {
+                sphere_ = std::make_shared<Sphere>(1);
+                Reset(); 
+            }
+            break;
+        case kBox:
+            T->local_scale = glm::vec3(ex, ey, ez);
+            if (create_new) {
+                box_ = std::make_shared<Box>(1, 1, 1);
+                Reset(); 
+            }
+            break;
+        case kCylinder:
+        case kCapsule:
+            T->local_scale = glm::vec3(ey, ey, ex);
+            if (create_new) {
+                cylinder_ = std::make_shared<Cylinder>(1, 1);
+                Reset(); 
+            }
+            break;
+        case kMesh:
+            if (create_new) {
+                Reset();
+            }
+            break;
+        default:
+            printf("Ignoring unsupported URDF geometry!\n");
+            break;
     }
 }
 

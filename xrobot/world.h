@@ -16,6 +16,7 @@
 #include "bullet_engine/common.h"
 #include "bullet_engine/bullet_joint.h"
 #include "bullet_engine/bullet_object.h"
+#include "bullet_engine/bullet_body.h"
 #include "render_engine/model.h"
 #include "render_engine/render_world.h"
 
@@ -33,18 +34,18 @@ public:
     
     void GetJointMotorState(glm::vec3& force, glm::vec3& torque);
 
-    void ResetJointState(const float pos, const float vel);
+    void ResetJointState(const xScalar pos, const xScalar vel);
 
-    void SetJointMotorControlTorque(const float torque);
+    void SetJointMotorControlTorque(const xScalar torque);
 
     void SetJointMotorControlVelocity(
-            const float speed, const float k_d, const float max_force);
+            const xScalar speed, const xScalar k_d, const xScalar max_force);
 
     void SetJointMotorControlPosition(
-            const float target,
-            const float k_p,
-            const float k_d,
-            const float max_force);
+            const xScalar target,
+            const xScalar k_p,
+            const xScalar k_d,
+            const xScalar max_force);
 
     std::weak_ptr<World> bullet_world_;    
     std::weak_ptr<RobotBase> bullet_robot_;
@@ -65,30 +66,30 @@ public:
 
     void Wake();
 
-    void GetMass(float& mass);
+    void GetMass(xScalar& mass);
 
     void SetStatic();
     
     void RecoverFromStatic();
 
-    void ChangeLinearDamping(const float damping);
+    void ChangeLinearDamping(const xScalar damping);
 
-    void ChangeAngularDamping(const float damping);
+    void ChangeAngularDamping(const xScalar damping);
 
-    void ChangeLateralFriction(const float friction);
+    void ChangeLateralFriction(const xScalar friction);
 
-    void ChangeSpinningFriction(const float friction);
+    void ChangeSpinningFriction(const xScalar friction);
 
-    void ChangeRollingFriction(const float friction);
+    void ChangeRollingFriction(const xScalar friction);
 
-    void ApplyForce(const float x,
-                    const float y,
-                    const float z,
+    void ApplyForce(const xScalar x,
+                    const xScalar y,
+                    const xScalar z,
                     const int flags = EF_LINK_FRAME);
 
-    void ApplyTorque(const float x,
-                     const float y,
-                     const float z, 
+    void ApplyTorque(const xScalar x,
+                     const xScalar y,
+                     const xScalar z, 
                      const int flags = EF_LINK_FRAME);
 public:
     std::weak_ptr<World> bullet_world_;
@@ -100,7 +101,7 @@ public:
     std::weak_ptr<RobotBase> attach_object_;
 
 private:
-    float object_mass_original_;
+    xScalar object_mass_original_;
 
 // xrobot::render_engine::RenderPart
 public:
@@ -115,89 +116,32 @@ public:
     glm::mat4 local_inertial_frame() const override;
 };
 
-struct RobotData {
-	RobotData();
-
-	RobotData(btVector3 scale, bool fixed, float mass,
-			std::string label, std::string urdf_name,
-			std::string path, int bullet_handle,
-			std::shared_ptr<Object> root_part,
-			std::vector<std::shared_ptr<Object>> other_parts,
-			std::vector<std::shared_ptr<Joint>> joints_list);
-
-	btVector3 scale_;
-    bool fixed_;
-    bool concave_;
-    float mass_; // Only for .Obj
-    std::string label_;
-    bool pickable_;
-    std::string urdf_name_;
-    std::string path_;
-    int bullet_handle_;
-    int attach_to_id_;
-    std::shared_ptr<Object> root_part_;
-    std::vector<std::shared_ptr<Object>> other_parts_;
-    std::vector<std::shared_ptr<Joint>> joints_list_;
-};
-
 class RobotBase : public render_engine::RenderBody,
+                  public bullet_engine::BulletBody,
                   public std::enable_shared_from_this<RobotBase> {
     using RenderPart = render_engine::RenderPart;
 public:
-
     RobotBase(std::weak_ptr<World> bullet_world);
 
-    void UpdatePickable(const bool pick) { robot_data_.pickable_ = pick; }
-    void UpdateTag(const std::string& tag) { robot_data_.label_ = tag; }
+    virtual ~RobotBase() {}
 
-    virtual ~RobotBase();
+    void UpdatePickable(const bool pick) { body_data_.pickable = pick; }
 
-    virtual bool InteractWith(const std::string& tag);
-    virtual bool TakeAction(const int act_id);
-    virtual std::vector<std::string> GetActions() const;
+    void UpdateTag(const std::string& tag) { body_data_.label = tag; }
 
-    virtual void LoadConvertedObject(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
-        const std::string& label = "",
-        const bool concave = false
-    );
-    virtual void LoadAnimatedObject(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
-        const std::string& label = "",
-        const bool concave = false
-    );
+    virtual bool InteractWith(const std::string& tag) = 0;
+    
+    virtual bool TakeAction(const int act_id) = 0;
 
-    void LoadOBJ(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const btVector3 scale,
-        const std::string& label = "unlabeled",
-        const float mass = 0,
-        const bool flip = false,
-        const bool concave = false
-    );
-
-    void LoadURDF(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
-        const std::string& label = "unlabeled",
-        const bool fixed_base = false
-    );
+    virtual std::vector<std::string> GetActions() const {
+        return std::vector<std::string>(0);
+    }
 
     void LoadURDFFile(
         const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
+        const xScalar* pos,
+        const xScalar* quat,
+        const xScalar scale = 1.0f,
         const std::string& label = "unlabeled",
         const bool fixed_base = false,
         const bool self_collision = false,
@@ -205,70 +149,82 @@ public:
         const bool concave = false
     );
 
-
     void LoadOBJFile(
         const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const btVector3 scale,
+        const xScalar* pos,
+        const xScalar* quat,
+        const xScalar* scale,
         const std::string& label = "unlabeled",
-        const float mass = 0,
+        const xScalar mass = 0,
         const bool flip = false,
         const bool concave = false
     );
 
-    void LoadRobotShape(const float scale);
-    void LoadRobotJoint(const std::string &filename);
+    void RemoveRobotFromBullet();
 
-    void DisableSleeping();
-
-    void Wake();
+    virtual void recycle() override;
 
     void Sleep();
 
-    virtual void recycle() override;
+    void Wake();
+
+    void DisableSleeping();
 
     void reuse() override {
         recycle_ = false;
         hide_ = false;
     }
 
-    void RemoveRobotFromBullet();
-
-    void SetJointVelocity(const int joint_id, const float speed,
-                          const float k_d, const float max_force);
-
-    void SetJointPosition(const int joint_id, const float target,
-                          const float k_p, const float k_d,
-                          const float max_force);
-
-    void ResetJointState(const int joint_id, const float pos,
-                         const float vel);
-
-    virtual void Move(const float move, const float rotate, const bool remit = false);
-
-    virtual void Teleport2(const glm::vec3 walk_move,
-                  const glm::vec3 walk_rotate,
-                  const float speed, const bool remit = false); 
-
-    virtual void Teleport(const glm::vec3 walk_move,
-                  const glm::vec3 walk_rotate,
-                  const float speed, const bool remit = false);
+    virtual void Move(const float move, const float rotate);
 
     virtual void UnFreeze();
+
     virtual void Freeze(const bool remit = false);
+
     virtual void MoveForward(const float speed);
+
     virtual void MoveBackward(const float speed);
+
     virtual void TurnLeft(const float speed);
+
     virtual void TurnRight(const float speed);
-    virtual void PickUp(std::shared_ptr<Inventory> inventory,
-            const glm::vec3 from, const glm::vec3 to);
-    virtual void PutDown(std::shared_ptr<Inventory> inventory, 
-            const glm::vec3 from, const glm::vec3 to);
-    virtual void RotateObject(const glm::vec3 rotate_angle,
-            const glm::vec3 from, const glm::vec3 to);
-    virtual void AttachObject(std::weak_ptr<RobotBase> object, const int id = -1);
-    virtual void DetachObject();
+
+    void SetJointVelocity(
+            const int joint_id,
+            const float speed,
+            const float k_d,
+            const float max_force);
+
+    void SetJointPosition(
+            const int joint_id,
+            const float target,
+            const float k_p,
+            const float k_d,
+            const float max_force);
+
+    void ResetJointState(
+            const int joint_id,
+            const float pos,
+            const float vel);
+
+    virtual void PickUp(
+            std::shared_ptr<Inventory>& inventory,
+            const glm::vec3& from,
+            const glm::vec3& to);
+
+    virtual void PutDown(
+            std::shared_ptr<Inventory>& inventory, 
+            const glm::vec3& from,
+            const glm::vec3& to);
+
+    virtual void Rotate(
+            const glm::vec3& rotate_angle,
+            const glm::vec3& from,
+            const glm::vec3& to);
+
+    virtual void AttachTo(std::weak_ptr<RobotBase> object, const int id = -1);
+
+    virtual void Detach() { detach(); }
 
     // RenderBody
     virtual const RenderPart* render_root_ptr() const override;
@@ -279,7 +235,7 @@ public:
 
     virtual RenderPart* render_part_ptr(const size_t i) override;
 
-    size_t size() const override { return robot_data_.other_parts_.size(); }
+    size_t size() const override { return parts_.size(); }
 
     void attach_camera(const glm::vec3& offset,
                        const float pitch,
@@ -290,19 +246,32 @@ public:
 
     void hide(const bool hide) override;
 
-    int bullet_handle() { return robot_data_.bullet_handle_; }
+    int id() { return body_data_.body_uid; }
 
     std::weak_ptr<World> bullet_world_;
-    RobotData robot_data_;
+    bullet_engine::BulletBodyData body_data_;
+    std::shared_ptr<Object> root_part_;
+    std::vector<std::shared_ptr<Object>> parts_;
+    std::vector<std::shared_ptr<Joint>> joints_;
 
 protected:
+    void load_robot_joints(const std::string& filename);
+
+    void load_robot_shapes(const xScalar scale);
+
     void do_recycle(const std::string& key);
+
+    bool occupy_test(
+            std::shared_ptr<World>& world,
+            std::shared_ptr<RobotBase>& item,
+            const glm::vec3& c);
 };
 
-class Robot : public xrobot::RobotBase {
+class Robot : public RobotBase {
 public:
-	Robot(std::weak_ptr<World> bullet_world);
-	~Robot();
+	Robot(std::weak_ptr<World> bullet_world) : RobotBase(bullet_world) {}
+
+	~Robot() {}
 
     void CalculateInverseKinematics(
             const int end_index, 
@@ -316,20 +285,23 @@ public:
 class RobotWithConvertion : public xrobot::RobotBase {
 public:
     RobotWithConvertion(std::weak_ptr<World> bullet_world);
-    ~RobotWithConvertion();
+
+    ~RobotWithConvertion() {}
 
     void LoadConvertedObject(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const float scale = 1.0f,
-        const std::string& label = "",
-        const bool concave = false
-    );
+            const std::string& filename,
+            const btVector3 position,
+            const btQuaternion rotation,
+            const float scale = 1.0f,
+            const std::string& label = "",
+            const bool concave = false);
 
     bool TakeAction(const int act_id);
+
     void SetCycle(const bool cycle) { cycle_ = cycle; }
+
     void SetStatus(const int status) { status_ = status; }
+
     void recycle() override;
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
@@ -430,9 +402,9 @@ public:
     std::map<std::string, bool> pickable_list_;
 
     std::vector<std::shared_ptr<RobotBase>> robot_list_;
-    std::map<int, std::shared_ptr<RobotBase>> bullet_handle_to_robot_map_;
+    std::map<int, std::shared_ptr<RobotBase>> id_to_robot_;
     std::map<std::string, std::vector<std::shared_ptr<RobotBase>>> recycle_robot_map_;
-    std::map<std::string, render_engine::ModelDataPtr> model_cache_;
+    std::map<std::string, render_engine::ModelDataSPtr> model_cache_;
     std::map<std::string, std::vector<int>> object_locations_;
 
     float bullet_gravity_;
@@ -464,9 +436,9 @@ public:
         const btQuaternion rotation
     );
 
-    render_engine::ModelDataPtr FindInCache(
+    render_engine::ModelDataSPtr FindInCache(
             const std::string &key,
-            std::vector<render_engine::ModelDataPtr> &model_list,
+            std::vector<render_engine::ModelDataSPtr> &model_list,
             bool& reset);
 
     void ClearCache();

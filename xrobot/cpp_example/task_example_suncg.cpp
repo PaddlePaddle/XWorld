@@ -207,23 +207,23 @@ namespace xrobot
         if(auto agent_sptr = agent_.lock()) 
 	   	{
 
-	        j = agent_sptr->robot_data_.joints_list_[2];
+	        j = agent_sptr->joints_[2];
 	        j->SetJointMotorControlPosition(pos_0_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[3];
+	        j = agent_sptr->joints_[3];
 	        j->SetJointMotorControlPosition(pos_1_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[4];
+	        j = agent_sptr->joints_[4];
 	        j->SetJointMotorControlPosition(pos_2_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[5];
+	        j = agent_sptr->joints_[5];
 	        j->SetJointMotorControlPosition(pos_3_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[6];
+	        j = agent_sptr->joints_[6];
 	        j->SetJointMotorControlPosition(pos_4_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[7];
+	        j = agent_sptr->joints_[7];
 	        j->SetJointMotorControlPosition(pos_5_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[8];
+	        j = agent_sptr->joints_[8];
 	        j->SetJointMotorControlPosition(pos_6_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[10];
+	        j = agent_sptr->joints_[10];
 	        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,1000000.0f);
-	        j = agent_sptr->robot_data_.joints_list_[12];
+	        j = agent_sptr->joints_[12];
 	        j->SetJointMotorControlPosition(pos_7_, 0.1f, 1.0f,1000000.0f);
 	    }
 

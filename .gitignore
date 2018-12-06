@@ -15,6 +15,8 @@ CMakeCache.txt
 #*#
 HPPL_ERROR_LOG
 external
+xrobot/external
 build
+xrobot/build
 data
 games/xworld3d/XWorld3D-model-zoo/

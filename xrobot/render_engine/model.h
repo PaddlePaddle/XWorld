@@ -49,12 +49,11 @@ struct OriginTransformation {
 };
 
 enum GeometryTypes {
-    kMesh,
-    kStaticMesh,
-    kCylinder,
-    kSphere,
-    kCapsule,
-    kBox
+    kSphere = 2,
+    kBox = 3,
+    kCylinder = 4,
+    kMesh = 5,
+    kCapsule = 7,
 };
 
 class ModelData {
@@ -67,15 +66,20 @@ public:
 
     void Reset();
 
+    void Reset(
+            int geometry_type,
+            bool create_new,
+            const glm::vec3& scale,
+            std::shared_ptr<OriginTransformation>& T);
 public: 
     std::vector<Texture> textures_loaded_;
     std::vector<Mesh> meshes_;
     std::string directory_;
     bool gamma_correction_;
     int primitive_type_;
-    Cylinder *cylinder_;
-    Sphere *sphere_;
-    Box *box_;
+    std::shared_ptr<Cylinder> cylinder_;
+    std::shared_ptr<Sphere> sphere_;
+    std::shared_ptr<Box> box_;
     bool converted_to_mesh_;
 
 private:
@@ -92,7 +96,7 @@ private:
                                               const std::string& typeName);
 };
 
-typedef std::shared_ptr<ModelData> ModelDataPtr;
+typedef std::shared_ptr<ModelData> ModelDataSPtr;
 
 } } // xrobot::render_engine
 

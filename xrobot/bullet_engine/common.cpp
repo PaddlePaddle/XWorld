@@ -3,27 +3,78 @@
 namespace xrobot {
 namespace bullet_engine {
 
+template <typename T>
+btTransform TransformFromReals(const T* p, const T* r) {
+    btVector3 pp(p[0], p[1], p[2]);
+    btQuaternion rr(r[0], r[1], r[2], r[3]);
+    
+    return btTransform(rr, pp);
+}
+
+template btTransform TransformFromReals<float>(const float*, const float*);
+template btTransform TransformFromReals<double>(const double*, const double*);
+
 glm::mat4 TransformToMat4(const btTransform& transform) {
-    btScalar mat[16];
+    xScalar mat[16];
     transform.getOpenGLMatrix(mat);
     return glm::make_mat4(mat);
 }
 
-btTransform TransformFromDoubles(
-        const double* position, const double* orientation) {
-    btVector3 position_temp;
-    btQuaternion orientation_temp;
-    {
-        position_temp[0] = position[0];
-        position_temp[1] = position[1];
-        position_temp[2] = position[2];
-        orientation_temp[0] = orientation[0];
-        orientation_temp[1] = orientation[1];
-        orientation_temp[2] = orientation[2];
-        orientation_temp[3] = orientation[3];
-    }
-    return btTransform(orientation_temp, position_temp);
+template <typename T>
+glm::mat4 TransformToMat4(const T* p, const T* r) {
+    return TransformToMat4(TransformFromReals(p, r));
 }
+
+template glm::mat4 TransformToMat4<float>(const float*, const float*);
+template glm::mat4 TransformToMat4<double>(const double*, const double*);
+
+int get_num_joints(const ClientHandle client, const int id) {
+    return b3GetNumJoints(client, id);
+}
+
+template <typename T>
+void set_pose(
+        const ClientHandle client,
+        const int id,
+        const T* pos,
+        const T* quat) {
+    CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
+    if (pos) {
+        b3CreatePoseCommandSetBasePosition(cmd_handle, pos[0], pos[1], pos[2]);
+    }
+    if (quat) {
+        b3CreatePoseCommandSetBaseOrientation(
+                cmd_handle, quat[0], quat[1], quat[2], quat[3]);
+    }
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+template void set_pose<float>(const ClientHandle, const int, const T*, const T*);
+template void set_pose<double>(const ClientHandle, const int, const T*, const T*);
+
+void rotate(const ClientHandle client, const int id, const glm::vec3 angle) {
+    btQuaternion quat(rotate_angle.x, rotate_angle.y, rotate_angle.z);
+    xScalar q[4];
+    q[0] = quat[0];
+    q[1] = quat[1];
+    q[2] = quat[2];
+    q[3] = quat[3];
+    set_pose(client, id, nullptr, q);
+}
+
+template <typename T>
+void set_velocity(const ClientHandle client, const int id, const T* velocity) {
+    CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
+    xScalar v[3];
+    v[0] = velocity[0];
+    v[1] = velocity[1];
+    v[2] = velocity[2];
+    b3CreatePoseCommandSetBaseLinearVelocity(cmd_handle, v);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+template void set_velocity<float>(const ClientHandle, const int, const float*);
+template void set_velocity<double>(const ClientHandle, const int, const double*);
 
 // http://www.opengl-tutorial.org
 // Rotation
@@ -32,7 +83,7 @@ glm::quat RotationBetweenVectors(
     glm::vec3 start_norm = glm::normalize(start);
     glm::vec3 dest_norm = glm::normalize(dest);
 
-    float cosTheta = glm::dot(start_norm, dest_norm);
+    xScalar cosTheta = glm::dot(start_norm, dest_norm);
     glm::vec3 rotationAxis;
 
     if (cosTheta < -1 + 0.0001f){

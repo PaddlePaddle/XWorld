@@ -190,7 +190,7 @@ void Agent::FollowPath() {
     if(auto robot_sptr = robot_.lock()) {
 
         //Update Current Status
-        btTransform current_transform_bt = robot_sptr->robot_data_.root_part_->object_position_;
+        btTransform current_transform_bt = robot_sptr->root_part_->object_position_;
         btVector3 current_position_bt = current_transform_bt.getOrigin();
 
         current_position_ = glm::vec3(
