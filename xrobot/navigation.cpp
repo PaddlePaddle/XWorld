@@ -149,7 +149,7 @@ void Navigation::SpawnAgent(const glm::vec3 position,
         btQuaternion(orientation.x,orientation.y,orientation.z,orientation.w),
         btVector3(1, 1, 1),
         label,
-        true
+        false
     );
 
     if(auto robot_sptr = robot.lock()) 

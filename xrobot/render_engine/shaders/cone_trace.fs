@@ -613,7 +613,7 @@ void main()
         directLighting = CalculateDirectLighting(position, normal, albedo, specular, depth,
             roughness, metallic, ao) * visibility;
     }
-    else if(mode == 5)
+    else if(mode > 0)
     {
         visibility = CaculateDirectionalShadow(normal, position, depth);
         indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);

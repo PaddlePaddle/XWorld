@@ -4,7 +4,6 @@ import time
 from libxrobot import *
 from teaching_task import *
 from py_random_task import *
-from py_nav_task import *
 
 class XRobotEnv(object):
     def __init__(self):
@@ -18,7 +17,6 @@ class XRobotEnv(object):
 
         self.task_group = TaskGroup("TaskGroup")
         self.task_group.add_task("Navigation_1", XRobot3DRandom(self.env))
-        # self.task_group.add_task("Navigation_2", XRobot3DNavTarget(self.env))
 
     def reset(self):
         self.env.Clear()

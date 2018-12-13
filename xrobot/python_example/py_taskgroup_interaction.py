@@ -23,7 +23,7 @@ class XRobotEnv(object):
 
     def step(self, action):
         self.task_group.run_stage()
-        print self.env.UpdateSimulationWithAction(action)
+        self.env.UpdateSimulationWithAction(action)
 
     def render(self):
         self.env.UpdateRenderer()
