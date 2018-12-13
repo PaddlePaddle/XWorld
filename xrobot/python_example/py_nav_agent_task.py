@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 import random
 
+crate1     = "../data/crate_1/crate.urdf";
+crate03    = "../data/crate_0.3/crate.urdf";
+
 class XRobot3DNavAgentTarget(XWorld3DTask):
 	def __init__(self, env):
 		self.env = env
@@ -23,12 +26,12 @@ class XRobot3DNavAgentTarget(XWorld3DTask):
 		self.env.EnableInventory(10)
 		self.env.EnableNavigation([-2,-1,-2], [10,5,10], False)
 
-		self.env.SpawnAnObject("./crate_1/crate.urdf", [5,0,5], [1,0,0,0], 1.0, "Crate", True)
-		self.env.SpawnAnObject("./crate_1/crate.urdf", [4,0,4], [1,0,0,0], 1.0, "Crate", True)
+		self.env.SpawnAnObject(crate1, [5,0,5], [1,0,0,0], 1.0, "Crate", True)
+		self.env.SpawnAnObject(crate1, [4,0,4], [1,0,0,0], 1.0, "Crate", True)
 		self.env.AssignAgentRadius(0.2)
 		self.env.BakeNavigationMesh()
 
-		self.nav_agent = self.env.SpawnNavigationAgent("./crate_0.3/crate.urdf", "NavAgent", [2,0,0], [1,0,0,0])
+		self.nav_agent = self.env.SpawnNavigationAgent(crate03, "NavAgent", [2,0,0], [1,0,0,0])
 		self.env.AssignNavigationAgentTarget(self.nav_agent, [8, 0, 8])
 
 		self.agent = self.env.SpawnAnObject("husky/husky.urdf", [2,0,2], [-1,0,0,1.57], 1.0, "Agent", True)

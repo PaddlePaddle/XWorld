@@ -3,30 +3,38 @@ import cv2
 import numpy as np
 import random
 
-door1      = "/home/ziyuli/XWorld/xrobot/data/door_green/door.json";
-door2      = "/home/ziyuli/XWorld/xrobot/data/door_red/door.json";
-door3      = "/home/ziyuli/XWorld/xrobot/data/door_yellow/door.json";
-door4      = "/home/ziyuli/XWorld/xrobot/data/door_blue/door.json";
-door5      = "/home/ziyuli/XWorld/xrobot/data/door_purple/door.json";
+'''
+Task: Navigate to cat in maze
 
-key2       = "./key_red/key.urdf";
-key3       = "./key_yellow/key.urdf";
-key4       = "./key_blue/key.urdf";
-key5       = "./key_purple/key.urdf";
+This task requires agent to explore the world and collect the keys
+to unlock the matching doors. The cat should hide behind one of
+the locked doors.
+'''
 
-door       = "./door/door.urdf";
-wall       = "./wall0/floor.urdf";
-floor_0    = "./floor0/floor.urdf";
-floor_1    = "./floor1/floor.urdf";
-floor_2    = "./floor2/floor.urdf";
-crate1     = "./crate_1/crate.urdf";
-crate03    = "./crate_0.3/crate.urdf";
-cat1       = "./cat_1/cat.urdf";
-oven       = "/home/ziyuli/XWorld/xrobot/data/oven/oven.json";
-drawer     = "/home/ziyuli/XWorld/xrobot/data/drawer/drawer.json";
+door1      = "../data/door_green/door.json";
+door2      = "../data/door_red/door.json";
+door3      = "../data/door_yellow/door.json";
+door4      = "../data/door_blue/door.json";
+door5      = "../data/door_purple/door.json";
 
-floor_test  = "./floor/floor.urdf";
-wall_test   = "./wall/floor.urdf";
+key2       = "../data/key_red/key.urdf";
+key3       = "../data/key_yellow/key.urdf";
+key4       = "../data/key_blue/key.urdf";
+key5       = "../data/key_purple/key.urdf";
+
+door       = "../data/door/door.urdf";
+wall       = "../data/wall0/floor.urdf";
+floor_0    = "../data/floor0/floor.urdf";
+floor_1    = "../data/floor1/floor.urdf";
+floor_2    = "../data/floor2/floor.urdf";
+crate1     = "../data/crate_1/crate.urdf";
+crate03    = "../data/crate_0.3/crate.urdf";
+cat1       = "../data/cat_1/cat.urdf";
+oven       = "../data/oven/oven.json";
+drawer     = "../data/drawer/drawer.json";
+
+floor_test  = "../data/floor/floor.urdf";
+wall_test   = "../data/wall/floor.urdf";
 
 class XRobot3DRandom(XWorld3DTask):
 	def __init__(self, env):
@@ -64,7 +72,7 @@ class XRobot3DRandom(XWorld3DTask):
 		print self.env.GetRoomGroups()
 		print self.env.GetRoomVisitSequence()
 
-		conf   = {"single" : [cat, lastgroup, 3], \
+		conf   = {"single" : [cat1, lastgroup, 3], \
          		  "stack"  : [crate03, crate1, 1, 1, 1]}
 
 		self.env.LoadModels(models, m_tags)

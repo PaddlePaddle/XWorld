@@ -6,7 +6,7 @@ import random
 import os
 import os.path
 
-suncg_dir   = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/data/suncg";
+suncg_dir   = "../data/suncg";
 suncg_meta  = suncg_dir + "/metadata/ModelCategoryMapping.csv";
 suncg_house = suncg_dir + "/house/7c16efebdfe46f3f14fa81abe500589c/house.json";
 
@@ -24,7 +24,6 @@ class XRobot3DSUNCG(XWorld3DTask):
 	def start(self):
 		self.env.SetLighting({ "ssr": True })
 
-		# self.env.EnableInventory(1)
 		self.env.Clear()
 		self.env.CreateSceneFromSUNCG()
 		self.env.LoadSUNCG(suncg_house, suncg_meta, suncg_dir, \
@@ -59,7 +58,7 @@ class XRobot3DSUNCG(XWorld3DTask):
 		framerate = " | framerate: " + str(self.env.GetStatus()["framerate"])
 
 		# cv2.putText(image_rgb, frames + framerate, (30,30), \
-  #   		cv2.FONT_HERSHEY_PLAIN, 1, (200,250,250), 1);
+  		#cv2.FONT_HERSHEY_PLAIN, 1, (200,250,250), 1);
 
 		cv2.imshow("RGB", image_rgb)
 		return "navigation"

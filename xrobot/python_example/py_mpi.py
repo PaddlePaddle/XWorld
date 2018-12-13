@@ -6,7 +6,18 @@ import time
 import os
 import os.path
 
-suncg_dir   = "/home/ziyuli/Desktop/suncg";
+'''
+The benchmark requires SUNCG OBJ+MTL instead of JSON.
+Please use the OBJ+MTL conversion tool which is provided by SUNCGtoolbox
+
+SUNCGtoolbox
+https://github.com/shurans/SUNCGtoolbox
+
+Please check the link below for the conversion tool.
+https://github.com/shurans/SUNCGtoolbox#convert-to-objmtl
+'''
+
+suncg_dir   = "../data/suncg";
 suncg_meta  = suncg_dir + "/metadata/ModelCategoryMapping.csv";
 suncg_house = suncg_dir + "/house/00065ecbdd7300d35ef4328ffe871505/house.obj";
 

@@ -3,21 +3,20 @@ import cv2
 import numpy as np
 import random
 
-oven       = "/home/ziyuli/XWorld/xrobot/data/oven/oven.json";
-drawer     = "/home/ziyuli/XWorld/xrobot/data/drawer/drawer.json";
-drawer2    = "/home/ziyuli/XWorld/xrobot/data/drawer2/drawer.json";
-gift       = "/home/ziyuli/XWorld/xrobot/data/gift/gift.json";
-laptop     = "/home/ziyuli/XWorld/xrobot/data/laptop/laptop.json";
-cake       = "/home/ziyuli/XWorld/xrobot/data/cake/cake.json";
-trashcan   = "/home/ziyuli/XWorld/xrobot/data/trashcan/trashcan.json";
-screen     = "/home/ziyuli/XWorld/xrobot/data/screen/screen.json";
-piano      = "/home/ziyuli/XWorld/xrobot/data/piano/piano.json";
-
-apple     = "./apple/apple.urdf";
+oven       = "../data/oven/oven.json";
+drawer     = "../data/drawer/drawer.json";
+drawer2    = "../data/drawer2/drawer.json";
+gift       = "../data/gift/gift.json";
+laptop     = "../data/laptop/laptop.json";
+cake       = "../data/cake/cake.json";
+trashcan   = "../data/trashcan/trashcan.json";
+screen     = "../data/screen/screen.json";
+piano      = "../data/piano/piano.json";
+apple      = "../data/apple/apple.urdf";
 
 class XRobot3DInteractions(XWorld3DTask):
 	def __init__(self, env):
-		super(XWorld3DTask, self).__init__(env)
+		self.env = env
 		self.agent = None
 
 	def get_stages(self):
