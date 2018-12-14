@@ -139,8 +139,8 @@ public:
 
     void LoadURDFFile(
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
         const xScalar scale = 1.0f,
         const std::string& label = "unlabeled",
         const bool fixed_base = false,
@@ -151,9 +151,9 @@ public:
 
     void LoadOBJFile(
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
-        const xScalar* scale,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
+        const glm::vec3& scale,
         const std::string& label = "unlabeled",
         const xScalar mass = 0,
         const bool flip = false,
@@ -175,7 +175,7 @@ public:
         hide_ = false;
     }
 
-    virtual void Move(const float move, const float rotate);
+    virtual void Move(const xScalar move, const xScalar rotate);
 
     virtual void UnFreeze();
 
@@ -191,21 +191,21 @@ public:
 
     void SetJointVelocity(
             const int joint_id,
-            const float speed,
-            const float k_d,
-            const float max_force);
+            const xScalar speed,
+            const xScalar k_d,
+            const xScalar max_force);
 
     void SetJointPosition(
             const int joint_id,
-            const float target,
-            const float k_p,
-            const float k_d,
-            const float max_force);
+            const xScalar target,
+            const xScalar k_p,
+            const xScalar k_d,
+            const xScalar max_force);
 
     void ResetJointState(
             const int joint_id,
-            const float pos,
-            const float vel);
+            const xScalar pos,
+            const xScalar vel);
 
     virtual void PickUp(
             std::shared_ptr<Inventory>& inventory,
@@ -324,8 +324,8 @@ public:
 
     void LoadAnimatedObject(
         const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
+        const glm::vec3& position,
+        const glm::vec4& rotation,
         const float scale = 1.0f,
         const std::string& label = "",
         const bool concave = false

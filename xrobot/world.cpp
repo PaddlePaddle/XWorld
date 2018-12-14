@@ -163,8 +163,8 @@ RobotBase::RobotBase(std::weak_ptr<World> bullet_world)
 
 void RobotBase::LoadURDFFile(
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
         const xScalar scale,
         const std::string& label,
         const bool fixed_base,
@@ -228,10 +228,10 @@ void RobotBase::load_robot_shapes(const xScalar scale) {
     int num_shapes = get_visual_shape_info(bullet_world->client_);
     assert(num_shapes >= 0);
 
-    xScalar color[4];
-    xScalar s[3];
-    xScalar pos[3];
-    xScalar quat[4];
+    glm::vec4 color;
+    glm::vec3 s;
+    glm::vec3 pos;
+    glm::vec4 quat;
     std::string filename;
     int geometry_type;
     for (int i = 0; i < num_shapes; ++i) {
@@ -250,7 +250,7 @@ void RobotBase::load_robot_shapes(const xScalar scale) {
         auto T = std::make_shared<OriginTransformation>();
         T->origin = transform;
         T->scale = scale;
-        T->color = glm::vec4(color[0], color[1], color[2], color[3]);
+        T->color = color;
 
         bool create_new = true;
         ModelDataSPtr model_data = bullet_world->FindInCache(
@@ -262,7 +262,7 @@ void RobotBase::load_robot_shapes(const xScalar scale) {
         model_data->Reset(
                 geometry_type,
                 create_new,
-                glm::vec4(s[0], s[1], s[2], s[3]),
+                s,
                 /*out*/T);
 
         part->transform_list_.push_back(T);
@@ -272,9 +272,9 @@ void RobotBase::load_robot_shapes(const xScalar scale) {
 
 void RobotBase::LoadOBJFile(
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
-        const xScalar* scale,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
+        const glm::vec3& scale,
         const std::string& label,
         const xScalar mass,
         const bool flip,
@@ -706,10 +706,10 @@ void RobotBase::hide(const bool hide) {
 
 void Robot::CalculateInverseKinematics(
         const int end_index, 
-        const btVector3 target_pos,
-        const btQuaternion target_quat,
-        double* joint_damping,
-        double* output_joint_pos,
+        const glm::vec3& target_pos,
+        const glm::vec4& target_quat,
+        xScalar* joint_damping,
+        xScalar* output_joint_pos,
         int &num_poses) {
     auto bullet_world = wptr_to_sptr(bullet_world_);
     inverse_kinematics(
@@ -736,8 +736,8 @@ RobotWithConvertion::~RobotWithConvertion() {}
 
 void RobotWithConvertion::LoadConvertedObject(
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
         const xScalar scale,
         const std::string& label,
         const bool concave) {
@@ -893,8 +893,8 @@ bool RobotWithAnimation::TakeAction(const int act_id) {
 
 void RobotWithAnimation::LoadAnimatedObject(
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
         const xScalar scale,
         const std::string& label,
         const bool concave) {
