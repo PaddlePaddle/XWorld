@@ -12,7 +12,6 @@ public:
 
     virtual ~BulletObject() {};
 
-protected:
     void sleep(const ClientHandle client, const int body_uid);
 
     void enable_sleeping(const ClientHandle client, const int body_uid);

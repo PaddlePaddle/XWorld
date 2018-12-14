@@ -249,7 +249,6 @@ public:
     int id() { return body_data_.body_uid; }
 
     std::weak_ptr<World> bullet_world_;
-    bullet_engine::BulletBodyData body_data_;
     std::shared_ptr<Object> root_part_;
     std::vector<std::shared_ptr<Object>> parts_;
     std::vector<std::shared_ptr<Joint>> joints_;
@@ -305,18 +304,17 @@ public:
     void recycle() override;
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
-
-    float scale_;
-    std::string label_;
-    std::string path_;
-    std::vector<std::string> object_path_list_;
-    std::vector<std::string> object_name_list_;
-
+ 
 private:
     void Remove();
 
     int status_;
+    std::string label_;
+    float scale_;
     bool cycle_;
+    std::string path_;
+    std::vector<std::string> object_path_list_;
+    std::vector<std::string> object_name_list_;
 };
 
 class RobotWithAnimation : public xrobot::RobotBase {
