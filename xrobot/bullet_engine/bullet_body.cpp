@@ -215,10 +215,10 @@ void BulletBody::move(
     btQuaternion quat;
     root_part->pose(pos, quat);
 
-    orientation_ = orientation_ * btQuaternion(0, 1, 0, rot);
+    orientation_ = orientation_ * btQuaternion(btVector3(0, 1, 0), rot);
     angle_ += rot;
     btVector3 pos_new = pos + btTransform(orientation_) * btVector3(move, 0, 0);
-    btQuaternion quat_new = btQuaternion(0, 1, 0, angle) * quat;
+    btQuaternion quat_new = btQuaternion(btVector3(0, 1, 0), angle) * quat;
     
     p[0] = pos_new[0];
     p[1] = pos_new[1];
@@ -233,8 +233,8 @@ void BulletBody::move(
     prev_q[3] = quat[3];
 }
 
-void BulletBody::attach(BulletObject* part, const BulletObject* target) {
-    btTransform T_target = target->root_part_->object_position_;
+void BulletBody::attach(BulletObject* part, const BulletObject* target_part) {
+    btTransform T_target = target_part->object_position_;
     btTransform T = part->object_position_.inverse() * T_target;
     part->attach_transform_ = T;
 }

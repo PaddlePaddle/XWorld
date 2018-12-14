@@ -634,20 +634,20 @@ void RobotBase::AttachTo(const int id, std::weak_ptr<RobotBase> object) {
 
     auto part = (id == -1 ? root_part_ : parts_[id]);
     part->attach_object_ = object;
-    attach_to(part.get(), object_sptr->root_part_.get());
+    attach(part.get(), object_sptr->root_part_.get());
 }
 
-const RenderPartSPtr& RobotBase::render_root_ptr() const {
-    return static_pointer_cast<RenderPart>(root_part_);
+const RenderPart* RobotBase::render_root_ptr() const {
+    return root_part_.get();
 }
 
-RenderPartSPtr& RobotBase::render_root_ptr() {
-    return static_pointer_cast<RenderPart>(root_part_);
+RenderPart* RobotBase::render_root_ptr() {
+    return root_part_.get();
 }
 
 const RenderPart* RobotBase::render_part_ptr(const size_t i) const {
     assert(i >= 0 && i < parts_.size());
-    return static_cast<const RenderPart*>(parts_[i].get());
+    return parts_[i].get();
 }
 
 RenderPart* RobotBase::render_part_ptr(const size_t i) {
@@ -725,9 +725,10 @@ void Robot::CalculateInverseKinematics(
 RobotWithConvertion::RobotWithConvertion(std::weak_ptr<World> bullet_world) :
         RobotBase(bullet_world),
         status_(0),
-        cycle_(false),
-        scale_(1.0f),
         label_("unlabeled"),
+        scale_(1.0f),
+        cycle_(false),
+        path_(""),
         object_path_list_(0),
         object_name_list_(0) {}
 
@@ -735,99 +736,49 @@ RobotWithConvertion::~RobotWithConvertion() {}
 
 void RobotWithConvertion::LoadConvertedObject(
         const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
+        const xScalar* pos,
+        const xScalar* quat,
         const xScalar scale,
         const std::string& label,
         const bool concave) {
-    FILE* fp = fopen(filename.c_str(), "rb");
-    if (!fp) {
-        fprintf(stderr, "Unable to open action file %s\n", filename.c_str());
-        return;
-    }
 
-    std::string text;
-    fseek(fp, 0, SEEK_END);
-    long const size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    char* buffer = new char[size + 1];
-    unsigned long const usize = static_cast<unsigned long const>(size);
-    if (fread(buffer, 1, usize, fp) != usize) {
-        fprintf(stderr, "Unable to read %s\n", filename.c_str());
-        return;
-    } else {
-        buffer[size] = 0;
-        text = buffer;
-    }
-    delete[] buffer;
-    fclose(fp);
-
-    // Digest file
     Json::Value json_root;
-    Json::Reader json_reader;
-    Json::Value *json_items, *json_item, *j_value;
-    if (!json_reader.parse(text, json_root, false)) {
+    if (!json_parse_text(filename, json_root)) {
         fprintf(stderr, "Unable to parse %s\n", filename.c_str());
         return;
     }
-
-    // Get Label
-    std::string action_label("NoLabel");
-    if (GetJsonObjectMember(j_value, &json_root, "label", Json::stringValue)) {
-        action_label = json_value->asString();
-    }
-
-    // Check Type
-    if (GetJsonObjectMember(j_value, &json_root, "type", Json::stringValue)) {
-        assert(json_value->asString() == "convert");
-    }
-
-    // Get Cycle
-    bool cycle = false;
-    if (GetJsonObjectMember(j_value, &json_root, "cycle", Json::booleanValue)) {
-        cycle = json_value->asBool();
-    }
+    label_ = label;
+    assert(json_get_string(json_root, "type") == "convert");
+    bool cycle = json_get_bool(json_root, "cycle");
 
     SetCycle(cycle);
     SetStatus(0);
-    label_ = action_label;
     scale_ = scale;
     path_ = filename;
 
     // Parse Actions
-    Json::Value *json_levels, *json_level;
-    if (!GetJsonObjectMember(json_levels, &json_root, "actions", Json::arrayValue)) {
+    Json::Value *json_level1, *json_level2;
+    if (!json_get_object(json_level1, &json_root, "actions", Json::arrayValue)) {
         return;
     }
-    for (Json::ArrayIndex index = 0; index < json_levels->size(); index++) {
-        if (!GetJsonArrayEntry(json_level, json_levels, index)) {
+
+    for (Json::ArrayIndex index = 0; index < json_level1->size(); index++) {
+        if (!json_get_array(json_level2, json_level1, index)) {
             return;
         }
-        if (json_level->type() != Json::objectValue) {
+        if (json_level2->type() != Json::objectValue) {
             continue;
         }
 
-        char action_name[1024];
-        strncpy(action_name, "NoActionName", 1024);
-        if (GetJsonObjectMember(json_value, json_level, "name", Json::stringValue)) {
-            strncpy(action_name, json_value->asString().c_str(), 1024);
-            //printf("action name: %s\n", action_name);
-        }
-
-        char object_path[1024];
-        strncpy(object_path, "NoObjectPath", 1024);
-        if (GetJsonObjectMember(json_value, json_level, "object", Json::stringValue)) {
-            strncpy(object_path, json_value->asString().c_str(), 1024);
-            //printf("object path: %s\n", object_path);
-        }
-
+        auto action_name = json_get_string(json_level2, "name", "NoActionName");
+        auto object_path = json_get_string(json_level2, "object", "NoObjectPath");
         if ((int) index == 0) {
             LoadURDFFile(
                     std::string(object_path),
-                    position,
-                    rotation,
+                    pos,
+                    quat,
                     scale, 
-                    std::string(label),
+                    std::string(label_),
                     false,
                     false,
                     true,
@@ -838,48 +789,38 @@ void RobotWithConvertion::LoadConvertedObject(
     }
 }
 
-bool RobotWithConvertion::TakeAction(const int act_id) {
+void RobotWithConvertion::TakeAction(const int act_id) {
     assert(act_id > -1 && status_ > -1);
     assert(object_path_list_.size() > 0);
     assert(object_name_list_.size() > 0);
 
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
+    auto bullet_world = wptr_to_sptr(bullet_world_);
 
-        if(!cycle_ && act_id <= status_) {
-            printf("The Object is Not Convertable!\n");
-            return false;
-        }
-
-        if(act_id == status_) {
-            //printf("Convertion Ignored!\n");
-            return false;
-        }
-
-        btVector3 current_position;
-        btQuaternion current_orentation;
-
-        bullet_world->BulletStep();
-
-        current_position = root_part_->object_position_.getOrigin();
-        current_orentation = root_part_->object_position_.getRotation();
-
-        Remove();
-
-        body_data_ = BulletBodyData();
-
-        LoadURDFFile(
-            object_path_list_[act_id],
-            current_position, current_orentation, scale_,
-            label_ + "_" + object_name_list_[act_id], true);
-
-        bullet_world->robot_list_.pop_back();
-
-        status_ = act_id;    
-        return true;
+    if(!cycle_ && act_id <= status_) {
+        printf("The Object is Not Convertable!\n");
+        return false;
+    }
+    if(act_id == status_) {
+        //printf("Convertion Ignored!\n");
+        return false;
     }
 
-    return false;
+    // TODO: do we need to call this here
+    bullet_world->BulletStep();
+
+    xScalar pos[3];
+    xScalar quat[4];
+    get_pose(root_part_.get(), pos, quat);
+    
+    Remove();
+
+    body_data_ = BulletBodyData();
+    LoadURDFFile(
+            object_path_list_[act_id],
+            pos, quat, scale_,
+            label_ + "_" + object_name_list_[act_id], true);
+    bullet_world->robot_list_.pop_back();
+    status_ = act_id;    
 }
 
 
@@ -889,29 +830,25 @@ void RobotWithConvertion::recycle() {
 }
 
 void RobotWithConvertion::Remove() {
-    if(auto bullet_world = bullet_world_.lock()) 
-    {
-        if (root_part_) {
-            //delete body_data_.root_part_;
-            root_part_.reset();
-        }
-        for (size_t i = 0; i < parts_.size(); ++i) {
-            //delete body_data_.other_parts_[i];
-            parts_[i].reset();
-        }
-        parts_.clear();
-
-        for (size_t i = 0; i < joints_.size(); ++i) {
-            //delete body_data_.joints_list_[i];
-            joints_[i].reset();
-        }
-
-        RemoveRobotFromBullet();
-
-        bullet_world->RemoveObjectWithLabel(body_data_.body_uid);
-
-        bullet_world->id_to_robot_[body_data_.body_uid] = nullptr;
+    auto bullet_world = wptr_to_sptr(bullet_world_);
+    if (root_part_) {
+        root_part_.reset();
     }
+    for (size_t i = 0; i < parts_.size(); ++i) {
+        parts_[i].reset();
+    }
+    parts_.clear();
+
+    for (size_t i = 0; i < joints_.size(); ++i) {
+        joints_[i].reset();
+    }
+    joints_.clear();
+
+    RemoveRobotFromBullet();
+
+    bullet_world->RemoveObjectWithLabel(body_data_.body_uid);
+
+    bullet_world->id_to_robot_[body_data_.body_uid] = nullptr;
 }
 
 RobotWithAnimation::RobotWithAnimation(std::weak_ptr<World> bullet_world) 
@@ -929,8 +866,7 @@ void RobotWithAnimation::recycle() {
     do_recycle(path_);
 }
 
-bool RobotWithAnimation::InteractWith(const std::string& tag)
-{
+bool RobotWithAnimation::InteractWith(const std::string& tag) {
     assert(tag.size());
 
     if(tag == unlock_tag_) { 
@@ -956,120 +892,47 @@ bool RobotWithAnimation::TakeAction(const int act_id) {
 }
 
 void RobotWithAnimation::LoadAnimatedObject(
-    const std::string& filename,
-    const btVector3 position,
-    const btQuaternion rotation,
-    const xScalar scale,
-    const std::string& label,
-    const bool concave) 
-{
-    FILE* fp = fopen(filename.c_str(), "rb");
-    if (!fp) {
-        fprintf(stderr, "Unable to open action file %s\n", filename.c_str());
-        return;
-    }
-
-    std::string text;
-    fseek(fp, 0, SEEK_END);
-    long const size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    char* buffer = new char[size + 1];
-    unsigned long const usize = static_cast<unsigned long const>(size);
-    if (fread(buffer, 1, usize, fp) != usize) { fprintf(stderr, "Unable to read %s\n", filename.c_str()); return; }
-    else { buffer[size] = 0; text = buffer; }
-    delete[] buffer;
-    fclose(fp);
-
-    // Digest file
+        const std::string& filename,
+        const xScalar* pos,
+        const xScalar* quat,
+        const xScalar scale,
+        const std::string& label,
+        const bool concave) {
+    
     Json::Value json_root;
-    Json::Reader json_reader;
-    Json::Value *json_items, *json_item, *json_value;
-    if (!json_reader.parse(text, json_root, false)) {
+    if (!json_parse_text(filename, json_root)) {
         fprintf(stderr, "Unable to parse %s\n", filename.c_str());
         return;
     }
 
-    // Get Label
-    char action_label[1024];
-    strncpy(action_label, "NoLabel", 1024);
-    if (GetJsonObjectMember(json_value, &json_root, "label", Json::stringValue)) {
-        strncpy(action_label, json_value->asString().c_str(), 1024);
-    }
+    assert(json_get_string(json_root, "type") == "animate");
+    int joint_id = json_get_int(json_root, "joint_id", 0);
+    unlock_tag_ = json_get_string(json_root, "unlock");
+    lock_ = unlock_tag_ == "" ? false : true;
+    std::object_path = json_get_string(json_root, "object", "NoObjectPath");
+    LoadURDFFile(object_path, pos, quat, scale, label, true, false, true, concave);
 
-    // Check Type
-    char type[1024];
-    strncpy(type, "NoType", 1024);
-    if (GetJsonObjectMember(json_value, &json_root, "type", Json::stringValue)) {
-        strncpy(type, json_value->asString().c_str(), 1024);
-        if (strcmp(type, "animate")!=0) {
-           fprintf(stderr, "Incorrect Action File [%s]\n", type);
-            return; 
-        }
-    }
-
-    // Get Joint Id
-    int joint_id = 0;
-    if (GetJsonObjectMember(json_value, &json_root, "joint_id", Json::intValue)) {
-        joint_id = json_value->asInt();
-        //printf("animated joint: %d\n", joint_id);
-    }
-
-    // Get Trigger
-    char unlock[1024];
-    strncpy(unlock, "", 1024);
-    if (GetJsonObjectMember(json_value, &json_root, "unlock", Json::stringValue)) {
-        strncpy(unlock, json_value->asString().c_str(), 1024);
-    }
-
-    // Get Object Path
-    char object_path[1024];
-    strncpy(object_path, "NoObjectPath", 1024);
-    if (GetJsonObjectMember(json_value, &json_root, "object", Json::stringValue)) {
-         strncpy(object_path, json_value->asString().c_str(), 1024);
-         //printf("object path: %s\n", object_path);
-    }
-
-    LoadURDFFile(object_path, position, rotation, scale, label, true,false,true,concave);
     move(true);
     DisableSleeping();
     SetStatus(0);
     SetJoint(joint_id);
     path_ = filename;
 
-    if(strcmp(unlock, "")==0) {
-        lock_ = false;
-    } else {
-        lock_ = true;
-        unlock_tag_ = std::string(unlock);
-    }
-
-
     // Parse Actions
-    Json::Value *json_levels, *json_level;
-    if (!GetJsonObjectMember(json_levels, &json_root, "actions", Json::arrayValue)) {
+    Json::Value *json_level1, *json_level2;
+    if (!json_get_object(json_level1, &json_root, "actions", Json::arrayValue)) {
         return;
     }
     for (Json::ArrayIndex index = 0; index < json_levels->size(); index++) {
-        if (!GetJsonArrayEntry(json_level, json_levels, index)) {
-                return;
-            }
-        if (json_level->type() != Json::objectValue) continue;
-
-        char action_name[1024];
-        strncpy(action_name, "NoActionName", 1024);
-        if (GetJsonObjectMember(json_value, json_level, "name", Json::stringValue)) {
-             strncpy(action_name, json_value->asString().c_str(), 1024);
-             //printf("action %d: %s\n", (int) index, action_name);
+        if (!json_get_array(json_level2, json_level1, index)) {
+            return;
         }
-
-        xScalar position = 0;
-        if (GetJsonObjectMember(json_value, json_level, "position", Json::realValue)) {
-            position = json_value->asFloat();
-            //printf("position: %f\n", position);
-        }
-
+        if (json_level2->type() != Json::objectValue) continue;
+        std::string action_name =
+                json_get_string(json_level2, "name", "NoActionName");
+        xScalar position = json_get_real(json_level2, "position");
+        object_name_list_.push_back(action_name);
         positions_[index] = position;
-        object_name_list_.push_back(std::string(action_name));
     }
 }
 
