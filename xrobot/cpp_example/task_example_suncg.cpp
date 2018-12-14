@@ -93,7 +93,7 @@ namespace xrobot
 
 	   	if(auto agent_sptr = agent_.lock()) 
 	   	{
-	   		agent_sptr->move(true);
+	   		agent_sptr->ignore_baking(true);
 	    	agent_sptr->DisableSleeping();
 
 		   	// Create a Camera and Attach to the Agent
@@ -231,24 +231,24 @@ namespace xrobot
         std::vector<ObjectAttributes> temp;
         scene_->world_->QueryObjectByLabel("fruit_bowl", temp);
 
-        for(int i = 0; i < temp.size(); ++i)
-        {
-        	glm::vec3 aabb_min = temp[i].aabb_min - glm::vec3(1);
-        	glm::vec3 aabb_max = temp[i].aabb_max + glm::vec3(1);
+        // for(int i = 0; i < temp.size(); ++i)
+        // {
+        // 	glm::vec3 aabb_min = temp[i].aabb_min - glm::vec3(1);
+        // 	glm::vec3 aabb_max = temp[i].aabb_max + glm::vec3(1);
 
-        	if(aabb_min.x < main_camera_->Position.x &&
-        	   aabb_max.x > main_camera_->Position.x && 
-        	   aabb_min.z < main_camera_->Position.z &&
-        	   aabb_max.z > main_camera_->Position.z) 
-        	{
-        		// Check Object Center is Within 30 deg Viewing Angle
-        		std::vector<ObjectDirections> temp_dir;
-        		scene_->world_->QueryObjectDirectionByLabel("fruit_bowl", 
-        				main_camera_->Front, main_camera_->Position, temp_dir);
-        		if(temp_dir[i].dirs[0] < 0.52f)
-        			return "idle";
-        	}
-        }
+        // 	if(aabb_min.x < main_camera_->Position.x &&
+        // 	   aabb_max.x > main_camera_->Position.x && 
+        // 	   aabb_min.z < main_camera_->Position.z &&
+        // 	   aabb_max.z > main_camera_->Position.z) 
+        // 	{
+        // 		// Check Object Center is Within 30 deg Viewing Angle
+        // 		std::vector<ObjectDirections> temp_dir;
+        // 		scene_->world_->QueryObjectDirectionByLabel("fruit_bowl", 
+        // 				main_camera_->Front, main_camera_->Position, temp_dir);
+        // 		if(temp_dir[i].dirs[0] < 0.52f)
+        // 			return "idle";
+        // 	}
+        // }
 
         // Find Front Direction in World Coordinate
         glm::vec3 front_vector = main_camera_->Front;

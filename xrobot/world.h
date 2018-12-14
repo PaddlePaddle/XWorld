@@ -17,6 +17,7 @@
 #include "bullet_engine/bullet_joint.h"
 #include "bullet_engine/bullet_object.h"
 #include "bullet_engine/bullet_body.h"
+#include "bullet_engine/bullet_world.h"
 #include "render_engine/model.h"
 #include "render_engine/render_world.h"
 
@@ -129,9 +130,9 @@ public:
 
     void UpdateTag(const std::string& tag) { body_data_.label = tag; }
 
-    virtual bool InteractWith(const std::string& tag) = 0;
+    virtual bool InteractWith(const std::string& tag) { return false; }
     
-    virtual bool TakeAction(const int act_id) = 0;
+    virtual bool TakeAction(const int act_id) { return false; }
 
     virtual std::vector<std::string> GetActions() const {
         return std::vector<std::string>(0);
@@ -175,11 +176,11 @@ public:
         hide_ = false;
     }
 
-    virtual void Move(const xScalar move, const xScalar rotate);
+    virtual void Move(const xScalar translate, const xScalar rotate);
 
     virtual void UnFreeze();
 
-    virtual void Freeze(const bool remit = false);
+    virtual void Freeze();
 
     virtual void MoveForward(const float speed);
 
@@ -224,7 +225,7 @@ public:
 
     virtual void AttachTo(std::weak_ptr<RobotBase> object, const int id = -1);
 
-    virtual void Detach() { detach(); }
+    virtual void Detach();
 
     // RenderBody
     virtual const RenderPart* render_root_ptr() const override;
@@ -291,7 +292,7 @@ public:
             const std::string& filename,
             const btVector3 position,
             const btQuaternion rotation,
-            const float scale = 1.0f,
+            const xScalar scale = 1.0f,
             const std::string& label = "",
             const bool concave = false);
 
@@ -354,27 +355,27 @@ private:
     std::map<int, float> positions_;
 };
 
-struct ContactPoint {
-    glm::vec3 contact_normal;
-    glm::vec3 contact_position_a;
-    glm::vec3 contact_position_b;
-    float contact_force;
-    float contact_distance;
-    int bullet_id_a;
-    int bullet_id_b;
-};
+// struct ContactPoint {
+//     glm::vec3 contact_normal;
+//     glm::vec3 contact_position_a;
+//     glm::vec3 contact_position_b;
+//     float contact_force;
+//     float contact_distance;
+//     int bullet_id_a;
+//     int bullet_id_b;
+// };
 
-struct Ray {
-    glm::vec3 from;
-    glm::vec3 to;
-};
+// struct Ray {
+//     glm::vec3 from;
+//     glm::vec3 to;
+// };
 
-struct RayTestInfo
-{
-    int bullet_id;
-    glm::vec3 pos;
-    glm::vec3 norm;
-};
+// struct RayTestInfo
+// {
+//     int bullet_id;
+//     glm::vec3 pos;
+//     glm::vec3 norm;
+// };
 
 struct ObjectAttributes {
     glm::vec3 aabb_min;
@@ -388,28 +389,21 @@ struct ObjectDirections {
 };
 
 class World : public render_engine::RenderWorld,
+              public bullet_engine::BulletWorld,
               public std::enable_shared_from_this<World> {
     using RenderBody = render_engine::RenderBody;
 public:
     World();
     ~World();
-
-    b3PhysicsClientHandle client_;
     
     std::map<std::string, std::string> tag_list_;
     std::map<std::string, bool> pickable_list_;
-
     std::vector<std::shared_ptr<RobotBase>> robot_list_;
     std::map<int, std::shared_ptr<RobotBase>> id_to_robot_;
     std::map<std::string, std::vector<std::shared_ptr<RobotBase>>> recycle_robot_map_;
     std::map<std::string, render_engine::ModelDataSPtr> model_cache_;
     std::map<std::string, std::vector<int>> object_locations_;
 
-    float bullet_gravity_;
-    float bullet_timestep_;
-    float bullet_timestep_sent_;
-    float bullet_skip_frames_sent_;
-    double bullet_ts_;
     int reset_count_;
 
     void LoadMetadata(const char * filename);
@@ -417,72 +411,60 @@ public:
     void UpdatePickableList(const std::string& tag, const bool pick);
 
     std::weak_ptr<RobotBase> LoadRobot(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation,
-        const btVector3 scale = btVector3(1,1,1),
-        const std::string& label = "unlabeled",
-        const bool fixed_base = false,
-        const float mass = 0,
-        const bool flip = false,
-        const bool concave = false
-    );
+            const std::string& filename,
+            const btVector3 position,
+            const btQuaternion rotation,
+            const btVector3 scale = btVector3(1,1,1),
+            const std::string& label = "unlabeled",
+            const bool fixed_base = false,
+            const float mass = 0,
+            const bool flip = false,
+            const bool concave = false);
 
-   std::shared_ptr<RobotBase> LoadModelFromCache(
-        const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation
-    );
+    std::shared_ptr<RobotBase> LoadModelFromCache(
+            const std::string& filename,
+            const btVector3 position,
+            const btQuaternion rotation);
 
     render_engine::ModelDataSPtr FindInCache(
             const std::string &key,
             std::vector<render_engine::ModelDataSPtr> &model_list,
             bool& reset);
 
+    void UpdateAttachObjects(std::shared_ptr<RobotBase> robot);
+    void FixLockedObjects(std::shared_ptr<RobotBase> robot);
+    void QueryPose(std::shared_ptr<RobotBase> robot);
+
     void ClearCache();
     void PrintCacheInfo();
     void BulletInit(const float gravity = 9.81f, const float timestep = 1.0/100.0);
     void BulletStep(const int skip_frames = 1);
-    void QueryPositions();
-    void QueryPosition(std::shared_ptr<RobotBase> robot);
     void RemoveRobot(std::weak_ptr<RobotBase> rm_robot);
     void CleanEverything();
     void CleanEverything2();
     void ResetSimulation();
-    int RayTest(const glm::vec3 ray_from_position, const glm::vec3 ray_to_position);
-    void BatchRayTest(const std::vector<Ray> rays, std::vector<RayTestInfo>& result,
-        const int num_threads = 0);
-    void SetTransformation(std::weak_ptr<RobotBase> robot_tr, const btTransform& tranform);
-    void SetVelocity(std::weak_ptr<RobotBase> robot_vel, const btVector3& velocity);
 
-    void GetRootClosestPoints(std::weak_ptr<RobotBase> robot_in, std::weak_ptr<Object> part_in,
-        std::vector<ContactPoint>& contact_points);
-    void GetRootContactPoints(std::weak_ptr<RobotBase> robot_in, std::weak_ptr<Object> part_in,
-        std::vector<ContactPoint>& contact_points);
+    void RayTest(const glm::vec3 from, const glm::vec3 to, RayTestInfo& result);
+    void BatchRayTest(const std::vector<Ray> rays, 
+                      std::vector<RayTestInfo>& result,
+                      const int num_threads = 0);
 
-    int CreateFixedRootToTargetConstraint(std::weak_ptr<RobotBase> parent_robot,
-        const btVector3& parent_relative_position,
-        const btVector3& child_relative_position,
-        const btQuaternion& parent_relative_orientation = btQuaternion(),
-        const btQuaternion& child_relative_orientation = btQuaternion()
-    );
+    void SetTransformation(std::weak_ptr<RobotBase> robot, const btTransform& tr);
 
-    void ChangeFixedRootToTargetConstraint(const int constraint_id,
-        const btVector3& child_relative_position,
-        const btQuaternion& child_relative_orientation,
-        const float max_force = 500.0f
-    );
+    void GetRootClosestPoints(
+            std::weak_ptr<RobotBase> robot_in, 
+            std::weak_ptr<Object> part_in,
+            std::vector<ContactPoint>& contact_points);
+    void GetRootContactPoints(
+            std::weak_ptr<RobotBase> robot_in, 
+            std::weak_ptr<Object> part_in,
+            std::vector<ContactPoint>& contact_points);
 
-    void CharacterMove(std::weak_ptr<RobotBase> robot_move, const glm::vec3 walk_move,
-        const glm::vec3 walk_rotate, const float speed);
-
-    void AddObjectWithLabel(const std::string& label,
-        const int id);
+    void AddObjectWithLabel(const std::string& label, const int id);
     void RemoveObjectWithLabel(const int id);
-    void QueryObjectDirectionByLabel(const std::string& label, const glm::vec3 front,
-        const glm::vec3 eye, std::vector<ObjectDirections>& result);
+
     void QueryObjectByLabel(const std::string& label,
-        std::vector<ObjectAttributes>& result);
+            std::vector<ObjectAttributes>& result);
     
 public:
     size_t size() const override { return robot_list_.size(); }

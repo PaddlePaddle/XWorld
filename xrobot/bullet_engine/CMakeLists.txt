@@ -4,6 +4,7 @@ add_library(bullet_engine OBJECT
     bullet_joint.cpp
     bullet_object.cpp
     bullet_body.cpp
+    bullet_world.cpp
 )
 
 add_dependencies(bullet_engine assimp bullet glfw glm utils)

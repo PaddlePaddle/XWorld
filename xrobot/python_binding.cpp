@@ -27,12 +27,12 @@ std::string Thing::GetLabel()
 void Thing::Sync()
 {
 	if(auto robot_sptr = robot_.lock()) {
-		btTransform tr_bt = robot_sptr->robot_data_.root_part_->object_position_;
+		btTransform tr_bt = robot_sptr->root_part_->object_position_;
 		btVector3 pos_bt = tr_bt.getOrigin();
         btQuaternion orn_bt = tr_bt.getRotation();
 		position_ = vec2tuple(glm::vec3(pos_bt[0], pos_bt[1], pos_bt[2]));
         orientation_ = vec2tuple(glm::vec4(orn_bt[0], orn_bt[1], orn_bt[2], orn_bt[3]));
-		label_ = robot_sptr->robot_data_.label_;
+		label_ = robot_sptr->body_data_.label;
 	}
 }
 
@@ -683,7 +683,7 @@ Thing Playground::SpawnAnObject(const std::string& file,
 
 	if(auto obj_sptr = obj_wptr.lock()) {
 		if(!fixed) {
-   			obj_sptr->move(true);
+   			obj_sptr->ignore_baking(true);
    		}
 		obj_sptr->DisableSleeping();
 	}
@@ -1054,9 +1054,9 @@ boost::python::list Playground::EnableInteraction()
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
 
-                printf("body: %s\n", body->robot_data_.label_.c_str());
+                printf("body: %s\n", body->body_data_.label.c_str());
 
-                btTransform object_tr_bt = body->robot_data_.root_part_->object_position_;
+                btTransform object_tr_bt = body->root_part_->object_position_;
                 btVector3 object_pos_bt = object_tr_bt.getOrigin();
                 glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
 
@@ -1066,7 +1066,7 @@ boost::python::list Playground::EnableInteraction()
                 printf("dir: %f, dist: %f\n", dir_tmp, dist_tmp);
 
                 if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
-                    bullet_id = body->robot_data_.bullet_handle_;
+                    bullet_id = body->body_data_.body_uid;
                 }
             }
         }
@@ -1079,8 +1079,8 @@ boost::python::list Playground::EnableInteraction()
     if(bullet_id >= 0) {
 
         // TODO
-        // Is bullet_handle_to_robot_map_fuuly functional?
-        auto object = bullet_world->bullet_handle_to_robot_map_[bullet_id];
+        // Is id_to_robot_fuuly functional?
+        auto object = bullet_world->id_to_robot_[bullet_id];
 
         std::vector<std::string> actions = object->GetActions();
 
@@ -1114,10 +1114,10 @@ void Playground::Attach()
 
     if(temp_res[0].bullet_id >= 0) {
 
-        auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
+        auto object = bullet_world->id_to_robot_[temp_res[0].bullet_id];
 
         if(auto agent = agent_.GetPtr().lock()) {
-            agent->AttachObject(object);
+            agent->AttachTo(object);
         }
     }
 }
@@ -1125,7 +1125,7 @@ void Playground::Attach()
 void Playground::Detach()
 {
     if(auto agent = agent_.GetPtr().lock()) {
-        agent->DetachObject();
+        agent->Detach();
     }
 }
 
@@ -1167,7 +1167,7 @@ void Playground::Rotate(const boost::python::list angle_py)
 	
 	if(auto agent_sptr = agent_.GetPtr().lock())
     {
-        agent_sptr->RotateObject(angle, from, to);
+        agent_sptr->Rotate(angle, from, to);
     }
 }
 
@@ -1200,7 +1200,7 @@ void Playground::TakeAction(const int action_id)
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
 
-                btTransform object_tr_bt = body->robot_data_.root_part_->object_position_;
+                btTransform object_tr_bt = body->root_part_->object_position_;
                 btVector3 object_pos_bt = object_tr_bt.getOrigin();
                 glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
 
@@ -1208,7 +1208,7 @@ void Playground::TakeAction(const int action_id)
                 float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
 
                 if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
-                    bullet_id = body->robot_data_.bullet_handle_;
+                    bullet_id = body->body_data_.body_uid;
                 }
             }
         }
@@ -1217,7 +1217,7 @@ void Playground::TakeAction(const int action_id)
 
 
     if(bullet_id >= 0 && action_id < boost::python::len(current_actions_)) {
-    	auto object = bullet_world->bullet_handle_to_robot_map_[bullet_id];
+    	auto object = bullet_world->id_to_robot_[bullet_id];
 
     	object->TakeAction(action_id);
     }
@@ -1253,7 +1253,7 @@ void Playground::Use(const int object_id)
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
 
-                btTransform object_tr_bt = body->robot_data_.root_part_->object_position_;
+                btTransform object_tr_bt = body->root_part_->object_position_;
                 btVector3 object_pos_bt = object_tr_bt.getOrigin();
                 glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
 
@@ -1261,14 +1261,14 @@ void Playground::Use(const int object_id)
                 float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
 
                 if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
-                    bullet_id = body->robot_data_.bullet_handle_;
+                    bullet_id = body->body_data_.body_uid;
                 }
             }
         }
     }
 
     if(bullet_id >= 0) {
-        auto object = bullet_world->bullet_handle_to_robot_map_[bullet_id];
+        auto object = bullet_world->id_to_robot_[bullet_id];
 
         if(object_id < inventory_->GetNumUsedSpace()) {
 
@@ -1292,7 +1292,7 @@ void Playground::ControlJointPositions(const Thing& object,
             int joint_id   = boost::python::extract<int>(joints_position_keys[i]);
             float position = boost::python::extract<float>(joint_positions[joint_id]);
 
-            auto joint_ptr = object_sptr->robot_data_.joints_list_[joint_id];
+            auto joint_ptr = object_sptr->joints_[joint_id];
             joint_ptr->SetJointMotorControlPosition(position, 0.1f, 1.0f, max_force);
         }
     }
@@ -1311,7 +1311,7 @@ void Playground::ControlJointVelocities(const Thing& object,
             int joint_id   = boost::python::extract<int>(joint_velocities_keys[i]);
             float velocity = boost::python::extract<float>(joint_velocities[joint_id]);
 
-            auto joint_ptr = object_sptr->robot_data_.joints_list_[joint_id];
+            auto joint_ptr = object_sptr->joints_[joint_id];
             joint_ptr->SetJointMotorControlVelocity(velocity, 1.0f, max_force);
         }
     }
@@ -1321,7 +1321,7 @@ bool Playground::QueryContact(Thing& object)
 {
     if(auto object_sptr = object.GetPtr().lock())
     {
-        auto object_root_ptr = object_sptr->robot_data_.root_part_;
+        auto object_root_ptr = object_sptr->root_part_;
 
         std::vector<ContactPoint> contact_points;
         scene_->world_->GetRootContactPoints(object_sptr, object_root_ptr, contact_points);
@@ -1351,9 +1351,12 @@ bool Playground::QueryObjectWithLabelAtCameraCenter(const std::string& label)
     		// Check Aim
     		glm::vec3 fromPosition = main_camera_->Position;
     		glm::vec3 toPosition = main_camera_->Front * 2.0f + fromPosition;
-    		int res = scene_->world_->RayTest(fromPosition, toPosition);
+    		
+            RayTestInfo res;
 
-    		if(res == temp[i].bullet_id) {
+            scene_->world_->RayTest(fromPosition, toPosition, res);
+
+    		if(res.bullet_id == temp[i].bullet_id) {
     			return true;
     			break;
     		}
@@ -1382,7 +1385,7 @@ boost::python::list Playground::QueryObjectByLabel(const std::string& label)
 
         Thing object_temp;
         if(temp[i].bullet_id >= 0) {
-            auto object = bullet_world->bullet_handle_to_robot_map_[temp[i].bullet_id];
+            auto object = bullet_world->id_to_robot_[temp[i].bullet_id];
             object_temp.SetPtr(object);
         }
         result.append(object_temp);
@@ -1405,7 +1408,7 @@ Thing Playground::QueryObjectAtCameraCenter()
 
     Thing object_temp;
     if(temp_res[0].bullet_id >= 0) {
-    	auto object = bullet_world->bullet_handle_to_robot_map_[temp_res[0].bullet_id];
+    	auto object = bullet_world->id_to_robot_[temp_res[0].bullet_id];
     	object_temp.SetPtr(object);
     }
 
@@ -1420,8 +1423,8 @@ bool Playground::QueryObjectAABBIntersect(Thing& object_a, Thing& object_b)
 		{
 			glm::vec3 a_min, a_max, b_min, b_max;
 
-            object_a_sptr->robot_data_.root_part_->GetAABB(a_min, a_max);
-            object_b_sptr->robot_data_.root_part_->GetAABB(b_min, b_max);
+            object_a_sptr->root_part_->GetAABB(a_min, a_max);
+            object_b_sptr->root_part_->GetAABB(b_min, b_max);
 
             if(a_min.x < b_min.x && a_max.x > b_max.x &&
                a_min.z < b_min.z && a_max.z > b_max.z) {
@@ -1481,7 +1484,7 @@ void Playground::Teleport(Thing object, const boost::python::list position_py)
 
 	if(auto object_sptr = object.GetPtr().lock())
 	{
-		auto root_part_ = object_sptr->robot_data_.root_part_;
+		auto root_part_ = object_sptr->root_part_;
 
 		btTransform root_transform = root_part_->object_position_;
 		root_transform.setOrigin(btVector3(position.x, position.y, position.z));

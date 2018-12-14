@@ -50,7 +50,7 @@ typedef std::shared_ptr<RenderPart> RenderPartSPtr;
 
 class RenderBody {
 public:
-    RenderBody() : recycle_(false), move_(false), hide_(false) {}
+    RenderBody() : recycle_(false), baking_(false), hide_(false) {}
 
     virtual ~RenderBody() {}
 
@@ -58,9 +58,9 @@ public:
 
     virtual void hide(const bool value) = 0; 
 
-    bool move() const { return move_; }
+    bool ignore_baking() const { return baking_; }
 
-    void move(const bool value) { move_ = value; }
+    void ignore_baking(const bool value) { baking_ = value; }
 
     bool is_recycled() const { return recycle_; }
 
@@ -86,7 +86,7 @@ public:
                                glm::vec3& up) = 0;
 protected:
     bool hide_;
-    bool move_;
+    bool baking_;
     bool recycle_;
 };
 

@@ -65,6 +65,7 @@ bool BulletBody::load_part(
         const int part_id,
         BulletJoint* joint,
         BulletObject* part) {
+    
     bool keep_joint = false;
     struct b3JointInfo info;
     b3GetJointInfo(client, body_data_.body_uid, part_id, &info);
@@ -202,6 +203,45 @@ void BulletBody::remove_from_bullet(const ClientHandle client, const int id) {
             client, b3InitRemoveBodyCommand(client, id));
 }
 
+void BulletBody::update_joints(const ClientHandle client) {
+    CommandHandle cmd_handle =
+            b3JointControlCommandInit2(client, body_data_.body_uid, kVelocity);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+void BulletBody::query_pose(const ClientHandle client,
+                            const xScalar** room_iner_frame,
+                            const xScalar** q,
+                            const xScalar** q_dot) {
+    CommandHandle cmd_handle =
+            b3RequestActualStateCommandInit(client, body_data_.body_uid);
+    StatusHandle status_handle = 
+            b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+
+    b3GetStatusActualState(
+        status_handle,
+        0,
+        0,
+        0,
+        room_iner_frame,
+        q,
+        q_dot,
+        0
+    );
+}
+
+void BulletBody::query_link(const ClientHandle client,
+                            const int id,
+                            b3LinkState& state) {
+    CommandHandle cmd_handle =
+            b3RequestActualStateCommandInit(client, body_data_.body_uid);
+    b3RequestActualStateCommandComputeLinkVelocity(cmd_handle, kComputeVelocity);
+    StatusHandle status_handle = 
+            b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+
+    b3GetLinkState(client, status_handle, id, &state);   
+}
+
 void BulletBody::move(
         const xScalar move,
         const xScalar rot,
@@ -213,12 +253,11 @@ void BulletBody::move(
     btVector3 pos;
     btQuaternion quat;
     root_part->pose(pos, quat);
-
-    orientation_ = orientation_ * btQuaternion(btVector3(0, 1, 0), rot);
+    btQuaternion orientation_new = orientation_ * btQuaternion(btVector3(0, 1, 0), angle_);
     angle_ += rot;
-    btVector3 pos_new = pos + btTransform(orientation_) * btVector3(move, 0, 0);
-    btQuaternion quat_new = btQuaternion(btVector3(0, 1, 0), angle) * quat;
-    
+    btVector3 pos_new = pos + btTransform(orientation_new) * btVector3(move, 0, 0);
+    btQuaternion quat_new = btQuaternion(btVector3(0, 1, 0), angle_) * quat;
+
     p[0] = pos_new[0];
     p[1] = pos_new[1];
     p[2] = pos_new[2];
@@ -232,31 +271,32 @@ void BulletBody::move(
     prev_q[3] = quat[3];
 }
 
-void BulletBody::attach(BulletObject* part, const BulletObject* target_part) {
-    btTransform T_target = target_part->object_position_;
+void BulletBody::attach(BulletObject* part, const BulletObject* target_root) {
+    btTransform T_target = target_root->object_position_;
     btTransform T = part->object_position_.inverse() * T_target;
     part->attach_transform_ = T;
 }
 
-void BulletBody::detach() {
-    if(body_data_.attach_to_id < -1) {
-        printf("Nothing to detach!\n");
-        return;
-    }
+// void BulletBody::detach(BulletObject* root) {
+//     if(body_data_.attach_to_id < -1) {
+//         printf("Nothing to detach!\n");
+//         return;
+//     }
 
-    if(body_data_.attach_to_id == -1) {
-        root_part_->detach();
-    } else {
-        //body_data_.other_parts_[attach_to_id_]->attach_object_ = object;
-        parts_[body_data_.attach_to_id]->detach();
-    }
-    body_data_.attach_to_id = -2;
-}
+//     if(body_data_.attach_to_id == -1) {
+//         root->detach();
+//     } else {
+//         //body_data_.other_parts_[attach_to_id_]->attach_object_ = object;
+//         // parts_[body_data_.attach_to_id]->detach();
+//     }
+//     body_data_.attach_to_id = -2;
+// }
 
 void BulletBody::attach_camera(
         const BulletObject* part,
         const glm::vec3& offset,
         const float pitch,
+        glm::vec3& loc,
         glm::vec3& front,
         glm::vec3& right,
         glm::vec3& up) {
@@ -276,7 +316,7 @@ void BulletBody::attach_camera(
     pre_orientation.setIdentity();
     pre_orientation.setEulerYPR(0, glm::radians(pitch), 0);
     base_front = base_orientation * pre_orientation * btVector3(1, 0, 0); 
-    front = glm::normalize(vec3(base_front[0], base_front[1], base_front[2]));
+    front = glm::normalize(glm::vec3(base_front[0], base_front[1], base_front[2]));
     right = glm::normalize(glm::cross(front, glm::vec3(0,-1,0)));
     up = glm::normalize(glm::cross(front, right));
 
@@ -319,6 +359,95 @@ void BulletBody::inverse_kinematics(
     if (result && num_poses) {
         result = b3GetStatusInverseKinematicsJointPositions(
                 status_handle, &result_body_index, &num_poses, output_joint_pos);
+    }
+}
+
+void BulletBody::get_closest_points(const ClientHandle client, 
+        std::vector<ContactPoint>& points) {
+    struct b3ContactInformation contact_point_data;
+    CommandHandle cmd_handle = b3InitClosestDistanceQuery(client);
+
+    b3SetClosestDistanceFilterBodyA(cmd_handle, body_data_.body_uid);
+    b3SetClosestDistanceThreshold(cmd_handle, 0.f);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+    
+    b3GetContactPointInformation(client, &contact_point_data);
+
+    points.clear();
+    for (int i = 0; i < contact_point_data.m_numContactPoints; ++i)
+    {
+        ContactPoint point;
+
+        float normal_x, normal_y, normal_z;
+        normal_x = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[0];
+        normal_y = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[1];
+        normal_z = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[2];
+
+        float pos_a_x, pos_a_y, pos_a_z;
+        pos_a_x = contact_point_data.m_contactPointData[i].m_positionOnAInWS[0];
+        pos_a_y = contact_point_data.m_contactPointData[i].m_positionOnAInWS[1];
+        pos_a_z = contact_point_data.m_contactPointData[i].m_positionOnAInWS[2];
+
+        float pos_b_x, pos_b_y, pos_b_z;
+        pos_b_x = contact_point_data.m_contactPointData[i].m_positionOnBInWS[0];
+        pos_b_y = contact_point_data.m_contactPointData[i].m_positionOnBInWS[1];
+        pos_b_z = contact_point_data.m_contactPointData[i].m_positionOnBInWS[2];
+
+        point.contact_normal = glm::vec3(normal_x, normal_y, normal_z);
+        point.contact_force = 
+                contact_point_data.m_contactPointData[i].m_normalForce;
+        point.contact_distance = 
+                contact_point_data.m_contactPointData[i].m_contactDistance;
+        point.bullet_id_a = 
+                contact_point_data.m_contactPointData[i].m_bodyUniqueIdA;
+        point.bullet_id_b = 
+                contact_point_data.m_contactPointData[i].m_bodyUniqueIdB;
+        point.contact_position_a = glm::vec3(pos_a_x, pos_a_y, pos_a_z);
+        point.contact_position_b = glm::vec3(pos_b_x, pos_b_y, pos_b_z);
+
+        points.push_back(point);
+    }
+}
+
+void BulletBody::get_contact_points(const ClientHandle client,
+        std::vector<ContactPoint>& points) {
+    struct b3ContactInformation contact_point_data;
+    CommandHandle cmd_handle = b3InitRequestContactPointInformation(client);
+
+    b3SetContactFilterBodyA(cmd_handle, body_data_.body_uid);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+
+    b3GetContactPointInformation(client, &contact_point_data);
+    points.clear();
+
+    for (int i = 0; i < contact_point_data.m_numContactPoints; ++i)
+    {
+        ContactPoint point;
+
+        float normal_x, normal_y, normal_z;
+        normal_x = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[0];
+        normal_y = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[1];
+        normal_z = contact_point_data.m_contactPointData[i].m_contactNormalOnBInWS[2];
+
+        float pos_a_x, pos_a_y, pos_a_z;
+        pos_a_x = contact_point_data.m_contactPointData[i].m_positionOnAInWS[0];
+        pos_a_y = contact_point_data.m_contactPointData[i].m_positionOnAInWS[1];
+        pos_a_z = contact_point_data.m_contactPointData[i].m_positionOnAInWS[2];
+
+        float pos_b_x, pos_b_y, pos_b_z;
+        pos_b_x = contact_point_data.m_contactPointData[i].m_positionOnBInWS[0];
+        pos_b_y = contact_point_data.m_contactPointData[i].m_positionOnBInWS[1];
+        pos_b_z = contact_point_data.m_contactPointData[i].m_positionOnBInWS[2];
+
+        point.contact_normal = glm::vec3(normal_x, normal_y, normal_z);
+        point.contact_force = contact_point_data.m_contactPointData[i].m_normalForce;
+        point.contact_distance = 
+                contact_point_data.m_contactPointData[i].m_contactDistance;
+        point.bullet_id_a = contact_point_data.m_contactPointData[i].m_bodyUniqueIdA;
+        point.bullet_id_b = contact_point_data.m_contactPointData[i].m_bodyUniqueIdB;
+        point.contact_position_a = glm::vec3(pos_a_x, pos_a_y, pos_a_z);
+        point.contact_position_b = glm::vec3(pos_b_x, pos_b_y, pos_b_z);
+        points.push_back(point);
     }
 }
 

@@ -21,6 +21,28 @@ class World;
 
 typedef btScalar xScalar;
 
+struct ContactPoint {
+    glm::vec3 contact_normal;
+    glm::vec3 contact_position_a;
+    glm::vec3 contact_position_b;
+    float contact_force;
+    float contact_distance;
+    int bullet_id_a;
+    int bullet_id_b;
+};
+
+struct Ray {
+    glm::vec3 from;
+    glm::vec3 to;
+};
+
+struct RayTestInfo
+{
+    int bullet_id;
+    glm::vec3 pos;
+    glm::vec3 norm;
+};
+
 namespace bullet_engine {
 
 typedef std::shared_ptr<RobotBase> RobotBaseSPtr;
@@ -28,7 +50,10 @@ typedef std::weak_ptr<RobotBase> RobotBaseWPtr;
 typedef std::shared_ptr<World> WorldSPtr;
 typedef std::weak_ptr<World> WorldWPtr;
 
+constexpr int kAllThreads = 0;
 constexpr int kCacheSize = 32;
+const float kFloat3Zero[3] = { 0.0f };
+const float kFloat4Zero[4] = { 0.0f };
 const glm::vec3 kVec3Zero = glm::vec3(0); 
 const glm::vec3 kVec3Up = glm::vec3(0,1,0);
 const glm::vec3 kVec3Front = glm::vec3(1,0,0);
@@ -73,6 +98,7 @@ enum LoadingFlags {
     kURDFEnableSleeping = URDF_ENABLE_SLEEPING
 };
 
+
 glm::mat4 TransformToMat4(const btTransform& transform);
 
 template <typename T>
@@ -89,6 +115,12 @@ void set_pose(
         const int id,
         const T* pos,
         const T* quat = nullptr);
+
+template <typename T>
+void set_vel(
+        const ClientHandle client,
+        const int id,
+        const T* vel);
 
 void rotate(const ClientHandle client, const int id, const glm::vec3 angle);
 

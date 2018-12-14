@@ -31,7 +31,7 @@ public:
 
     virtual ~BulletBody() {}
 
-protected:
+// protected:
     bool load_urdf(
             const ClientHandle client,
             const std::string& filename,
@@ -74,6 +74,17 @@ protected:
 
     void remove_from_bullet(const ClientHandle client, const int id);
 
+    void update_joints(const ClientHandle client);
+
+    void query_pose(const ClientHandle client,
+                    const xScalar** room_iner_frame,
+                    const xScalar** q,
+                    const xScalar** q_dot);
+
+    void query_link(const ClientHandle client,
+                    const int id,
+                    b3LinkState& state);
+
     void move(
             const xScalar move,
             const xScalar rot,
@@ -82,7 +93,35 @@ protected:
             xScalar* q,
             xScalar* prev_q);
 
-    void detach();
+    void attach(BulletObject* part, const BulletObject* target_root);
+
+    // void detach(BulletObject* root);
+
+    void attach_camera(
+            const BulletObject* part,
+            const glm::vec3& offset,
+            const float pitch,
+            glm::vec3& loc,
+            glm::vec3& front,
+            glm::vec3& right,
+            glm::vec3& up);
+
+    void inverse_kinematics(
+            const ClientHandle client,
+            const int id,
+            const int end_index,
+            const xScalar* target_pos,
+            const xScalar* target_quat,
+            const xScalar* joint_damping,
+            xScalar* output_joint_pos,
+            int& num_poses);
+
+    void get_closest_points(const ClientHandle client, 
+            std::vector<ContactPoint>& points);
+
+    void get_contact_points(const ClientHandle client, 
+            std::vector<ContactPoint>& points);
+
 
 public:
     BulletBodyData body_data_;

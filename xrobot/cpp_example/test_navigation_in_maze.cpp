@@ -43,6 +43,6 @@ int main(int argc, char **argv)
 
     while(!renderer->GetContext()->GetWindowShouldClose())
         group.RunStage();
-
+    
     return 0;
 }

@@ -82,7 +82,7 @@ namespace xrobot
 
 	    // Create a Camera and Attach to the Agent
 		if(auto agent_sptr = agent_.lock()) {
-			agent_sptr->move(true);
+			agent_sptr->ignore_baking(true);
 			agent_sptr->DisableSleeping();
 
 		    main_camera_ = scene_->world_->add_camera(vec3(0, 0, 0),
@@ -140,9 +140,11 @@ namespace xrobot
         		// Check Aim
         		glm::vec3 fromPosition = main_camera_->Position;
         		glm::vec3 toPosition = main_camera_->Front * 3.0f + fromPosition;
-        		int res = scene_->world_->RayTest(fromPosition, toPosition);
 
-        		if(res == temp[i].bullet_id)
+        		RayTestInfo res;
+        		scene_->world_->RayTest(fromPosition, toPosition, res);
+
+        		if(res.bullet_id == temp[i].bullet_id)
         			return "idle";
         	}
         }
