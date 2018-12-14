@@ -154,7 +154,7 @@ void Navigation::SpawnAgent(const glm::vec3 position,
     );
 
     if(auto robot_sptr = robot.lock()) 
-        robot_sptr->move(true);
+        robot_sptr->ignore_baking(true);
 
     world_->BulletStep();
 
@@ -860,7 +860,7 @@ void Navigation::Voxelization()
     for (size_t i = 0; i < world_->size(); ++i) {
         xrobot::render_engine::RenderBody* body = world_->render_body_ptr(i);
 
-        if(body->move() || body->is_hiding())
+        if(body->ignore_baking() || body->is_hiding())
             continue;
 
         // Root

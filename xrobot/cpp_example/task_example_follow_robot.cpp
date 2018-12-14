@@ -50,7 +50,7 @@ namespace xrobot
 	        true
 	    );
 	    if(auto target_sptr = target_.lock()) {
-	    	target_sptr->move(true);
+	    	target_sptr->ignore_baking(true);
 	   		target_sptr->DisableSleeping();
 	    }
 
@@ -66,7 +66,7 @@ namespace xrobot
 
 	    // Create a Camera and Attach to the Agent
 		if(auto agent_sptr = agent_.lock()) {
-			agent_sptr->move(true);
+			agent_sptr->ignore_baking(true);
 			agent_sptr->DisableSleeping();
 
 		    main_camera_ = scene_->world_->add_camera(vec3(0, 0, 0),

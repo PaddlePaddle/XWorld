@@ -1242,7 +1242,7 @@ void Render::DrawRootAABB(RenderWorld* world, const Shader& shader) {
     for (size_t i = 0; i < world->size(); i++)
     {
         RenderBody* body = world->render_body_ptr(i);
-        RenderPart * part = body->render_root_ptr();
+        RenderPart* part = body->render_root_ptr();
         if (part && !body->is_recycled())
         {
             glm::vec3 aabb_min, aabb_max;
@@ -1389,7 +1389,7 @@ void Render::Draw(RenderWorld* world,
         if(skip_robot && body->size() > 0)
             continue;
 
-        if(skip_robot && body->move())
+        if(skip_robot && body->ignore_baking())
             continue;
 
         // TODO

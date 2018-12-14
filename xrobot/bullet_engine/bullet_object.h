@@ -12,6 +12,7 @@ public:
 
     virtual ~BulletObject() {};
 
+// protected:
     void sleep(const ClientHandle client, const int body_uid);
 
     void enable_sleeping(const ClientHandle client, const int body_uid);
@@ -34,8 +35,8 @@ public:
     void change_linear_damping(
             const ClientHandle client, const int body_uid, const xScalar damping);
 
-    void change_angular_damping
-        (const ClientHandle client, const int body_uid, const xScalar damping);
+    void change_angular_damping(
+            const ClientHandle client, const int body_uid, const xScalar damping);
 
     void change_lateral_friction(
             const ClientHandle client, const int body_uid, const xScalar friction);
@@ -83,6 +84,7 @@ public:
 };
 
 typedef std::shared_ptr<BulletObject> BulletObjectSPtr;
+typedef std::weak_ptr<BulletObject>   BulletObjectWPtr;
 
 }} // namespace xrobot::bullet_engine
 

@@ -33,6 +33,26 @@ int get_num_joints(const ClientHandle client, const int id) {
 }
 
 template <typename T>
+void set_vel(
+        const ClientHandle client,
+        const int id,
+        const T* vel) {
+    CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
+
+    double velocity[3];
+    velocity[0] = vel[0];
+    velocity[1] = vel[1];
+    velocity[2] = vel[2];
+
+    b3CreatePoseCommandSetBaseLinearVelocity(cmd_handle, velocity);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
+
+template void set_vel<float>(const ClientHandle, const int, const float*);
+template void set_vel<double>(const ClientHandle, const int, const double*);
+
+
+template <typename T>
 void set_pose(
         const ClientHandle client,
         const int id,
@@ -49,35 +69,17 @@ void set_pose(
     b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
 }
 
-template void set_pose<float>(
-        const ClientHandle, const int, const float*, const float*);
-template void set_pose<double>(
-        const ClientHandle, const int, const double*, const double*);
-
-template <typename T>
-void get_pose(BulletObject* part, T* pos, T* quat) {
-    btVector3 p = root_part_->object_position_.getOrigin();
-    btQuaternion q = root_part_->object_position_.getRotation();
-    pos[0] = p[0];
-    pos[1] = p[1];
-    pos[2] = p[2];
-    quat[0] = q[0];
-    quat[1] = q[1];
-    quat[2] = q[2];
-    quat[3] = q[3];
-}
-
-template void get_pose(BulletObject*, float*, float*);
-template void get_pose(BulletObject*, double*, double*);
+template void set_pose<float>(const ClientHandle, const int, const float*, const float*);
+template void set_pose<double>(const ClientHandle, const int, const double*, const double*);
 
 void rotate(const ClientHandle client, const int id, const glm::vec3 angle) {
-    btQuaternion quat(rotate_angle.x, rotate_angle.y, rotate_angle.z);
+    btQuaternion quat(angle.x, angle.y, angle.z);
     xScalar q[4];
     q[0] = quat[0];
     q[1] = quat[1];
     q[2] = quat[2];
     q[3] = quat[3];
-    set_pose(client, id, nullptr, q);
+    set_pose(client, id, (xScalar*)NULL, q);
 }
 
 template <typename T>

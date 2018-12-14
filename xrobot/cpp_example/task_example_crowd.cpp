@@ -61,12 +61,12 @@ namespace xrobot
 	        true
 	    );
 	    if(auto obj_sptr = obj.lock())
-	   		obj_sptr->move(false);
+	   		obj_sptr->ignore_baking(false);
 
 
 	    // Create a Camera and Attach to the Agent
 		if(auto agent_sptr = agent_.lock()) {
-	   		agent_sptr->move(true);
+	   		agent_sptr->ignore_baking(true);
 	   		agent_sptr->DisableSleeping();
 
 	    	// Create a Camera and Attach to the Agent
