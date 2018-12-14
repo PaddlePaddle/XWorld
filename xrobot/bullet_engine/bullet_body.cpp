@@ -6,8 +6,8 @@ namespace bullet_engine {
 bool BulletBody::load_urdf(
         const ClientHandle client,
         const std::string& filename,
-        const xScalar* pos,
-        const xScalar* quat,
+        const glm::vec3 pos,
+        const glm::vec4 quat,
         const xScalar scale,
         const bool fixed_base,
         const bool self_collision,
@@ -107,10 +107,10 @@ int BulletBody::get_visual_shape_info(const ClientHandle client) {
 
 int BulletBody::get_visual_shape(
         int i,
-        xScalar* color,
-        xScalar* scale,
-        xScalar* pos,
-        xScalar* quat,
+        const glm::vec3& color,
+        const glm::vec3& scale,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
         std::string& filename,
         int& geometry_type) {
 
@@ -149,9 +149,9 @@ bool BulletBody::load_obj(
         const ClientHandle client,
         BulletObject* root_part,
         const std::string& filename,
-        const xScalar* position,
-        const xScalar* rotation,
-        const xScalar* scale,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
+        const glm::vec3& scale,
         const xScalar mass,
         const bool concave) {
     CommandHandle cmd_handle = b3LoadObjCommandInit(client, filename.c_str());
@@ -160,10 +160,9 @@ bool BulletBody::load_obj(
         b3LoadObjCommandSetFlags(cmd_handle, kOBJConcave);
     }
 
-    b3LoadObjCommandSetStartPosition(
-            cmd_handle, position[0], position[1], position[2]);
+    b3LoadObjCommandSetStartPosition(cmd_handle, pos[0], pos[1], pos[2]);
     b3LoadObjCommandSetStartOrientation(
-            cmd_handle, rotation[0], rotation[1], rotation[2], rotation[3]);
+            cmd_handle, quat[0], quat[1], quat[2], quat[3]);
     b3LoadObjCommandSetStartScale(cmd_handle, scale[0], scale[1], scale[2]);
     b3LoadObjCommandSetMass(cmd_handle, mass);
     StatusHandle status_handle = 
@@ -290,8 +289,8 @@ void BulletBody::inverse_kinematics(
         const ClientHandle client,
         const int id,
         const int end_index,
-        const xScalar* target_pos,
-        const xScalar* target_quat,
+        const glm::vec3& target_pos,
+        const glm::vec4& target_quat,
         const xScalar* joint_damping,
         xScalar* output_joint_pos,
         int& num_poses) {
@@ -299,12 +298,16 @@ void BulletBody::inverse_kinematics(
     const int num_joints = b3GetNumJoints(client, id);
     const int dof = b3ComputeDofCount(client, id);
 
+    xScalar p[3] = {target_pos[0], target_pos[1], target_pos[2]};
+    xScalar q[4] =
+            {target_quat[0], target_quat[1], target_quat[2], target_quat[3]};
+
     CommandHandle cmd_handle =
             b3CalculateInverseKinematicsCommandInit(client, id);
     b3CalculateInverseKinematicsSelectSolver(cmd_handle, solver);
 
     b3CalculateInverseKinematicsAddTargetPositionWithOrientation(
-            cmd_handle, end_index, target_pos, target_quat);
+            cmd_handle, end_index, p, q);
     b3CalculateInverseKinematicsSetJointDamping(cmd_handle, dof, joint_damping);
     StatusHandle status_handle =
             b3SubmitClientCommandAndWaitStatus(client, cmd_handle);

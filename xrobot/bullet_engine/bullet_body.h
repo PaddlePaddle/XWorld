@@ -35,8 +35,8 @@ protected:
     bool load_urdf(
             const ClientHandle client,
             const std::string& filename,
-            const xScalar* pos,
-            const xScalar* quat,
+            const glm::vec3& pos,
+            const glm::vec4& quat,
             const xScalar scale,
             const bool fixed_base,
             const bool self_collision,
@@ -55,10 +55,10 @@ protected:
 
     int get_visual_shape(
             int i,
-            xScalar* color,
-            xScalar* scale,
-            xScalar* pos,
-            xScalar* quat,
+            const glm::vec3& color,
+            const glm::vec3& scale,
+            const glm::vec3& pos,
+            const glm::vec4& quat,
             std::string& filename,
             int& geometry_type);
 
@@ -66,9 +66,9 @@ protected:
             const ClientHandle client,
             BulletObject* root_part,
             const std::string& filename,
-            const xScalar* position,
-            const xScalar* rotation,
-            const xScalar* scale,
+            const glm::vec3& pos,
+            const glm::vec4& quat,
+            const glm::vec3& scale,
             const xScalar mass,
             const bool concave);
 
