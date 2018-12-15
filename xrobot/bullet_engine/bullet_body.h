@@ -87,13 +87,16 @@ public:
                     const int id,
                     b3LinkState& state);
 
+    void reset_move() { first_move_ = true; }
+
     void move(
             const xScalar move,
             const xScalar rot,
             BulletObject* root_part,
             xScalar* p,
             xScalar* q,
-            xScalar* prev_q);
+            xScalar* prev_q,
+            xScalar* prev_o);
 
     void attach(BulletObject* part, const BulletObject* target_root);
 

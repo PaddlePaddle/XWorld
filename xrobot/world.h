@@ -355,28 +355,6 @@ private:
     std::map<int, float> positions_;
 };
 
-// struct ContactPoint {
-//     glm::vec3 contact_normal;
-//     glm::vec3 contact_position_a;
-//     glm::vec3 contact_position_b;
-//     float contact_force;
-//     float contact_distance;
-//     int bullet_id_a;
-//     int bullet_id_b;
-// };
-
-// struct Ray {
-//     glm::vec3 from;
-//     glm::vec3 to;
-// };
-
-// struct RayTestInfo
-// {
-//     int bullet_id;
-//     glm::vec3 pos;
-//     glm::vec3 norm;
-// };
-
 struct ObjectAttributes {
     glm::vec3 aabb_min;
     glm::vec3 aabb_max;

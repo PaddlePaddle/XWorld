@@ -100,6 +100,10 @@ namespace xrobot
 
 	std::string Task_NavToObject::NavTarget() {
 
+		if(scene_->world_->reset_count_ < 12023) {
+			return "idle";
+		}
+
 		if(auto agent_sptr = agent_.lock()) {
 			if(ctx_->GetKeyPressUp())
 	            agent_sptr->MoveForward(2);
@@ -175,8 +179,8 @@ namespace xrobot
         }
 
         // Reset After N Steps
-        if(iterations_++ > 12000) 
-        	return "idle";
+        // if(iterations_++ > 12000) 
+        // 	return "idle";
 
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   

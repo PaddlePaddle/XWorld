@@ -397,19 +397,22 @@ void RobotBase::DisableSleeping() {
        }
     }
 }
-                      
+              
+// Updated Version        
 void RobotBase::Move(const xScalar translate, const xScalar rotate) {
     assert(root_part_);
     auto bullet_world = wptr_to_sptr(bullet_world_);
     xScalar pos[3];
     xScalar quat[4];
     xScalar prev_quat[4];
-    move(translate, rotate, root_part_.get(), pos, quat, prev_quat);
+    xScalar prev_orn[4];
+    xScalar prev_angle = angle_;
+    move(translate, rotate, root_part_.get(), pos, quat, prev_quat, prev_orn);
 
     set_pose(bullet_world->client_, body_data_.body_uid, pos, quat);
     bullet_world->BulletStep();
 
-    bool reward = false;
+    bool step = false;
     std::vector<ContactPoint> contact_points;
     bullet_world->GetRootContactPoints(
             shared_from_this(), root_part_, contact_points);
@@ -431,11 +434,20 @@ void RobotBase::Move(const xScalar translate, const xScalar rotate) {
             pos[0] += sign * dir[0] * delta;
             pos[1] += sign * dir[1] * delta;
             pos[2] += sign * dir[2] * delta;
-            reward = true;
+            step = true;
         }
     }
 
-    if(reward) {
+    if(step) {
+
+        if(fabs(rotate) > 0.0f) {
+            angle_ = prev_angle;
+            orientation_[0] = prev_orn[0];
+            orientation_[1] = prev_orn[1];
+            orientation_[2] = prev_orn[2];
+            orientation_[3] = prev_orn[3];
+        }
+
         set_pose(bullet_world->client_, body_data_.body_uid, pos, prev_quat);
         bullet_world->BulletStep();
     }
@@ -1389,6 +1401,7 @@ void World::CleanEverything2()
 
     for (auto robot : robot_list_)
     {
+        robot->reset_move();
         if(!robot->is_recycled())
             robot->recycle();
     }
@@ -1478,7 +1491,7 @@ void World::FixLockedObjects(RobotBaseSPtr robot) {
         if(anim_robot->GetLock()) {
             int joint = anim_robot->GetJoint();
             float position = anim_robot->GetPosition(1);
-            anim_robot->SetJointPosition(joint, position, 1.0f, 0.1f, 10000.0f);
+            anim_robot->SetJointPosition(joint, position, 1.0f, 0.1f, 1000000.0f);
         }
     }
 }
