@@ -253,18 +253,27 @@ void BulletBody::move(
     btVector3 pos;
     btQuaternion quat;
     root_part->pose(pos, quat);
-    btQuaternion orientation_new = orientation_ * btQuaternion(btVector3(0, 1, 0), angle_);
-    angle_ += rot;
-    btVector3 pos_new = pos + btTransform(orientation_new) * btVector3(move, 0, 0);
-    btQuaternion quat_new = btQuaternion(btVector3(0, 1, 0), angle_) * quat;
 
+    if (first_move_) {
+        angle_ = 0;
+        base_orientation_ = quat;
+        first_move_ = false;
+        orientation_ = btQuaternion(btVector3(0, 1, 0), 0);
+    }
+
+    orientation_ = orientation_ * btQuaternion(btVector3(0, 1, 0), rot);
+    angle_ += rot;
+
+    btVector3 pos_new = pos + btTransform(orientation_) * btVector3(move, 0, 0);
+    btQuaternion orientation_new = btQuaternion(btVector3(0, 1, 0), angle_) * base_orientation_;
+    
     p[0] = pos_new[0];
     p[1] = pos_new[1];
     p[2] = pos_new[2];
-    q[0] = quat_new[0];
-    q[1] = quat_new[1];
-    q[2] = quat_new[2];
-    q[3] = quat_new[3];
+    q[0] = orientation_new[0];
+    q[1] = orientation_new[1];
+    q[2] = orientation_new[2];
+    q[3] = orientation_new[3];
     prev_q[0] = quat[0];
     prev_q[1] = quat[1];
     prev_q[2] = quat[2];

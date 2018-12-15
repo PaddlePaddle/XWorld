@@ -27,7 +27,9 @@ public:
     BulletBody() : 
             body_data_(BulletBodyData()),
             orientation_(btVector3(0,1,0),0),
-            angle_(0) {}
+            base_orientation_(),
+            angle_(0),
+            first_move_(true) {}
 
     virtual ~BulletBody() {}
 
@@ -127,7 +129,9 @@ public:
     BulletBodyData body_data_;
     b3VisualShapeInformation visual_shape_info_;
     btQuaternion orientation_;
+    btQuaternion base_orientation_;
     xScalar angle_;
+    bool first_move_;
 };
 
 
