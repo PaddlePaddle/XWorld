@@ -404,33 +404,34 @@ void RobotBase::Move(const xScalar translate, const xScalar rotate) {
     move(translate, rotate, root_part_.get(), pos, quat, prev_quat);
 
     set_pose(bullet_world->client_, body_data_.body_uid, pos, quat);
+    bullet_world->BulletStep();
 
-    // std::vector<ContactPoint> contact_points;
-    // bullet_world->GetRootContactPoints(
-    //         shared_from_this(), root_part_, contact_points);
-    // for (auto& cp : contact_points) {
-    //     glm::vec3 current_pos(pos[0], 0, pos[2]); // projected onto x-z plane
-    //     glm::vec3 cn   = glm::normalize(cp.contact_normal);
-    //     glm::vec3 cp_a = cp.contact_position_a;
-    //     glm::vec3 cp_b = cp.contact_position_b;
-    //     cp_b.y = 0; // projected onto x-z plane
+    std::vector<ContactPoint> contact_points;
+    bullet_world->GetRootContactPoints(
+            shared_from_this(), root_part_, contact_points);
+    for (auto& cp : contact_points) {
+        glm::vec3 current_pos(pos[0], 0, pos[2]); // projected onto x-z plane
+        glm::vec3 cn   = glm::normalize(cp.contact_normal);
+        glm::vec3 cp_a = cp.contact_position_a;
+        glm::vec3 cp_b = cp.contact_position_b;
+        cp_b.y = 0; // projected onto x-z plane
 
-    //     glm::vec3 dir = glm::normalize(cp_b - current_pos);
-    //     if (cp.contact_distance < -0.01 && abs(cn[1]) < 0.2) { // hack
-    //         int sign = 1;
-    //         xScalar delta = glm::clamp(cp.contact_distance, -0.05f, 0.0f);
-    //         auto& object_a = bullet_world->id_to_robot_[cp.bullet_id_a]; 
-    //         auto& object_b = bullet_world->id_to_robot_[cp.bullet_id_b];
+        glm::vec3 dir = glm::normalize(cp_b - current_pos);
+        if (cp.contact_distance < -0.01 && cn[1] < 0.2) { // hack
+            int sign = 1;
+            xScalar delta = glm::clamp(cp.contact_distance, -0.05f, 0.0f);
+            auto& object_a = bullet_world->id_to_robot_[cp.bullet_id_a]; 
+            auto& object_b = bullet_world->id_to_robot_[cp.bullet_id_b];
             
-    //         // btVector3 contact_normal(to_object.x, to_object.y, to_object.z);
-    //         pos[0] += sign * dir[0] * delta;
-    //         pos[1] += sign * dir[1] * delta;
-    //         pos[2] += sign * dir[2] * delta;
-    //         set_pose(bullet_world->client_, body_data_.body_uid, pos, prev_quat);
-    //         bullet_world->BulletStep();
-    //         break;
-    //     }
-    // }
+            // btVector3 contact_normal(to_object.x, to_object.y, to_object.z);
+            pos[0] += sign * dir[0] * delta;
+            pos[1] += sign * dir[1] * delta;
+            pos[2] += sign * dir[2] * delta;
+            set_pose(bullet_world->client_, body_data_.body_uid, pos, prev_quat);
+            bullet_world->BulletStep();
+            break;
+        }
+    }
 }
 
 void RobotBase::UnFreeze() { Move(0, 0); }
