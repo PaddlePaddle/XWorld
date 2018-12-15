@@ -12,7 +12,7 @@ public:
 
 	virtual ~BulletWorld();
 
-	void init(const xScalar gravity = 9.8f, const xScalar timestep = 0.01f);
+	void init(const xScalar gravity = 9.8f, const xScalar timestep = 0.005f);
 
 	void reset();
 

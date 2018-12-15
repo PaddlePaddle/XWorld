@@ -409,6 +409,7 @@ void RobotBase::Move(const xScalar translate, const xScalar rotate) {
     set_pose(bullet_world->client_, body_data_.body_uid, pos, quat);
     bullet_world->BulletStep();
 
+    bool reward = false;
     std::vector<ContactPoint> contact_points;
     bullet_world->GetRootContactPoints(
             shared_from_this(), root_part_, contact_points);
@@ -430,10 +431,13 @@ void RobotBase::Move(const xScalar translate, const xScalar rotate) {
             pos[0] += sign * dir[0] * delta;
             pos[1] += sign * dir[1] * delta;
             pos[2] += sign * dir[2] * delta;
-            set_pose(bullet_world->client_, body_data_.body_uid, pos, prev_quat);
-            bullet_world->BulletStep();
-            break;
+            reward = true;
         }
+    }
+
+    if(reward) {
+        set_pose(bullet_world->client_, body_data_.body_uid, pos, prev_quat);
+        bullet_world->BulletStep();
     }
 }
 
