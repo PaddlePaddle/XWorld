@@ -248,7 +248,8 @@ void BulletBody::move(
         BulletObject* root_part,
         xScalar* p,
         xScalar* q,
-        xScalar* prev_q) {
+        xScalar* prev_q,
+        xScalar* prev_o) {
 
     btVector3 pos;
     btQuaternion quat;
@@ -260,6 +261,11 @@ void BulletBody::move(
         first_move_ = false;
         orientation_ = btQuaternion(btVector3(0, 1, 0), 0);
     }
+
+    prev_o[0] = orientation_[0];
+    prev_o[1] = orientation_[1];
+    prev_o[2] = orientation_[2];
+    prev_o[3] = orientation_[3];
 
     orientation_ = orientation_ * btQuaternion(btVector3(0, 1, 0), rot);
     angle_ += rot;
