@@ -77,6 +77,7 @@ void ModelData::Reset(
             }
             break;
         case kMesh:
+            T->local_scale = glm::vec3(ex, ey, ez);
             if (create_new) {
                 Reset();
             }

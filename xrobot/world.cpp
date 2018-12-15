@@ -264,11 +264,14 @@ void RobotBase::load_robot_shapes(const xScalar scale) {
         // why do we need to do this?
         if (geometry_type == kMesh && create_new) {
             model_data->directory_ = filename;
-        }         
+        }
+
+        printf("---------------------%f\n", s[0]);
+
         model_data->Reset(
                 geometry_type,
                 create_new,
-                s,
+                glm::vec3(s[0], s[1], s[2]),
                 /*out*/T);
 
         part->transform_list_.push_back(T);
@@ -417,7 +420,7 @@ void RobotBase::Move(const xScalar translate, const xScalar rotate) {
         cp_b.y = 0; // projected onto x-z plane
 
         glm::vec3 dir = glm::normalize(cp_b - current_pos);
-        if (cp.contact_distance < -0.01 && cn[1] < 0.2) { // hack
+        if (cp.contact_distance < -0.01 && abs(cn[1]) < 0.2) { // hack
             int sign = 1;
             xScalar delta = glm::clamp(cp.contact_distance, -0.05f, 0.0f);
             auto& object_a = bullet_world->id_to_robot_[cp.bullet_id_a]; 
