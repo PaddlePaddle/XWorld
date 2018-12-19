@@ -185,7 +185,7 @@ bool BulletBody::load_obj(
             std::to_string(scale[2]);
 
     body_data_.scale = btVector3(scale[0], scale[1], scale[2]);
-    body_data_.fixed = true;
+    body_data_.fixed = false;
     body_data_.concave = concave;
     body_data_.mass = mass;
     body_data_.urdf_name = filename_with_scale;
@@ -194,7 +194,6 @@ bool BulletBody::load_obj(
 
     root_part->object_name_ = info.m_baseName;
     root_part->bullet_link_id_ = -1;
-    
     return true;
 }
 

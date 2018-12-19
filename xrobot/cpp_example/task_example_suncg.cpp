@@ -82,17 +82,6 @@ namespace xrobot
 	        true
 	    );
 
-	   	// Spawn Object
-	    obj_conv_ = scene_->world_->LoadRobot(
-	    	object_with_action_0,
-	    	glm::vec3(-5, 1, -2),
-	        glm::vec3(1, 0, 0),
-            0.0,
-	        glm::vec3(1, 1, 1),
-	        "OBJ_Conv",
-	        false
-	    );
-
 	   	if(auto agent_sptr = agent_.lock()) 
 	   	{
 	   		agent_sptr->ignore_baking(true);
@@ -142,14 +131,6 @@ namespace xrobot
 		    	renderer_->BakeScene(scene_->world_.get());
 		    }
     	}
-
-    	if(auto obj_conv_sptr = obj_conv_.lock()) {
-	        if(ctx_->GetKeyPressKP4())
-	            obj_conv_sptr->TakeAction(0);
-
-	        if(ctx_->GetKeyPressKP5())
-	            obj_conv_sptr->TakeAction(1);
-	    }
 
         if(ctx_->GetKeyPressKP9())
             cam_pitch_ += 0.1f;

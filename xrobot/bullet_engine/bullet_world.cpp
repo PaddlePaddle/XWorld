@@ -29,7 +29,12 @@ void BulletWorld::init(const xScalar gravity, const xScalar timestep) {
 void BulletWorld::step() {
 	bullet_ts_ += bullet_timestep_;
 
-	CommandHandle cmd_handle = b3InitStepSimulationCommand(client_);
+    CommandHandle cmd_handle = b3InitPhysicsParamCommand(client_);
+    b3PhysicsParamSetGravity(cmd_handle, 0, bullet_gravity_, 0);
+    b3PhysicsParamSetTimeStep(cmd_handle, bullet_timestep_);
+    b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
+
+	cmd_handle = b3InitStepSimulationCommand(client_);
     b3SubmitClientCommandAndWaitStatus(client_, cmd_handle);
 }
 
