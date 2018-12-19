@@ -69,6 +69,8 @@ public:
 
     glm::mat4 local_inertial_frame() const;
 
+    void pose(glm::vec3& pos, glm::vec4& quat);
+
     void pose(btVector3& pos, btQuaternion& quat);
 
 public:

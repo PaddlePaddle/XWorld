@@ -173,4 +173,16 @@ void BulletObject::pose(btVector3& pos, btQuaternion& quat) {
     quat = object_position_.getRotation();
 }
 
+void BulletObject::pose(glm::vec3& pos, glm::vec4& quat) {
+    auto p = object_position_.getOrigin();
+    auto q = object_position_.getRotation();
+    pos[0] = p[0];
+    pos[1] = p[1];
+    pos[2] = p[2];
+    quat[0] = q[0];
+    quat[1] = q[1];
+    quat[2] = q[2];
+    quat[3] = q[3];
+}
+
 }} // namespace xrobot::bullet_engine

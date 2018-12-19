@@ -190,8 +190,9 @@ void RobotBase::LoadURDFFile(
 
     load_robot_shapes(scale);
 
+    // TODO: return shared_ptr of RobotBase to caller (i.e. World) and let
+    // caller handle this
     bullet_world->robot_list_.push_back(shared_from_this());
-
     bullet_world->id_to_robot_[body_data_.body_uid] = shared_from_this();
 
     reuse();
@@ -323,6 +324,8 @@ void RobotBase::LoadOBJFile(
     origin_transform->flip = flip ? -1.0f : 1.0f;
     root_part_->transform_list_.push_back(origin_transform);
        
+    // TODO: return shared_ptr of RobotBase to caller (i.e. World) and let
+    // caller handle this
     bullet_world->robot_list_.push_back(shared_from_this());
     bullet_world->id_to_robot_[body_data_.body_uid] = shared_from_this();
 
@@ -457,38 +460,48 @@ void RobotBase::UnFreeze() { Move(0, 0); }
 
 void RobotBase::Freeze() { Move(0, 0); }
 
-void RobotBase::MoveForward(const float speed) { Move(0.005*speed, 0); }
+void RobotBase::MoveForward(const xScalar speed) { Move(0.005*speed, 0); }
 
-void RobotBase::MoveBackward(const float speed) { Move(-0.005*speed, 0); }
+void RobotBase::MoveBackward(const xScalar speed) { Move(-0.005*speed, 0); }
 
-void RobotBase::TurnLeft(const float speed) { Move(0, 0.005*speed); }
+void RobotBase::TurnLeft(const xScalar speed) { Move(0, 0.005*speed); }
 
-void RobotBase::TurnRight(const float speed) { Move(0, -0.005*speed); }
+void RobotBase::TurnRight(const xScalar speed) { Move(0, -0.005*speed); }
  
 void RobotBase::SetJointVelocity(
         const int joint_id,
-        const float speed,
-        const float k_d,
-        const float max_force) {
+        const xScalar speed,
+        const xScalar k_d,
+        const xScalar max_force) {
     assert(joint_id >= 0 && joint_id < joints_.size());
-    joints_[joint_id]->SetJointMotorControlVelocity(speed, k_d, max_force);
+    auto bullet_world = wptr_to_sptr(bullet_world_);
+    joints_[joint_id]->set_motor_control_velocity(
+            bullet_world->client_, body_data_.body_uid, speed, k_d, max_force);
 }
 
 void RobotBase::SetJointPosition(
         const int joint_id,
-        const float target,
-        const float k_p,
-        const float k_d,
-        const float max_force) {
+        const xScalar target,
+        const xScalar k_p,
+        const xScalar k_d,
+        const xScalar max_force) {
     assert(joint_id >= 0 && joint_id < joints_.size());
-    joints_[joint_id]->SetJointMotorControlPosition(
-            target, k_d, k_p, max_force);
+    auto bullet_world = wptr_to_sptr(bullet_world_);
+    joints_[joint_id]->set_motor_control_position(
+            bullet_world->client_,
+            body_data_.body_uid,
+            target,
+            k_d,
+            k_p,
+            max_force);
 }
 
 void RobotBase::ResetJointState(
-        const int joint_id, const float pos, const float vel) {
+        const int joint_id, const xScalar pos, const xScalar vel) {
     assert(joint_id >= -1 && joint_id < joints_.size());
-    joints_[joint_id]->ResetJointState(pos, vel);
+    auto bullet_world = wptr_to_sptr(bullet_world_);
+    joints_[joint_id]->reset_state(
+            bullet_world->client_, body_data_.body_uid, pos, vel);
 }
 
 void RobotBase::PickUp(
@@ -805,8 +818,8 @@ void RobotWithConvertion::LoadConvertedObject(
         return;
     }
     label_ = label;
-    assert(json_get_string(json_root, "type") == "convert");
-    bool cycle = json_get_bool(json_root, "cycle");
+    assert(json_get_string(&json_root, "type") == "convert");
+    bool cycle = json_get_bool(&json_root, "cycle");
 
     SetCycle(cycle);
     SetStatus(0);
@@ -846,18 +859,18 @@ void RobotWithConvertion::LoadConvertedObject(
     }
 }
 
-void RobotWithConvertion::TakeAction(const int act_id) {
+bool RobotWithConvertion::TakeAction(const int act_id) {
     assert(act_id > -1 && status_ > -1);
     assert(object_path_list_.size() > 0);
     assert(object_name_list_.size() > 0);
 
     auto bullet_world = wptr_to_sptr(bullet_world_);
 
-    if(!cycle_ && act_id <= status_) {
+    if (!cycle_ && act_id <= status_) {
         printf("The Object is Not Convertable!\n");
         return false;
     }
-    if(act_id == status_) {
+    if (act_id == status_) {
         //printf("Convertion Ignored!\n");
         return false;
     }
@@ -865,19 +878,22 @@ void RobotWithConvertion::TakeAction(const int act_id) {
     // TODO: do we need to call this here
     bullet_world->BulletStep();
 
-    xScalar pos[3];
-    xScalar quat[4];
-    get_pose(root_part_.get(), pos, quat);
+    glm::vec3 pos;
+    glm::vec4 quat;
+    root_part_->pose(pos, quat);
     
     Remove();
 
     body_data_ = BulletBodyData();
     LoadURDFFile(
             object_path_list_[act_id],
-            pos, quat, scale_,
+            pos,
+            quat,
+            scale_,
             label_ + "_" + object_name_list_[act_id], true);
     bullet_world->robot_list_.pop_back();
     status_ = act_id;    
+    return true;
 }
 
 
@@ -962,14 +978,15 @@ void RobotWithAnimation::LoadAnimatedObject(
         return;
     }
 
-    assert(json_get_string(json_root, "type") == "animate");
-    int joint_id = json_get_int(json_root, "joint_id", 0);
-    unlock_tag_ = json_get_string(json_root, "unlock");
+    assert(json_get_string(&json_root, "type") == "animate");
+    int joint_id = json_get_int(&json_root, "joint_id", 0);
+    unlock_tag_ = json_get_string(&json_root, "unlock");
     lock_ = unlock_tag_ == "" ? false : true;
-    std::object_path = json_get_string(json_root, "object", "NoObjectPath");
-    LoadURDFFile(object_path, pos, quat, scale, label, true, false, true, concave);
+    std::string object_path =
+            json_get_string(&json_root, "object", "NoObjectPath");
+    LoadURDFFile(
+            object_path, pos, quat, scale, label, true, false, true, concave);
 
-    LoadURDFFile(object_path, position, rotation, scale, label, true,false,true,concave);
     ignore_baking(true);
     DisableSleeping();
     SetStatus(0);
@@ -981,14 +998,14 @@ void RobotWithAnimation::LoadAnimatedObject(
     if (!json_get_object(json_level1, &json_root, "actions", Json::arrayValue)) {
         return;
     }
-    for (Json::ArrayIndex index = 0; index < json_levels->size(); index++) {
+    for (Json::ArrayIndex index = 0; index < json_level1->size(); index++) {
         if (!json_get_array(json_level2, json_level1, index)) {
             return;
         }
         if (json_level2->type() != Json::objectValue) continue;
         std::string action_name =
                 json_get_string(json_level2, "name", "NoActionName");
-        xScalar position = json_get_real(json_level2, "position");
+        xScalar position = json_get_float(json_level2, "position");
         object_name_list_.push_back(action_name);
         positions_[index] = position;
     }
@@ -1147,24 +1164,41 @@ void World::LoadMetadata(const char * filename) {
 
     fclose(fp);
 }
+std::weak_ptr<RobotBase> World::LoadRobot(
+        const std::string& filename,
+        const glm::vec3& pos,
+        const glm::vec3& rot_axis,
+        const xScalar rot_angle,
+        const glm::vec3& scale,
+        const std::string& label,
+        const bool fixed_base,
+        const xScalar mass,
+        const bool flip,
+        const bool concave) {
+    double d = glm::length(rot_axis);
+    double s = sin(rot_angle*0.5) / d;
+    double c = cos(rot_angle*0.5);
+    glm::vec4 quat(rot_axis[0]*s, rot_axis[1]*s, rot_axis[2]*s, c);
+    return LoadRobot(filename, pos, quat, scale, label, mass, flip, concave);
+}
+
 
 std::weak_ptr<RobotBase> World::LoadRobot(
-    const std::string& filename,
-    const btVector3 position,
-    const btQuaternion rotation,
-    const btVector3 scale,
-    const std::string& label,
-    const bool fixed_base,
-    const float mass,
-    const bool flip,
-    const bool concave) 
-{
+        const std::string& filename,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
+        const glm::vec3& scale,
+        const std::string& label,
+        const bool fixed_base,
+        const xScalar mass,
+        const bool flip,
+        const bool concave) {
     assert(filename.size());
 
     // If label is valid overide
     // Otherwise, load meta
     std::string tag(label);
-    bool pick = false;
+    bool pickable = false;
 
     if(!label.length() || !label.compare("unlabeled")) {
         if(tag_list_.find(filename) != tag_list_.end()) {
@@ -1178,33 +1212,28 @@ std::weak_ptr<RobotBase> World::LoadRobot(
 
     if(pickable_list_.find(tag) != pickable_list_.end()) {
         // Invalid label but find in csv
-        pick = pickable_list_[tag];
+        pickable = pickable_list_[tag];
        // printf("[Load Robot] Find Pickable Object: %s\n", tag.c_str());
     }
 
     int find = (int) filename.find(".obj");
     if(find > -1) {
         // Load OBJ
-
-        std::string filename_with_scale = filename + ":" + 
-        std::to_string(scale[0]) + ":" + 
-        std::to_string(scale[1]) + ":" + 
-        std::to_string(scale[2]);
-
-        auto robot = LoadModelFromCache(
-                filename_with_scale, position, rotation);
-
-        if(!robot) {
+        std::string filename_with_scale =
+                filename + ":" + 
+                std::to_string(scale[0]) + ":" + 
+                std::to_string(scale[1]) + ":" + 
+                std::to_string(scale[2]);
+        auto robot = LoadModelFromCache(filename_with_scale, pos, quat);
+        if (!robot) {
             robot = std::make_shared<Robot>(shared_from_this());
-            robot->LoadOBJFile(filename, position, rotation, scale,
-                tag, mass, flip, concave);
+            robot->LoadOBJFile(
+                    filename, pos, quat, scale, tag, mass, flip, concave);
             robot->Wake();
         }
 
-        robot->UpdatePickable(pick);
-
+        robot->UpdatePickable(pickable);
         robot->reuse();
-
         AddObjectWithLabel(tag, robot->body_data_.body_uid);
 
         return robot;
@@ -1213,104 +1242,65 @@ std::weak_ptr<RobotBase> World::LoadRobot(
     find = (int) filename.find(".urdf");
     if(find > -1) {
         // Load URDF
-        std::shared_ptr<RobotBase> robot = LoadModelFromCache(
-            filename, position, rotation);
-
-        if(robot) {
+        auto robot = LoadModelFromCache(filename, pos, quat);
+        if (robot) {
             robot->root_part_->RecoverFromStatic();
             robot->root_part_->Wake();
-
             for (auto joint : robot->joints_) {
                 if(joint) {
                     joint->ResetJointState(0.0f, 0.005f);
                 }
             }
-
             for (auto part : robot->parts_) {
                 part->RecoverFromStatic();
             }
         } else {
             robot = std::make_shared<Robot>(shared_from_this());
-            robot->LoadURDFFile(filename, position, rotation, scale[0],
-                tag, fixed_base, concave);
+            robot->LoadURDFFile(
+                    filename, pos, quat, scale[0], tag, fixed_base, concave);
             robot->reuse();
             robot->Wake();
         }
 
-        robot->UpdatePickable(pick);
-
+        robot->UpdatePickable(pickable);
         robot->reuse();
-
         AddObjectWithLabel(tag, robot->body_data_.body_uid);
 
         return robot;
     }
 
     find = (int) filename.find(".json");
-    if(find > -1) {
-        std::shared_ptr<RobotBase> robot = LoadModelFromCache(
-            filename, position, rotation);
+    if (find > -1) {
+        auto robot = LoadModelFromCache(filename, pos, quat);
 
-        if(!robot) {
-            FILE* fp = fopen(filename.c_str(), "rb");
-            if (!fp) {
-                fprintf(stderr, "Unable to open action file %s\n", filename.c_str());
-                return std::weak_ptr<RobotBase>();
-            }
-
-            std::string text;
-            fseek(fp, 0, SEEK_END);
-            long const size = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
-            char* buffer = new char[size + 1];
-            unsigned long const usize = static_cast<unsigned long const>(size);
-            if (fread(buffer, 1, usize, fp) != usize) { 
-                fprintf(stderr, "Unable to read %s\n", filename.c_str()); 
-                return std::weak_ptr<RobotBase>();
-            }
-            else { buffer[size] = 0; text = buffer; }
-            delete[] buffer;
-            fclose(fp);
-
-            // Digest file
+        if (!robot) {
             Json::Value json_root;
-            Json::Reader json_reader;
-            Json::Value *json_items, *json_item, *json_value;
-            if (!json_reader.parse(text, json_root, false)) {
+            if (!json_parse_text(filename, json_root)) {
                 fprintf(stderr, "Unable to parse %s\n", filename.c_str());
                 return std::weak_ptr<RobotBase>();
             }
-
-            // Get Label
-            char action_label[1024];
-            strncpy(action_label, "NoLabel", 1024);
-            if (GetJsonObjectMember(json_value, &json_root, "label", Json::stringValue)) {
-                strncpy(action_label, json_value->asString().c_str(), 1024);
-            }
-
             // Check Type
-            char type[1024];
-            strncpy(type, "NoType", 1024);
-            if (GetJsonObjectMember(json_value, &json_root, "type", Json::stringValue)) {
-                strncpy(type, json_value->asString().c_str(), 1024);
-                if (strcmp(type, "convert")== 0) {
-                    robot = std::make_shared<RobotWithConvertion>(shared_from_this());
-
-                    auto robot_conv = std::dynamic_pointer_cast<RobotWithConvertion>(robot);
-                    robot_conv->LoadConvertedObject(filename, position, rotation, scale[0], tag, concave);
-                    robot_conv->reuse();
-                    robot_conv->Wake();
-                } else if (strcmp(type, "animate")== 0) {
-                    robot = std::make_shared<RobotWithAnimation>(shared_from_this());
-
-                    auto robot_anim = std::dynamic_pointer_cast<RobotWithAnimation>(robot);
-                    robot_anim->LoadAnimatedObject(filename, position, rotation, scale[0], tag, concave);
-                    robot_anim->reuse();
-                    robot_anim->Wake();
-                } else {
-                    fprintf(stderr, "Incorrect Action File [%s]\n", type);
-                    return std::weak_ptr<RobotBase>();
-                }
+            std::string type = json_get_string(&json_root, "type", "NoType"); 
+            if (type == "convert") {
+                robot = std::make_shared<RobotWithConvertion>(
+                        shared_from_this());
+                auto robot_conv =
+                        std::dynamic_pointer_cast<RobotWithConvertion>(robot);
+                robot_conv->LoadConvertedObject(
+                        filename, pos, quat, scale[0], tag, concave);
+                robot_conv->reuse();
+                robot_conv->Wake();
+            } else if (type == "animate") {
+                robot = std::make_shared<RobotWithAnimation>(shared_from_this());
+                auto robot_anim =
+                        std::dynamic_pointer_cast<RobotWithAnimation>(robot);
+                robot_anim->LoadAnimatedObject(
+                        filename, pos, quat, scale[0], tag, concave);
+                robot_anim->reuse();
+                robot_anim->Wake();
+            } else {
+                fprintf(stderr, "Incorrect Action File [%s]\n", type.c_str());
+                return std::weak_ptr<RobotBase>();
             }
         } else {
             robot->root_part_->RecoverFromStatic();
@@ -1321,14 +1311,15 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                     joint->ResetJointState(0.0f, 0.005f);
                 }
             }
-
             for (auto part : robot->parts_) {
                 part->RecoverFromStatic();
                 part->Wake();
             }
 
-           if(auto robot_anim = std::dynamic_pointer_cast<RobotWithAnimation>(robot))
-           {
+            auto robot_anim =
+                    std::dynamic_pointer_cast<RobotWithAnimation>(robot);
+
+            if (robot_anim) {
                 if(robot_anim->unlock_tag_.size()) {
                     robot_anim->SetLock(false);
                     robot_anim->TakeAction(1);
@@ -1336,21 +1327,15 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                 } else {
                     robot_anim->TakeAction(1);
                 }
+                BulletStep();
+            }
 
-           } else {
-                robot_anim->TakeAction(0);
-           }
+            robot->reuse();
+            robot->UpdatePickable(pickable);
+            AddObjectWithLabel(tag, robot->body_data_.body_uid);
 
-            BulletStep();
+            return robot;
         }
-
-        robot->reuse();
-
-        robot->UpdatePickable(pick);
-
-        AddObjectWithLabel(tag, robot->body_data_.body_uid);
-
-        return robot;
     }
 
     printf("Format Not Support!\n");
@@ -1362,8 +1347,7 @@ void World::ResetSimulation() {
     reset();
 }
 
-void World::RemoveRobot(std::weak_ptr<RobotBase> rm_robot) 
-{
+void World::RemoveRobot(std::weak_ptr<RobotBase> rm_robot) {
     
     if(auto robot = rm_robot.lock()) {
 
@@ -1464,20 +1448,16 @@ void World::UpdateAttachObjects(RobotBaseSPtr robot) {
     if(robot->body_data_.attach_to_id < -1) 
         return;
 
-    if(robot->body_data_.attach_to_id == -1)
-    {
-        if(auto attach_object_sptr = robot->root_part_->attach_object_.lock())
-        {
+    if (robot->body_data_.attach_to_id == -1) {
+        if(auto attach_object_sptr = robot->root_part_->attach_object_.lock()) {
             btTransform new_transform = 
                     robot->root_part_->object_position_;
 
             SetTransformation(attach_object_sptr,
                     new_transform * robot->root_part_->attach_transform_);
         } 
-    }
-    else if(auto attach_object_sptr = 
-        robot->parts_[robot->body_data_.attach_to_id]->attach_object_.lock())
-    {
+    } else if(auto attach_object_sptr = 
+        robot->parts_[robot->body_data_.attach_to_id]->attach_object_.lock()) {
         btTransform new_transform = 
                 robot->parts_[robot->body_data_.attach_to_id]->object_position_;
 
@@ -1579,7 +1559,7 @@ void World::BulletInit(const float gravity, const float timestep)
 
 void World::SetTransformation(RobotBaseWPtr robot, const btTransform& tr) {
 
-    if(auto robot_sptr = robot.lock()) {
+    if (auto robot_sptr = robot.lock()) {
         xScalar p[3];
         p[0] = tr.getOrigin()[0];
         p[1] = tr.getOrigin()[1];
@@ -1628,8 +1608,8 @@ void World::RayTest(const vec3 from, const vec3 to, RayTestInfo& result)
 
 std::shared_ptr<RobotBase> World::LoadModelFromCache(
         const std::string& filename,
-        const btVector3 position,
-        const btQuaternion rotation) {
+        const glm::vec3& position,
+        const glm::vec4& rotation) {
 
     std::shared_ptr<RobotBase> robot;
 
@@ -1640,7 +1620,7 @@ std::shared_ptr<RobotBase> World::LoadModelFromCache(
         recycle_robot_map_[filename].pop_back();
         robot->reuse();
 
-        SetTransformation(robot, btTransform(rotation, position));
+        set_pose(client_, robot->id(), position, rotation);
         set_vel(client_, robot->id(), kFloat3Zero);
     }
     return robot;
@@ -1673,8 +1653,7 @@ void World::QueryObjectByLabel(const std::string& label,
     }
 }
 
-void World::AddObjectWithLabel(const std::string& label,
-        const int id) {
+void World::AddObjectWithLabel(const std::string& label, const int id) {
     assert(!label.empty());
 
     if(object_locations_.find(label) == object_locations_.end()) {
@@ -1687,11 +1666,10 @@ void World::AddObjectWithLabel(const std::string& label,
 }
 
 void World::RemoveObjectWithLabel(const int id) {
-    for (auto it = object_locations_.begin(); it != object_locations_.end(); ++it)
-    {
-        if(it->second.size() > 0) {
+    for (auto it = object_locations_.begin(); it != object_locations_.end(); ++it) {
+        if (it->second.size() > 0) {
             auto find = std::find(it->second.begin(), it->second.end(), id);
-            if(find != it->second.end()) {
+            if (find != it->second.end()) {
                 it->second.erase(find);
             }
         }

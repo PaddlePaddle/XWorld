@@ -6,8 +6,8 @@ namespace bullet_engine {
 bool BulletBody::load_urdf(
         const ClientHandle client,
         const std::string& filename,
-        const glm::vec3 pos,
-        const glm::vec4 quat,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
         const xScalar scale,
         const bool fixed_base,
         const bool self_collision,
@@ -108,10 +108,10 @@ int BulletBody::get_visual_shape_info(const ClientHandle client) {
 
 int BulletBody::get_visual_shape(
         int i,
-        const glm::vec3& color,
-        const glm::vec3& scale,
-        const glm::vec3& pos,
-        const glm::vec4& quat,
+        glm::vec4& color,
+        glm::vec3& scale,
+        glm::vec3& pos,
+        glm::vec4& quat,
         std::string& filename,
         int& geometry_type) {
 

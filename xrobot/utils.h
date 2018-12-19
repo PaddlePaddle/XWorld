@@ -35,34 +35,34 @@ void padTo(std::string &str, const size_t num, const char paddingChar = '0');
 bool json_parse_text(const std::string& filename, Json::Value& root);
 
 std::string json_get_string(
-        Json::Value& root,
+        Json::Value* root,
         const std::string& name,
         const std::string& default_value = "");
 
 int json_get_int(
-        Json::Value& root,
+        Json::Value* root,
         const std::string& name,
         const int default_value = 0);
 
-float json_get_int(
-        Json::Value& root,
+float json_get_float(
+        Json::Value* root,
         const std::string& name,
         const float default_value = 0.0f);
 
 bool json_get_bool(
-        Json::Value& root,
+        Json::Value* root,
         const std::string& name,
         const bool default_value = false);
 
 bool json_get_object(
-        Json::Value *&result,
-        Json::Value *object,
-        const char *str,
+        Json::Value*& result,
+        Json::Value* object,
+        const char* str,
         int expected_type = -1);
 
-int json_get_array(
-        Json::Value *&result,
-        Json::Value *array,
+bool json_get_array(
+        Json::Value*& result,
+        Json::Value* array,
         unsigned int k,
         int expected_type = -1);
 

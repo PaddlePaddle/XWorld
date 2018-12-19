@@ -3,6 +3,13 @@
 namespace xrobot {
 namespace bullet_engine {
 
+btTransform TransformFromReals(const glm::vec3& p, const glm::vec4& r) {
+    btVector3 pp(p[0], p[1], p[2]);
+    btQuaternion rr(r[0], r[1], r[2], r[3]);
+    
+    return btTransform(rr, pp);
+}
+
 template <typename T>
 btTransform TransformFromReals(const T* p, const T* r) {
     btVector3 pp(p[0], p[1], p[2]);
@@ -51,6 +58,17 @@ void set_vel(
 template void set_vel<float>(const ClientHandle, const int, const float*);
 template void set_vel<double>(const ClientHandle, const int, const double*);
 
+void set_pose(
+        const ClientHandle client,
+        const int id,
+        const glm::vec3& pos,
+        const glm::vec4& quat) {
+    CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
+    b3CreatePoseCommandSetBasePosition(cmd_handle, pos[0], pos[1], pos[2]);
+    b3CreatePoseCommandSetBaseOrientation(
+                cmd_handle, quat[0], quat[1], quat[2], quat[3]);
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
 
 template <typename T>
 void set_pose(

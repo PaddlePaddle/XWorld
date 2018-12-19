@@ -99,6 +99,7 @@ bool json_parse_text(const std::string& filename, Json::Value& root) {
     fclose(fp);
     delete [] buffer;
 
+    Json::Reader json_reader;
     if (!json_reader.parse(text, root, false)) {
         fprintf(stderr, "Unable to parse %s\n", filename.c_str());
         return false;
@@ -108,59 +109,56 @@ bool json_parse_text(const std::string& filename, Json::Value& root) {
 }
 
 std::string json_get_string(
-        Json::Value& root,
+        Json::Value* root,
         const std::string& name,
         const std::string& default_value) {
     Json::Value *value;
     std::string ret(default_value);
-    if (json_get_object(value, &root, name.c_str(), Json::stringValue)) {
+    if (json_get_object(value, root, name.c_str(), Json::stringValue)) {
         ret = value->asString();
     }
     return ret;
 }
 
 int json_get_int(
-        Json::Value& root,
+        Json::Value* root,
         const std::string& name,
         const int default_value) {
-    assert(init_);
     Json::Value *value;
     int ret = default_value;
-    if (get_object(value, &root, name.c_str(), Json::intValue)) {
+    if (json_get_object(value, root, name.c_str(), Json::intValue)) {
         ret = value->asInt();
     }
     return ret;
 }
 
-float json_get_int(
-        Json::Value& root,
+float json_get_float(
+        Json::Value* root,
         const std::string& name,
         const float default_value) {
-    assert(init_);
     Json::Value *value;
     float ret = default_value;
-    if (get_object(value, &root, name.c_str(), Json::realValue)) {
+    if (json_get_object(value, root, name.c_str(), Json::realValue)) {
         ret = value->asFloat();
     }
     return ret;
 }
 
 bool json_get_bool(
-        Json::Value& root,
+        Json::Value* root,
         const std::string& name,
         const bool default_value) {
-    assert(init_);
     Json::Value *value;
     bool ret = default_value;
-    if (get_object(value, &root, name.c_str(), Json::booleanValue)) {
+    if (json_get_object(value, root, name.c_str(), Json::booleanValue)) {
         ret = value->asBool();
     }
     return ret;
 }
 
 bool json_get_array(
-        Json::Value *&result,
-        Json::Value *array,
+        Json::Value*& result,
+        Json::Value* array,
         unsigned int k,
         int expected_type) {
     // Check array type
@@ -198,8 +196,8 @@ bool json_get_array(
 }
 
 bool json_get_object(
-        Json::Value *&result,
-        Json::Value *object,
+        Json::Value*& result,
+        Json::Value* object,
         const char *str,
         int expected_type) {
     // Check object type

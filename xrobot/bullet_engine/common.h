@@ -36,8 +36,7 @@ struct Ray {
     glm::vec3 to;
 };
 
-struct RayTestInfo
-{
+struct RayTestInfo {
     int bullet_id;
     glm::vec3 pos;
     glm::vec3 norm;
@@ -104,10 +103,18 @@ glm::mat4 TransformToMat4(const btTransform& transform);
 template <typename T>
 glm::mat4 TransformToMat4(const T* p, T* r);
 
+btTransform TransformFromReals(const glm::vec3& p, const glm::vec4& r);
+
 template <typename T>
 btTransform TransformFromReals(const T* p, const T* r);
 
 int get_num_joints(const ClientHandle client, const int id);
+
+void set_pose(
+        const ClientHandle client,
+        const int id,
+        const glm::vec3& pos,
+        const glm::vec4& quat);
 
 template <typename T>
 void set_pose(

@@ -12,7 +12,6 @@ public:
 
     virtual ~BulletJoint() {}
 
-protected:
     void enable_sensor(
             const ClientHandle client, const int body_uid, const bool enable);
 
@@ -46,7 +45,6 @@ protected:
             const xScalar k_d,
             const xScalar max_force);
 
-public:
     std::string joint_name_;
     int joint_type_;
     int bullet_joint_id_;
