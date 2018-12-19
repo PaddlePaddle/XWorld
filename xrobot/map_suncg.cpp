@@ -264,9 +264,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 
 						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
-							btVector3(translation.x,translation.y,translation.z),
-							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
-							btVector3(scale.x, scale.y, scale.z),
+							glm::vec3(translation.x,translation.y,translation.z),
+							glm::vec4(rotation.x,rotation.y,rotation.z,rotation.w),
+							glm::vec3(scale.x, scale.y, scale.z),
 							"Floor",
 							true,
 							0,
@@ -285,9 +285,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 
 						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
-							btVector3(translation.x,translation.y,translation.z),
-							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
-							btVector3(scale.x, scale.y, scale.z),
+							glm::vec3(translation.x,translation.y,translation.z),
+							glm::vec4(rotation.x,rotation.y,rotation.z,rotation.w),
+							glm::vec3(scale.x, scale.y, scale.z),
 							"Floor",
 							true,
 							0,
@@ -305,9 +305,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 
 						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
-							btVector3(translation.x,translation.y,translation.z),
-							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
-							btVector3(scale.x, scale.y, scale.z),
+							glm::vec3(translation.x,translation.y,translation.z),
+							glm::vec4(rotation.x,rotation.y,rotation.z,rotation.w),
+							glm::vec3(scale.x, scale.y, scale.z),
 							"Wall",
 							true,
 							0,
@@ -330,9 +330,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 
 						std::weak_ptr<RobotBase> object = world_->LoadRobot(
 							obj_name,
-							btVector3(translation.x,translation.y,translation.z),
-							btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
-							btVector3(scale.x, scale.y , scale.z),
+							glm::vec3(translation.x,translation.y,translation.z),
+							glm::vec4(rotation.x,rotation.y,rotation.z,rotation.w),
+							glm::vec3(scale.x, scale.y , scale.z),
 							"Ceiling",
 							true,
 							0,
@@ -403,9 +403,9 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 
 					std::weak_ptr<RobotBase> object = world_->LoadRobot(
 						obj_name,
-						btVector3(translation.x,translation.y,translation.z),
-						btQuaternion(rotation.x,rotation.y,rotation.z,rotation.w),
-						btVector3(scale.x, scale.y, scale.z),
+						glm::vec3(translation.x,translation.y,translation.z),
+						glm::vec4(rotation.x,rotation.y,rotation.z,rotation.w),
+						glm::vec3(scale.x, scale.y, scale.z),
 						all_labels_[modelId],
 						true,
 						mass,

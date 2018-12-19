@@ -146,9 +146,9 @@ void Navigation::SpawnAgent(const glm::vec3 position,
     // Greate Robot
     std::weak_ptr<RobotBase> robot = world_->LoadRobot(
         path,
-        btVector3(position.x, 0.001, position.z),
-        btQuaternion(orientation.x,orientation.y,orientation.z,orientation.w),
-        btVector3(1, 1, 1),
+        glm::vec3(position.x, 0.001, position.z),
+        glm::vec4(orientation.x,orientation.y,orientation.z,orientation.w),
+        glm::vec3(1, 1, 1),
         label,
         false
     );

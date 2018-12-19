@@ -45,18 +45,20 @@ namespace xrobot
 		std::weak_ptr<RobotBase> obj;
 		agent_ = scene_->world_->LoadRobot(
 	        husky,
-	        btVector3(0,0.001,2),
-	        btQuaternion(btVector3(-1,0,0),1.57),
-	        btVector3(1, 1, 1),
+	        glm::vec3(0,0.001,2),
+	        glm::vec3(-1,0,0),
+            1.57,
+	        glm::vec3(1, 1, 1),
 	        "husky",
 	        true
 	    );
 
 	    obj = scene_->world_->LoadRobot(
 	        crate1,
-	        btVector3(1, 0, 0),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(1, 1, 1),
+	        glm::vec3(1, 0, 0),
+	        glm::vec3(1,0,0),
+            0.0,
+	        glm::vec3(1, 1, 1),
 	        "crate1",
 	        true
 	    );

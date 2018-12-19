@@ -13,7 +13,6 @@
 #include <chrono>
 #include <thread>
 
-#include "bullet_engine/common.h"
 #include "bullet_engine/bullet_joint.h"
 #include "bullet_engine/bullet_object.h"
 #include "bullet_engine/bullet_body.h"
@@ -139,27 +138,25 @@ public:
     }
 
     void LoadURDFFile(
-        const std::string& filename,
-        const glm::vec3& pos,
-        const glm::vec4& quat,
-        const xScalar scale = 1.0f,
-        const std::string& label = "unlabeled",
-        const bool fixed_base = false,
-        const bool self_collision = false,
-        const bool use_multibody = true,
-        const bool concave = false
-    );
+            const std::string& filename,
+            const glm::vec3& pos,
+            const glm::vec4& quat,
+            const xScalar scale = 1.0f,
+            const std::string& label = "unlabeled",
+            const bool fixed_base = false,
+            const bool self_collision = false,
+            const bool use_multibody = true,
+            const bool concave = false);
 
     void LoadOBJFile(
-        const std::string& filename,
-        const glm::vec3& pos,
-        const glm::vec4& quat,
-        const glm::vec3& scale,
-        const std::string& label = "unlabeled",
-        const xScalar mass = 0,
-        const bool flip = false,
-        const bool concave = false
-    );
+            const std::string& filename,
+            const glm::vec3& pos,
+            const glm::vec4& quat,
+            const glm::vec3& scale,
+            const std::string& label = "unlabeled",
+            const xScalar mass = 0,
+            const bool flip = false,
+            const bool concave = false);
 
     void RemoveRobotFromBullet();
 
@@ -182,13 +179,13 @@ public:
 
     virtual void Freeze();
 
-    virtual void MoveForward(const float speed);
+    virtual void MoveForward(const xScalar speed);
 
-    virtual void MoveBackward(const float speed);
+    virtual void MoveBackward(const xScalar speed);
 
-    virtual void TurnLeft(const float speed);
+    virtual void TurnLeft(const xScalar speed);
 
-    virtual void TurnRight(const float speed);
+    virtual void TurnRight(const xScalar speed);
 
     void SetJointVelocity(
             const int joint_id,
@@ -275,10 +272,10 @@ public:
 
     void CalculateInverseKinematics(
             const int end_index, 
-            const btVector3 target_position,
-            const btQuaternion target_orientation,
-            double* joint_damping,
-            double* ik_output_joint_pos,
+            const glm::vec3& target_position,
+            const glm::vec4& target_orientation,
+            xScalar* joint_damping,
+            xScalar* ik_output_joint_pos,
             int &num_poses);
 };
 
@@ -290,8 +287,8 @@ public:
 
     void LoadConvertedObject(
             const std::string& filename,
-            const btVector3 position,
-            const btQuaternion rotation,
+            const glm::vec3& position,
+            const glm::vec4& rotation,
             const xScalar scale = 1.0f,
             const std::string& label = "",
             const bool concave = false);
@@ -311,7 +308,7 @@ private:
 
     int status_;
     std::string label_;
-    float scale_;
+    xScalar scale_;
     bool cycle_;
     std::string path_;
     std::vector<std::string> object_path_list_;
@@ -325,9 +322,9 @@ public:
 
     void LoadAnimatedObject(
         const std::string& filename,
-        const glm::vec3& position,
-        const glm::vec4& rotation,
-        const float scale = 1.0f,
+        const glm::vec3& pos,
+        const glm::vec4& quat,
+        const xScalar scale = 1.0f,
         const std::string& label = "",
         const bool concave = false
     );
@@ -339,7 +336,7 @@ public:
     void SetLock(const bool lock) { lock_ = lock; }
     bool GetLock() const { return lock_; }
     int GetJoint() const { return joint_; }
-    float GetPosition(const int id) { return positions_[id]; }
+    xScalar GetPosition(const int id) { return positions_[id]; }
     void recycle() override;
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
@@ -352,7 +349,7 @@ private:
     bool lock_;
     int status_;
     int joint_;
-    std::map<int, float> positions_;
+    std::map<int, xScalar> positions_;
 };
 
 struct ObjectAttributes {
@@ -362,7 +359,7 @@ struct ObjectAttributes {
 };
 
 struct ObjectDirections {
-    float dirs[9];
+    xScalar dirs[9];
     int bullet_id;
 };
 
@@ -390,19 +387,31 @@ public:
 
     std::weak_ptr<RobotBase> LoadRobot(
             const std::string& filename,
-            const btVector3 position,
-            const btQuaternion rotation,
-            const btVector3 scale = btVector3(1,1,1),
+            const glm::vec3& pos,
+            const glm::vec3& rot_axis,
+            const xScalar rot_angle,
+            const glm::vec3& scale = glm::vec3(1,1,1),
             const std::string& label = "unlabeled",
             const bool fixed_base = false,
-            const float mass = 0,
+            const xScalar mass = 0,
+            const bool flip = false,
+            const bool concave = false);
+
+    std::weak_ptr<RobotBase> LoadRobot(
+            const std::string& filename,
+            const glm::vec3& position,
+            const glm::vec4& rotation,
+            const glm::vec3& scale = glm::vec3(1,1,1),
+            const std::string& label = "unlabeled",
+            const bool fixed_base = false,
+            const xScalar mass = 0,
             const bool flip = false,
             const bool concave = false);
 
     std::shared_ptr<RobotBase> LoadModelFromCache(
             const std::string& filename,
-            const btVector3 position,
-            const btQuaternion rotation);
+            const glm::vec3& position,
+            const glm::vec4& rotation);
 
     render_engine::ModelDataSPtr FindInCache(
             const std::string &key,

@@ -74,9 +74,10 @@ namespace xrobot
 		// Spawn Agent
 	   	agent_ = scene_->world_->LoadRobot(
 	        husky_kuka,
-	        btVector3(-6,0.21,-1),
-	        btQuaternion(btVector3(-1,0,0),1.57),
-	        btVector3(0.6f, 0.6f, 0.6f),
+	        glm::vec3(-6,0.21,-1),
+	        glm::vec3(-1,0,0),
+            1.57,
+	        glm::vec3(0.6f, 0.6f, 0.6f),
 	        "agent",
 	        true
 	    );
@@ -84,9 +85,10 @@ namespace xrobot
 	   	// Spawn Object
 	    obj_conv_ = scene_->world_->LoadRobot(
 	    	object_with_action_0,
-	    	btVector3(-5, 1, -2),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(1, 1, 1),
+	    	glm::vec3(-5, 1, -2),
+	        glm::vec3(1, 0, 0),
+            0.0,
+	        glm::vec3(1, 1, 1),
 	        "OBJ_Conv",
 	        false
 	    );

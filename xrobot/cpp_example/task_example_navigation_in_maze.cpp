@@ -73,9 +73,10 @@ namespace xrobot
 	    // Spawn Agent
 	    agent_ = scene_->world_->LoadRobot(
 	        husky,
-	        btVector3(startPosition.x,0.01,startPosition.z),
-	        btQuaternion(btVector3(-1,0,0),1.57),
-	        btVector3(1,1,1),
+	        glm::vec3(startPosition.x,0.01,startPosition.z),
+            glm::vec3(-1, 0, 0), 
+            1.57,
+	        glm::vec3(1,1,1),
 	        "Husky",
 	        true
 	    );

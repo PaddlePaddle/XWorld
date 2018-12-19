@@ -43,9 +43,10 @@ namespace xrobot
 		scene_->world_->AssignTag(r2d2, "r2d2");
 		target_ = scene_->world_->LoadRobot(
 	        r2d2,
-	        btVector3(2, 0.01, 0),
-	        btQuaternion(btVector3(1,0,0),0),
-	        btVector3(0.01f,0.01f,0.01f),
+	        glm::vec3(2, 0.01, 0),
+            glm::vec3(1, 0, 0),
+            0.0,
+	        glm::vec3(0.01f,0.01f,0.01f),
 	        "r2d2",
 	        true
 	    );
@@ -57,9 +58,10 @@ namespace xrobot
 	    // Spawn Agent
 	    agent_ = scene_->world_->LoadRobot(
 	        husky,
-	        btVector3(0,0.01,0),
-	        btQuaternion(btVector3(-1,0,0),1.57),
-	        btVector3(1,1,1),
+	        glm::vec3(0,0.01,0),
+            glm::vec3(-1, 0, 0),
+            1.57,
+	        glm::vec3(1,1,1),
 	        "Husky",
 	        true
 	    );

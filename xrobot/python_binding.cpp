@@ -661,7 +661,7 @@ void Playground::LoadSUNCG(const std::string& house,
 
 Thing Playground::SpawnAnObject(const std::string& file, 
 							    const boost::python::list position_py,
-				    			const boost::python::list orentation_py,
+				    			const boost::python::list orientation_py,
 							    const float scale,
 							    const std::string& label,
 							    const bool fixed)
@@ -669,17 +669,17 @@ Thing Playground::SpawnAnObject(const std::string& file,
 
 	std::weak_ptr<RobotBase> obj_wptr;
 
-	glm::vec3 position   = list2vec3(position_py);
-	glm::vec4 orentation = list2vec4(orentation_py);
+	glm::vec3 pos   = list2vec3(position_py);
+	glm::vec4 orientation = list2vec4(orientation_py);
 
 	obj_wptr = scene_->world_->LoadRobot(
-        file,
-        btVector3(position.x, position.y, position.z),
-        btQuaternion(btVector3(orentation.x,orentation.y,orentation.z),orentation.w),
-        btVector3(scale, scale, scale),
-        label,
-        fixed
-    );
+            file,
+            glm::vec3(pos.x, pos.y, pos.z),
+            glm::vec3(orientation.x,orientation.y,orientation.z),
+            orientation.w,
+            glm::vec3(scale, scale, scale),
+            label,
+            fixed);
 
 	if(auto obj_sptr = obj_wptr.lock()) {
 		if(!fixed) {

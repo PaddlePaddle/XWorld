@@ -69,9 +69,10 @@ void MapGrid::CreateAndLoadObjectFILE(const std::string& file_path,
 
 	auto obj = world_->LoadRobot(
 		file_path,
-		btVector3(0,0,0),
-		btQuaternion(btVector3(0,1,0),0),
-		btVector3(1.0f, 1.0f, 1.0f),
+		glm::vec3(0,0,0),
+		glm::vec3(0,1,0),
+        0.0,
+		glm::vec3(1.0f, 1.0f, 1.0f),
 		tag,
 		true
 	);
@@ -119,9 +120,10 @@ void MapGrid::GenerateWall(const vec3 position, const int d) {
 
 	auto obj = world_->LoadRobot(
 		wall_urdf_path_,
-		btVector3(position.x,position.y * kUniformScale,position.z),
-		btQuaternion(btVector3(0,1,0),-1.57 * dir[d]),
-		btVector3(1.0f, 1.0f, 1.0f) * kUniformScale,
+		glm::vec3(position.x,position.y * kUniformScale,position.z),
+		glm::vec3(0,1,0),
+        -1.57 * dir[d],
+		glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
 		"Wall",
 		true
 	);
@@ -142,9 +144,9 @@ void MapGrid::GenerateKey(const vec3 position, const int key_id) {
 		world_->UpdatePickableList(key_path_list_[key_id].tag, true);
 		auto obj = world_->LoadRobot(
 			key_path_list_[key_id].file_path,
-			btVector3(position.x,position.y,position.z),
-			btQuaternion(0,0,0,1),
-			btVector3(1.0f, 1.0f, 1.0f) * kUniformScale,
+			glm::vec3(position.x,position.y,position.z),
+			glm::vec4(0,0,0,1),
+			glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
 			key_path_list_[key_id].tag,
 			true
 		);
@@ -162,9 +164,9 @@ void MapGrid::GenerateKey(const vec3 position, const int key_id) {
 void MapGrid::GenerateTile(const vec3 position, const int tile_id) {
 	world_->LoadRobot(
 		tile_urdf_list_[tile_id],
-		btVector3(position.x,position.y,position.z),
-		btQuaternion(0,0,0,1),
-		btVector3(1.0f, 1.0f, 1.0f) * kUniformScale,
+		glm::vec3(position.x,position.y,position.z),
+		glm::vec4(0,0,0,1),
+		glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
 		"Floor",
 		true
 	);
@@ -176,9 +178,10 @@ void MapGrid::GenerateLockedDoor(const vec3 position, const int d, const int doo
 	if(locked_door_path_list_[door_id].size()) {
 		auto obj = world_->LoadRobot(
 			locked_door_path_list_[door_id],
-			btVector3(position.x,position.y * kUniformScale,position.z),
-			btQuaternion(btVector3(0,1,0),-1.57 * dir[d]),
-			btVector3(1.0f, 1.0f, 1.0f) * kUniformScale,
+			glm::vec3(position.x,position.y * kUniformScale,position.z),
+			glm::vec3(0,1,0),
+            -1.57 * dir[d],
+			glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
 			"Door",
 			true,0,false,true
 		);
@@ -199,9 +202,10 @@ void MapGrid::GenerateUnlockedDoor(const vec3 position, const int d) {
 	if(unlocked_door_path_.size()) {
 		auto obj = world_->LoadRobot(
 			unlocked_door_path_,
-			btVector3(position.x,position.y * kUniformScale,position.z),
-			btQuaternion(btVector3(0,1,0),-1.57 * dir[d]),
-			btVector3(1.0f, 1.0f, 1.0f) * kUniformScale,
+			glm::vec3(position.x,position.y * kUniformScale,position.z),
+			glm::vec3(0,1,0),
+            -1.57 * dir[d],
+			glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
 			"Door",
 			true,0,false,true
 		);
@@ -228,9 +232,10 @@ void MapGrid::GenerateObjects() {
 
 			auto obj = world_->LoadRobot(
 				file_path,
-				btVector3(position.x,position.y,position.z),
-				btQuaternion(btVector3(0,1,0),0),
-				btVector3(1.0f, 1.0f, 1.0f),
+				glm::vec3(position.x,position.y,position.z),
+				glm::vec3(0,1,0),
+                0,
+				glm::vec3(1.0f, 1.0f, 1.0f),
 				tag,
 				true
 			);

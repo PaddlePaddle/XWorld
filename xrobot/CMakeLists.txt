@@ -150,16 +150,6 @@ if(CPP_EXAMPLES_ENABLE)
 
     set_target_properties(xrobot_test_crowd
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
-
-    # OBJ Scene
-    add_executable(xrobot_test_obj cpp_example/test_obj.cpp)
-
-    target_link_libraries(xrobot_test_obj PUBLIC xrobot ${DEP_LIBS})
-
-    target_include_directories(xrobot_test_obj PUBLIC ${DEP_INCLUDES})
-
-    set_target_properties(xrobot_test_obj
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 endif()
 
 
