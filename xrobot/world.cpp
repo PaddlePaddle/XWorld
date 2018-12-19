@@ -164,7 +164,7 @@ RobotBase::RobotBase(std::weak_ptr<World> bullet_world)
 void RobotBase::LoadURDFFile(
         const std::string& filename,
         const glm::vec3& pos,
-        const glm::vec4& quat,
+        const glm::vec4& quat, //quat
         const xScalar scale,
         const std::string& label,
         const bool fixed_base,
@@ -174,7 +174,7 @@ void RobotBase::LoadURDFFile(
 
     auto bullet_world = wptr_to_sptr(bullet_world_);
         
-    assert(BulletBody::load_urdf(
+    BulletBody::load_urdf(
             bullet_world->client_,
             filename,
             pos,
@@ -183,7 +183,7 @@ void RobotBase::LoadURDFFile(
             fixed_base,
             self_collision,
             use_multibody,
-            concave));
+            concave);
     body_data_.label = label;
 
     load_robot_joints(filename);
@@ -267,8 +267,6 @@ void RobotBase::load_robot_shapes(const xScalar scale) {
             model_data->directory_ = filename;
         }
 
-        printf("---------------------%f\n", s[0]);
-
         model_data->Reset(
                 geometry_type,
                 create_new,
@@ -292,7 +290,7 @@ void RobotBase::LoadOBJFile(
     auto bullet_world = wptr_to_sptr(bullet_world_);
 
     root_part_ = std::make_shared<Object>();
-    assert(load_obj(
+    load_obj(
              bullet_world->client_,
              root_part_.get(),
              filename,
@@ -300,7 +298,7 @@ void RobotBase::LoadOBJFile(
              quat,
              scale,
              mass,
-             concave));
+             concave);
     root_part_->bullet_world_ = bullet_world;
     root_part_->set_id(body_data_.body_uid);
     body_data_.label = label;
@@ -807,7 +805,7 @@ RobotWithConvertion::RobotWithConvertion(std::weak_ptr<World> bullet_world) :
 void RobotWithConvertion::LoadConvertedObject(
         const std::string& filename,
         const glm::vec3& pos,
-        const glm::vec4& quat,
+        const glm::vec4& quat, // quat
         const xScalar scale,
         const std::string& label,
         const bool concave) {
@@ -846,7 +844,7 @@ void RobotWithConvertion::LoadConvertedObject(
             LoadURDFFile(
                     std::string(object_path),
                     pos,
-                    quat,
+                    quat, // quat
                     scale, 
                     std::string(label_),
                     false,
@@ -1175,18 +1173,21 @@ std::weak_ptr<RobotBase> World::LoadRobot(
         const xScalar mass,
         const bool flip,
         const bool concave) {
+
     double d = glm::length(rot_axis);
     double s = sin(rot_angle*0.5) / d;
     double c = cos(rot_angle*0.5);
     glm::vec4 quat(rot_axis[0]*s, rot_axis[1]*s, rot_axis[2]*s, c);
-    return LoadRobot(filename, pos, quat, scale, label, mass, flip, concave);
+
+    return LoadRobot(filename, pos, quat, scale,
+            label, fixed_base, mass, flip, concave);
 }
 
 
 std::weak_ptr<RobotBase> World::LoadRobot(
         const std::string& filename,
         const glm::vec3& pos,
-        const glm::vec4& quat,
+        const glm::vec4& quat, // quat
         const glm::vec3& scale,
         const std::string& label,
         const bool fixed_base,
@@ -1290,6 +1291,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                         filename, pos, quat, scale[0], tag, concave);
                 robot_conv->reuse();
                 robot_conv->Wake();
+                return robot_conv;
             } else if (type == "animate") {
                 robot = std::make_shared<RobotWithAnimation>(shared_from_this());
                 auto robot_anim =
@@ -1298,6 +1300,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                         filename, pos, quat, scale[0], tag, concave);
                 robot_anim->reuse();
                 robot_anim->Wake();
+                return robot_anim;
             } else {
                 fprintf(stderr, "Incorrect Action File [%s]\n", type.c_str());
                 return std::weak_ptr<RobotBase>();
@@ -1338,7 +1341,8 @@ std::weak_ptr<RobotBase> World::LoadRobot(
         }
     }
 
-    printf("Format Not Support!\n");
+    // printf("file: %s [%d]\n", filename.c_str(), find);
+    // printf("Format Not Support!\n");
     return std::weak_ptr<RobotBase>();
 }
 

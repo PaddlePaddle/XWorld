@@ -101,7 +101,8 @@ namespace xrobot
 
 	std::string Task_NavToObject::NavTarget() {
 
-		if(scene_->world_->reset_count_ < 12023) {
+		ctx_->PollEvent();
+		if(ctx_->GetKeyPressSpace()) {
 			return "idle";
 		}
 
