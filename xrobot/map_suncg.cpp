@@ -348,8 +348,6 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 				{
 					if (state) sprintf(obj_name, "%s/object/%s/%s_0.obj", input_data_directory, modelId, modelId); 
 					else sprintf(obj_name, "%s/object/%s/%s.obj", input_data_directory, modelId, modelId); 
-					
-					//printf("%s\n", std::string(obj_name).c_str());
 
 					float mass = 0.0f;
 					bool concave = true;
@@ -362,44 +360,10 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						continue;
 					}
 
-					if (all_labels_[modelId] == "window") {
-						//continue;
-					}
-
-					// if (all_labels_[modelId] == "window") {
-					// 	mass = 0.0f;
-					// }
-
 					if(map_labels_properity.find(all_labels_[modelId]) != map_labels_properity.end()) {
 						mass = map_labels_properity[all_labels_[modelId]].mass;
 						concave = map_labels_properity[all_labels_[modelId]].concave;
 					}
-
-					// if(all_labels_[modelId] == "chair") {
-					// 	mass = 100.0f;
-					// 	concave = false;
-					// }
-
-					// if(all_labels_[modelId] == "fruit_bowl") {
-					// 	mass = 100.0f;
-					// 	concave = false;
-					// }
-
-					// if(all_labels_[modelId] == "trash_can") {
-					// 	mass = 100.0f;
-					// 	concave = false;
-					// }
-
-					// if(all_labels_[modelId] == "coffee_machine") {
-					// 	mass = 100.0f;
-					// 	concave = false;
-					// }
-					// if (remove_randomly_  && GetRandom(0, 5) > 2) {
-					// 	if(all_labels_[modelId] != "window") {
-					// 		continue;
-					// 	}
-					// }
-
 
 					std::weak_ptr<RobotBase> object = world_->LoadRobot(
 						obj_name,
@@ -407,7 +371,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						glm::vec4(rotation.x,rotation.y,rotation.z,rotation.w),
 						glm::vec3(scale.x, scale.y, scale.z),
 						all_labels_[modelId],
-						true,
+						false,
 						mass,
 						isMirrored == 1 ? -1.0f : 1.0f,
 						concave
@@ -419,7 +383,6 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						object_sptr->root_part_->ChangeAngularDamping(0.9f);
 						map_bullet_label_[object_sptr->id()] = all_labels_[modelId];
 					}
-					//printf("    label: %s\n", all_labels_[modelId].c_str());
 				}
 
 			}

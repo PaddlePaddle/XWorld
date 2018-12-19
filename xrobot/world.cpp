@@ -88,6 +88,11 @@ void Object::GetMass(xScalar& mass) {
     BulletObject::get_mass(world->client_, id(), mass);
 }
 
+void Object::SetMass(const xScalar mass) {
+    auto world = wptr_to_sptr(bullet_world_);
+    BulletObject::change_mass(world->client_, id(), mass);
+}
+
 void Object::SetStatic() {
     auto world = wptr_to_sptr(bullet_world_);
     BulletObject::get_mass(world->client_, id(), object_mass_original_);
@@ -1203,18 +1208,12 @@ std::weak_ptr<RobotBase> World::LoadRobot(
 
     if(!label.length() || !label.compare("unlabeled")) {
         if(tag_list_.find(filename) != tag_list_.end()) {
-            // Invalid label but find in csv
             tag = tag_list_[filename];
-            //printf("[Load Robot] Find Tag: %s\n", tag.c_str());
         }
-    } else {
-        //printf("[Load Robot] Load Tag: %s\n", tag.c_str());
     }
 
     if(pickable_list_.find(tag) != pickable_list_.end()) {
-        // Invalid label but find in csv
         pickable = pickable_list_[tag];
-       // printf("[Load Robot] Find Pickable Object: %s\n", tag.c_str());
     }
 
     int find = (int) filename.find(".obj");
@@ -1228,8 +1227,12 @@ std::weak_ptr<RobotBase> World::LoadRobot(
         auto robot = LoadModelFromCache(filename_with_scale, pos, quat);
         if (!robot) {
             robot = std::make_shared<Robot>(shared_from_this());
-            robot->LoadOBJFile(
-                    filename, pos, quat, scale, tag, mass, flip, concave);
+            robot->LoadOBJFile(filename, pos, quat, scale,
+                    tag, mass, flip, concave);
+        }
+
+        if (mass > 0) {
+            robot->root_part_->SetMass(mass);
             robot->Wake();
         }
 
@@ -1238,6 +1241,7 @@ std::weak_ptr<RobotBase> World::LoadRobot(
         AddObjectWithLabel(tag, robot->body_data_.body_uid);
 
         return robot;
+    
     } 
 
     find = (int) filename.find(".urdf");

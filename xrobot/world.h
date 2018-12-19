@@ -68,6 +68,8 @@ public:
 
     void GetMass(xScalar& mass);
 
+    void SetMass(const xScalar mass);
+
     void SetStatic();
     
     void RecoverFromStatic();

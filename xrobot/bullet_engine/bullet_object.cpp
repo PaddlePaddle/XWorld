@@ -50,7 +50,6 @@ void BulletObject::get_mass(
             b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
     int status_type = b3GetStatusType(status_handle);
     if (status_type != CMD_GET_DYNAMICS_INFO_COMPLETED) {
-        //printf("Get Mass Failed! Or Could Be Static Object\n");
         mass = 0.0f;
     } else {
         struct b3DynamicsInfo dynamics_info;
