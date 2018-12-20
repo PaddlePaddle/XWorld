@@ -10,7 +10,6 @@ MapSuncg::~MapSuncg()
 }
 
 MapSuncg::MapSuncg() : Map(),
-					   map_AABB_(nullptr),
 					   all_labels_(),
 					   map_bullet_label_(),
 					   rand_device_(),

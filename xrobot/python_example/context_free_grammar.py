@@ -65,6 +65,8 @@ class RHS:
         """
         Narrow down the items list to only one element
         """
+        # print self.items
+        # print item
         assert item in self.items, "Invalid RHS item: " + item
         self.items = [item]
 

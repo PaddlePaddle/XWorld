@@ -24,19 +24,16 @@
 
 #pragma optionNV(unroll all)
 
-layout (location = 0) out vec4 fragColor;
-layout (location = 1) out vec4 LabelAndDepth;
-
+layout(location = 0) out vec4 fragColor;
 layout(binding = 0) uniform sampler3D voxelVisibility;
 layout(binding = 1) uniform sampler3D voxelTex;
-layout(binding = 5) uniform sampler2D gAlbedoSpec; // G-Buffer
+layout(binding = 5) uniform sampler2D gAlbedo;
 layout(binding = 6) uniform sampler2D gNormal;
 layout(binding = 7) uniform sampler2D gPosition;
-layout(binding = 8) uniform sampler2D gPBR;
 layout(binding = 9) uniform sampler3D voxelTexMipmap[6];
-layout(binding = 15) uniform sampler2D s_ShadowMap[8];
+layout(binding = 15) uniform sampler2D shadowMap[8];
 
-noperspective in vec2 TexCoords;
+in vec2 TexCoords;
 
 const float PI = 3.14159265f;
 const float HALF_PI = 1.57079f;
@@ -52,10 +49,10 @@ struct Light {
     vec3 direction;
 };
 
-uniform vec3 id_color = vec3(1,0,0);
-uniform int mode = 0;
+uniform mat4 invView;
+uniform mat4 projection;
 uniform int shadowMode = 0;
-uniform float exposure = 1.2;
+uniform float exposure = 1.0;
 uniform vec3 cameraPosition;
 uniform int numDirectionalLight;
 uniform Light directionalLight[MAX_DIRECTIONAL_LIGHTS];
@@ -70,17 +67,13 @@ uniform float aoAlpha = 0.005f;
 uniform float samplingFactor = 0.4f;
 uniform float coneShadowTolerance = 0.1f;
 uniform float coneShadowAperture = 0.01f;
-uniform float zNear = 0.02f;
-uniform float zFar = 25.0f;
 uniform vec4 direction;
 uniform vec4 options;
 uniform int num_cascades;
 uniform float far_bounds[8];
 uniform mat4 texture_matrices[8];
-
 uniform float bias_scale = 0.05f;
 uniform float bias_clamp = 0.0002f;
-uniform float ibl_factor = 0.3f;
 
 const vec3 diffuseConeDirections[] =
 {
@@ -102,83 +95,31 @@ const float diffuseConeWeights[] =
     3.0f * PI / 20.0f,
 };
 
-float depth_compare(float a, float b, float bias)
-{
-    return a - bias > b ? 1.0 : 0.0;
-}
 float shadow_occlussion(float frag_depth, vec3 n, vec3 l, vec3 x)
 {
     int index = 0;
-    float blend = 0.0;
     
-    for (int i = 0; i < num_cascades - 1; i++)
-    {
+    for (int i = 0; i < num_cascades - 1; i++) {
         if (frag_depth > far_bounds[i])
             index = i + 1;
     }
 
-    blend = clamp( (frag_depth - far_bounds[index] * 0.995) * 200.0, 0.0, 1.0);
-    
-    // Apply blend options.
-    blend *= options.z;
-    // Transform frag position into Light-space.
     vec4 light_space_pos = texture_matrices[index] * vec4(x, 1.0f);
     float current_depth = light_space_pos.z;
     
     float bias = clamp(bias_scale * (1.0 - dot(n, l)), 0.0, bias_clamp);  
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(s_ShadowMap[index], 0).xy;
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(s_ShadowMap[index], vec2(light_space_pos.xy + vec2(x, y) * texelSize)).r; 
+    vec2 texelSize = 1.0 / textureSize(shadowMap[index], 0).xy;
+
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap[index], vec2(light_space_pos.xy + vec2(x, y) * texelSize)).r; 
             shadow += current_depth - bias > pcfDepth ? 1.0 : 0.0;        
         }    
     }
+
     shadow /= 9.0;
-
-    if (options.x == 1.0)
-    {
-        //if (blend > 0.0 && index != num_cascades - 1)
-        //{
-        //    light_space_pos = texture_matrices[index + 1] * vec4(PS_IN_WorldFragPos, 1.0f);
-        //    shadow_map_depth = texture(s_ShadowMap, vec3(light_space_pos.xy, float(index + 1))).r;
-        //    current_depth = light_space_pos.z;
-        //    float next_shadow = depth_compare(current_depth, shadow_map_depth, bias);
-        //    
-        //    return (1.0 - blend) * shadow + blend * next_shadow;
-        //}
-        //else
-            return shadow;
-    }
-    else
-        return 0.0;
-}
-
-vec3 debug_cascade(float frag_depth)
-{
-    int index = 0;
-
-    // Find shadow cascade.
-    for (int i = 0; i < num_cascades - 1; i++)
-    {
-        if (frag_depth > far_bounds[i])
-            index = i + 1;
-    }
-    if (index == 0)
-        return vec3(1.0, 0.0, 0.0);
-    else if (index == 1)
-        return vec3(0.0, 1.0, 0.0);
-    else if (index == 2)
-        return vec3(0.0, 0.0, 1.0);
-    else
-        return vec3(1.0, 1.0, 0.0);
-}
-
-float linearize(float depth)
-{
-    return (2 * zNear) / (zFar + zNear - depth * (zFar - zNear));
+    return shadow;
 }
 
 vec3 WorldToVoxel(vec3 position)
@@ -443,40 +384,13 @@ vec3 CookTorranceBRDF(
     return color;
 }
 
-vec3 BRDF(Light light, vec3 N, vec3 X, vec3 ka, vec4 ks)
-{
-    // common variables
-    vec3 L = normalize(light.direction);
-
-    vec3 V = normalize(cameraPosition - X);
-    vec3 H = normalize(V + L);
-    // compute dot procuts
-    float dotNL = max(dot(N, L), 0.0f);
-    float dotNH = max(dot(N, H), 0.0f);
-    float dotLH = max(dot(L, H), 0.0f);
-    // decode specular power
-    float spec = exp2(11.0f * ks.a + 1.0f);
-    // emulate fresnel effect
-    vec3 fresnel = ks.rgb + (1.0f - ks.rgb) * pow(1.0f - dotLH, 5.0f);
-    // specular factor
-    float blinnPhong = pow(dotNH, spec);
-    // energy conservation, aprox normalization factor
-    blinnPhong *= spec * 0.0397f + 0.3183f;
-    // specular term
-    vec3 specular = ks.rgb * light.specular * blinnPhong * fresnel;
-    // diffuse term
-    vec3 diffuse = ka.rgb * light.diffuse;
-    // return composition
-    return (diffuse + specular) * dotNL;
-}
-
 float CaculateDirectionalShadow(vec3 normal, vec3 position, float depth)
 {
     float visibility = 1.0f;
 
     if(shadowMode == 0)
     {
-        visibility = 1.04 - shadow_occlussion(depth, normal, direction.xyz, position);
+        visibility = 1.1 - shadow_occlussion(depth, normal, direction.xyz, position);
 
     }
     else if(shadowMode == 1 && numDirectionalLight > 0)
@@ -573,73 +487,42 @@ vec4 CalculateIndirectLighting(vec3 position, vec3 normal, vec3 albedo, vec4 spe
 
 void main()
 {
-    if(texture(gNormal, TexCoords).a == 0) {
-        discard;
-    }
+    vec4 g0 = texture(gPosition, TexCoords);
+    vec4 g1 = texture(gNormal, TexCoords);
+    vec4 g2 = texture(gAlbedo, TexCoords);
 
-    // world-space position
-    vec3 position = texture(gPosition, TexCoords).rgb;
-    // Depth (Log)
-    float depth = texture(gPosition, TexCoords).a; 
-    // world-space normal
-    vec3 normal = -normalize(texture(gNormal, TexCoords).rgb);
-    
-    float metallic = texture(gPBR, TexCoords).r;
-    float roughness = texture(gPBR, TexCoords).g;
-    float height = texture(gPBR, TexCoords).b;
-    float ao = texture(gPBR, TexCoords).a;
-    vec4 specular = vec4(1,1,1, clamp(1.0 - roughness,0,1));
-    vec3 baseColor = texture(gAlbedoSpec, TexCoords).rgb;
+    vec3 view_position  = g0.xyz;
+    vec3 world_position = vec3(invView * vec4(view_position, 1.0));
+    vec3 world_normal   = -normalize(g1.xyz);
+    vec3 albedo         = pow(g2.rgb, vec3(2.2f));
+    vec3 base_color     = g2.rgb;
+    float roughness     = g0.w;
+    float height        = g2.w;
+    float ao            = g1.w;
+    float metallic      = 0.0;
 
-    vec3 albedo = pow(baseColor, vec3(2.2f));
-    vec3 emissive = vec3(0,0,0);
+    vec4 proj_coord = projection * vec4(view_position, 1.0);
+    float depth = (proj_coord.z / proj_coord.w) * 0.5f + 0.5f;
+    vec4 specular = vec4(1,1,1, clamp((1.0 - roughness) ,0,1));
 
     float visibility = 1.0f;
     vec3 directLighting = vec3(1.0f);
     vec4 indirectLighting = vec4(1.0f);
-    vec3 compositeLighting = vec3(1.0f);
+    vec3 compositeLighting = albedo;
 
-    // if(texture(gNormal, TexCoords).a < 1)
-    //     discard;
-
-    // if(linearize(depth) > 0.6)
-    //     mode = 5;
-
-    if(mode == 0)   // direct + indirect + ao
-    {
-        visibility = CaculateDirectionalShadow(normal, position, depth);
-        indirectLighting = CalculateIndirectLighting(position, normal, baseColor, specular, 
+    if(depth < 1) {
+        visibility = CaculateDirectionalShadow(world_normal, world_position, depth);
+        indirectLighting = CalculateIndirectLighting(world_position, world_normal, base_color, specular, 
             roughness, metallic, true, visibility);
-        directLighting = CalculateDirectLighting(position, normal, albedo, specular, depth,
+        directLighting = CalculateDirectLighting(world_position, world_normal, albedo, specular, depth,
             roughness, metallic, ao) * visibility;
-    }
-    else
-    {
-        visibility = CaculateDirectionalShadow(normal, position, depth);
-        indirectLighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        directLighting = BRDF(directionalLight[0], normal, position, albedo, specular) *
-                visibility + albedo * 0.2f;
+
+        indirectLighting.rgb = pow(indirectLighting.rgb, vec3(2.2f));
+        compositeLighting = (directLighting + indirectLighting.rgb) * indirectLighting.a;
+        compositeLighting = compositeLighting * pow(2.0, exposure);
     }
 
+    // compositeLighting = pow(compositeLighting, vec3(1.0 / 2.2));
 
-    indirectLighting.rgb = pow(indirectLighting.rgb, vec3(2.2f));
-    compositeLighting = (directLighting + indirectLighting.rgb) * indirectLighting.a;
-    compositeLighting += emissive;
-
-
-    // Reinhard tone mapping
-    //compositeLighting = compositeLighting / (compositeLighting + 1.0f);
-
-    compositeLighting = compositeLighting * pow(2.0, exposure);
-
-    // convert to gamma space
-    const float gamma = 2.2;
-    compositeLighting = pow(compositeLighting, vec3(1.0 / gamma));
-
-    fragColor = vec4(compositeLighting, texture(gNormal, TexCoords).a);
-
-    if(depth * (zFar - zNear) < 2.0f)
-        LabelAndDepth = vec4(id_color, 1);
-    else
-        LabelAndDepth = vec4(1,1,1,1);
+    fragColor = vec4(compositeLighting, 1);
 }

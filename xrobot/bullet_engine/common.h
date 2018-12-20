@@ -51,6 +51,8 @@ typedef std::weak_ptr<World> WorldWPtr;
 
 constexpr int kAllThreads = 0;
 constexpr int kCacheSize = 32;
+constexpr float kAngleThreshold = 0.1f;
+constexpr float kDistanceThreshold = 3.0f;
 const float kFloat3Zero[3] = { 0.0f };
 const float kFloat4Zero[4] = { 0.0f };
 const glm::vec3 kVec3Zero = glm::vec3(0); 
@@ -134,6 +136,12 @@ void rotate(const ClientHandle client, const int id, const glm::vec3 angle);
 // http://www.opengl-tutorial.org
 // Rotation
 glm::quat RotationBetweenVectors(const glm::vec3 start, const glm::vec3 dest);
+
+// ray-box-intersection (with direction)
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/
+bool RayAABBIntersect(const Ray& r, 
+                      const glm::vec3 aabb_min,
+                      const glm::vec3 aabb_max);
 
 }} // namespace xrobot::bullet_engine
 

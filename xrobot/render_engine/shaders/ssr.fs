@@ -3,16 +3,17 @@
 
 #version 330 core
  
+#extension GL_ARB_texture_query_lod : enable
+
 uniform sampler2D renderedTexture;
-uniform sampler2D gPositionDepth;
-uniform sampler2D gPBR;
+uniform sampler2D gPosition;
 uniform sampler2D gNormal;
 
 uniform mat4 projection;
 uniform mat4 view;
 
 in vec2 TexCoords;
-out vec4 FragColor;
+out vec3 FragColor;
 
 const float step = 0.1;
 const float minRayStep = 0.1;
@@ -25,16 +26,11 @@ vec4 rayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth);
 
 void main()
 {
-
-    if(texture(gNormal, TexCoords).a == 0) {
-        discard;
-    }
-
-    vec3 worldPos  = texture(gPositionDepth, TexCoords).xyz;
-    vec3 viewPos   = vec3(view * vec4(worldPos, 1));
+    vec4 g0        = texture(gPosition, TexCoords);
+    vec3 viewPos   = g0.xyz;
     vec3 worldNorm = normalize(texture(gNormal, TexCoords).xyz);
     vec3 viewNorm  = normalize(mat3(view) * worldNorm);
-    float rough    = texture(gPBR, TexCoords).g;
+    float rough    = g0.w;
 
     vec3 N = normalize(viewNorm);
     vec3 V = normalize(-viewPos);
@@ -47,18 +43,15 @@ void main()
     float error = coords.w;
     float screenEdgefactor = clamp(1.0 - (dCoords.x + dCoords.y), 0.0, 1.0);
     
-    vec3 ssr = texture(renderedTexture, coords.xy).rgb * clamp(screenEdgefactor, 0.0, 0.9);
+    vec3 color = textureLod(renderedTexture, coords.xy, rough * 3.5f).rgb;
+    vec3 ssr = color * clamp(screenEdgefactor, 0.0, 1.0);
     
     error *= clamp(screenEdgefactor, 0.0, 0.9);
     
     float backfacingFactor = 1.0 - smoothstep(-1.0, -0.8, R.z);
     ssr *= backfacingFactor;
     error *= backfacingFactor;
-        
-    // TODO
-    // mix between blur tex, error area use vxgi
-    FragColor = texture(renderedTexture, TexCoords.xy) * 0.9
-        + vec4(mix(ssr, vec3(0), max(1.0 - error, 0.0)), 1) * 0.5 * (1 - rough);
+    FragColor = rough * 0.5 * mix(ssr, vec3(0), max(1.0 - error, 0.0));
 }
  
 vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
@@ -74,7 +67,7 @@ vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
         
-        depth = (view * vec4(texture(gPositionDepth, projectedCoord.xy).xyz, 1.0)).z;
+        depth = texture(gPosition, projectedCoord.xy).z;
         dDepth = hitCoord.z - depth;
         
         dir *= 0.5;
@@ -105,7 +98,7 @@ vec4 rayMarch(vec3 dir, inout vec3 hitCoord, out float dDepth)
         projectedCoord = projection * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
-        depth = (view * vec4(texture(gPositionDepth, projectedCoord.xy).xyz, 1.0)).z;
+        depth = texture(gPosition, projectedCoord.xy).z;
         if(depth > 1000.0)
             continue;
         

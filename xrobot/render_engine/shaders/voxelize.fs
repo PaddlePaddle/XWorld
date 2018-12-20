@@ -56,7 +56,7 @@ uniform struct Material
 
 uniform int volumeDimension;
 uniform int flagStaticVoxels = 1;
-uniform int linear = 1;
+uniform int linear = 0;
 
 // MTL
 uniform float d = 1;

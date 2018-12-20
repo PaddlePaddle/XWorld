@@ -285,26 +285,27 @@ void BulletBody::move(
     prev_q[3] = quat[3];
 }
 
-void BulletBody::attach(BulletObject* part, const BulletObject* target_root) {
-    btTransform T_target = target_root->object_position_;
-    btTransform T = part->object_position_.inverse() * T_target;
-    part->attach_transform_ = T;
+void BulletBody::attach(BulletObject* root_part, const BulletObject* target_root,
+        const float pitch, const glm::vec3& offset) {
+
+    btTransform mat_rc_r;
+    btQuaternion cam_q(pitch, 0, 0);
+    mat_rc_r.setIdentity();
+    mat_rc_r.setRotation(cam_q);
+
+    btTransform mat_rc_t;
+    mat_rc_t.setIdentity();
+    mat_rc_t.setOrigin(btVector3(0,offset.y,0));
+
+    btTransform object_tranform = target_root->object_position_;
+    btTransform root_transform = root_part->object_position_;
+
+    btTransform root_to_object = mat_rc_r.inverse() *
+        root_transform.inverse() * mat_rc_t.inverse() * object_tranform;
+
+    body_data_.attach_transform = root_to_object;
+    body_data_.attach_orientation = object_tranform;
 }
-
-// void BulletBody::detach(BulletObject* root) {
-//     if(body_data_.attach_to_id < -1) {
-//         printf("Nothing to detach!\n");
-//         return;
-//     }
-
-//     if(body_data_.attach_to_id == -1) {
-//         root->detach();
-//     } else {
-//         //body_data_.other_parts_[attach_to_id_]->attach_object_ = object;
-//         // parts_[body_data_.attach_to_id]->detach();
-//     }
-//     body_data_.attach_to_id = -2;
-// }
 
 void BulletBody::attach_camera(
         const BulletObject* part,

@@ -507,7 +507,7 @@ void RobotBase::ResetJointState(
             bullet_world->client_, body_data_.body_uid, pos, vel);
 }
 
-void RobotBase::PickUp(
+std::string RobotBase::PickUp(
         std::shared_ptr<Inventory>& inventory, 
         const glm::vec3& from,
         const glm::vec3& to) {
@@ -523,31 +523,36 @@ void RobotBase::PickUp(
     if(test[0].bullet_id >= 0) {
         auto object = bullet_world->id_to_robot_[test[0].bullet_id];
         if (object->body_data_.pickable) {
-            inventory->PutObject(object);
+            if(inventory->PutObject(object)) {
+                bullet_world->icon_inventory_.push_back(
+                        object->body_data_.path);
+            }
+            return object->body_data_.label;
         }
     }
+
+    return "Nothing";
 }
  
 bool RobotBase::occupy_test(
         std::shared_ptr<World>& world,
         std::shared_ptr<RobotBase>& item,
-        const glm::vec3& c) {
+        const glm::vec3& c,
+        xScalar& low) {
 
     glm::vec3 aabb_min, aabb_max;
     item->root_part_->GetAABB(aabb_min, aabb_max);
     float width = (aabb_max.x - aabb_min.x) / 2;
     float height = (aabb_max.z - aabb_min.z) / 2;
+    low = (xScalar) (aabb_min.y - 20.0f);
 
     std::vector<RayTestInfo> ray_test;
     std::vector<Ray> ray;
     glm::vec3 o = glm::vec3(c.x, c.y + 0.05f, c.z);
-    glm::vec3 d = glm::vec3(width + 0.01f, 0.0f, 0.0f);
+    glm::vec3 d = glm::vec3(width + 0.02f, 0.0f, 0.0f);
     ray.push_back({o, o + d});
     ray.push_back({o, o - d});
-    d = glm::vec3(width + 0.01f, -0.01f, height + 0.01f);
-    ray.push_back({o, o + d});
-    ray.push_back({o, o - d});
-    d = glm::vec3(-width - 0.01f, -0.01f, height + 0.01f);
+    d = glm::vec3(0.0f, 0.0f, height + 0.02f);
     ray.push_back({o, o + d});
     ray.push_back({o, o - d});
 
@@ -584,7 +589,7 @@ bool RobotBase::occupy_test(
     return false;
 }
 
-void RobotBase::PutDown(
+std::string RobotBase::PutDown(
         std::shared_ptr<Inventory>& inventory, 
         const glm::vec3& from,
         const glm::vec3& to) {
@@ -610,41 +615,58 @@ void RobotBase::PutDown(
                 // put the item 20 units above the hit point
 
                 xScalar p[3];
+                xScalar q[4];
+
                 p[0] = pos.x;
-                p[1] = pos.y + 20.0f;
+                p[1] = 20.0f;
                 p[2] = pos.z;
+
+                glm::vec3 pos_temp;
+                glm::vec4 quat_temp;
+                item->root_part_->pose(pos_temp, quat_temp);
+
+                q[0] = quat_temp[0];
+                q[1] = quat_temp[1];
+                q[2] = quat_temp[2];
+                q[3] = quat_temp[3];
 
                 set_pose(bullet_world->client_,
                          item->body_data_.body_uid,
                          p,
-                         (xScalar*)NULL);
+                         q);                
+
                 // call bullet's step to enalbe the transformation
                 bullet_world->BulletStep();
                 // freeze the item for now
                 item->Sleep();
 
-                bool occupied = occupy_test(bullet_world, item, pos);
+                xScalar low = 0.0f;
+                bool occupied = occupy_test(bullet_world, item, pos, low);
+
                 if (!occupied) {
 
                     p[0] = pos.x;
-                    p[1] = pos.y + 0.01f;
+                    p[1] = pos.y - low + 0.01f;
                     p[2] = pos.z;
-
 
                     set_pose(bullet_world->client_,
                              item->body_data_.body_uid,
                              p,
-                             (xScalar*)NULL);
+                             q);
                     bullet_world->BulletStep();
+                    bullet_world->icon_inventory_.pop_back();
+                    return item->body_data_.label;
                 } else {
                     inventory->PutObject(item);
                 }
             }
         }
     }
+
+    return "Nothing";
 }
 
-void RobotBase::Rotate(
+std::string RobotBase::Rotate(
         const glm::vec3& angle,
         const glm::vec3& from,
         const glm::vec3& to) {
@@ -661,8 +683,12 @@ void RobotBase::Rotate(
             && item->body_data_.label != "Ceiling") {
             rotate(bullet_world->client_, item->body_data_.body_uid, angle);
             bullet_world->BulletStep();
+
+            return item->body_data_.label;
         }
     }
+
+    return "Nothing";
 }
 
 void RobotBase::Detach() {
@@ -671,17 +697,13 @@ void RobotBase::Detach() {
         return;
     }
 
-    if(body_data_.attach_to_id == -1) {
-        root_part_->detach();
-    } else {
-        //body_data_.other_parts_[attach_to_id_]->attach_object_ = object;
-        parts_[body_data_.attach_to_id]->detach();
-    }
+    body_data_.attach_transform = btTransform();
+
     body_data_.attach_to_id = -2;
 }
 
-void RobotBase::AttachTo(std::weak_ptr<RobotBase> object, const int id) {
-    assert(id >= -1 && id <= parts_.size());
+void RobotBase::AttachTo(std::weak_ptr<RobotBase> object) {
+
     auto object_sptr = object.lock();
     if (!object_sptr || 
         object_sptr->body_data_.label == "Wall" || 
@@ -702,13 +724,22 @@ void RobotBase::AttachTo(std::weak_ptr<RobotBase> object, const int id) {
         return;
     }
 
+    const int id = -1;
+
     body_data_.attach_to_id = id;
 
     object_sptr->Sleep();
 
-    auto part = (id == -1 ? root_part_ : parts_[id]);
+    // TODO
+    // camera
+    auto bullet_world = bullet_world_.lock();
+    float pitch = glm::radians(bullet_world->camera(0)->pre_pitch_);
+    glm::vec3 offset = bullet_world->camera(0)->offset_;
+
+    auto part = (id < 0 ? root_part_ : parts_[id]);
     part->attach_object_ = object;
-    attach(part.get(), object_sptr->root_part_.get());
+
+    attach(root_part_.get(), object_sptr->root_part_.get(), pitch, offset);
 }
 
 const RenderPart* RobotBase::render_root_ptr() const {
@@ -803,7 +834,9 @@ RobotWithConvertion::RobotWithConvertion(std::weak_ptr<World> bullet_world) :
         label_("unlabeled"),
         scale_(1.0f),
         cycle_(false),
+        lock_(false),
         path_(""),
+        unlock_tag_(""),
         object_path_list_(0),
         object_name_list_(0) {}
 
@@ -820,14 +853,23 @@ void RobotWithConvertion::LoadConvertedObject(
         fprintf(stderr, "Unable to parse %s\n", filename.c_str());
         return;
     }
-    label_ = label;
+
     assert(json_get_string(&json_root, "type") == "convert");
     bool cycle = json_get_bool(&json_root, "cycle");
+    auto unlock = json_get_string(&json_root, "unlock", "");
 
     SetCycle(cycle);
     SetStatus(0);
     scale_ = scale;
     path_ = filename;
+    label_ = label;
+
+    if(strcmp(unlock.c_str(), "")==0) {
+        lock_ = false;
+    } else {
+        lock_ = true;
+        unlock_tag_ = std::string(unlock);
+    }
 
     // Parse Actions
     Json::Value *json_level1, *json_level2;
@@ -862,6 +904,19 @@ void RobotWithConvertion::LoadConvertedObject(
     }
 }
 
+bool RobotWithConvertion::InteractWith(const std::string& tag)
+{
+    assert(tag.size());
+
+    if(tag == unlock_tag_) { 
+        lock_ = false; 
+        printf("Actions Unlocked!\n");
+        return true;
+    }
+
+    return false;
+}
+
 bool RobotWithConvertion::TakeAction(const int act_id) {
     assert(act_id > -1 && status_ > -1);
     assert(object_path_list_.size() > 0);
@@ -869,10 +924,16 @@ bool RobotWithConvertion::TakeAction(const int act_id) {
 
     auto bullet_world = wptr_to_sptr(bullet_world_);
 
+    if(lock_) {
+        printf("The Object Actions Locked!\n");
+        return false;
+    }
+
     if (!cycle_ && act_id <= status_) {
         printf("The Object is Not Convertable!\n");
         return false;
     }
+
     if (act_id == status_) {
         //printf("Convertion Ignored!\n");
         return false;
@@ -893,7 +954,7 @@ bool RobotWithConvertion::TakeAction(const int act_id) {
             pos,
             quat,
             scale_,
-            label_ + "_" + object_name_list_[act_id], true);
+            label_, true);
     bullet_world->robot_list_.pop_back();
     status_ = act_id;    
     return true;
@@ -1216,6 +1277,8 @@ std::weak_ptr<RobotBase> World::LoadRobot(
         pickable = pickable_list_[tag];
     }
 
+    load_icon(filename);
+
     int find = (int) filename.find(".obj");
     if(find > -1) {
         // Load OBJ
@@ -1325,6 +1388,8 @@ std::weak_ptr<RobotBase> World::LoadRobot(
 
             auto robot_anim =
                     std::dynamic_pointer_cast<RobotWithAnimation>(robot);
+            auto robot_conv = 
+                    std::dynamic_pointer_cast<RobotWithConvertion>(robot);
 
             if (robot_anim) {
                 if(robot_anim->unlock_tag_.size()) {
@@ -1334,6 +1399,27 @@ std::weak_ptr<RobotBase> World::LoadRobot(
                 } else {
                     robot_anim->TakeAction(1);
                 }
+
+                BulletStep();
+            } else if (robot_conv) {
+
+                bool cycle = robot_conv->GetCycle();
+                bool lock  = robot_conv->GetUnlockedTage().size();
+
+                if(!cycle)
+                    robot_conv->SetCycle(true);
+
+                if(lock)
+                    robot_conv->SetLock(false);
+
+                robot_conv->TakeAction(0);
+
+                if(!cycle)
+                    robot_conv->SetCycle(false);
+
+                if(lock)
+                    robot_conv->SetLock(true);
+
                 BulletStep();
             }
 
@@ -1418,6 +1504,7 @@ void World::CleanEverything2()
 
     tag_list_.clear();
     pickable_list_.clear();
+    icon_inventory_.clear();
 }
 
 void World::PrintCacheInfo()
@@ -1444,6 +1531,7 @@ void World::CleanEverything()
 
     tag_list_.clear();
     pickable_list_.clear();
+    icon_inventory_.clear();
 
     recycle_robot_map_.clear();
     robot_list_.clear();
@@ -1456,22 +1544,56 @@ void World::UpdateAttachObjects(RobotBaseSPtr robot) {
     if(robot->body_data_.attach_to_id < -1) 
         return;
 
+    if(cameras_size() < 1 || !camera(0)) 
+        return;
+
     if (robot->body_data_.attach_to_id == -1) {
         if(auto attach_object_sptr = robot->root_part_->attach_object_.lock()) {
-            btTransform new_transform = 
-                    robot->root_part_->object_position_;
 
-            SetTransformation(attach_object_sptr,
-                    new_transform * robot->root_part_->attach_transform_);
+            bool contact = false;
+            std::vector<ContactPoint> contact_points;
+            GetRootContactPoints(attach_object_sptr, 
+                    attach_object_sptr->root_part_, contact_points);
+
+            for (int i = 0; i < contact_points.size(); ++i) {
+                ContactPoint cp = contact_points[i];
+
+                if(cp.contact_distance < -0.008f) {
+                    robot->Detach();
+                    contact = true;
+                    break;
+                }
+            }
+
+            // TODO
+            // camera
+            float pitch = glm::radians(camera(0)->pre_pitch_);
+            glm::vec3 offset = camera(0)->offset_;
+
+            btTransform mat_rc_r;
+            btQuaternion cam_q(pitch, 0, 0);
+            mat_rc_r.setIdentity();
+            mat_rc_r.setRotation(cam_q);
+
+            btTransform mat_rc_t;
+            mat_rc_t.setIdentity();
+            mat_rc_t.setOrigin(btVector3(0,offset.y,0));
+
+            if(!contact) {
+                btTransform new_transform = 
+                        robot->root_part_->object_position_;
+                btTransform attach_transform = 
+                        robot->body_data_.attach_transform;
+                btTransform object_orn = 
+                        robot->body_data_.attach_orientation;
+                btTransform obj_tr = 
+                        mat_rc_t * new_transform * mat_rc_r * attach_transform;
+
+                obj_tr.setRotation(object_orn.getRotation());
+                SetTransformation(attach_object_sptr, obj_tr);
+            }
         } 
-    } else if(auto attach_object_sptr = 
-        robot->parts_[robot->body_data_.attach_to_id]->attach_object_.lock()) {
-        btTransform new_transform = 
-                robot->parts_[robot->body_data_.attach_to_id]->object_position_;
-
-        SetTransformation(attach_object_sptr,
-                new_transform * robot->parts_[robot->body_data_.attach_to_id]->attach_transform_);
-    } 
+    }
 }
 
 void World::FixLockedObjects(RobotBaseSPtr robot) {
@@ -1536,9 +1658,22 @@ void World::QueryPose(RobotBaseSPtr robot) {
 
 void World::BulletStep(const int skip_frames)
 {
+    if(cameras_size() < 1 || !camera(0)) 
+        return;
+
+    // Check Object at Camera Center is Movable
+    if(get_highlight_center() > -1) 
+        QueryMovable();
+
     for (auto robot : robot_list_) {
 
-        if (!robot) continue;
+        if (!robot || robot->is_recycled() || robot->is_hiding()) 
+            continue;
+
+        // Check Object at Camera Center is Interactable
+        if(get_highlight_center() == 0)
+            QueryInteractable(robot);
+
         UpdateAttachObjects(robot);
         FixLockedObjects(robot);
 
@@ -1560,8 +1695,61 @@ void World::BulletStep(const int skip_frames)
     render_step();
 }
 
-void World::BulletInit(const float gravity, const float timestep)
-{
+void World::QueryMovable() {
+    // TODO
+    // Camera
+    glm::vec3 from_3d = camera(0)->position_;
+    glm::vec3 frnt_3d = camera(0)->front_;
+
+    std::vector<RayTestInfo> raytest_result;
+    std::vector<Ray> ray;
+    ray.push_back({from_3d, from_3d + kDistanceThreshold * frnt_3d});
+    BatchRayTest(ray, raytest_result);
+
+    if(raytest_result[0].bullet_id >= 0) {
+        auto object = id_to_robot_[raytest_result[0].bullet_id];
+
+        if(object->body_data_.pickable) {
+            set_highlight_center(2);
+            return;
+        }
+    }
+
+    set_highlight_center(0);
+}
+
+void World::QueryInteractable(std::shared_ptr<RobotBase> robot) {
+    // TODO
+    // Camera
+    glm::vec3 from_3d = camera(0)->position_;
+    glm::vec3 frnt_3d = camera(0)->front_;
+
+    if (!robot->is_recycled() && !robot->is_hiding()) {
+
+        if(std::dynamic_pointer_cast<RobotWithAnimation>(robot) || 
+           std::dynamic_pointer_cast<RobotWithConvertion>(robot)) {
+
+            glm::vec3 aabb_min, aabb_max;
+            robot->root_part_->GetAABB(aabb_min, aabb_max);
+
+            bool intersect = RayAABBIntersect({from_3d, from_3d + frnt_3d},
+                                              aabb_min,
+                                              aabb_max);
+
+            glm::vec3 object_pos = (aabb_max - aabb_min) * 0.5f + aabb_min;
+            float dist = glm::distance(object_pos, from_3d);
+
+            if(intersect && dist < kDistanceThreshold) {
+                set_highlight_center(1);
+                return;
+            }
+        }
+    }
+
+    set_highlight_center(0);
+}
+
+void World::BulletInit(const float gravity, const float timestep) {
     init(gravity, timestep);    
 }
 

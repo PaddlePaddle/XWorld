@@ -19,20 +19,16 @@
 #include <GLFW/glfw3.h>
 
 #ifdef __linux__
-
 #include <X11/Xutil.h>
 #include <X11/Xlib.h>
 #include <GL/glx.h>
-
 #define EGL_EXT_PROTOTYPES
-#ifdef USE_EGL
 #include "EGL/egl.h"
 #include "EGL/eglext.h"
 
 #if EGL_EGLEXT_VERSION < 20150508
 #error "Require EGLEXT >= 20150508 to compile!"
-#endif  // EGL_EGLEXT_VERSION
-#endif  // USE_EGL
+#endif
 
 #endif  // linux
 

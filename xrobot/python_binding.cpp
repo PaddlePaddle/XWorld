@@ -39,23 +39,23 @@ void Thing::Sync()
 Playground::Playground(const int w, const int h,
                        const int headless, const int quality, const int device)
 {
-	assert(quality > -1 && quality < 2);
+	assert(quality > -1 && quality < 5);
 	
-	render_engine::RenderSettings render_profile(quality);
+	render_engine::Profile render_profile = render_engine::profiles[quality];
 
-	renderer_ = std::make_shared<render_engine::Render>(w, h, 1, 
+	renderer_ = std::make_shared<render_engine::Render>(w, h, 
                                                         render_profile, 
                                                         headless,
                                                         device);
 
-    //renderer_->ctx_->Hide();
-
-	ctx_ = renderer_->ctx_;
+	ctx_ = renderer_->GetContext();
 	main_camera_ = nullptr;
 	camera_aspect_ = (float) w / h;
 	camera_pitch_ = 0.0f;
     w_ = w;
     h_ = h;
+    hold_actions_ = false;
+    highlight_objects_ = false;
     inventory_opened_ = false;
     interact_ = false;
     gameover_ = false;
@@ -64,9 +64,16 @@ Playground::Playground(const int w, const int h,
     crowd_ = nullptr;
     inventory_ = nullptr;
     lidar_ = nullptr;
+    objects_ = std::vector<Thing>();
 }
 
 Playground::~Playground() {}
+
+boost::python::list Playground::GetGoals() const
+{
+    boost::python::list goal_list;
+    return goal_list;
+}
 
 void Playground::AssignTag(const std::string& path, const std::string& tag)
 {
@@ -87,8 +94,8 @@ boost::python::dict Playground::GetStatus() const
 {
     boost::python::dict dictionary;
 
-    int rendered_frames = (int) renderer_->num_frames_;
-    int framerate = (int) renderer_->current_framerate_;
+    int rendered_frames = 0;
+    int framerate = 0;
     int model_cache_size = scene_->world_->model_cache_.size();
 
     dictionary["frames"] = rendered_frames;
@@ -98,108 +105,63 @@ boost::python::dict Playground::GetStatus() const
     return dictionary;
 }
 
+void Playground::HighlightCenter(const bool highlight)
+{
+    scene_->world_->highlight_center_ = highlight - 1;
+    
+}
+
+void Playground::DisplayInventory(const bool display)
+{
+    if(!inventory_) return;
+
+    if(display) {
+        scene_->world_->inventory_size_ = 
+            inventory_->GetNumUsedSpace() + inventory_->GetNumFreeSpace();
+    } else {
+        scene_->world_->inventory_size_ = 0;
+    }
+}
+
 void Playground::SetLighting(const boost::python::dict lighting)
 {
-    if(lighting.has_key("direction_x"))
-    {
-        boost::python::extract<float> val(lighting["direction_x"]);
-        renderer_->sunlight_.direction.x = val;
-    }
-
-    if(lighting.has_key("direction_y"))
-    {
-        boost::python::extract<float> val(lighting["direction_y"]);
-        renderer_->sunlight_.direction.y = val;
-    }
-
-    if(lighting.has_key("direction_z"))
-    {
-        boost::python::extract<float> val(lighting["direction_z"]);
-        renderer_->sunlight_.direction.z = val;
+    if(lighting.has_key("direction_x") && 
+       lighting.has_key("direction_y") &&
+       lighting.has_key("direction_z")) {
+        float val_x = boost::python::extract<float>(lighting["direction_x"]);
+        float val_y = boost::python::extract<float>(lighting["direction_y"]);
+        float val_z = boost::python::extract<float>(lighting["direction_z"]);
+        renderer_->UpdateLightDirection(glm::vec3(val_x, val_y, val_z));
     }
 
     if(lighting.has_key("ambient"))
     {
         boost::python::extract<float> val(lighting["ambient"]);
-        renderer_->sunlight_.ambient = glm::vec3(val);
-    }
-
-    if(lighting.has_key("ssr"))
-    {
-        boost::python::extract<float> val(lighting["ssr"]);
-        renderer_->lighting_.use_ssr = val > 0;
+        renderer_->UpdateAmbientColor(glm::vec3(val));
     }
 
     if(lighting.has_key("exposure"))
     {
         boost::python::extract<float> val(lighting["exposure"]);
-        renderer_->lighting_.exposure = val;
+        renderer_->UpdateExposure(val);
     }
 
-    if(lighting.has_key("indirect_strength"))
-    {
-        boost::python::extract<float> val(lighting["indirect_strength"]);
-        renderer_->lighting_.indirect_strength = val;
+    if(lighting.has_key("background_r") && 
+       lighting.has_key("background_g") &&
+       lighting.has_key("background_b")) {
+        float val_x = boost::python::extract<float>(lighting["background_r"]);
+        float val_y = boost::python::extract<float>(lighting["background_g"]);
+        float val_z = boost::python::extract<float>(lighting["background_b"]);
+        renderer_->UpdateBackgroundColor(glm::vec3(val_x, val_y, val_z));
     }
 
-    if(lighting.has_key("traceshadow_distance"))
-    {
-        boost::python::extract<float> val(lighting["traceshadow_distance"]);
-        renderer_->lighting_.traceshadow_distance = val;
-    }
-
-    if(lighting.has_key("propagation_distance"))
-    {
-        boost::python::extract<float> val(lighting["propagation_distance"]);
-        renderer_->lighting_.propagation_distance = val;
-    }
-
-    if(lighting.has_key("conetracing_distance"))
-    {
-        boost::python::extract<float> val(lighting["conetracing_distance"]);
-        renderer_->lighting_.conetracing_distance = val;
-    }
-
-    if(lighting.has_key("sample_factor"))
-    {
-        boost::python::extract<float> val(lighting["sample_factor"]);
-        renderer_->lighting_.sample_factor = val;
-    }
-
-    if(lighting.has_key("ao_falloff"))
-    {
-        boost::python::extract<float> val(lighting["ao_falloff"]);
-        renderer_->lighting_.ao_falloff = val;
-    }
-
-    if(lighting.has_key("force_disable_propagation"))
-    {
-        boost::python::extract<float> val(lighting["force_disable_propagation"]);
-        renderer_->lighting_.force_disable_propagation = val > 0;
-    }
-
-    if(lighting.has_key("shadow_bias_scale"))
-    {
-        boost::python::extract<float> val(lighting["shadow_bias_scale"]);
-        renderer_->lighting_.shadow_bias_scale = val;
-    }
-
-    if(lighting.has_key("shadow_bias_clamp"))
-    {
-        boost::python::extract<float> val(lighting["shadow_bias_clamp"]);
-        renderer_->lighting_.shadow_bias_clamp = val;
-    }
-
-    if(lighting.has_key("force_disable_shadow"))
-    {
-        boost::python::extract<float> val(lighting["force_disable_shadow"]);
-        renderer_->lighting_.force_disable_shadow = val > 0;
-    }
-
-    if(lighting.has_key("linear_voxelize"))
-    {
-        boost::python::extract<float> val(lighting["linear_voxelize"]);
-        renderer_->lighting_.linear_voxelize = val > 0;
+    if(lighting.has_key("directional_light_r") && 
+       lighting.has_key("directional_light_g") &&
+       lighting.has_key("directional_light_b")) {
+        float val_x = boost::python::extract<float>(lighting["directional_light_r"]);
+        float val_y = boost::python::extract<float>(lighting["directional_light_g"]);
+        float val_z = boost::python::extract<float>(lighting["directional_light_b"]);
+        renderer_->UpdateLightColor(glm::vec3(val_x, val_y, val_z));
     }
 }
 
@@ -209,7 +171,7 @@ void Playground::EnableLidar(const int num_rays, const float max_distance)
 		lidar_ = std::make_shared<Lidar>(scene_->world_.get(), 
 										 num_rays,
 										 max_distance);
-		renderer_->InitDrawBatchRay(180);
+		renderer_->InitDrawBatchRays(num_rays);
 	}
 }
 
@@ -223,6 +185,9 @@ boost::python::list Playground::UpdateLidar(const boost::python::list front_py,
 	glm::vec3 front    = list2vec3(front_py);
 	glm::vec3 up       = list2vec3(up_py);
 	glm::vec3 position = list2vec3(position_py);
+
+    front = glm::normalize(front);
+    up = glm::normalize(up);
 
 	if(lidar_)
 	{
@@ -254,6 +219,12 @@ void Playground::EnableInventory(const int max_capacity)
 {
 	if(!inventory_)
 		inventory_ = std::make_shared<Inventory>(max_capacity);
+}
+
+void Playground::ClearInventory()
+{
+    if(inventory_)
+        inventory_->ClearInventory();
 }
 
 void Playground::EnableNavigation(const boost::python::list min_corner, 
@@ -326,6 +297,21 @@ void Playground::AssignNavigationAgentTarget(const NavAgent& agent,
     }
 }
 
+void Playground::ClearSpawnObjectsExceptAgent()
+{
+    for(auto& object : objects_) {
+        if(!object.__eq__(agent_)) {
+            RemoveAnObject(object);
+        }
+    }
+
+    if(crowd_)
+        crowd_->Reset();
+
+    if(inventory_)
+        inventory_->ClearInventory();
+}
+
 void Playground::Clear()
 {
     if(scene_)  
@@ -338,11 +324,12 @@ void Playground::Clear()
 		inventory_->ClearInventory();
         //inventory_->ResetPickableObjectTag();
 	
+    objects_.clear();
 	iterations_ = 0;
     camera_pitch_ = 0;
 }
 
-void Playground::CreateAnTestScene()
+void Playground::CreateArena(const int width, const int length)
 {
 	static std::string door = "./door/door.urdf";
 	static std::string test_wall = "./wall/floor.urdf";
@@ -351,26 +338,28 @@ void Playground::CreateAnTestScene()
     if(!scene_)
         scene_ = std::make_shared<MapGrid>();
 
+    scene_->world_->inventory_size_ = 0;
+
     std::shared_ptr<MapGrid> scene_grid 
         = std::dynamic_pointer_cast<MapGrid>(scene_);
 
     scene_grid->LoadWallURDF(test_wall);
     scene_grid->CreateAndLoadTileURDF(test_floor);
-	scene_grid->GenerateArena(5, 5);
+	scene_grid->GenerateArena(width, length);
 
-	if(inventory_) {
+	// if(inventory_) {
 	    
-	}
+	// }
 
-    renderer_->sunlight_.ambient = glm::vec3(0.02,0.02,0.02);
-    renderer_->lighting_.exposure = 0.3f;
-    renderer_->lighting_.indirect_strength = 0.25f;
-    renderer_->lighting_.traceshadow_distance = 0.3f;
-    renderer_->lighting_.propagation_distance = 0.3f;
-    renderer_->lighting_.sample_factor = 0.7f;
-    renderer_->lighting_.boost_ambient = 0.01f;
-    renderer_->lighting_.shadow_bias_scale = 0.0003f;
-    renderer_->lighting_.linear_voxelize = true;
+    // renderer_->sunlight_.ambient = glm::vec3(0.02,0.02,0.02);
+    // renderer_->lighting_.exposure = 0.3f;
+    // renderer_->lighting_.indirect_strength = 0.25f;
+    // renderer_->lighting_.traceshadow_distance = 0.3f;
+    // renderer_->lighting_.propagation_distance = 0.3f;
+    // renderer_->lighting_.sample_factor = 0.7f;
+    // renderer_->lighting_.boost_ambient = 0.01f;
+    // renderer_->lighting_.shadow_bias_scale = 0.0003f;
+    // renderer_->lighting_.linear_voxelize = true;
 }
 
 void Playground::CreateRandomGenerateScene()
@@ -378,18 +367,109 @@ void Playground::CreateRandomGenerateScene()
     if(!scene_)
         scene_ = std::make_shared<MapGrid>();
 
+    scene_->world_->inventory_size_ = 0;
+
     std::shared_ptr<MapGrid> scene_grid 
         = std::dynamic_pointer_cast<MapGrid>(scene_);
 
-    renderer_->sunlight_.ambient = glm::vec3(0.15,0.15,0.15);
-    renderer_->lighting_.exposure = 1.5f;
-    renderer_->lighting_.indirect_strength = 0.4f;
-    renderer_->lighting_.traceshadow_distance = 0.5f;
-    renderer_->lighting_.propagation_distance = 0.5f;
-    renderer_->lighting_.sample_factor = 0.4f;
-    renderer_->lighting_.boost_ambient = 0.02f;
-    renderer_->lighting_.shadow_bias_scale = 0.0003f;
-    renderer_->lighting_.linear_voxelize = false;
+    // renderer_->sunlight_.ambient = glm::vec3(0.15,0.15,0.15);
+    // renderer_->lighting_.exposure = 1.5f;
+    // renderer_->lighting_.indirect_strength = 0.4f;
+    // renderer_->lighting_.traceshadow_distance = 0.5f;
+    // renderer_->lighting_.propagation_distance = 0.5f;
+    // renderer_->lighting_.sample_factor = 0.4f;
+    // renderer_->lighting_.boost_ambient = 0.02f;
+    // renderer_->lighting_.shadow_bias_scale = 0.0003f;
+    // renderer_->lighting_.linear_voxelize = false;
+}
+
+void Playground::LoadXWorldScene(const std::string& filename)
+{
+    scene_->world_->inventory_size_ = 0;
+
+    boost::python::dict scene_dict;
+
+    Json::Value json_root;
+    if (!json_parse_text(filename, json_root)) {
+        fprintf(stderr, "Unable to parse %s\n", filename.c_str());
+        return;
+    }
+
+    if(json_get_string(&json_root, "Version", "") != "xworld3d@2.0")
+        return;
+
+    // Scene Size
+    Json::Value *json_size;
+    if (json_get_object(json_size, &json_root, "Size", Json::objectValue)) {
+
+        float min_x = json_get_float(json_size, "min_x");
+        float min_z = json_get_float(json_size, "min_z");
+        float max_x = json_get_float(json_size, "max_x");
+        float max_z = json_get_float(json_size, "max_z");
+
+        scene_->world_->set_world_size(min_x, min_z, max_x, max_z);
+    }
+
+    // Parse levels
+    Json::Value *json_levels, *json_level;
+    if (!json_get_object(json_levels, &json_root, "Scene", Json::arrayValue)) 
+        return;
+
+    for (Json::ArrayIndex index = 0; index < json_levels->size(); index++) {
+        if (!json_get_array(json_level, json_levels, index)) 
+            return;
+
+        if (json_level->type() != Json::objectValue) continue;
+
+        int obj_id = index;
+
+        std::string label = json_get_string(json_level, "Label");
+        std::string path = json_get_string(json_level, "Path");
+        int uid = json_get_int(json_level, "UID");
+        bool fixed = json_get_bool(json_level, "Fixed");
+
+
+        Json::Value *json_positions;
+        Json::Value *json_position;
+        if (!json_get_object(json_positions, json_level, "Position", Json::objectValue)) 
+            return;
+
+        boost::python::list position;
+        float px = json_get_float(json_positions, "x");
+        float py = json_get_float(json_positions, "y");
+        float pz = json_get_float(json_positions, "z");
+        position.append(px);
+        position.append(py);
+        position.append(pz);
+
+        Json::Value *json_scales;
+        Json::Value *json_scale;
+        if (!json_get_object(json_scales, json_level, "Scale", Json::objectValue)) 
+            return;
+
+        float uniform_scale = json_get_float(json_scales, "x");
+
+        Json::Value *json_orientations;
+        Json::Value *json_orientation;
+        if (!json_get_object(json_orientations, json_level, "Orientation", Json::objectValue)) 
+            return;
+
+        boost::python::list orientation;
+        float qx = json_get_float(json_orientations, "x");
+        float qy = json_get_float(json_orientations, "y");
+        float qz = json_get_float(json_orientations, "z");
+        float qw = json_get_float(json_orientations, "w");
+        orientation.append(qx);
+        orientation.append(qy);
+        orientation.append(qz);
+        orientation.append(qw);
+
+        Thing obj = SpawnAnObject(path, position, orientation, uniform_scale, label, fixed);
+        scene_dict[uid] = obj;
+        objects_.push_back(obj);
+    }
+
+    json_scene_ = scene_dict;
 }
 
 void Playground::LoadBasicObjects(const boost::python::list doors,
@@ -424,8 +504,9 @@ void Playground::LoadBasicObjects(const boost::python::list doors,
     scene_grid->LoadWallURDF(wall);
 }
 
-void Playground::SpawnModels(const boost::python::dict conf)
+void Playground::SpawnModelsConf(const boost::python::dict conf)
 {
+
     std::shared_ptr<MapGrid> scene_grid 
         = std::dynamic_pointer_cast<MapGrid>(scene_);
 
@@ -443,6 +524,22 @@ void Playground::SpawnModels(const boost::python::dict conf)
                 scene_grid->SpawnSingleObject(path, room);
         }
     }
+
+    if(conf.has_key("pair"))
+    {
+        boost::python::list val = 
+            boost::python::extract<boost::python::list>(conf["pair"]);
+        for (int i = 0; i < boost::python::len(val) / 4; ++i)
+        {
+            std::string path_0 = boost::python::extract<std::string>(val[4 * i + 0]);
+            std::string path_1 = boost::python::extract<std::string>(val[4 * i + 1]);
+            int room = boost::python::extract<int>(val[4 * i + 2]);
+            int num = boost::python::extract<int>(val[4 * i + 3]);
+
+            for (int j = 0; j < num; ++j)
+                scene_grid->SpawnPairOfObjects(path_0, path_1, room);
+        }
+    }
     
     if(conf.has_key("stack"))
     {
@@ -457,11 +554,16 @@ void Playground::SpawnModels(const boost::python::dict conf)
             int num = boost::python::extract<int>(val[5 * i + 4]);
 
             for (int j = 0; j < num; ++j)
-                scene_grid->SpawnStackOfObjects(path_0, path_1, 
-                    num_top, room);
+                scene_grid->SpawnStackOfObjects(path_0, path_1, num_top, room);
         }
     }
+}
 
+void Playground::SpawnModels()
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+        
     scene_grid->GenerateObjects();
 }
 
@@ -570,6 +672,27 @@ boost::python::list Playground::GetRoomGroups()
     return room_to_group;
 }
 
+boost::python::list Playground::GetSpaceNearPosition(
+    const boost::python::list position, const float radius)
+{
+    std::shared_ptr<MapGrid> scene_grid 
+        = std::dynamic_pointer_cast<MapGrid>(scene_);
+
+    boost::python::list ret;
+    if(!scene_grid) return ret;
+
+    float pos_x = boost::python::extract<float>(position[0]); 
+    float pos_y = boost::python::extract<float>(position[1]); 
+    float pos_z = boost::python::extract<float>(position[2]); 
+    glm:;vec2 near = scene_grid->GetASpaceNearPosition(
+        glm::vec2(pos_x, pos_z), radius);
+
+    ret.append(near.x);
+    ret.append(0);
+    ret.append(near.y);
+    return ret;
+}
+
 boost::python::list Playground::LoadSceneConfigure(const int w, const int l, 
     const int n, const int d)
 {
@@ -596,33 +719,31 @@ void Playground::CreateSceneFromSUNCG()
 
     scene_suncg->SetMapSize(-8, -8, 8, 8);
 
-    renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
-    renderer_->lighting_.exposure = 1.0f;
-    renderer_->lighting_.indirect_strength = 1.5f;
-    renderer_->lighting_.traceshadow_distance = 0.3f;
-    renderer_->lighting_.propagation_distance = 0.3f;
-    renderer_->lighting_.force_disable_shadow = true;
+    // renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
+    // renderer_->lighting_.exposure = 1.0f;
+    // renderer_->lighting_.indirect_strength = 1.5f;
+    // renderer_->lighting_.traceshadow_distance = 0.3f;
+    // renderer_->lighting_.propagation_distance = 0.3f;
+    // renderer_->lighting_.force_disable_shadow = true;
 }
 
 void Playground::CreateEmptyScene(const float min_x, const float max_x,
                                   const float min_z, const float max_z)
 {
-    if(!scene_)
+    if(!scene_) {
         scene_ = std::make_shared<Map>();
+        scene_->GenerateGenetricMap();
+    }
 
-    std::shared_ptr<Map> scene_generic 
-        = std::dynamic_pointer_cast<Map>(scene_);
+    scene_->world_->inventory_size_ = 0;
+    scene_->world_->set_world_size(min_x, min_z, max_x, max_z);
 
-    scene_generic->GenerateGenetricMap();
-
-    scene_generic->world_->set_world_size(min_x, min_z, max_x, max_z);
-
-    renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
-    renderer_->lighting_.exposure = 1.0f;
-    renderer_->lighting_.indirect_strength = 1.5f;
-    renderer_->lighting_.traceshadow_distance = 0.3f;
-    renderer_->lighting_.propagation_distance = 0.3f;
-    renderer_->lighting_.force_disable_shadow = true;
+    // renderer_->sunlight_.direction = glm::vec3(0.3, 1, 1);
+    // renderer_->lighting_.exposure = 1.0f;
+    // renderer_->lighting_.indirect_strength = 1.5f;
+    // renderer_->lighting_.traceshadow_distance = 0.3f;
+    // renderer_->lighting_.propagation_distance = 0.3f;
+    // renderer_->lighting_.force_disable_shadow = true;
 }
 
 void Playground::LoadSUNCG(const std::string& house,
@@ -638,6 +759,8 @@ void Playground::LoadSUNCG(const std::string& house,
 
     std::shared_ptr<MapSuncg> scene_suncg 
         = std::dynamic_pointer_cast<MapSuncg>(scene_);
+
+    scene_->world_->inventory_size_ = 0;
 
     if(filter > -1)
         scene_suncg->SetRemoveAll(filter);
@@ -659,27 +782,49 @@ void Playground::LoadSUNCG(const std::string& house,
     }
 }
 
+void Playground::ResolvePath() 
+{
+    if(auto scene_grid = std::dynamic_pointer_cast<MapGrid>(scene_)) {
+        scene_grid->ResolvePath();
+    }
+}
+
+void Playground::RemoveAnObject(Thing& object)
+{
+    if(object.__eq__(agent_)) {
+        printf("Cannot remove agent!\n");
+        return;
+    }
+
+    if(auto obj_sptr = object.GetPtr().lock()) {
+        obj_sptr->recycle();
+        scene_->world_->BulletStep();
+    }
+}
+
 Thing Playground::SpawnAnObject(const std::string& file, 
 							    const boost::python::list position_py,
-				    			const boost::python::list orientation_py,
+				    			const boost::python::list orentation_py,
 							    const float scale,
 							    const std::string& label,
-							    const bool fixed)
+							    const bool fixed,
+                                const bool occupy)
 {
 
 	std::weak_ptr<RobotBase> obj_wptr;
 
-	glm::vec3 pos   = list2vec3(position_py);
-	glm::vec4 orientation = list2vec4(orientation_py);
+	glm::vec3 position   = list2vec3(position_py);
+	glm::vec4 orentation = list2vec4(orentation_py);
 
 	obj_wptr = scene_->world_->LoadRobot(
-            file,
-            glm::vec3(pos.x, pos.y, pos.z),
-            glm::vec3(orientation.x,orientation.y,orientation.z),
-            orientation.w,
-            glm::vec3(scale, scale, scale),
-            label,
-            fixed);
+        file,
+        glm::vec3(position.x, position.y, position.z),
+        glm::vec3(orentation.x,orentation.y,orentation.z),
+        orentation.w,
+        glm::vec3(scale, scale, scale),
+        label,
+        fixed // fixed ? 0 : 100
+    );
 
 	if(auto obj_sptr = obj_wptr.lock()) {
 		if(!fixed) {
@@ -688,10 +833,39 @@ Thing Playground::SpawnAnObject(const std::string& file,
 		obj_sptr->DisableSleeping();
 	}
 
+    if(occupy) {
+
+        if(auto scene_grid = std::dynamic_pointer_cast<MapGrid>(scene_)) {
+
+            BBox box(
+                glm::vec2(position.x - 0.5f, position.z - 0.5f),
+                glm::vec2(position.x + 0.5f, position.z + 0.5f)
+            );
+
+            scene_grid->GenerateEmpty(box);
+
+            if(!scene_grid->resolve_path_) {
+                std::shared_ptr<SubTile> subtile = scene_grid->GetSubTileFromWorldPosition(
+                    glm::vec2(position.x, position.z));
+
+                if(auto tile = subtile->parent.lock()) {
+
+                    int roomgroup_id = tile->roomgroup_id;
+
+                    auto& waypoints = scene_grid->roomgroups_[roomgroup_id].waypoints;
+                    waypoints.push_back(subtile);   
+                }
+            }
+        }
+    }
+
 	//scene_->CreateLabel(file, label);
 
 	Thing object_temp;
 	object_temp.SetPtr(obj_wptr);
+    objects_.push_back(object_temp);
+
+    scene_->world_->BulletStep();
 
 	return object_temp;
 }
@@ -711,6 +885,12 @@ void Playground::AttachCameraTo(Thing object, const boost::python::list offset_p
     agent_ = object;
 }
 
+void Playground::UpdateAttachCamera(const float pitch)
+{
+    float camera_pitch_ = glm::clamp(pitch, -45.0f, 45.0f);
+    scene_->world_->rotate_camera(main_camera_, camera_pitch_);
+}
+
 void Playground::FreeCamera(const boost::python::list position, 
                             const float yaw, const float pitch)
 {
@@ -719,9 +899,9 @@ void Playground::FreeCamera(const boost::python::list position,
     main_camera_ = scene_->world_->add_camera(pos,
         vec3(0, 0, 0), camera_aspect_);
 
-    main_camera_->Yaw = yaw;
-    main_camera_->Pitch = pitch;
-    main_camera_->updateCameraVectors();
+    main_camera_->yaw_ = yaw;
+    main_camera_->pitch_ = pitch;
+    main_camera_->Update();
 }
 
 void Playground::UpdateFreeCamera(const boost::python::list position, 
@@ -729,20 +909,25 @@ void Playground::UpdateFreeCamera(const boost::python::list position,
 {
     glm::vec3 pos = list2vec3(position);
 
-    main_camera_->Position = pos;
-    main_camera_->Yaw = yaw;
-    main_camera_->Pitch = pitch;
-    main_camera_->updateCameraVectors();
+    main_camera_->position_ = pos;
+    main_camera_->yaw_ = yaw;
+    main_camera_->pitch_ = pitch;
+    main_camera_->Update();
 }
 
 void Playground::Initialize()
 {
-	renderer_->Init(main_camera_);
+	// renderer_->Init(main_camera_);
     scene_->world_->BulletStep();
 
 	if(auto obj_sptr = agent_.GetPtr().lock()) {
 		obj_sptr->UnFreeze();
 	}
+
+    // glm::vec3 world_front(1,0,0);
+    // float angle = 
+
+    camera_yaw_ = 0.0f;
 }
 
 boost::python::dict Playground::GetObservationSpace()
@@ -768,26 +953,35 @@ boost::python::dict Playground::GetObservationSpace()
 
 boost::python::tuple Playground::GetCameraPosition() const
 {
-    glm::vec3 position = main_camera_->Position;
+    glm::vec3 position = main_camera_->position_;
     return boost::python::make_tuple(position.x, position.y, position.z);
 }
 
 boost::python::tuple Playground::GetCameraRight() const
 {
-    glm::vec3 right = main_camera_->Right;
+    glm::vec3 right = main_camera_->right_;
     return boost::python::make_tuple(right.x, right.y, right.z);
 }
 
 boost::python::tuple Playground::GetCameraFront() const
 {
-    glm::vec3 front = main_camera_->Front;
+    glm::vec3 front = main_camera_->front_;
     return boost::python::make_tuple(front.x, front.y, front.z);
 }
 
 boost::python::tuple Playground::GetCameraUp() const
 {
-    glm::vec3 up = main_camera_->Up;
+    glm::vec3 up = main_camera_->up_;
     return boost::python::make_tuple(up.x, up.y, up.z);
+}
+
+float Playground::GetCameraYaw() const
+{
+    glm::vec3 world_front(1,0,0);
+    glm::vec3 world_up(0,1,0);
+    glm::vec3 front_norm = glm::normalize(main_camera_->front_);
+    float yaw = glm::orientedAngle(front_norm, world_front, world_up);
+    return yaw;
 }
 
 boost::python::dict Playground::GetActionSpace()
@@ -815,71 +1009,136 @@ boost::python::dict Playground::GetActionSpace()
     return dictionary;
 }
 
+void Playground::HoldActions(const bool hold)
+{
+    hold_actions_ = hold;
+}
+
 boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 {
     assert(action < 16 && action > -1);
 
-    // printf("action: %d\n", action);
+    if(hold_actions_)
+        return boost::python::dict();
+
+    current_event_ = boost::python::list();
 
     if(!interact_ && !inventory_opened_) {
         if(action == 0) {
             MoveForward(25);
+
+            // Update Event
+            current_event_.append("MoveForward");
         } 
         else if(action == 1) {
             MoveBackward(25);
+
+            // Update Event
+            current_event_.append("MoveBackward");
         }
         else if(action == 2) {
             TurnLeft(25);
+
+            // Update Event
+            current_event_.append("TurnLeft");
         }
         else if(action == 3) {
             TurnRight(25);
+
+            // Update Event
+            current_event_.append("TurnRight");
         }
         else if(action == 4) {
             LookUp();
+
+            // Update Event
+            current_event_.append("LookUp");
         }
         else if(action == 5) {
             LookDown();
+
+            // Update Event
+            current_event_.append("LookDown");
         }
         else if(action == 6) {
             Attach();
+
+            // Update Event
+            current_event_.append("Attach");
         }
         else if(action == 7) {
             Detach();
+
+            // Update Event
+            current_event_.append("Detach");
         }
         else if(action == 8) {
-            Grasp();
+            std::string obj = Grasp();
+
+            // Update Event
+            current_event_.append("Grasp");
+            current_event_.append(obj);
         }
         else if(action == 9) {
-            PutDown();
+            std::string obj = PutDown();
+
+            // Update Event
+            current_event_.append("PutDown");
+            current_event_.append(obj);
         }
         else if(action == 10) {
             boost::python::list rotate_angle;
             rotate_angle.append(0);
             rotate_angle.append(1.57);
             rotate_angle.append(0);
-            Rotate(rotate_angle);
+            std::string obj = Rotate(rotate_angle);
+
+            // Update Event
+            current_event_.append("Rotate");
+            current_event_.append(obj);
         }
         else if(action == 11) {
             current_actions_ = EnableInteraction();
+
+            // Update Event
+            current_event_.append("EnableInteraction");
         }
         else if(action == 12) {
             current_objects_ = OpenInventory();
+
+            // Update Event
+            current_event_.append("OpenInventory");
         }
     } else if(interact_) {
         if(action == 13) {
             DisableInteraction();
             current_actions_ = boost::python::list();
+
+            // Update Event
+            current_event_.append("DisableInteraction");
         }
         else if(action < boost::python::len(current_actions_)) {
-            TakeAction(action);
+            bool success = TakeAction(action);
+
+            // Update Event
+            current_event_.append("Action");
+            current_event_.append(action);
+            current_event_.append(success ? "S" : "F");
         }
     } else if(inventory_opened_) {
         if(action == 13) {
             CloseInventory();
             current_objects_ = boost::python::list();
+
+            // Update Event
+            current_event_.append("CloseInventory");
         }
         else if(action < boost::python::len(current_objects_)) {
             Use(action);
+
+            // Update Event
+            current_event_.append("Use");
+            current_event_.append(action);
         }
     }
 
@@ -926,8 +1185,6 @@ boost::python::dict Playground::UpdateSimulation()
 void Playground::UpdateRenderer()
 {
 	renderer_->StepRender(scene_->world_.get());
-	ctx_->SwapBuffer();
-    ctx_->PollEvent();
 }
 
 void Playground::Update()
@@ -938,19 +1195,19 @@ void Playground::Update()
 
 float Playground::GetNearClippingDistance()
 {
-    return main_camera_->Near;
+    return main_camera_->GetNear();
 }
 
 float Playground::GetFarClippingDistance()
 {
-    return main_camera_->Far;
+    return main_camera_->GetFar();
 }
 
 boost::python::object Playground::GetCameraRGBDRaw()
 {
-    unsigned char * raw_image = renderer_->GetRenderedImages()[0].data.data();
+    unsigned char * raw_image = renderer_->GetRenderedImage().data.data();
 
-    size_t destination_size = sizeof(unsigned char) * w_ * h_ * 4;
+    size_t destination_size = sizeof(unsigned char) * (w_ * h_ * 4);
 
     PyObject* py_buf = PyBuffer_FromReadWriteMemory(raw_image, destination_size);
     boost::python::object ret_val= boost::python::object(boost::python::handle<>(py_buf));
@@ -1038,10 +1295,8 @@ boost::python::list Playground::EnableInteraction()
 
     int bullet_id = -1;
 
-    glm::vec3 from = main_camera_->Position;
-    glm::vec3 frnt = main_camera_->Front;
-    glm::vec2 from_2d(from.x, from.z);
-    glm::vec2 frnt_2d(frnt.x, frnt.z);
+    glm::vec3 from = main_camera_->position_;
+    glm::vec3 frnt = main_camera_->front_;
 
     auto bullet_world = scene_->world_;
 
@@ -1054,38 +1309,35 @@ boost::python::list Playground::EnableInteraction()
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
 
-                printf("body: %s\n", body->body_data_.label.c_str());
+                glm::vec3 aabb_min, aabb_max;
+                body->root_part_->GetAABB(aabb_min, aabb_max);
 
-                btTransform object_tr_bt = body->root_part_->object_position_;
-                btVector3 object_pos_bt = object_tr_bt.getOrigin();
-                glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
+                bool intersect = bullet_engine::RayAABBIntersect(
+                    {from, from + frnt}, aabb_min, aabb_max);
 
-                float dist_tmp = glm::distance(object_pos, from_2d);
-                float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
+                glm::vec3 object_pos = (aabb_max - aabb_min) * 0.5f + aabb_min;
+                float dist = glm::distance(object_pos, from);
 
-                printf("dir: %f, dist: %f\n", dir_tmp, dist_tmp);
-
-                if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
+                if(intersect && dist < bullet_engine::kDistanceThreshold) {
                     bullet_id = body->body_data_.body_uid;
                 }
             }
         }
     }
 
-    printf("bullet_id: %d\n", bullet_id);
+    // printf("bullet_id: %d\n", bullet_id);
 
     boost::python::list ret;
 
     if(bullet_id >= 0) {
 
         // TODO
-        // Is id_to_robot_fuuly functional?
+        // Is id_to_robot_fully functional?
         auto object = bullet_world->id_to_robot_[bullet_id];
 
         std::vector<std::string> actions = object->GetActions();
 
         for (int i = 0; i < actions.size(); ++i) {
-            printf("action: %s\n", actions[i].c_str());
             ret.append(actions[i]);
         }
 
@@ -1102,8 +1354,8 @@ void Playground::DisableInteraction()
 
 void Playground::Attach()
 {
-    glm::vec3 from = main_camera_->Position;
-    glm::vec3 to = main_camera_->Front * 3.0f + from;
+    glm::vec3 from = main_camera_->position_;
+    glm::vec3 to = main_camera_->front_ * bullet_engine::kDistanceThreshold + from;
     
     auto bullet_world = scene_->world_;
     std::vector<RayTestInfo> temp_res;
@@ -1129,49 +1381,57 @@ void Playground::Detach()
     }
 }
 
-void Playground::Grasp()
+std::string Playground::Grasp()
 {
 	if(!inventory_)
-		return;
+		return "Nothing";
 
-	glm::vec3 from = main_camera_->Position;
-	glm::vec3 to = main_camera_->Front * 3.0f + from;
+	glm::vec3 from = main_camera_->position_;
+	glm::vec3 to = main_camera_->front_ * bullet_engine::kDistanceThreshold + from;
 
     if(auto agent_sptr = agent_.GetPtr().lock())
     {
-        agent_sptr->PickUp(inventory_, from, to);
+        return agent_sptr->PickUp(inventory_, from, to);
     }
+
+    return "Nothing";
 }
 
-void Playground::PutDown()
+std::string Playground::PutDown()
 {
 	if(!inventory_)
-		return;
+		return "Nothing";
 
-	glm::vec3 from = main_camera_->Position;
-	glm::vec3 to = main_camera_->Front * 3.0f + from;
+	glm::vec3 from = main_camera_->position_;
+	glm::vec3 to = main_camera_->front_ * bullet_engine::kDistanceThreshold + from;
 
     if(auto agent_sptr = agent_.GetPtr().lock())
     {
-        agent_sptr->PutDown(inventory_, from, to);
+        return agent_sptr->PutDown(inventory_, from, to);
     }
+
+    return "Nothing";
 }
 
-void Playground::Rotate(const boost::python::list angle_py)
+std::string Playground::Rotate(const boost::python::list angle_py)
 {
+    if(!inventory_)
+        return "Nothing";
 
 	glm::vec3 angle = list2vec3(angle_py);
 
-	glm::vec3 from = main_camera_->Position;
-	glm::vec3 to = main_camera_->Front * 3.0f + from;
+	glm::vec3 from = main_camera_->position_;
+	glm::vec3 to = main_camera_->front_ * bullet_engine::kDistanceThreshold + from;
 	
 	if(auto agent_sptr = agent_.GetPtr().lock())
     {
-        agent_sptr->Rotate(angle, from, to);
+        return agent_sptr->Rotate(angle, from, to);
     }
+
+    return "Nothing";
 }
 
-void Playground::TakeAction(const int action_id)
+bool Playground::TakeAction(const int action_id)
 {
 	// glm::vec3 from = main_camera_->Position;
 	// glm::vec3 to = main_camera_->Front * 3.0f + from;
@@ -1185,10 +1445,8 @@ void Playground::TakeAction(const int action_id)
 
     int bullet_id = -1;
 
-    glm::vec3 from = main_camera_->Position;
-    glm::vec3 frnt = main_camera_->Front;
-    glm::vec2 from_2d(from.x, from.z);
-    glm::vec2 frnt_2d(frnt.x, frnt.z);
+    glm::vec3 from = main_camera_->position_;
+    glm::vec3 frnt = main_camera_->front_;
 
     auto bullet_world = scene_->world_;
 
@@ -1200,14 +1458,16 @@ void Playground::TakeAction(const int action_id)
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
 
-                btTransform object_tr_bt = body->root_part_->object_position_;
-                btVector3 object_pos_bt = object_tr_bt.getOrigin();
-                glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
+                glm::vec3 aabb_min, aabb_max;
+                body->root_part_->GetAABB(aabb_min, aabb_max);
 
-                float dist_tmp = glm::distance(object_pos, from_2d);
-                float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
+                bool intersect = bullet_engine::RayAABBIntersect(
+                    {from, from + frnt}, aabb_min, aabb_max);
 
-                if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
+                glm::vec3 object_pos = (aabb_max - aabb_min) * 0.5f + aabb_min;
+                float dist = glm::distance(object_pos, from);
+
+                if(intersect && dist < bullet_engine::kDistanceThreshold) {
                     bullet_id = body->body_data_.body_uid;
                 }
             }
@@ -1219,8 +1479,10 @@ void Playground::TakeAction(const int action_id)
     if(bullet_id >= 0 && action_id < boost::python::len(current_actions_)) {
     	auto object = bullet_world->id_to_robot_[bullet_id];
 
-    	object->TakeAction(action_id);
+    	return object->TakeAction(action_id);
     }
+
+    return false;
 }
 
 void Playground::Use(const int object_id)
@@ -1237,10 +1499,8 @@ void Playground::Use(const int object_id)
 
     int bullet_id = -1;
 
-    glm::vec3 from = main_camera_->Position;
-    glm::vec3 frnt = main_camera_->Front;
-    glm::vec2 from_2d(from.x, from.z);
-    glm::vec2 frnt_2d(frnt.x, frnt.z);
+    glm::vec3 from = main_camera_->position_;
+    glm::vec3 frnt = main_camera_->front_;
 
     auto bullet_world = scene_->world_;
 
@@ -1253,14 +1513,16 @@ void Playground::Use(const int object_id)
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
                std::dynamic_pointer_cast<RobotWithConvertion>(body)) {
 
-                btTransform object_tr_bt = body->root_part_->object_position_;
-                btVector3 object_pos_bt = object_tr_bt.getOrigin();
-                glm::vec2 object_pos(object_pos_bt[0], object_pos_bt[2]);
+                glm::vec3 aabb_min, aabb_max;
+                body->root_part_->GetAABB(aabb_min, aabb_max);
 
-                float dist_tmp = glm::distance(object_pos, from_2d);
-                float dir_tmp  = glm::dot(glm::normalize(object_pos - from_2d), frnt_2d);
+                bool intersect = bullet_engine::RayAABBIntersect(
+                    {from, from + frnt}, aabb_min, aabb_max);
 
-                if(dist_tmp < 2.0f && dir_tmp > 0.5f) {
+                glm::vec3 object_pos = (aabb_max - aabb_min) * 0.5f + aabb_min;
+                float dist = glm::distance(object_pos, from);
+
+                if(intersect && dist < bullet_engine::kDistanceThreshold) {
                     bullet_id = body->body_data_.body_uid;
                 }
             }
@@ -1317,6 +1579,12 @@ void Playground::ControlJointVelocities(const Thing& object,
     }
 }
 
+boost::python::list Playground::QueryLastEvent()
+{
+    return current_event_;
+    // current_event_ = boost::python::list();
+}
+
 bool Playground::QueryContact(Thing& object)
 {
     if(auto object_sptr = object.GetPtr().lock())
@@ -1335,37 +1603,68 @@ bool Playground::QueryContact(Thing& object)
 
 bool Playground::QueryObjectWithLabelAtCameraCenter(const std::string& label)
 {
-	std::vector<ObjectAttributes> temp;
-    scene_->world_->QueryObjectByLabel(label, temp);
+    glm::vec3 from = main_camera_->position_;
+    glm::vec3 to = main_camera_->front_ * bullet_engine::kDistanceThreshold + from;
+    
+    auto bullet_world = scene_->world_;
+    std::vector<RayTestInfo> temp_res;
+    std::vector<Ray> temp_ray;
+    temp_ray.push_back({from, to});
 
-    for(int i = 0; i < temp.size(); ++i)
-    {
-    	glm::vec3 aabb_min = temp[i].aabb_min - glm::vec3(1);
-    	glm::vec3 aabb_max = temp[i].aabb_max + glm::vec3(1);
+    bullet_world->BatchRayTest(temp_ray, temp_res);
 
-    	if(aabb_min.x < main_camera_->Position.x &&
-    	   aabb_max.x > main_camera_->Position.x && 
-    	   aabb_min.z < main_camera_->Position.z &&
-    	   aabb_max.z > main_camera_->Position.z) 
-    	{
-    		// Check Aim
-    		glm::vec3 fromPosition = main_camera_->Position;
-    		glm::vec3 toPosition = main_camera_->Front * 2.0f + fromPosition;
-    		
-            RayTestInfo res;
-
-            scene_->world_->RayTest(fromPosition, toPosition, res);
-
-    		if(res.bullet_id == temp[i].bullet_id) {
-    			return true;
-    			break;
-    		}
-    	}
+    if(temp_res[0].bullet_id >= 0) {
+        auto object = bullet_world->id_to_robot_[temp_res[0].bullet_id];
+        
+        return object->body_data_.label == label;
     }
 
     return false;
 }
 
+boost::python::list Playground::QueryObjectNearObject(Thing& object, const bool exlude,
+    const float dist)
+{
+    boost::python::list result;
+
+    auto bullet_world = scene_->world_;
+
+    auto object_wptr = object.GetPtr();
+    auto object_sptr = object_wptr.lock();
+    int object_self_id = object_sptr->body_data_.body_uid;
+
+
+    boost::python::tuple object_position = object.GetPosition();
+    float pos_x = boost::python::extract<float>(object_position[0]); 
+    float pos_y = boost::python::extract<float>(object_position[1]); 
+    float pos_z = boost::python::extract<float>(object_position[2]); 
+    glm::vec3 object_pos(pos_x, pos_y, pos_z);
+
+    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
+    {
+        auto body = bullet_world->robot_list_[i];
+
+        if (!body->is_recycled() && body->body_data_.body_uid >= 0) {
+
+            if(exlude && object_self_id == body->body_data_.body_uid)
+                continue;
+
+            btTransform tr_bt = body->root_part_->object_position_;
+            btVector3 pos_bt = tr_bt.getOrigin();
+            glm::vec3 pos(pos_bt[0], pos_bt[1], pos_bt[2]);
+
+            if(glm::distance(pos, object_pos) <= dist) {
+                Thing object_temp;
+                auto object = bullet_world->id_to_robot_[body->body_data_.body_uid];
+                object_temp.SetPtr(object);
+
+                result.append(object_temp);
+            }
+        }
+    }
+
+    return result;
+}
 
 boost::python::list Playground::QueryObjectByLabel(const std::string& label)
 {
@@ -1396,8 +1695,8 @@ boost::python::list Playground::QueryObjectByLabel(const std::string& label)
 
 Thing Playground::QueryObjectAtCameraCenter()
 {
-	glm::vec3 from = main_camera_->Position;
-	glm::vec3 to = main_camera_->Front * 3.0f + from;
+	glm::vec3 from = main_camera_->position_;
+	glm::vec3 to = main_camera_->front_ * bullet_engine::kDistanceThreshold + from;
 	
 	auto bullet_world = scene_->world_;
     std::vector<RayTestInfo> temp_res;
@@ -1445,8 +1744,8 @@ bool Playground::QueryObjectWithLabelAtForward(const std::string& label)
     	glm::vec3 aabb_min = temp[i].aabb_min;
     	glm::vec3 aabb_max = temp[i].aabb_max;
     	glm::vec3 aabb_center = (aabb_min + aabb_max) * 0.5f;
-    	glm::vec3 camera_center = main_camera_->Position;
-    	glm::vec3 camera_front  = main_camera_->Front;
+    	glm::vec3 camera_center = main_camera_->position_;
+    	glm::vec3 camera_front  = main_camera_->front_;
 
     	if(glm::distance(camera_center, aabb_center) < 3.0f) 
     	{
@@ -1469,8 +1768,8 @@ bool Playground::QueryObjectWithLabelNearMe(const std::string& label)
     	glm::vec3 aabb_min = temp[i].aabb_min;
     	glm::vec3 aabb_max = temp[i].aabb_max;
     	glm::vec3 aabb_center = (aabb_min + aabb_max) * 0.5f;
-    	glm::vec3 camera_center = main_camera_->Position;
-    	glm::vec3 camera_front  = main_camera_->Front;
+    	glm::vec3 camera_center = main_camera_->position_;
+    	glm::vec3 camera_front  = main_camera_->front_;
 
     	if(glm::distance(camera_center, aabb_center) < 3.0f) 
     		return true;
@@ -1478,9 +1777,11 @@ bool Playground::QueryObjectWithLabelNearMe(const std::string& label)
     return false;
 }
 
-void Playground::Teleport(Thing object, const boost::python::list position_py)
+void Playground::Teleport(Thing object, const boost::python::list position_py,
+                                        const boost::python::list orientation_py)
 {
 	glm::vec3 position = list2vec3(position_py);
+    glm::vec4 orientation = list2vec4(orientation_py);
 
 	if(auto object_sptr = object.GetPtr().lock())
 	{
@@ -1488,6 +1789,8 @@ void Playground::Teleport(Thing object, const boost::python::list position_py)
 
 		btTransform root_transform = root_part_->object_position_;
 		root_transform.setOrigin(btVector3(position.x, position.y, position.z));
+        root_transform.setRotation(btQuaternion(
+            btVector3(orientation.x, orientation.y, orientation.z), orientation.w));
 		scene_->world_->SetTransformation(object_sptr, root_transform);
 	}
 }

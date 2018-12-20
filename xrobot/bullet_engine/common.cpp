@@ -147,4 +147,52 @@ glm::quat RotationBetweenVectors(
     );
 }
 
+bool RayAABBIntersect(const Ray& r, 
+                      const glm::vec3 aabb_min,
+                      const glm::vec3 aabb_max) {
+    glm::vec3 ray_orig = r.from;
+    glm::vec3 ray_dir = glm::normalize(r.to - r.from);
+    glm::vec3 ray_invdir = 1.0f / ray_dir;
+
+    glm::vec3 aabb_cen = (aabb_max - aabb_min) * 0.5f + aabb_min;
+    glm::vec3 aabb_dir = glm::normalize(aabb_cen - r.from);
+
+    if (glm::dot(aabb_dir, ray_dir) < kAngleThreshold)
+        return false;
+
+    int ray_sign[3];
+    ray_sign[0] = (ray_invdir.x < 0);
+    ray_sign[1] = (ray_invdir.y < 0);
+    ray_sign[2] = (ray_invdir.z < 0);
+    
+    glm::vec3 bounds[2];
+    bounds[0] = aabb_min;
+    bounds[1] = aabb_max;
+
+    float tmin, tmax, tymin, tymax, tzmin, tzmax;
+    tmin = (bounds[ray_sign[0]].x - ray_orig.x) * ray_invdir.x;
+    tmax = (bounds[1-ray_sign[0]].x - ray_orig.x) * ray_invdir.x;
+    tymin = (bounds[ray_sign[1]].y - ray_orig.y) * ray_invdir.y;
+    tymax = (bounds[1-ray_sign[1]].y - ray_orig.y) * ray_invdir.y;
+
+    if ((tmin > tymax) || (tymin > tmax))
+        return false;
+    if (tymin > tmin)
+        tmin = tymin;
+    if (tymax < tmax)
+        tmax = tymax;
+
+    tzmin = (bounds[ray_sign[2]].z - ray_orig.z) * ray_invdir.z;
+    tzmax = (bounds[1-ray_sign[2]].z - ray_orig.z) * ray_invdir.z;
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+        return false;
+    if (tzmin > tmin)
+        tmin = tzmin;
+    if (tzmax < tmax)
+        tmax = tzmax;
+
+    return true;
+}
+
 }} // namespace xrobot::bullet_engine

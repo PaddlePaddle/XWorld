@@ -27,12 +27,12 @@ void RenderWorld::remove_all_cameras() {
 
 void RenderWorld::attach_camera(Camera* camera, RenderBody* body) {
     if(!camera || !body) return;
-    body->attach_camera(camera->Offset,
-                        camera->Pre_Pitch,
-                        camera->Position,
-                        camera->Front,
-                        camera->Right,
-                        camera->Up);
+    body->attach_camera(camera->offset_,
+                        camera->pre_pitch_,
+                        camera->position_,
+                        camera->front_,
+                        camera->right_,
+                        camera->up_);
     camera_to_body_[camera] = body;
 }
 
@@ -43,11 +43,11 @@ Camera* RenderWorld::add_camera(const glm::vec3& position,
                                 const float near,
                                 const float far) {
     Camera* camera = new Camera(position);
-    camera->Near = near;
-    camera->Far = far;
-    camera->Zoom = fov;
-    camera->Offset = offset;
-    camera->Aspect = aspect_ratio;
+    camera->SetNear(near);
+    camera->SetFar(far);
+    camera->SetFOV(fov);
+    camera->SetAspect(aspect_ratio);
+    camera->offset_ = offset;
     cameras_.push_back(camera);
     return camera;
 }
@@ -69,7 +69,7 @@ void RenderWorld::remove_camera(Camera* camera) {
 
 void RenderWorld::rotate_camera(Camera* camera, const float pitch) {
     if (!camera) return;
-    camera->Pre_Pitch = pitch;
+    camera->pre_pitch_ = pitch;
 }
 
 } } // xrobot::render_engine
