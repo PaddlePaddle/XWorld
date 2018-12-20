@@ -46,6 +46,14 @@ namespace xrobot
 			return (min_aabb.x <= other.min_aabb.x && max_aabb.x >= other.max_aabb.x) &&
 				   (min_aabb.y <= other.min_aabb.y && max_aabb.y >= other.max_aabb.y);
 		}
+
+		vec2 Center() const {
+			return (min_aabb + max_aabb) * 0.5f;
+		}
+
+		float BoundingSphereRadius() const {
+			return glm::length(max_aabb - Center());
+		}
 	};
 
 	struct SubTile
@@ -181,13 +189,18 @@ namespace xrobot
 		bool SpawnSingleObject(const std::string& path, const int roomgroup_id = -1);
 		bool SpawnStackOfObjects(const std::string& top_path, 
 								 const std::string& bottom_path, 
-							     const int num = 1, const int roomgroup_id = -1);
+							     const int num = 1, 
+							     const int roomgroup_id = -1);
+		bool SpawnPairOfObjects(const std::string& left_path, 
+								const std::string& right_path, 
+							    const int roomgroup_id = -1);
 
 		void SpawnSingleObjectAt(const int obj_id, const vec3 position);
 		bool SpawnSingleObject(const int obj_id, const int roomgroup_id = -1);
 		bool SpawnStackOfObjects(const int top_id, const int bottom_id, 
 							     const int num = 1, const int roomgroup_id = -1);
-
+		bool SpawnPairOfObjects(const int left_id, const int right_id, 
+							    const int roomgroup_id = -1);
 
 
 		void CreateAndLoadLockedDoorJSON(const std::string& json_path);
@@ -218,6 +231,13 @@ namespace xrobot
 		std::shared_ptr<SubTile> 
 			GetSubTileFromWorldPosition(const vec2 position);
 
+		vec2 GetAnEmptySpaceNearPosition(const vec2 position,
+								 		 const float radius) const =delete;
+		vec2 GetASpaceNearPosition(const vec2 position,
+								   const float radius);
+		std::vector<vec2> GetSurrondingOccupation() const =delete;
+		std::vector<std::shared_ptr<SubTile>> GetSurrondingSubTiles() const =delete;
+
 		void ResetMap();
 
 		std::string wall_urdf_path_;
@@ -237,6 +257,7 @@ namespace xrobot
 		std::vector<RoomGroup> roomgroups_;
 		std::map<std::pair<int,int>, std::shared_ptr<Tile>> tiles_;
 
+		bool agent_spawn_;
 		bool resolve_path_;
 		vec2 agent_spawn_position_;
 

@@ -13,23 +13,32 @@ class Texture3D
 {
 public:
 
-	GLuint textureID;
-	unsigned char * textureBuffer = nullptr;
+	GLuint id() const { return id_; }
+	void set_clear_data(const std::vector<unsigned char>& data) {
+		clear_data_ = data;
+	}
 
-	void Activate(const int shaderProgram, const std::string glSamplerName, const int textureUnit = 0);
-	void Clear();
+	void clear();
+	void active(const int shader,
+			const std::string sampler, const int unit = 0);
 
 	Texture3D(
-		const std::vector<unsigned char> & textureBuffer,
-		const int width, const int height, const int depth,
-		const bool generateMipmaps = false, const int level = 1
-	);
+		const int width, 
+		const int height,
+		const int depth,
+		const int levels = 1,
+		const GLint internal_format = GL_RGBA8,
+	    const GLenum format = GL_RGBA,
+	    const GLenum type = GL_UNSIGNED_BYTE,
+		const GLint border = GL_CLAMP_TO_EDGE);
 	~Texture3D();
 
 private:
-	int width, height, depth;
-	int levels;
-	std::vector<unsigned char> clearData;
+	int width_, height_, depth_, levels_;
+	GLuint id_;
+	GLenum min_filter_, mag_filter_, format_, type_;
+	GLint internal_format_, border_;
+	std::vector<unsigned char> clear_data_;
 };
 }
 }

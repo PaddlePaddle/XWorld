@@ -12,7 +12,6 @@
 #include "glm/gtx/matrix_decompose.hpp"
 
 #include "world.h"
-#include "AABB.h"
 #include "utils.h"
 #include "vendor/json.h"
 

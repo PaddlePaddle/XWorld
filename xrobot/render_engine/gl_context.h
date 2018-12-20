@@ -69,7 +69,7 @@ protected:
     int device_;
 };
 
-#ifdef USE_EGL
+
 // Context for EGL (server-side OpenGL on some supported GPUs)
 class EGLContext : public GLContext {
 public:
@@ -79,7 +79,6 @@ public:
 protected:
     EGLDisplay eglDpy_;
 };
-#endif // USE_EGL
 
 // Context for GLFW
 class GLFWContext : public GLContext {
@@ -186,7 +185,7 @@ inline GLContext* CreateContext(int h, int w, int device=0) {
 
 inline GLContext* CreateHeadlessContext(int h, int w, int device=0) {
     #ifdef USE_EGL
-	    return new EGLContext{h, w, device};		
+	   return new EGLContext{h, w, device};		
     #else
         return new GLXHeadlessContext{h, w};
     #endif

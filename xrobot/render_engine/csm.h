@@ -68,7 +68,7 @@ struct CSM
 
 	CSM();
 	~CSM();
-	void initialize(float lambda, float near_offset, int split_count, int shadow_map_size, Camera* camera, int _width, int _height, glm::vec3 dir);
+	void initialize(float lambda, float near_offset, int split_count, int shadow_map_size, float fov, int _width, int _height, glm::vec3 dir);
 	void shutdown();
 	void update(Camera* camera, glm::vec3 dir);
 	void update_splits(Camera* camera);

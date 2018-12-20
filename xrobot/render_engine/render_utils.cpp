@@ -72,6 +72,64 @@ unsigned int HDRTextureFromFile(const char* path){
     return hdrTexture;
 }
 
+unsigned int TextureFromFile(const std::string &path, const int fail) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(
+            path.c_str(), &width, &height, &nrComponents, 0);
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1) {
+            format = GL_RED;
+        } else if (nrComponents == 3) {
+            format = GL_RGB;
+        } else if (nrComponents == 4) {
+            format = GL_RGBA;
+        }
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     format,
+                     width,
+                     height,
+                     0,
+                     format,
+                     GL_UNSIGNED_BYTE,
+                     data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D,
+                        GL_TEXTURE_MIN_FILTER,
+                        GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    } else {
+
+        if(fail == 1) {
+            std::cout << "Data corrupted!" << std::endl;
+            exit(0);
+        }
+
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+
+        std::size_t ext = path.find("data");
+        std::string icon_path = path.substr(0, ext) + "data/error.png";
+
+        std::cout << "Load default texture from: " << icon_path << std::endl;
+
+        return TextureFromFile(icon_path, 1);
+    }
+
+    return textureID;
+}
+
 unsigned int TextureFromFile(
         const char *path,
         const std::string &directory,
@@ -119,6 +177,8 @@ unsigned int TextureFromFile(
     } else {
         std::cout << "Texture failed to load at path: " << path << std::endl;
         stbi_image_free(data);
+
+        return TextureFromFile("../data/error.png");
     }
 
     return textureID;

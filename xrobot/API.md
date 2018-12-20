@@ -1,4 +1,4 @@
-XRobot Python API
+XWorld3D Python API
 =================
 
 # Introduction
@@ -6,19 +6,20 @@ XRobot Python API
 This is an in-depth version python tutorial. For a quick start, check out the basic tutorial at `xrobot/README.md`
 
 # Rendering
-
 ## Playground
 
 The playground is essential to the simulation environment and rendering engine. Here we define the width and height of the virtual camera, and also select the rendering quality and assign it to a dedicated GPU (if you have a multi-GPU system)
 
-Rendering Quality can be chosen between low and normal. Low quality does not have any of post-processing but is quite fast. However, normal quality uses SSAO to increase some small occlusion-like details and use FXAA to reduce some of the jagged edges. Exposure control is also available in normal rendering quality. To switch to low-quality mode, change the "HEADLESS" to "RENDER_QUALITY_LOW"
+
+
+Rendering Quality can be chosen between low and normal.  The low quality rendering is relatively fast and low memory usage, however, it only provides the most essential rendering functionalities. The normal quality rendering increase the contrast, reduces the jagged edges and enables the shadowfrom directional light but all these improvements will sacrifice the rendering speed. Exposure control is also available in normal rendering quality. To switch to low-quality mode, change the "RENDER_QUALITY_NORMAL" to "RENDER_QUALITY_LOW"
 
 |          Low Quality         |            Normal Quality          |
 |:----------------------------:|:----------------------------------:|
 | ![low quality](imgs/low.png) | ![normal quality](imgs/normal.png) |
 
 
-Headless context is used for rendering a scene without associating a window. The default rendering backend is EGL, and GLX Headless is also supported. To disable headless context, change the "HEADLESS" to "Debug_Visualization" for visualizing the scene with a flyover camera. (This only available when rendering is debugged mode)
+Headless context is used for rendering a scene without associating a window. To disable headless context, change the "HEADLESS" to "VISUALIZATION".
 
 To create a playground, use `Playground(width, height, mode, quality, GPU)`
 
@@ -38,18 +39,11 @@ To create a completely empty scene without any building block, use `CreateEmptyS
     your_playground.CreateEmptyScene()
 ```
 
-* Example for assigning a boundary which could be useful in high-quality rendering:
-```python
-    your_playground.CreateEmptyScene(min_x, max_x, min_z, max_z)
-```
-
-This is quite helpful when you want to load a fully constructed scene with OBJ files. However, you cannot load any SUNCG house into this type of scene. Jump to "Load Object into Scene" for loading a scene
-
 ## SUNCG Scene
 
 To create a scene can load SUNCG JSON file, use `CreateSceneFromSUNCG()` and `LoadSUNCG(suncg_house_path, model_category_path, suncg_dir, filter)`
 
-You also can use "filter" to remove some special types of objects while loading the scene. Use `REMOVE_DOOR` and `REMOVE STAIR` to remove all the door and stairs respectively. `REMOVE DOOR | REMOVE_STAIR` is also acceptable. 
+To remove doors or stairs while loading the scene, assign `REMOVE_DOOR` or `REMOVE STAIR` to the filter.
 
 * Example:
 ```python
@@ -57,53 +51,66 @@ You also can use "filter" to remove some special types of objects while loading 
     your_playground.LoadSUNCG(suncg_house, suncg_metadata, suncg_dir, REMOVE_DOOR)
 ```
 
-## Arena Scene
+## Testing Scene
 
-To create a square arena (10 x 10 unit) with checkerboard-pattern for testing, use `CreateAnTestScene()`.
-
-Currently, the arena size and pattern cannot be changed.
+To create a closed single room for testing, use `CreateArena(width, length)`.
 
 * Example:
 ```python
-    your_playground.CreateAnTestScene()
+    your_playground.CreateArena(3, 3)
 ```
 
-## Build-in Rooms with Randomly Generate Tiles
+## Randomly Generate Scene
 
-To create a room with randomly generate tiles, use `CreateRandomGenerateScene()`. And a basic room configuration needs to be assigned before generating the room.
+To create a scene with randomly generate tiles, use `CreateRandomGenerateScene()`. Assets and room configuration also needs to be assigned before generating the room.
 
-a) First, we need to create a profile using a python dictionary. The format must follow the example below:
+a) First, load the assets
+
+```python
+    door_assets = [door_asset_0, door_asset_1,...]
+    key_assets  = [key_asset_0, key_asset_1,...]
+    door_labels = [door_label_0, door_label_1,...]
+    unlocked_door_asset = "./path/to/door/asset.json"
+    unlocked_wall_asset = "./path/to/wall/asset.json"
+    floor_assets = [floor_asset_0, floor_asset_1,...]
+    your_playground.LoadBasicObjects(door_assets, key_assets, door_labels, \
+        unlocked_door_asset, unlocked_wall_asset, floor_assets) 
+    your_playground.LoadModels(goal_assets, goal_labels)
+```
+
+b) Next, load scene layout
+```python
+your_playground.LoadSceneConfigure(width, length, number_rooms, number_doors)
+```
+
+c) create a configuration for populating objects in the scene. The format must follow the example below:
 
 * Example of creating a profile:
 ```python
-    room_configuration = {
-        "room"      : [floor1_path, wall1_apth, door1_path, floor2_path, wall2_apth, door2_path,...]
-        "on_floor"  : [object1_path, "object1_label", object2_path, "object2_label",...]
-        "on_object" : [object1_path, "object1_label",...]
-        "on_either" : []
+    spawn_conf   = {"single" : [object_0, roomgroup_id, number,...], \
+                    "stack"  : [object_1, object_2, roomgroup_id, number_on_top, number,...],
+                    "pair"   : [object_3, object_4, roomgroup_id, number,...]
     }
 ```
+There are three relationships between populated objects. 
 
-The `room` defines the number of rooms and the models. The real definition is a list constitutes with several rooms, and each room is a tuple of three models (`floor_model_path`, `wall_model_path` and `door_model_path`) in the list.
+ ![Relationships Comparision](imgs/spawn.png)
 
-The `on_floor` defines which object will randomly spawn on the floor. A pair (`object_model_path` followed by `object_label`) for each object.
+* `single` means one object will be randomly populated at a time. 
+* `pair` means a group consists of two objects populated close to each other.
+* `stack` means a group consists of at least objects. When this populated, a large object usually at the bottom and many relativelly small object on the top of it.
 
-Similarly, `on_object` defines which object will randomly spawn on another object and `on_either` defines which object will spawn on either object or floor. And mostly, a large size object will not spawn on a small size object.
 
-b) Generate the rooms
+d) Populate Objects
 
 * Example of generating the rooms using a profile:
 
 ```python
-    your_playground.LoadRandomSceneConfigure(room_configuration)
-    your_playground.LoadRandomScene(max_length_or_width, num_on_floor, num_on_object, num_on_either)
+    your_playground.SpawnModelsConf(spawn_conf)
+    your_playground.SpawnModels()
 ```
 
-`max_length_or_width` defines the maximum length and width of the scene
-
-`num_on_floor`, `num_on_object`, `num_on_either` defines number of object will spawn on floor, object and either cases. The actual number of object spawn could smaller than your defined number.
-
-For the tile arrangement, check out `xrobot/room_generator.cpp` and in details.
+For the tile arrangement, check out `xrobot/room_generator.cpp`.
 
 ## Load Object into Scene
 
@@ -146,7 +153,7 @@ Initialize the scene. It tells the playground ready for rendering
 
 * Example to reset the environment:
 
-```python
+```python current orientation in 
     
     ## Generate Scene
 
@@ -188,7 +195,7 @@ The number of actions is limited to 10! It cannot execute any action id are larg
     your_playground.UpdateRenderer()
 ```
 
-## Do Both
+## Render and Simulate One Step
 
 * Example:
 
@@ -733,26 +740,3 @@ You can retrieve position and orientation from the camera.
     my_playground.GetFarClippingDistance()
 
 ```
-
-## Get Engine Status
-
-You can get some performance information use `GetStatus()`.
-
-* Example:
-
-```python
-
-    rendered_frames = my_playground.GetStatus()["frames"]
-    current_framerate = my_playground.GetStatus()["framerate"]
-
-```
-
-# Other Features are NOT in python interface
-
-* Multi-Ray Lidar
-* More Sophisticated Query
-* Inverse Kinematics
-* Changing Object Physics Properties
-* High-Quality Rendering
-
-# 

@@ -207,22 +207,22 @@ public:
             const xScalar pos,
             const xScalar vel);
 
-    virtual void PickUp(
+    virtual std::string PickUp(
             std::shared_ptr<Inventory>& inventory,
             const glm::vec3& from,
             const glm::vec3& to);
 
-    virtual void PutDown(
+    virtual std::string PutDown(
             std::shared_ptr<Inventory>& inventory, 
             const glm::vec3& from,
             const glm::vec3& to);
 
-    virtual void Rotate(
+    virtual std::string Rotate(
             const glm::vec3& rotate_angle,
             const glm::vec3& from,
             const glm::vec3& to);
 
-    virtual void AttachTo(std::weak_ptr<RobotBase> object, const int id = -1);
+    virtual void AttachTo(std::weak_ptr<RobotBase> object);
 
     virtual void Detach();
 
@@ -263,7 +263,8 @@ protected:
     bool occupy_test(
             std::shared_ptr<World>& world,
             std::shared_ptr<RobotBase>& item,
-            const glm::vec3& c);
+            const glm::vec3& c,
+            xScalar& low);
 };
 
 class Robot : public RobotBase {
@@ -295,11 +296,21 @@ public:
             const std::string& label = "",
             const bool concave = false);
 
+    bool InteractWith(const std::string& tag);
+
     bool TakeAction(const int act_id);
 
     void SetCycle(const bool cycle) { cycle_ = cycle; }
 
+    bool GetCycle() const { return cycle_; }
+
     void SetStatus(const int status) { status_ = status; }
+
+    void SetLock(const bool lock) { lock_ = lock; }
+
+    bool GetLock() const { return lock_; }
+
+    std::string GetUnlockedTage() const { return unlock_tag_; }
 
     void recycle() override;
 
@@ -310,7 +321,9 @@ private:
 
     int status_;
     std::string label_;
+    std::string unlock_tag_;
     xScalar scale_;
+    bool lock_;
     bool cycle_;
     std::string path_;
     std::vector<std::string> object_path_list_;
@@ -357,11 +370,6 @@ private:
 struct ObjectAttributes {
     glm::vec3 aabb_min;
     glm::vec3 aabb_max;
-    int bullet_id;
-};
-
-struct ObjectDirections {
-    xScalar dirs[9];
     int bullet_id;
 };
 
@@ -423,6 +431,9 @@ public:
     void UpdateAttachObjects(std::shared_ptr<RobotBase> robot);
     void FixLockedObjects(std::shared_ptr<RobotBase> robot);
     void QueryPose(std::shared_ptr<RobotBase> robot);
+
+    void QueryMovable();
+    void QueryInteractable(std::shared_ptr<RobotBase> robot);
 
     void ClearCache();
     void PrintCacheInfo();

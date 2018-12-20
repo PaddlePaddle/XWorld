@@ -3,76 +3,95 @@
 namespace xrobot {
 namespace render_engine {
 
+void Texture3D::active(const int shader, 
+		const std::string sampler, const int unit) {
+	glActiveTexture(GL_TEXTURE0 + unit);
+	glBindTexture(GL_TEXTURE_3D, id_);
+	glUniform1f(glGetUniformLocation(shader, sampler.c_str()), unit);
+}
+
+void Texture3D::clear() {
+	glBindTexture(GL_TEXTURE_3D, id_);
+	for(GLint i = 0; i < levels_; ++i)
+		glClearTexImage(id_, i, format_, type_, &clear_data_[0]);
+}
+
 Texture3D::Texture3D(
-	const std::vector<unsigned char> & textureBuffer,
-	const int width, const int height, const int depth,
-	const bool generateMipmaps, const int level
-)
-{
-	this->width = width;
-	this->height = height;
-	this->depth = depth;
-	this->levels = level;
-	this->clearData = std::vector<unsigned char>(width * height * depth * 4, 0);
+		const int width, 
+		const int height,
+		const int depth,
+		const int levels,
+		const GLint internal_format,
+	    const GLenum format,
+	    const GLenum type,
+		const GLint border) :  width_(width),
+							   height_(height),
+							   depth_(depth),
+							   levels_(levels),
+							   internal_format_(internal_format),
+							   format_(format),
+							   type_(type),
+							   border_(border) {
 
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_3D, textureID);
+	// RGBA8
+	clear_data_ = std::vector<unsigned char>(width_ * height_ * depth_ * 4, 0);
 
-	const auto wrap = GL_CLAMP_TO_EDGE;
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, wrap);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, wrap);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, wrap);
-
-	if(level < 1)
-	{
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	if(levels < 2) {
+		min_filter_ = GL_LINEAR;
+		mag_filter_ = GL_LINEAR;
+	} else {
+		min_filter_ = GL_LINEAR_MIPMAP_LINEAR;
+		mag_filter_ = GL_LINEAR;
 	}
-	else
-	{
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	}
-	
-	glTexStorage3D(GL_TEXTURE_3D, level, GL_RGBA8, width, height, depth);
-	int w = width;
-	int h = height;
-	int d = depth;
 
-	for (size_t i = 0; i < level; ++i)
-	{
-		glTexImage3D(GL_TEXTURE_3D, i, GL_RGBA8, w, h, d, 0, GL_RGBA, GL_UNSIGNED_BYTE, &clearData[0]);
+	GLuint bound_id = 0;
+    glGetIntegerv(GL_TEXTURE_BINDING_3D, (GLint*) &bound_id);
+
+	glGenTextures(1, &id_);
+	glBindTexture(GL_TEXTURE_3D, id_);
+
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, min_filter_);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, mag_filter_);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, border_);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, border_);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, border_);
+
+	glTexStorage3D(GL_TEXTURE_3D,
+				   levels_, 
+				   internal_format_,
+				   width_,
+				   height_,
+				   depth_);
+
+	int w = width_;
+	int h = height_;
+	int d = depth_;
+
+	for(GLint i = 0; i < levels; ++i) {
+		glTexImage3D(GL_TEXTURE_3D,
+					 i,
+					 internal_format_,
+					 w,
+					 h,
+					 d,
+					 0,
+					 format_,
+					 type_,
+					 &clear_data_[0]);
+
 		w = glm::max(1, (w >> 1));
 		h = glm::max(1, (h >> 1));
 		d = glm::max(1, (d >> 1));
 	}
 
-	if (generateMipmaps) glGenerateMipmap(GL_TEXTURE_3D);
+	if (levels > 1) 
+		glGenerateMipmap(GL_TEXTURE_3D);
 
-	//glBindTexture(GL_TEXTURE_3D, 0);
+	glBindTexture(GL_TEXTURE_3D, bound_id);
 }
 
-Texture3D::~Texture3D()
-{
-	glDeleteTextures(1, &textureID);
-	delete textureBuffer;
-	clearData.clear();
-}
-
-void Texture3D::Activate(const int shaderProgram, const std::string glSamplerName, const int textureUnit)
-{
-	glActiveTexture(GL_TEXTURE0 + textureUnit);
-	glBindTexture(GL_TEXTURE_3D, textureID);
-	glUniform1f(glGetUniformLocation(shaderProgram, glSamplerName.c_str()), textureUnit);
-}
-
-void Texture3D::Clear()
-{
-	glBindTexture(GL_TEXTURE_3D, textureID);
-	//glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, width, height, depth, GL_RGBA, GL_UNSIGNED_BYTE, &clearData[0]);
-	for(int i = 0; i < levels; ++i)
-		glClearTexImage(textureID, i, GL_RGBA, GL_UNSIGNED_BYTE, &clearData[0]);
-
+Texture3D::~Texture3D() {
+	glDeleteTextures(1, &id_);
 }
 
 }

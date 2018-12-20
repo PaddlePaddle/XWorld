@@ -115,8 +115,8 @@ Navigation::Navigation(
     size_t p = std::string(__FILE__).find_last_of("/");
     std::string pwd =std::string(__FILE__).substr(0, p);
     depth_shader_ = xrobot::render_engine::Shader(
-    	pwd + "/depth.vs",
-    	pwd + "/depth.fs");
+    	pwd + "/render_engine/shaders/navmap.vs",
+    	pwd + "/render_engine/shaders/navmap.fs");
 }
 
 Navigation::~Navigation()

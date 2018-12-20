@@ -39,7 +39,6 @@ namespace xrobot
 
 		void AddPhysicalProperties(const std::string& label, const Properity& prop);
 
-		std::shared_ptr<AABB> map_AABB_;
 		std::unordered_map<int, std::string> map_bullet_label_; // Not Useful?????
 		std::unordered_map<std::string, std::string> all_labels_;
 		std::unordered_map<std::string, Properity> map_labels_properity;

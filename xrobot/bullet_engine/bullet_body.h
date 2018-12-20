@@ -20,6 +20,8 @@ struct BulletBodyData {
     std::string path = "";
     int body_uid = -1;
     int attach_to_id = -2; // -1 is used by root
+    btTransform attach_transform;
+    btTransform attach_orientation; 
 };
 
 class BulletBody {
@@ -98,9 +100,8 @@ public:
             xScalar* prev_q,
             xScalar* prev_o);
 
-    void attach(BulletObject* part, const BulletObject* target_root);
-
-    // void detach(BulletObject* root);
+    void attach(BulletObject* root_part, const BulletObject* target_root,
+            const float pitch, const glm::vec3& offset);
 
     void attach_camera(
             const BulletObject* part,

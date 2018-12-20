@@ -231,14 +231,14 @@ bool json_get_object(
     }
     
     // Check for empty strings
-    if (result->type() == Json::stringValue) {
-        if (result->asString().length() == 0) {
-            fprintf(stderr,
-                    "JSON object has zero length string named %s\n",
-                    str);
-            return false;
-        }
-    }
+    // if (result->type() == Json::stringValue) {
+    //     if (result->asString().length() == 0) {
+    //         fprintf(stderr,
+    //                 "JSON object has zero length string named %s\n",
+    //                 str);
+    //         return false;
+    //     }
+    // }
   
     // Return success
     return true;

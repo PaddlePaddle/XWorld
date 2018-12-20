@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 project(xrobot CXX C)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
@@ -11,7 +11,7 @@ option(CPP_EXAMPLES_ENABLE "c++ examples" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ## -Wno-error for gcc 5.x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
 
 include(ExternalProject)
 
@@ -77,10 +77,8 @@ set(XROBOT_SOURCES
 )
 
 set(XROBOT_CPP_EXAMPLE_SOURCES
-    cpp_example/task_example_navigation_in_maze.cpp
-    cpp_example/task_example_follow_robot.cpp
-    cpp_example/task_example_suncg.cpp
-    cpp_example/task_example_crowd.cpp
+    cpp_example/navigation_in_maze.cpp
+    cpp_example/navigation_in_suncg.cpp
 )
 
 if(CPP_EXAMPLES_ENABLE)
@@ -111,7 +109,9 @@ set_target_properties(xrobot
 
 if(CPP_EXAMPLES_ENABLE)
     # Navigation in Maze
-    add_executable(xrobot_test_nav cpp_example/test_navigation_in_maze.cpp)
+    add_executable(xrobot_test_nav cpp_example/example_navigation_in_maze.cpp)
+
+    add_dependencies(xrobot_test_nav xrobot)
 
     target_link_libraries(xrobot_test_nav PUBLIC xrobot ${DEP_LIBS})
 
@@ -120,19 +120,10 @@ if(CPP_EXAMPLES_ENABLE)
     set_target_properties(xrobot_test_nav
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 
+    # Navigation in SUNCG
+    add_executable(xrobot_test_suncg cpp_example/example_navigation_in_suncg.cpp)
 
-    # Follow Robot
-    add_executable(xrobot_test_follow_robot cpp_example/test_follow_robot.cpp)
-
-    target_link_libraries(xrobot_test_follow_robot PUBLIC xrobot ${DEP_LIBS})
-
-    target_include_directories(xrobot_test_follow_robot PUBLIC ${DEP_INCLUDES})
-
-    set_target_properties(xrobot_test_follow_robot
-        PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
-
-    # SUNCG
-    add_executable(xrobot_test_suncg cpp_example/test_suncg.cpp)
+    add_dependencies(xrobot_test_nav xrobot)
 
     target_link_libraries(xrobot_test_suncg PUBLIC xrobot ${DEP_LIBS})
 
@@ -141,15 +132,6 @@ if(CPP_EXAMPLES_ENABLE)
     set_target_properties(xrobot_test_suncg
         PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 
-    # Crowd
-    add_executable(xrobot_test_crowd cpp_example/test_crowd.cpp)
-
-    target_link_libraries(xrobot_test_crowd PUBLIC xrobot ${DEP_LIBS})
-
-    target_include_directories(xrobot_test_crowd PUBLIC ${DEP_INCLUDES})
-
-    set_target_properties(xrobot_test_crowd
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cpp_example)
 endif()
 
 
