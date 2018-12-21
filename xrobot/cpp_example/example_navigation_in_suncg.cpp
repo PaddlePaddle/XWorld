@@ -1,5 +1,3 @@
-#include "render_engine/render.h"
-#include "utils.h"
 
 #include <fstream>
 #include <iostream>
@@ -11,9 +9,8 @@
 #include <iomanip>
 #include <memory>
 
-#include "task.h"
+#include "render_engine/render.h"
 #include "navigation_in_suncg.h"
-#include "state_machine.h"
 
 using namespace xrobot;
 
