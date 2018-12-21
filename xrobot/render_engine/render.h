@@ -62,7 +62,7 @@ public:
     Image<float>         GetLidarImage() const { return lidar_image_; };
 
     // Other
-    void BakeGI(RenderWorld* world);
+    void BakeGI();
     void UpdateExposure(const float exposure) { lighting_.exposure = exposure; }
     void UpdateBackgroundColor(const glm::vec3 rgb) { lighting_.bg = rgb; }
     void UpdateAmbientColor(const glm::vec3 ambient) { 

@@ -106,8 +106,8 @@ class XWorld3DEnv(object):
 	def __init__(self):
 		self.env = Playground(640, \
 							  480, \
-							  HEADLESS, \
-							  QUALITY_NORMAL, \
+							  VISUALIZATION, \
+							  4, \
 							  0)
 
 		self.task_group = TaskGroup("TaskGroup")

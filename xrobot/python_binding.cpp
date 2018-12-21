@@ -880,6 +880,7 @@ void Playground::AttachCameraTo(Thing object, const boost::python::list offset_p
 
 	if(auto obj_sptr = object.GetPtr().lock()) {
 		scene_->world_->attach_camera(main_camera_, obj_sptr.get());
+        obj_sptr->ignore_baking(true);
 	}
 
     agent_ = object;
@@ -1065,12 +1066,16 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 
             // Update Event
             current_event_.append("Attach");
+
+            renderer_->BakeGI();
         }
         else if(action == 7) {
             Detach();
 
             // Update Event
             current_event_.append("Detach");
+
+            renderer_->BakeGI();
         }
         else if(action == 8) {
             std::string obj = Grasp();
@@ -1078,6 +1083,8 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             // Update Event
             current_event_.append("Grasp");
             current_event_.append(obj);
+
+            renderer_->BakeGI();
         }
         else if(action == 9) {
             std::string obj = PutDown();
@@ -1085,6 +1092,8 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             // Update Event
             current_event_.append("PutDown");
             current_event_.append(obj);
+
+            renderer_->BakeGI();
         }
         else if(action == 10) {
             boost::python::list rotate_angle;
@@ -1096,6 +1105,8 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             // Update Event
             current_event_.append("Rotate");
             current_event_.append(obj);
+
+            renderer_->BakeGI();
         }
         else if(action == 11) {
             current_actions_ = EnableInteraction();
@@ -1124,6 +1135,8 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             current_event_.append("Action");
             current_event_.append(action);
             current_event_.append(success ? "S" : "F");
+
+            renderer_->BakeGI();
         }
     } else if(inventory_opened_) {
         if(action == 13) {

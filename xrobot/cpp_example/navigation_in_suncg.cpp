@@ -85,7 +85,7 @@ namespace xrobot
 		}
 
 	    scene_->world_->BulletStep();
-	    renderer_->BakeGI(scene_->world_.get());
+	    renderer_->BakeGI();
 
 	    return "NavTarget";
 	}
@@ -110,7 +110,7 @@ namespace xrobot
 		    	glm::vec3 fromPosition = main_camera_->position_;
 		    	glm::vec3 toPosition = main_camera_->front_ * 3.0f + fromPosition;
 		    	agent_sptr->PickUp(inventory_, fromPosition, toPosition);
-		    	renderer_->BakeGI(scene_->world_.get());
+		    	renderer_->BakeGI();
 		    }
 
 		    // Put
@@ -118,7 +118,7 @@ namespace xrobot
 		    	glm::vec3 fromPosition = main_camera_->position_;
 		    	glm::vec3 toPosition = main_camera_->front_ * 3.0f + fromPosition;
 		    	agent_sptr->PutDown(inventory_, fromPosition, toPosition);
-		    	renderer_->BakeGI(scene_->world_.get());
+		    	renderer_->BakeGI();
 		    }
     	}
 

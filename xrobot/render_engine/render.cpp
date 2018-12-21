@@ -74,10 +74,6 @@ void Render::StepRender(RenderWorld* world) {
 	// Visualization
 	RenderVisualization(world, camera);
 
-	// Bake GI
-	if(profile_.vct)
-		vct_->BakeGI(world, dir_light_);
-
 	// Shadow Map
 	RenderShadowMaps(world, camera);
 
@@ -273,6 +269,7 @@ void Render::RenderLightingPass(RenderWorld* world, Camera* camera, GLuint& rgb)
 		rgb   = lighting_pass_->texture_id(0);
 		RenderNormalShading(camera);
 	} else {
+		vct_->BakeGI(world, dir_light_);
 		vct_->ConeTracing(world, camera, dir_light_, shadow_,
 				lighting_.exposure, geomtry_pass_, rgb);
 	}
@@ -565,9 +562,9 @@ void Render::InitVCT() {
 	}
 }
 
-void Render::BakeGI(RenderWorld* world) {
+void Render::BakeGI() {
 	if(profile_.vct) 
-		vct_->BakeGI(world, dir_light_, true);
+		vct_->ForceBakeOnNextFrame();
 }
 
 // --------------------------------------------------------------------------------------------

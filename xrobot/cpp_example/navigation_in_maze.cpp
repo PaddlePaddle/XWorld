@@ -87,7 +87,7 @@ namespace xrobot
 
 		// Initialize the Scene
 	    scene_->world_->BulletStep();
-	    renderer_->BakeGI(scene_->world_.get());
+	    renderer_->BakeGI();
 
 	    return "NavTarget";
 	}
