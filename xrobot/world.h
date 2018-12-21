@@ -5,13 +5,12 @@
 #include <string>
 #include <functional>
 #include <vector>
-#include <unordered_map>
-#include <queue>
 #include <unistd.h>
 #include <errno.h>
 #include <utility>
 #include <chrono>
-#include <thread>
+
+#include "glm/glm.hpp"
 
 #include "bullet_engine/bullet_joint.h"
 #include "bullet_engine/bullet_object.h"
@@ -21,6 +20,13 @@
 #include "render_engine/render_world.h"
 
 #include "inventory.h"
+
+// TODO: Right now xScalar cannot be float
+#ifdef USE_DOUBLE_PRECISION
+typedef double xScalar;
+#else
+typedef float xScalar;
+#endif
 
 namespace xrobot {
 

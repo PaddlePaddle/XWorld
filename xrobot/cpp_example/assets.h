@@ -12,7 +12,7 @@ static std::string r2d2       = "../data/r2d2/r2d2.urdf";
 static std::string husky      = "../data/husky/husky.urdf";
 static std::string husky_kuka = "../data/husky/robot_kuka.urdf";
 
-static std::string test_wall   = "/home/ziyuli/XWorld/xrobot/data/wall/floor.urdf";
+static std::string test_wall   = "../data/wall/floor.urdf";
 static std::string test_floor  = "../data/floor/floor.urdf";
 
 static std::string key_red     = "../data/key_red/key.urdf";

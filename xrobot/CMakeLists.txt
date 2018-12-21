@@ -2,26 +2,31 @@ cmake_minimum_required(VERSION 3.0)
 
 project(xrobot CXX C)
 
+include(ExternalProject)
+set(EXTERNAL_PROJECT_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external")
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-option(CPP_EXAMPLES_ENABLE "c++ examples" ON)
+option(USE_DOUBLE_PRECISION "Use double precision floating point" ON)
+option(BUILD_CPP_EXAMPLES "c++ examples" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ## -Wno-error for gcc 5.x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -DBT_USE_DOUBLE_PRECISION=1 -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
-
-include(ExternalProject)
-
-set(EXTERNAL_PROJECT_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fPIC -Wno-deprecated-declarations -Wno-error")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(Threads REQUIRED)
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs 2.7 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python system)
+
+#include_directories(${Boost_INCLUDE_DIRS})
+#include_directories(${PYTHON_INCLUDE_DIRS})
+#link_directories(${Boost_LIBRARY_DIR})
 
 ## user can directly set GLOG_INCLUDE_DIRS and GLOG_LIBRARIES
 if(NOT GLOG_LIBRARIES)
@@ -39,9 +44,6 @@ include(glm)
 include(glfw)
 include(bullet)
 
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${PYTHON_INCLUDE_DIRS})
-
 link_directories(${Boost_LIBRARY_DIR})
 
 set(DEP_LIBS
@@ -53,7 +55,9 @@ set(DEP_LIBS
 set(DEP_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${GFLAGS_INCLUDE_DIRS}
-    ${GLOG_INCLUDE_DIRS})
+    ${GLOG_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
+    ${PYTHON_INCLUDE_DIRS} )
 
 add_library(utils OBJECT
     vendor/json.cpp
@@ -63,6 +67,11 @@ add_library(utils OBJECT
 add_subdirectory(render_engine)
 
 add_subdirectory(bullet_engine)
+
+if (USE_DOUBLE_PRECISION)
+  add_definitions(-DUSE_EGL)
+  add_definitions(-DUSE_DOUBLE_PRECISION)
+endif()
 
 set(XROBOT_SOURCES
     map_grid.cpp
@@ -81,7 +90,7 @@ set(XROBOT_CPP_EXAMPLE_SOURCES
     cpp_example/navigation_in_suncg.cpp
 )
 
-if(CPP_EXAMPLES_ENABLE)
+if(BUILD_CPP_EXAMPLES)
     add_library(xrobot SHARED
         ${XROBOT_CPP_EXAMPLE_SOURCES}
         ${XROBOT_SOURCES}
@@ -107,7 +116,7 @@ target_include_directories(xrobot PUBLIC ${DEP_INCLUDES})
 set_target_properties(xrobot
   PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(CPP_EXAMPLES_ENABLE)
+if(BUILD_CPP_EXAMPLES)
     # Navigation in Maze
     add_executable(xrobot_test_nav cpp_example/example_navigation_in_maze.cpp)
 

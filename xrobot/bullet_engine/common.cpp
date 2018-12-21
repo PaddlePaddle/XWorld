@@ -22,7 +22,7 @@ template btTransform TransformFromReals<float>(const float*, const float*);
 template btTransform TransformFromReals<double>(const double*, const double*);
 
 glm::mat4 TransformToMat4(const btTransform& transform) {
-    xScalar mat[16];
+    btScalar mat[16];
     transform.getOpenGLMatrix(mat);
     return glm::make_mat4(mat);
 }
@@ -38,25 +38,6 @@ template glm::mat4 TransformToMat4<double>(const double*, const double*);
 int get_num_joints(const ClientHandle client, const int id) {
     return b3GetNumJoints(client, id);
 }
-
-template <typename T>
-void set_vel(
-        const ClientHandle client,
-        const int id,
-        const T* vel) {
-    CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
-
-    double velocity[3];
-    velocity[0] = vel[0];
-    velocity[1] = vel[1];
-    velocity[2] = vel[2];
-
-    b3CreatePoseCommandSetBaseLinearVelocity(cmd_handle, velocity);
-    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
-}
-
-template void set_vel<float>(const ClientHandle, const int, const float*);
-template void set_vel<double>(const ClientHandle, const int, const double*);
 
 void set_pose(
         const ClientHandle client,
@@ -87,32 +68,32 @@ void set_pose(
     b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
 }
 
-template void set_pose<float>(const ClientHandle, const int, const float*, const float*);
-template void set_pose<double>(const ClientHandle, const int, const double*, const double*);
+template void set_pose<float>(
+        const ClientHandle, const int, const float*, const float*);
+template void set_pose<double>(
+        const ClientHandle, const int, const double*, const double*);
 
 void rotate(const ClientHandle client, const int id, const glm::vec3 angle) {
     btQuaternion quat(angle.x, angle.y, angle.z);
-    xScalar q[4];
-    q[0] = quat[0];
-    q[1] = quat[1];
-    q[2] = quat[2];
-    q[3] = quat[3];
-    set_pose(client, id, (xScalar*)NULL, q);
-}
-
-template <typename T>
-void set_velocity(const ClientHandle client, const int id, const T* velocity) {
     CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
-    xScalar v[3];
-    v[0] = velocity[0];
-    v[1] = velocity[1];
-    v[2] = velocity[2];
-    b3CreatePoseCommandSetBaseLinearVelocity(cmd_handle, v);
+    b3CreatePoseCommandSetBaseOrientation(
+                cmd_handle, quat[0], quat[1], quat[2], quat[3]);
     b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
 }
 
-template void set_velocity<float>(const ClientHandle, const int, const float*);
-template void set_velocity<double>(const ClientHandle, const int, const double*);
+void set_velocity(const ClientHandle client, const int id, const float* v) {
+    double vel[3];
+    vel[0] = v[0];
+    vel[1] = v[1];
+    vel[2] = v[2];
+    set_velocity(client, id, vel);
+}
+
+void set_velocity(const ClientHandle client, const int id, const double* v) {
+    CommandHandle cmd_handle = b3CreatePoseCommandInit(client, id);
+    b3CreatePoseCommandSetBaseLinearVelocity(cmd_handle, const_cast<double*>(v));
+    b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
+}
 
 // http://www.opengl-tutorial.org
 // Rotation
@@ -121,7 +102,7 @@ glm::quat RotationBetweenVectors(
     glm::vec3 start_norm = glm::normalize(start);
     glm::vec3 dest_norm = glm::normalize(dest);
 
-    xScalar cosTheta = glm::dot(start_norm, dest_norm);
+    float cosTheta = glm::dot(start_norm, dest_norm);
     glm::vec3 rotationAxis;
 
     if (cosTheta < -1 + 0.0001f){
@@ -147,9 +128,9 @@ glm::quat RotationBetweenVectors(
     );
 }
 
-bool RayAABBIntersect(const Ray& r, 
-                      const glm::vec3 aabb_min,
-                      const glm::vec3 aabb_max) {
+bool RayAABBIntersect(const Ray& r,
+                      const glm::vec3& aabb_min,
+                      const glm::vec3& aabb_max) {
     glm::vec3 ray_orig = r.from;
     glm::vec3 ray_dir = glm::normalize(r.to - r.from);
     glm::vec3 ray_invdir = 1.0f / ray_dir;
@@ -164,7 +145,7 @@ bool RayAABBIntersect(const Ray& r,
     ray_sign[0] = (ray_invdir.x < 0);
     ray_sign[1] = (ray_invdir.y < 0);
     ray_sign[2] = (ray_invdir.z < 0);
-    
+
     glm::vec3 bounds[2];
     bounds[0] = aabb_min;
     bounds[1] = aabb_max;

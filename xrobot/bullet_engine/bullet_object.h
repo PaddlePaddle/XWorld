@@ -21,10 +21,10 @@ public:
 
     void wake(const ClientHandle client, const int body_uid);
 
-    void get_mass(const ClientHandle client, const int body_uid, xScalar& mass);
+    void get_mass(const ClientHandle client, const int body_uid, double& mass);
 
     void change_mass(
-            const ClientHandle client, const int body_uid, const xScalar mass);
+            const ClientHandle client, const int body_uid, const double mass);
 
     void get_AABB(
             const ClientHandle client,
@@ -33,34 +33,34 @@ public:
             glm::vec3& aabb_max);
 
     void change_linear_damping(
-            const ClientHandle client, const int body_uid, const xScalar damping);
+            const ClientHandle client, const int body_uid, const double damping);
 
     void change_angular_damping(
-            const ClientHandle client, const int body_uid, const xScalar damping);
+            const ClientHandle client, const int body_uid, const double damping);
 
     void change_lateral_friction(
-            const ClientHandle client, const int body_uid, const xScalar friction);
+            const ClientHandle client, const int body_uid, const double friction);
 
     void change_spinning_friction(
-            const ClientHandle client, const int body_uid, const xScalar friction);
+            const ClientHandle client, const int body_uid, const double friction);
 
     void change_rolling_friction(
-            const ClientHandle client, const int body_uid, const xScalar friction);
+            const ClientHandle client, const int body_uid, const double friction);
     
     void apply_force(
             const ClientHandle client,
             const int body_uid,
-            const xScalar x,
-            const xScalar y,
-            const xScalar z,
+            const double x,
+            const double y,
+            const double z,
             const int flags = EF_LINK_FRAME);
 
     void apply_torque(
             const ClientHandle client,
             const int body_uid,
-            const xScalar x,
-            const xScalar y,
-            const xScalar z, 
+            const double x,
+            const double y,
+            const double z, 
             const int flags = EF_LINK_FRAME);
 
     void detach() { attach_transform_ = btTransform(); }
