@@ -6,12 +6,15 @@
 #include <unordered_map>
 
 #include "render_engine/render.h"
-#include "map_grid.h"
-#include "map_suncg.h"
-#include "lidar.h"
-#include "task.h"
-#include "navigation.h"
+
+#include "game_engine/lidar.h"
+#include "game_engine/map_suncg.h"
+#include "game_engine/navigation.h"
+#include "game_engine/state_machine.h"
+#include "game_engine/task.h"
+
 #include "assets.h"
+#include "utils.h"
 
 namespace xrobot
 {
