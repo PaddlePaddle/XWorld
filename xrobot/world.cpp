@@ -784,7 +784,7 @@ void RobotBase::hide(const bool hide) {
         set_pose(bullet_world->client_, body_data_.body_uid, pos, (xScalar*)NULL);
         // Set Velocity to 0
         double velocity[3] = {0, 0, 0};
-        set_vel(bullet_world->client_, body_data_.body_uid, velocity);
+        set_velocity(bullet_world->client_, body_data_.body_uid, velocity);
         // Change Root to Static
         root_part_->SetStatic();
         root_part_->Sleep();
@@ -1817,7 +1817,7 @@ std::shared_ptr<RobotBase> World::LoadModelFromCache(
         robot->reuse();
 
         set_pose(client_, robot->id(), position, rotation);
-        set_vel(client_, robot->id(), kFloat3Zero);
+        set_velocity(client_, robot->id(), kFloat3Zero);
     }
     return robot;
 }

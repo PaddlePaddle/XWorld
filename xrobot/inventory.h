@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <memory>
 
-#include "glm/glm.hpp"
-#include "bullet/LinearMath/btTransform.h"
-
 namespace xrobot {
 
 class RobotBase;

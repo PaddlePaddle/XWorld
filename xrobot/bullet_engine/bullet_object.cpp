@@ -43,7 +43,7 @@ void BulletObject::wake(const ClientHandle client, const int body_uid) {
 }
 
 void BulletObject::get_mass(
-        const ClientHandle client, const int body_uid, xScalar& mass) {
+        const ClientHandle client, const int body_uid, double& mass) {
     CommandHandle cmd_handle = b3GetDynamicsInfoCommandInit(
             client, body_uid, bullet_link_id_);
     StatusHandle status_handle =
@@ -54,12 +54,12 @@ void BulletObject::get_mass(
     } else {
         struct b3DynamicsInfo dynamics_info;
         b3GetDynamicsInfo(status_handle, &dynamics_info);
-        mass = static_cast<xScalar>(dynamics_info.m_mass);
+        mass = static_cast<double>(dynamics_info.m_mass);
     }
 }
 
 void BulletObject::change_mass(
-        const ClientHandle client, const int body_uid, const xScalar mass) {
+        const ClientHandle client, const int body_uid, const double mass) {
     CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
     b3ChangeDynamicsInfoSetMass(
             cmd_handle, body_uid, bullet_link_id_, mass);
@@ -82,8 +82,8 @@ void BulletObject::get_AABB(
         return;
     }
 
-    xScalar aabb_min_temp[3];
-    xScalar aabb_max_temp[3];
+    double aabb_min_temp[3];
+    double aabb_max_temp[3];
     b3GetStatusAABB(
             status_handle, bullet_link_id_, aabb_min_temp, aabb_max_temp);
     aabb_min = glm::vec3(aabb_min_temp[0], aabb_min_temp[1], aabb_min_temp[2]);
@@ -91,21 +91,21 @@ void BulletObject::get_AABB(
 }
 
 void BulletObject::change_linear_damping(
-        const ClientHandle client, const int body_uid, const xScalar damping) {
+        const ClientHandle client, const int body_uid, const double damping) {
     CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
     b3ChangeDynamicsInfoSetLinearDamping(cmd_handle, body_uid, damping);
     b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
 }
 
 void BulletObject::change_angular_damping(
-        const ClientHandle client, const int body_uid, const xScalar damping) {
+        const ClientHandle client, const int body_uid, const double damping) {
     CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
     b3ChangeDynamicsInfoSetAngularDamping(cmd_handle, body_uid, damping);
     b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
 }
 
 void BulletObject::change_lateral_friction(
-        const ClientHandle client, const int body_uid, const xScalar friction) {
+        const ClientHandle client, const int body_uid, const double friction) {
     CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
     b3ChangeDynamicsInfoSetLateralFriction(
             cmd_handle, body_uid, bullet_link_id_, friction);
@@ -113,7 +113,7 @@ void BulletObject::change_lateral_friction(
 }
 
 void BulletObject::change_spinning_friction(
-        const ClientHandle client, const int body_uid, const xScalar friction) {
+        const ClientHandle client, const int body_uid, const double friction) {
     CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
     b3ChangeDynamicsInfoSetSpinningFriction(
             cmd_handle, body_uid, bullet_link_id_, friction);
@@ -121,7 +121,7 @@ void BulletObject::change_spinning_friction(
 }
 
 void BulletObject::change_rolling_friction(
-        const ClientHandle client, const int body_uid, xScalar friction) {
+        const ClientHandle client, const int body_uid, double friction) {
     CommandHandle cmd_handle = b3InitChangeDynamicsInfo(client);
     b3ChangeDynamicsInfoSetRollingFriction(
             cmd_handle, body_uid, bullet_link_id_, friction);
@@ -131,9 +131,9 @@ void BulletObject::change_rolling_friction(
 void BulletObject::apply_force(
         const ClientHandle client,
         const int body_uid,
-        const xScalar x,
-        const xScalar y,
-        const xScalar z,
+        const double x,
+        const double y,
+        const double z,
         const int flags) {
     printf("BulletObject::apply_force not implemented!\n");
     assert(false);
@@ -142,14 +142,14 @@ void BulletObject::apply_force(
 void BulletObject::apply_torque(
         const ClientHandle client,
         const int body_uid,
-        const xScalar x,
-        const xScalar y,
-        const xScalar z,
+        const double x,
+        const double y,
+        const double z,
         const int flags) {
     CommandHandle cmd_handle = 
             b3ApplyExternalForceCommandInit(client);
 
-    xScalar torque_temp[3];
+    double torque_temp[3];
     torque_temp[0] = x;
     torque_temp[1] = y;
     torque_temp[2] = z;

@@ -12,7 +12,7 @@ BulletWorld::~BulletWorld() {
 	b3DisconnectSharedMemory(client_);
 }
 
-void BulletWorld::init(const xScalar gravity, const xScalar timestep) {
+void BulletWorld::init(const double gravity, const double timestep) {
 	client_ = b3ConnectPhysicsDirect();
 
 	bullet_gravity_ = gravity;
@@ -49,8 +49,8 @@ void BulletWorld::cast_rays(const std::vector<Ray>& rays,
 	CommandHandle cmd_handle = b3CreateRaycastBatchCommandInit(client_);
     b3RaycastBatchSetNumThreads(cmd_handle, threads);
 
-    xScalar ray_from_position_temp[rays.size() * 3];
-    xScalar ray_to_position_temp[rays.size() * 3];
+    double ray_from_position_temp[rays.size() * 3];
+    double ray_to_position_temp[rays.size() * 3];
     for (int i = 0; i < rays.size(); ++i)
     {
         ray_from_position_temp[3 * i + 0] = rays[i].from.x;

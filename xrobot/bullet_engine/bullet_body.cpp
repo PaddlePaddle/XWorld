@@ -8,7 +8,7 @@ bool BulletBody::load_urdf(
         const std::string& filename,
         const glm::vec3& pos,
         const glm::vec4& quat,
-        const xScalar scale,
+        const double scale,
         const bool fixed_base,
         const bool self_collision,
         const bool use_multibody,
@@ -153,7 +153,7 @@ bool BulletBody::load_obj(
         const glm::vec3& pos,
         const glm::vec4& quat,
         const glm::vec3& scale,
-        const xScalar mass,
+        const double mass,
         const bool concave) {
     CommandHandle cmd_handle = b3LoadObjCommandInit(client, filename.c_str());
 
@@ -209,9 +209,9 @@ void BulletBody::update_joints(const ClientHandle client) {
 }
 
 void BulletBody::query_pose(const ClientHandle client,
-                            const xScalar** room_iner_frame,
-                            const xScalar** q,
-                            const xScalar** q_dot) {
+                            const double** room_iner_frame,
+                            const double** q,
+                            const double** q_dot) {
     CommandHandle cmd_handle =
             b3RequestActualStateCommandInit(client, body_data_.body_uid);
     StatusHandle status_handle = 
@@ -242,13 +242,13 @@ void BulletBody::query_link(const ClientHandle client,
 }
 
 void BulletBody::move(
-        const xScalar move,
-        const xScalar rot,
+        const double move,
+        const double rot,
         BulletObject* root_part,
-        xScalar* p,
-        xScalar* q,
-        xScalar* prev_q,
-        xScalar* prev_o) {
+        double* p,
+        double* q,
+        double* prev_q,
+        double* prev_o) {
 
     btVector3 pos;
     btQuaternion quat;
@@ -346,15 +346,15 @@ void BulletBody::inverse_kinematics(
         const int end_index,
         const glm::vec3& target_pos,
         const glm::vec4& target_quat,
-        const xScalar* joint_damping,
-        xScalar* output_joint_pos,
+        const double* joint_damping,
+        double* output_joint_pos,
         int& num_poses) {
     const int solver = 0;
     const int num_joints = b3GetNumJoints(client, id);
     const int dof = b3ComputeDofCount(client, id);
 
-    xScalar p[3] = {target_pos[0], target_pos[1], target_pos[2]};
-    xScalar q[4] =
+    double p[3] = {target_pos[0], target_pos[1], target_pos[2]};
+    double q[4] =
             {target_quat[0], target_quat[1], target_quat[2], target_quat[3]};
 
     CommandHandle cmd_handle =

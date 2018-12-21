@@ -48,8 +48,8 @@ void BulletJoint::get_motor_state(const ClientHandle client,
 void BulletJoint::reset_state(
         const ClientHandle client,
         const int body_uid,
-        const xScalar pos,
-        const xScalar vel) {
+        const double pos,
+        const double vel) {
     CommandHandle cmd_handle = b3CreatePoseCommandInit(client, body_uid);
     b3CreatePoseCommandSetJointPosition(
             client, cmd_handle, bullet_joint_id_, pos);
@@ -60,7 +60,7 @@ void BulletJoint::reset_state(
 
 
 void BulletJoint::set_motor_control_torque(
-        const ClientHandle client, const int body_uid, const xScalar torque) {
+        const ClientHandle client, const int body_uid, const double torque) {
     CommandHandle cmd_handle =
             b3JointControlCommandInit2(client, body_uid, kTorque);
     b3JointControlSetDesiredForceTorque(cmd_handle, bullet_u_index_, torque);
@@ -70,9 +70,9 @@ void BulletJoint::set_motor_control_torque(
 void BulletJoint::set_motor_control_velocity(
         const ClientHandle client,
         const int body_uid,
-        const xScalar speed,
-        const xScalar k_d,
-        const xScalar max_force) {
+        const double speed,
+        const double k_d,
+        const double max_force) {
     CommandHandle cmd_handle = b3JointControlCommandInit2(
             client,
             body_uid,
@@ -86,10 +86,10 @@ void BulletJoint::set_motor_control_velocity(
 void BulletJoint::set_motor_control_position(
         const ClientHandle client,
         const int body_uid,
-        const xScalar target,
-        const xScalar k_p,
-        const xScalar k_d,
-        const xScalar max_force) {
+        const double target,
+        const double k_p,
+        const double k_d,
+        const double max_force) {
     CommandHandle cmd_handle = b3JointControlCommandInit2(
             client,
             body_uid,

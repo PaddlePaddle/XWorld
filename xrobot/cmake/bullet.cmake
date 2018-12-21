@@ -1,5 +1,11 @@
 message("External project - bullet")
 
+# TODO: Somehow without the following, bullet cannot correctly compile
+# with correct preprocessor macros
+if(USE_DOUBLE_PRECISION)
+  add_definitions(-DBT_USE_DOUBLE_PRECISION)
+endif()
+
 ## bullet physics
 ExternalProject_Add(bullet
   PREFIX ${EXTERNAL_PROJECT_PREFIX}
@@ -11,7 +17,7 @@ ExternalProject_Add(bullet
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
     -DBUILD_SHARED_LIBS=ON
-    -DUSE_DOUBLE_PRECISION=1
+    -DUSE_DOUBLE_PRECISION=${USE_DOUBLE_PRECISION}
     -DBULLET2_MULTITHREADING=ON
     -DBUILD_CPU_DEMOS=OFF
     -DBUILD_BULLET2_DEMOS=OFF
