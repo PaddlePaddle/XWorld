@@ -420,7 +420,7 @@ void RobotBase::Move(const xScalar translate, const xScalar rotate) {
 
     bool step = false;
     std::vector<ContactPoint> contact_points;
-    bullet_world->GetRootContactPoints(
+    bullet_world->GetContactPoints(
             shared_from_this(), root_part_, contact_points);
     for (auto& cp : contact_points) {
         glm::vec3 current_pos(pos[0], 0, pos[2]); // projected onto x-z plane
@@ -1552,7 +1552,7 @@ void World::UpdateAttachObjects(RobotBaseSPtr robot) {
 
             bool contact = false;
             std::vector<ContactPoint> contact_points;
-            GetRootContactPoints(attach_object_sptr, 
+            GetContactPoints(attach_object_sptr, 
                     attach_object_sptr->root_part_, contact_points);
 
             for (int i = 0; i < contact_points.size(); ++i) {
@@ -1781,13 +1781,14 @@ void World::GetRootClosestPoints(
     }        
 }
 
-void World::GetRootContactPoints(
+void World::GetContactPoints(
     std::weak_ptr<RobotBase> robot_in,
     std::weak_ptr<Object> part_in,
-    std::vector<ContactPoint>& contact_points)
+    std::vector<ContactPoint>& contact_points,
+    const int link)
 {
     if(auto robot = robot_in.lock()) {
-        robot->get_contact_points(client_, contact_points);
+        robot->get_contact_points(client_, contact_points, link);
     } 
 }
 

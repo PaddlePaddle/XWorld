@@ -14,6 +14,7 @@ Visualization::Visualization(const int width,
 												num_rays_(0),
 												aabb_vao_(0),
 												batch_ray_vao_(0),
+												pc_vao_(0),
 												first_mouse_(true),
 												lidar_(false) {
 
@@ -53,6 +54,41 @@ void Visualization::InitShaders() {
 	shaders_[kLambert]  = Shader(pwd+"/shaders/lambert.vs",
 							     pwd+"/shaders/lambert.fs");
 }
+
+// void Visualization::DrawPointCloud(const GLuint tex, Camera* camera, 
+// 		const int size) {
+// 	if(pc_vao_ == 0) {
+
+// 		std::vector<glm::vec3> pc(size);
+
+// 		glGenVertexArrays(1, &pc_vao_);
+// 		glGenBuffers(1, &pc_vbo_);
+// 		glBindBuffer(GL_ARRAY_BUFFER, pc_vbo_);
+// 		glBufferData(GL_ARRAY_BUFFER, sizeof(pc.data()), pc.data(), GL_STATIC_DRAW);
+// 		glBindVertexArray(pc_vao_);
+// 		glEnableVertexAttribArray(0);
+// 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+// 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+// 		glBindVertexArray(0);
+// 	}
+
+// 	glm::mat4 projection = free_camera_.GetProjectionMatrix();
+// 	glm::mat4 view = free_camera_.GetViewMatrix();
+// 	glm::vec3 eye  = camera->position_;
+// 	glm::mat4 inv_view_cam = glm::inverse(camera->GetViewMatrix());
+
+// 	auto pointcloud = shaders_[kPointCloud];
+
+// 	glBindVertexArray(pc_vao_);
+// 	glEnable(GL_PROGRAM_POINT_SIZE);
+// 	glPointSize(2.0f);
+// 	pointcloud.use();
+// 	pointcloud.setMat4("inv_cam_view", inv_view_cam);
+// 	pointcloud.setMat4("view", view);
+// 	pointcloud.setMat4("projection", projection);
+// 	glDrawArrays(GL_POINTS, 0, size);
+// 	glBindVertexArray(0);
+// }
 
 void Visualization::DrawRootAABB(RenderWorld* world, const Shader& shader) {
 	for (size_t i = 0; i < world->size(); i++) {
@@ -158,7 +194,7 @@ void Visualization::InitDrawBatchRays(const int rays) {
 	}
 }
 
-void Visualization::Visualize(RenderWorld* world) {
+void Visualization::Visualize(RenderWorld* world, Camera* camera) {
 
 	GetDeltaTime();
 	ProcessMouse();

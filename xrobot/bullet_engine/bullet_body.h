@@ -126,7 +126,8 @@ public:
             std::vector<ContactPoint>& points);
 
     void get_contact_points(const ClientHandle client, 
-            std::vector<ContactPoint>& points);
+            std::vector<ContactPoint>& points,
+            const int link_id  = -1);
 
 
 public:

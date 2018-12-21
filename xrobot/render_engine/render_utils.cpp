@@ -29,8 +29,9 @@ GLuint LoadCubemap(const std::vector<std::string>& faces) {
                          data);
             stbi_image_free(data);
         } else {
-            std::cout << "Cubemap texture failed!" << faces[i] << std::endl;
+            std::cout << "[Renderer] Failed to load cubemap." << std::endl;
             stbi_image_free(data);
+            exit(-1);
         }
     }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -64,8 +65,9 @@ unsigned int HDRTextureFromFile(const char* path){
     }
     else
     {
-        std::cout << "Failed to load HDR image." << std::endl;
+        std::cout << "[Renderer] Failed to load HDR image." << std::endl;
         stbi_image_free(data);
+        exit(-1);
     }
     stbi_set_flip_vertically_on_load(false);
 
@@ -112,17 +114,18 @@ unsigned int TextureFromFile(const std::string &path, const int fail) {
     } else {
 
         if(fail == 1) {
-            std::cout << "Data corrupted!" << std::endl;
-            exit(0);
+            std::cout << "[Renderer] Texture data corrupted!" << std::endl;
+            std::cout << "[Renderer] Cannot load error.png!" << std::endl;
+            exit(-1);
         }
 
-        std::cout << "Texture failed to load at path: " << path << std::endl;
+        std::cout << "[Renderer] Failed to load texture at path: " << path << std::endl;
         stbi_image_free(data);
 
         std::size_t ext = path.find("data");
         std::string icon_path = path.substr(0, ext) + "data/error.png";
 
-        std::cout << "Load default texture from: " << icon_path << std::endl;
+        std::cout << "[Renderer] Load default texture from: " << icon_path << std::endl;
 
         return TextureFromFile(icon_path, 1);
     }
@@ -175,10 +178,9 @@ unsigned int TextureFromFile(
 
         stbi_image_free(data);
     } else {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
+        std::cout << "[Renderer] Failid to load texture at path: " << path << std::endl;
         stbi_image_free(data);
-
-        return TextureFromFile("../data/error.png");
+        exit(-1);
     }
 
     return textureID;

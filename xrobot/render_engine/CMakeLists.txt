@@ -20,6 +20,7 @@ add_library(render_engine OBJECT
     render_world.cpp
     texture3d.cpp
     texture2d.cpp
+    capture.cpp
     model.cpp)
 
 add_dependencies(render_engine assimp glm glfw utils) 

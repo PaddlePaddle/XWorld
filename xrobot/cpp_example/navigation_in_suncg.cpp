@@ -15,10 +15,10 @@ namespace xrobot
 								        cam_pitch_(0) {
 		// Initialize Inventory and Lidar
 		inventory_= std::make_shared<Inventory>(1);
-		lidar_ = std::make_shared<Lidar>(map->world_.get(), 180, 4.0f);
+		lidar_ = std::make_shared<Lidar>(map->world_.get(), 90, 4.0f);
 
 		// Init Visualization for Lidar
-		renderer->InitDrawBatchRays(180);
+		renderer->InitDrawBatchRays(90);
 	}
 
 	Task_SUNCG::~Task_SUNCG() {}

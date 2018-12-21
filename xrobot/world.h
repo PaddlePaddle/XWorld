@@ -455,10 +455,11 @@ public:
             std::weak_ptr<RobotBase> robot_in, 
             std::weak_ptr<Object> part_in,
             std::vector<ContactPoint>& contact_points);
-    void GetRootContactPoints(
+    void GetContactPoints(
             std::weak_ptr<RobotBase> robot_in, 
             std::weak_ptr<Object> part_in,
-            std::vector<ContactPoint>& contact_points);
+            std::vector<ContactPoint>& contact_points,
+            const int link = -2);
 
     void AddObjectWithLabel(const std::string& label, const int id);
     void RemoveObjectWithLabel(const int id);

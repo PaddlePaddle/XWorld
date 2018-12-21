@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     assert(argc < 3);
 
     render_engine::Profile profile = render_engine::kVeryLowQualityVisualize;
-    if(argc == 2 && atoi(argv[1]) < 4) 
+    if(argc == 2 && atoi(argv[1]) < 5) 
         profile = render_engine::profiles[atoi(argv[1])];
 
     profile.shadow = false;

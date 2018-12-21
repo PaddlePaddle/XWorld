@@ -1592,7 +1592,7 @@ bool Playground::QueryContact(Thing& object)
         auto object_root_ptr = object_sptr->root_part_;
 
         std::vector<ContactPoint> contact_points;
-        scene_->world_->GetRootContactPoints(object_sptr, object_root_ptr, contact_points);
+        scene_->world_->GetContactPoints(object_sptr, object_root_ptr, contact_points);
 
         if(contact_points.size())
             return true;
