@@ -265,7 +265,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Floor",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f
+							!isMirrored
 						);
 
 						if(auto object_sptr = object.lock())
@@ -286,7 +286,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Floor",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f
+							!isMirrored
 						);
 
 						if(auto object_sptr = object.lock())
@@ -306,7 +306,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Wall",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f,
+							!isMirrored,
 							concave
 						);
 
@@ -331,7 +331,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Ceiling",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f,
+							!isMirrored,
 							concave
 						);
 
@@ -368,7 +368,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						all_labels_[modelId],
 						false,
 						mass,
-						isMirrored == 1 ? -1.0f : 1.0f,
+						!isMirrored,
 						concave
 					);
 

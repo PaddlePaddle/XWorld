@@ -41,7 +41,7 @@ const struct Profile kNormalQualityNS = {
         true, false, true, true, false, true, false, false};
 
 const struct Profile kNormalQuality = {
-        true, true, true, false, false, true, false, false};
+        true, true, true, true, false, true, false, false};
 
 const struct Profile kHighQuality = {
         true, true, true, false, true, true, false, false};

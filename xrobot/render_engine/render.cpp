@@ -577,7 +577,11 @@ void Render::InitVisualization() {
 
 void Render::RenderVisualization(RenderWorld* world, Camera *camera) {
 	if(profile_.visualize) {
-		visualize_->Visualize(world, camera, capture_->GetRawCubeMap());
+		GLuint lidar_capture = 0;
+		if(profile_.multirays && capture_) { 
+			lidar_capture = capture_->GetRawCubeMap();
+		}		
+		visualize_->Visualize(world, camera, lidar_capture);
 	}
 }
 

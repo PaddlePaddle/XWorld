@@ -112,7 +112,7 @@ class XWorld3DEnv(object):
 		self.env = Playground(640, \
 							  480, \
 							  HEADLESS, \
-							  QUALITY_NORMAL, \
+							  3, \
 							  0)
 
 		self.task_group = TaskGroup("TaskGroup")

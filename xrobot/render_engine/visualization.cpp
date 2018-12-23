@@ -265,11 +265,13 @@ void Visualization::Visualize(RenderWorld* world, Camera* camera,
 
 	line.setVec3("color", glm::vec3(0,0,1));
 	DrawWorldAABB(world, line);
-
-	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 0);
-	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 4);
-	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 5);
-	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 1);
+	
+	if(tex > 0) {
+		DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 0);
+		DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 4);
+		DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 5);
+		DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 1);
+	}
 
 	if(lidar_) {
 		glDisable(GL_LINE_SMOOTH);

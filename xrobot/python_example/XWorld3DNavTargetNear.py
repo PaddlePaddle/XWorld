@@ -38,7 +38,6 @@ class XWorld3DNavTargetNear(XWorld3DTask):
 		self.target = "cat"
 		self.target_object = self.env.QueryObjectByLabel(self.target)[0]
 		self.near_objects = self.env.QueryObjectNearObject(self.target_object, True, 4.5)
-		print self.near_objects
 
 		self._bind("S -> start")
 		self._bind("G -> '" + self.target + "'")

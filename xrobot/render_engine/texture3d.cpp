@@ -7,7 +7,7 @@ void Texture3D::active(const int shader,
 		const std::string sampler, const int unit) {
 	glActiveTexture(GL_TEXTURE0 + unit);
 	glBindTexture(GL_TEXTURE_3D, id_);
-	glUniform1f(glGetUniformLocation(shader, sampler.c_str()), unit);
+	glUniform1i(glGetUniformLocation(shader, sampler.c_str()), unit);
 }
 
 void Texture3D::clear() {

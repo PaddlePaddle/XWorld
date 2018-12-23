@@ -797,16 +797,6 @@ BOOST_PYTHON_MODULE(libxrobot)
 	.def("GetCameraFront", &Playground::GetCameraFront)
 	.def("GetCameraUp", &Playground::GetCameraUp)
 	.def("GetStatus", &Playground::GetStatus)
-	// .def("GetKeyPressUp", &Playground::GetKeyPressUp)
-	// .def("GetKeyPressDown", &Playground::GetKeyPressDown)
-	// .def("GetKeyPressRight", &Playground::GetKeyPressRight)
-	// .def("GetKeyPressLeft", &Playground::GetKeyPressLeft)
-	// .def("GetKeyPress1", &Playground::GetKeyPress1)
-	// .def("GetKeyPress2", &Playground::GetKeyPress2)
-	// .def("GetKeyPress3", &Playground::GetKeyPress3)
-	// .def("GetKeyPress4", &Playground::GetKeyPress4)
-	// .def("GetKeyPressKP9", &Playground::GetKeyPressKP9)
-	// .def("GetKeyPressKP6", &Playground::GetKeyPressKP6)
 	;
 
 	scope().attr("ENABLE_INTERACTION")  = 11;
@@ -824,10 +814,17 @@ BOOST_PYTHON_MODULE(libxrobot)
 	scope().attr("METACLASS_WALL")      = std::string("Wall");
 	scope().attr("METACLASS_FLOOR")     = std::string("Floor");
 	scope().attr("METACLASS_CEILING")   = std::string("Ceiling");
-	scope().attr("QUALITY_VERY_LOW")    = 0;
-	scope().attr("QUALITY_LOW")         = 1;
-	scope().attr("QUALITY_NORMAL")      = 3;
-	scope().attr("QUALITY_HIGH")        = 4;
+	scope().attr("QUALITY_VERY_LOW")         = 0;
+	scope().attr("QUALITY_LOW")              = 1;
+	scope().attr("QUALITY_NORMAL_NO_SHADOW") = 2;
+	scope().attr("QUALITY_NORMAL")           = 3;
+	scope().attr("QUALITY_HIGH")             = 4;
+	scope().attr("FLAT")                     = 0;
+	scope().attr("BLINN")                    = 1;
+	scope().attr("BLINN_AO_AA")              = 2;
+	scope().attr("BLINN_SHADOW_AO_R_AA")     = 3;
+	scope().attr("VCT_SHADOW_AO_R_AA")       = 4;
+	scope().attr("GPU0")                     = 0;
 }
 
 #endif // PLAYGROUND_PY_H_
