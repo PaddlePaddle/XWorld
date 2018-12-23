@@ -29,7 +29,7 @@ struct Profile {
     bool multirays;
 };
 
-constexpr int kLidarCaptureRes = 256;
+constexpr int kLidarCaptureRes = 64;
 
 const struct Profile kVeryLowQuality = {
         false, false, false, false, false, false, false, false};

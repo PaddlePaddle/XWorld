@@ -35,12 +35,13 @@ public:
 				  GLContext* ctx);
 	~Visualization();
 
-	void Visualize(RenderWorld* world, Camera* camera);
+	void Visualize(RenderWorld* world, Camera* camera, GLuint tex);
 	GLuint GetTexture() const { return visualization_->texture_id(0); }
 
 	void InitShaders();
 	void RenderAABB();
-	void DrawPointCloud(const GLuint tex, Camera* camera, const int size) =delete;
+	void DrawPointCloud(const GLuint tex, Camera* camera, const int size,
+			const int dir);
 	void DrawRootAABB(RenderWorld* world, const Shader& shader);
 	void DrawSubTiles(RenderWorld* world, const Shader& shader);
 	void DrawWorldAABB(RenderWorld* world, const Shader& shader);

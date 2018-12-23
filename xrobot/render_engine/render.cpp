@@ -577,7 +577,7 @@ void Render::InitVisualization() {
 
 void Render::RenderVisualization(RenderWorld* world, Camera *camera) {
 	if(profile_.visualize) {
-		visualize_->Visualize(world, camera);
+		visualize_->Visualize(world, camera, capture_->GetRawCubeMap());
 	}
 }
 

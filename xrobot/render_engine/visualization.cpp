@@ -53,42 +53,66 @@ void Visualization::InitShaders() {
 
 	shaders_[kLambert]  = Shader(pwd+"/shaders/lambert.vs",
 							     pwd+"/shaders/lambert.fs");
+
+	shaders_[kPointCloud]  = Shader(pwd+"/shaders/point.vs",
+							        pwd+"/shaders/point.fs");
 }
 
-// void Visualization::DrawPointCloud(const GLuint tex, Camera* camera, 
-// 		const int size) {
-// 	if(pc_vao_ == 0) {
+void Visualization::DrawPointCloud(const GLuint tex, Camera* camera, 
+		const int size, const int dir) {
+	if(pc_vao_ == 0) {
 
-// 		std::vector<glm::vec3> pc(size);
+		std::vector<glm::vec3> pc(size);
 
-// 		glGenVertexArrays(1, &pc_vao_);
-// 		glGenBuffers(1, &pc_vbo_);
-// 		glBindBuffer(GL_ARRAY_BUFFER, pc_vbo_);
-// 		glBufferData(GL_ARRAY_BUFFER, sizeof(pc.data()), pc.data(), GL_STATIC_DRAW);
-// 		glBindVertexArray(pc_vao_);
-// 		glEnableVertexAttribArray(0);
-// 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-// 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-// 		glBindVertexArray(0);
-// 	}
+		glGenVertexArrays(1, &pc_vao_);
+		glGenBuffers(1, &pc_vbo_);
+		glBindBuffer(GL_ARRAY_BUFFER, pc_vbo_);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(pc.data()), pc.data(), GL_STATIC_DRAW);
+		glBindVertexArray(pc_vao_);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
 
-// 	glm::mat4 projection = free_camera_.GetProjectionMatrix();
-// 	glm::mat4 view = free_camera_.GetViewMatrix();
-// 	glm::vec3 eye  = camera->position_;
-// 	glm::mat4 inv_view_cam = glm::inverse(camera->GetViewMatrix());
+	glm::mat4 projection = free_camera_.GetProjectionMatrix();
+	glm::mat4 view = free_camera_.GetViewMatrix();
+	glm::vec3 eye  = glm::vec3(0);
+	glm::vec3 front = glm::vec3(1,0,0);
+	glm::vec3 up = glm::vec3(0,1,0);
 
-// 	auto pointcloud = shaders_[kPointCloud];
+	glm::mat4 capture_projection = glm::perspective(glm::radians(90.0f),
+			1.0f, 0.02f, 20.0f);
 
-// 	glBindVertexArray(pc_vao_);
-// 	glEnable(GL_PROGRAM_POINT_SIZE);
-// 	glPointSize(2.0f);
-// 	pointcloud.use();
-// 	pointcloud.setMat4("inv_cam_view", inv_view_cam);
-// 	pointcloud.setMat4("view", view);
-// 	pointcloud.setMat4("projection", projection);
-// 	glDrawArrays(GL_POINTS, 0, size);
-// 	glBindVertexArray(0);
-// }
+	front = camera->front_;
+	up = camera->up_;
+
+	glm::mat4 capture_views[] = 
+	{
+		glm::lookAt(eye,  front, glm::vec3(0.0f, 1.0f,  0.0f)),
+	  	glm::lookAt(eye, -front, glm::vec3(0.0f, 1.0f,  0.0f)),
+	  	glm::mat4(1),
+	  	glm::mat4(1),
+	  	glm::lookAt(eye, -cross(front, up), glm::vec3(0.0f, 1.0f,  0.0f)),
+	  	glm::lookAt(eye, cross(front, up), glm::vec3(0.0f, 1.0f,  0.0f)),
+	};
+
+	auto pointcloud = shaders_[kPointCloud];
+
+	glBindVertexArray(pc_vao_);
+	glEnable(GL_PROGRAM_POINT_SIZE);
+	glPointSize(1.5f);
+	pointcloud.use();
+	pointcloud.setInt("size", kLidarCaptureRes);
+	pointcloud.setInt("dir", dir);
+	pointcloud.setVec3("camera_worldpos", camera->position_);
+	pointcloud.setMat4("camera_direction", capture_views[dir]);
+	pointcloud.setMat4("inv_cubemap_projection", glm::inverse(capture_projection));
+	pointcloud.setMat4("view", view);
+	pointcloud.setMat4("projection", projection);
+	glDrawArrays(GL_POINTS, 0, size);
+	glBindVertexArray(0);
+}
 
 void Visualization::DrawRootAABB(RenderWorld* world, const Shader& shader) {
 	for (size_t i = 0; i < world->size(); i++) {
@@ -194,7 +218,8 @@ void Visualization::InitDrawBatchRays(const int rays) {
 	}
 }
 
-void Visualization::Visualize(RenderWorld* world, Camera* camera) {
+void Visualization::Visualize(RenderWorld* world, Camera* camera, 
+		GLuint tex) {
 
 	GetDeltaTime();
 	ProcessMouse();
@@ -235,11 +260,16 @@ void Visualization::Visualize(RenderWorld* world, Camera* camera) {
 	line.setVec3("color", glm::vec3(1,0,0));
 	DrawRootAABB(world, line);
 
-	line.setVec3("color", glm::vec3(0,1,0));
-	DrawSubTiles(world, line);
+	// line.setVec3("color", glm::vec3(0,1,0));
+	// DrawSubTiles(world, line);
 
 	line.setVec3("color", glm::vec3(0,0,1));
 	DrawWorldAABB(world, line);
+
+	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 0);
+	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 4);
+	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 5);
+	DrawPointCloud(tex, camera, kLidarCaptureRes * kLidarCaptureRes, 1);
 
 	if(lidar_) {
 		glDisable(GL_LINE_SMOOTH);
