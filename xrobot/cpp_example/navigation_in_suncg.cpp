@@ -86,7 +86,6 @@ namespace xrobot
 
 	    scene_->world_->BulletStep();
 	    renderer_->BakeGI();
-
 	    return "NavTarget";
 	}
 
@@ -225,16 +224,9 @@ namespace xrobot
             }
         }
 
-        if(ctx_->GetKeyPressSpace()) {
-        	ctx_->PollEvent();
-        	return "idle";
-        }
-
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   
         renderer_->StepRender(scene_->world_.get());
-        ctx_->SwapBuffer();
-        ctx_->PollEvent();
 
         return "NavTarget";
 	}

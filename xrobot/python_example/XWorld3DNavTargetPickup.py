@@ -112,12 +112,7 @@ class XWorld3DNavTargetPickup(XWorld3DTask):
 
 class XWorld3DEnv(object):
 	def __init__(self):
-		self.env = Playground(640, \
-							  480, \
-							  HEADLESS, \
-							  QUALITY_NORMAL, \
-							  0)
-
+		self.env = Playground(640, 480, HEADLESS, NORMAL, GPU0)
 		self.task_group = TaskGroup("TaskGroup")
 		self.task_group.add_task("NavTargetPickup", XWorld3DNavTargetPickup(self.env))
 		self.first = True

@@ -12,7 +12,7 @@ public:
 
 	virtual ~BulletWorld();
 
-	void init(const xScalar gravity = 9.8f, const xScalar timestep = 0.005f);
+	void init(const double gravity = 9.8f, const double timestep = 0.005f);
 
 	void reset();
 
@@ -27,9 +27,9 @@ public:
 public:
 	ClientHandle client_;
 
-	xScalar bullet_gravity_;
-	xScalar bullet_timestep_;
-    xScalar bullet_ts_;
+	double bullet_gravity_;
+	double bullet_timestep_;
+    double bullet_ts_;
 };
 
 }} // namespace xrobot::bullet_engine

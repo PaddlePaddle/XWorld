@@ -11,9 +11,9 @@
 #include <iomanip>
 #include <memory>
 
-#include "task.h"
+#include "game_engine/task.h"
+#include "game_engine/state_machine.h"
 #include "navigation_in_maze.h"
-#include "state_machine.h"
 
 using namespace xrobot;
 

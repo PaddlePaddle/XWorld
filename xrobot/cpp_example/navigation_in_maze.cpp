@@ -88,12 +88,10 @@ namespace xrobot
 		// Initialize the Scene
 	    scene_->world_->BulletStep();
 	    renderer_->BakeGI();
-
 	    return "NavTarget";
 	}
 
 	std::string Task_NavToObject::NavTarget() {
-
 		if(auto agent_sptr = agent_.lock()) {
 			if(ctx_->GetKeyPressUp())
 	            agent_sptr->MoveForward(2);
@@ -165,7 +163,6 @@ namespace xrobot
                         batch_raycast_result[i].pos);
             }
         }
-
 
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   

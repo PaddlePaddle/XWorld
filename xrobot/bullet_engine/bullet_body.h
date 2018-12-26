@@ -13,7 +13,7 @@ struct BulletBodyData {
 	btVector3 scale = {1.0f, 1.0f, 1.0f};
     bool fixed = false;
     bool concave = false;
-    xScalar mass = 0.0f; // Only for .Obj
+    double mass = 0.0f; // Only for .Obj
     std::string label = "unlabeled";
     bool pickable = false;
     std::string urdf_name = "";
@@ -41,7 +41,7 @@ public:
             const std::string& filename,
             const glm::vec3& pos,
             const glm::vec4& quat,
-            const xScalar scale,
+            const double scale,
             const bool fixed_base,
             const bool self_collision,
             const bool use_multibody,
@@ -73,7 +73,7 @@ public:
             const glm::vec3& pos,
             const glm::vec4& quat,
             const glm::vec3& scale,
-            const xScalar mass,
+            const double mass,
             const bool concave);
 
     void remove_from_bullet(const ClientHandle client, const int id);
@@ -81,9 +81,9 @@ public:
     void update_joints(const ClientHandle client);
 
     void query_pose(const ClientHandle client,
-                    const xScalar** room_iner_frame,
-                    const xScalar** q,
-                    const xScalar** q_dot);
+                    const double** room_iner_frame,
+                    const double** q,
+                    const double** q_dot);
 
     void query_link(const ClientHandle client,
                     const int id,
@@ -92,13 +92,13 @@ public:
     void reset_move() { first_move_ = true; }
 
     void move(
-            const xScalar move,
-            const xScalar rot,
+            const double move,
+            const double rot,
             BulletObject* root_part,
-            xScalar* p,
-            xScalar* q,
-            xScalar* prev_q,
-            xScalar* prev_o);
+            double* p,
+            double* q,
+            double* prev_q,
+            double* prev_o);
 
     void attach(BulletObject* root_part, const BulletObject* target_root,
             const float pitch, const glm::vec3& offset);
@@ -118,8 +118,8 @@ public:
             const int end_index,
             const glm::vec3& target_pos,
             const glm::vec4& target_quat,
-            const xScalar* joint_damping,
-            xScalar* output_joint_pos,
+            const double* joint_damping,
+            double* output_joint_pos,
             int& num_poses);
 
     void get_closest_points(const ClientHandle client, 
@@ -135,7 +135,7 @@ public:
     b3VisualShapeInformation visual_shape_info_;
     btQuaternion orientation_;
     btQuaternion base_orientation_;
-    xScalar angle_;
+    double angle_;
     bool first_move_;
 };
 

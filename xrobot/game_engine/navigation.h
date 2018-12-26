@@ -12,9 +12,9 @@
 #include "glm/glm.hpp"
 #include "bullet/LinearMath/btTransform.h"
 
-#include "gl_context.h"
-#include "shader.h"
-#include "render_world.h"
+#include "render_engine/gl_context.h"
+#include "render_engine/shader.h"
+#include "render_engine/render_world.h"
 
 namespace xrobot {
 	

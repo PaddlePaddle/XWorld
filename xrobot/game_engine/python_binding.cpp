@@ -1066,7 +1066,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 
             // Update Event
             current_event_.append("Attach");
-
             renderer_->BakeGI();
         }
         else if(action == 7) {
@@ -1074,7 +1073,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
 
             // Update Event
             current_event_.append("Detach");
-
             renderer_->BakeGI();
         }
         else if(action == 8) {
@@ -1083,7 +1081,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             // Update Event
             current_event_.append("Grasp");
             current_event_.append(obj);
-
             renderer_->BakeGI();
         }
         else if(action == 9) {
@@ -1092,7 +1089,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             // Update Event
             current_event_.append("PutDown");
             current_event_.append(obj);
-
             renderer_->BakeGI();
         }
         else if(action == 10) {
@@ -1105,7 +1101,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             // Update Event
             current_event_.append("Rotate");
             current_event_.append(obj);
-
             renderer_->BakeGI();
         }
         else if(action == 11) {
@@ -1135,7 +1130,6 @@ boost::python::dict Playground::UpdateSimulationWithAction(const int action)
             current_event_.append("Action");
             current_event_.append(action);
             current_event_.append(success ? "S" : "F");
-
             renderer_->BakeGI();
         }
     } else if(inventory_opened_) {

@@ -814,17 +814,19 @@ BOOST_PYTHON_MODULE(libxrobot)
 	scope().attr("METACLASS_WALL")      = std::string("Wall");
 	scope().attr("METACLASS_FLOOR")     = std::string("Floor");
 	scope().attr("METACLASS_CEILING")   = std::string("Ceiling");
-	scope().attr("QUALITY_VERY_LOW")         = 0;
-	scope().attr("QUALITY_LOW")              = 1;
-	scope().attr("QUALITY_NORMAL_NO_SHADOW") = 2;
-	scope().attr("QUALITY_NORMAL")           = 3;
-	scope().attr("QUALITY_HIGH")             = 4;
+	scope().attr("VERY_LOW")                 = 0;
+	scope().attr("LOW")                      = 1;
+	scope().attr("NORMAL_NO_SHADOW")         = 2;
+	scope().attr("NORMAL")                   = 3;
+	scope().attr("HIGH")                     = 4;
 	scope().attr("FLAT")                     = 0;
 	scope().attr("BLINN")                    = 1;
 	scope().attr("BLINN_AO_AA")              = 2;
 	scope().attr("BLINN_SHADOW_AO_R_AA")     = 3;
 	scope().attr("VCT_SHADOW_AO_R_AA")       = 4;
 	scope().attr("GPU0")                     = 0;
+	scope().attr("GPU1")                     = 1;
+	scope().attr("GPU2")                     = 2;
+	scope().attr("GPU3")                     = 3;
 }
-
 #endif // PLAYGROUND_PY_H_

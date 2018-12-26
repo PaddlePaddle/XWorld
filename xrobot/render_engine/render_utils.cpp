@@ -114,12 +114,14 @@ unsigned int TextureFromFile(const std::string &path, const int fail) {
     } else {
 
         if(fail == 1) {
+
             std::cout << "[Renderer] Texture data corrupted!" << std::endl;
             std::cout << "[Renderer] Cannot load error.png!" << std::endl;
             exit(-1);
         }
 
         std::cout << "[Renderer] Failed to load texture at path: " << path << std::endl;
+
         stbi_image_free(data);
 
         std::size_t ext = path.find("data");

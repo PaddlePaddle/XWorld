@@ -19,8 +19,6 @@ class Inventory;
 class RobotBase;
 class World;
 
-typedef btScalar xScalar;
-
 struct ContactPoint {
     glm::vec3 contact_normal;
     glm::vec3 contact_position_a;
@@ -125,14 +123,10 @@ void set_pose(
         const T* pos,
         const T* quat = nullptr);
 
-template <typename T>
-void set_vel(
-        const ClientHandle client,
-        const int id,
-        const T* vel);
-
 void rotate(const ClientHandle client, const int id, const glm::vec3 angle);
 
+void set_velocity(const ClientHandle client, const int id, const float* v);
+void set_velocity(const ClientHandle client, const int id, const double* v);
 // http://www.opengl-tutorial.org
 // Rotation
 glm::quat RotationBetweenVectors(const glm::vec3 start, const glm::vec3 dest);
@@ -140,8 +134,8 @@ glm::quat RotationBetweenVectors(const glm::vec3 start, const glm::vec3 dest);
 // ray-box-intersection (with direction)
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/
 bool RayAABBIntersect(const Ray& r, 
-                      const glm::vec3 aabb_min,
-                      const glm::vec3 aabb_max);
+                      const glm::vec3& aabb_min,
+                      const glm::vec3& aabb_max);
 
 }} // namespace xrobot::bullet_engine
 

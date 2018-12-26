@@ -25,5 +25,3 @@ Examples
 # Benchmark 
 
 - `Benchmark.sh`: Benchmark for SUNCG
-
-

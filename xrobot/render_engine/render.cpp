@@ -686,5 +686,3 @@ void Render::RenderQuad() {
 }
 
 }}
-
-								   

@@ -63,7 +63,6 @@ private:
     GLContext* ctx_;
     int width_, height_;
     std::vector<Shader> shaders_;
-
     GLuint pc_vao_, pc_vbo_;
 
     bool lidar_;

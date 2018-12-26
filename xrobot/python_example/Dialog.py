@@ -184,12 +184,7 @@ class XWorld3DDialog(XWorld3DTask):
 
 class XWorld3DEnv(object):
 	def __init__(self):
-		self.env = Playground(640, \
-							  480, \
-							  HEADLESS, \
-							  RENDER_QUALITY_NORMAL, \
-							  1)
-
+		self.env = Playground(640, 480, HEADLESS, NORMAL, GPU0)
 		self.task_group = TaskGroup("TaskGroup")
 		self.task_group.add_task("Dialog", XWorld3DDialog(self.env))
 		self.first = True
