@@ -43,6 +43,7 @@ class XRobot3DInteractions(XWorld3DTask):
 		self.env.CreateArena(4, 4)
 		self.env.MakeObjectPickable("box")
 		self.env.MakeObjectPickable("cakeknife")
+		self.env.MakeObjectPickable("cake")
 		self.env.SpawnAnObject(oven, [4,0,2], [1,0,0,0], 1.0, "oven", True)
 		self.env.SpawnAnObject(drawer, [6,0,2], [1,0,0,0], 1.0, "drawer", True)
 		self.env.SpawnAnObject(gift, [8,0,2], [1,0,0,0], 1.0, "gift", True)
@@ -52,6 +53,7 @@ class XRobot3DInteractions(XWorld3DTask):
 		self.env.SpawnAnObject(screen, [8,0,6], [1,0,0,0], 1.0, "screen", True)
 		self.env.SpawnAnObject(piano, [11,0,6], [1,0,0,0], 1.0, "piano", True)
 		self.env.SpawnAnObject(drawer2, [4,0,10], [1,0,0,0], 1.0, "drawer", True)
+		self.env.SpawnAnObject(cakeknife, [4,0.97,9.9], [1,0,0,0], 1.0, "cakeknife", True)
 		self.env.SpawnAnObject(box_red, [8,0.15,10], [1,0,0,0], 1.0, "box", False)
 		self.env.SpawnAnObject(box_green, [9,0.15,10], [1,0,0,0], 1.0, "box", False)
 		self.env.SpawnAnObject(box_blue, [10,0.15,10], [1,0,0,0], 1.0, "box", False)
@@ -148,7 +150,7 @@ def main():
 		action = NO_ACTION
 
 		# action inputs from keyboard
-		key = cv2.waitKey(0)
+		key = cv2.waitKey(1)
 		if key == 119:   # W
 			action = 0
 		elif key == 97:  # A

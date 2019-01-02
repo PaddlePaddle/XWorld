@@ -1211,12 +1211,17 @@ float Playground::GetFarClippingDistance()
 
 boost::python::object Playground::GetCameraRGBDRaw()
 {
-    unsigned char * raw_image = renderer_->GetRenderedImage().data.data();
+    std::vector<unsigned char> raw_image = renderer_->GetRenderedImage().data;
+ 
+    // why?
+    const unsigned char padding[32] = {0};
+    raw_image.insert(raw_image.end(), padding, padding + 32);
 
     size_t destination_size = sizeof(unsigned char) * (w_ * h_ * 4);
 
-    PyObject* py_buf = PyBuffer_FromReadWriteMemory(raw_image, destination_size);
-    boost::python::object ret_val= boost::python::object(boost::python::handle<>(py_buf));
+    PyObject* py_buf = PyBuffer_FromReadWriteMemory(raw_image.data(), destination_size);
+    boost::python::object ret_val= boost::python::object(
+            boost::python::handle<>(py_buf));
     return ret_val;
 }
 

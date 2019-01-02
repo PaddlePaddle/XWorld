@@ -250,6 +250,8 @@ public:
 
     virtual RenderPart* render_part_ptr(const size_t i) override;
 
+    virtual std::string path() const { return body_data_.path; }
+
     size_t size() const override { return parts_.size(); }
 
     void attach_camera(const glm::vec3& offset,
@@ -309,7 +311,8 @@ public:
             const glm::vec4& rotation,
             const xScalar scale = 1.0f,
             const std::string& label = "",
-            const bool concave = false);
+            const bool concave = false,
+            const bool fixed = true);
 
     bool InteractWith(const std::string& tag);
 
@@ -330,6 +333,11 @@ public:
     void recycle() override;
 
     std::vector<std::string> GetActions() const { return object_name_list_; }
+
+    std::string path() const { 
+        std::size_t prefix = path_.find_last_of(".");
+        return path_.substr(0, prefix + 1) + "json";
+    }
  
 private:
     int status_;
@@ -355,8 +363,8 @@ public:
         const glm::vec4& quat,
         const xScalar scale = 1.0f,
         const std::string& label = "",
-        const bool concave = false
-    );
+        const bool concave = false,
+        const bool fixed = true);
 
     bool InteractWith(const std::string& tag);
     bool TakeAction(const int act_id);
@@ -367,11 +375,15 @@ public:
     int GetJoint() const { return joint_; }
     xScalar GetPosition(const int id) { return positions_[id]; }
     void recycle() override;
-
     std::vector<std::string> GetActions() const { return object_name_list_; }
+    std::string path() const { 
+        std::size_t prefix = path_.find_last_of(".");
+        return path_.substr(0, prefix + 1) + "json"; 
+    }
 
     std::string unlock_tag_;
     std::string path_;
+    std::string object_path_;
     std::vector<std::string> object_name_list_;
 
 private:
