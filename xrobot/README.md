@@ -5,7 +5,7 @@ XWorld3D
 
 # Prerequisites
 
-XRobot build-depends on GLX, GLFW, EGL, and Boost. In addition, XRobot requires a graphics card with at least OpenGL 3.3 compatible graphics driver.
+XWorld3D build-depends on GLX, GLFW, EGL, and Boost. In addition, XWorld3D requires a graphics card with at least OpenGL 3.3 compatible graphics driver.
 
 On Ubuntu and derivatives, run:
 
@@ -36,6 +36,8 @@ The code in the `xrobot/directory` is organized as follows:
 - vendor/ contains code for loading json and images
 - cpp_example/ contains c++ example
 - python_example/ contains python example for creating tasks
+- game_engine/ contains code for scene generation, interactions and python binding.
+- bullet_engine/ contains code for simulation
 - render_engine/ contains code for rendering the scene
     - render_engine/EGL/ contains EGL extensions
     - render_engine/shaders/ contains various shaders which are necessary for render engine
@@ -44,9 +46,11 @@ The code in the `xrobot/directory` is organized as follows:
 
 On Ubuntu and derivatives, use following script to benchmark:
 
-    sh run_benchmark.sh --num-proc 3 --num-gpu 1
+    sh Benchmark.sh --num-proc 3 --num-gpu 1
 
-The results are approximate framerates in each process (include rendering and simulation). The total framerate should reach approx. 500 - 1500 fps on decent Nvidia GPU with EGL backend.
+The results are approximate framerates in each process (include rendering and simulation). The total framerate should reach approx. 1000 - 1500 fps on decent Nvidia GPU with EGL backend.
+
+This benchmark requires SUNCG JSON format scene file with all 3D modles and textures!
 
 # Python Tutorial
 
@@ -218,8 +222,6 @@ e) Complete the grammar defination in all stages
 
 f) Run the task
 
-You also can use `xrobot\python_example\XWorld3DNavTarget_TaskGroup.py` for testing
-
 ```python
 class XWorld3DEnv(object):
     def __init__(self):
@@ -269,6 +271,6 @@ while True:
 
 On Ubuntu and derivatives, run:
 
-    PYTHONPATH=..:$PYTHONPATH __GL_SYNC_TO_VBLANK=0 python py_taskground_navigation.py
+    PYTHONPATH=..:$PYTHONPATH __GL_SYNC_TO_VBLANK=0 python this_tutorial.py
 
-Do not forget to use `__GL_SYNC_TO_VBLANK=0` to disable V-Sync.
+Use `__GL_SYNC_TO_VBLANK=0` to disable V-Sync at non-headless rendering.

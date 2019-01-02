@@ -11,7 +11,23 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 option(USE_DOUBLE_PRECISION "Use double precision floating point" ON)
-option(BUILD_CPP_EXAMPLES "c++ examples" ON)
+option(BUILD_CPP_EXAMPLES "C++ examples" ON)
+option(DOWNLOAD_DATA "Download data" ON)
+
+## download data from dropbox
+if(DOWNLOAD_DATA)
+  if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/data)
+    message("Download data...")
+    execute_process (
+        COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/download_data.sh ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    message("Download complete")
+  else()
+    message("Found data folder")
+  endif()
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ## -Wno-error for gcc 5.x

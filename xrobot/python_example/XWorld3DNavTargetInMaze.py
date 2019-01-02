@@ -19,7 +19,6 @@ door       = "../data/door/door.urdf";
 wall       = "../data/wall0/floor.urdf";
 floor_0    = "../data/floor0/floor.urdf";
 floor_1    = "../data/floor1/floor.urdf";
-floor_2    = "../data/floor2/floor.urdf";
 crate1     = "../data/crate_1/crate.urdf";
 crate03    = "../data/crate_0.3/crate.urdf";
 cat1       = "../data/cat_1/cat.urdf";
