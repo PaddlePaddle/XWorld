@@ -140,7 +140,7 @@ void MapGrid::GenerateWall(const glm::vec3& position, const int d) {
 void MapGrid::GenerateKey(const glm::vec3& position, const int key_id) {
 	const int dir[4] = {0, 0, 1, 1};
 
-	if(key_path_list_[key_id].tag.size()) {
+	if(key_path_list_.size() && key_path_list_[key_id].tag.size()) {
 		world_->UpdatePickableList(key_path_list_[key_id].tag, true);
 		auto obj = world_->LoadRobot(
 			key_path_list_[key_id].file_path,
@@ -177,7 +177,7 @@ void MapGrid::GenerateLockedDoor(
         const glm::vec3& position, const int d, const int door_id) {
 	const int dir[4] = {0, 0, 1, 1};
 
-	if(locked_door_path_list_[door_id].size()) {
+	if(locked_door_path_list_.size() && locked_door_path_list_[door_id].size()) {
 		auto obj = world_->LoadRobot(
 			locked_door_path_list_[door_id],
 			glm::vec3(position.x,position.y * kUniformScale,position.z),
@@ -969,8 +969,8 @@ std::vector<SubTileSPtr> MapGrid::GetSubTileNeighbors(
 
 glm::vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d) {
 	assert(w > 0 && l > 0 && n > 0 && d > 0);
-	assert(locked_door_path_list_.size() >= d);
-	assert(unlocked_door_path_.size());
+	// assert(locked_door_path_list_.size() >= d);
+	// assert(unlocked_door_path_.size());
 
 	const int dirx[4] = {1, -1, 0, 0};
 	const int diry[4] = {0, 0, 1, -1};
@@ -1097,21 +1097,23 @@ glm::vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const i
 							doors_map_[edge01] = door_center;
 							doors_map_[edge10] = door_center;
 
-							int generate_door_id = door_id_list.back();
-							door_id_list.pop_back();
+							if(doors_list_.size()) {
+								int generate_door_id = door_id_list.back();
+								door_id_list.pop_back();
 
-							Door door;
+								Door door;
 
-							if(need_door01) 
-								door = {edge01, door_center_2d, generate_door_id};
-							else 
-								door = {edge10, door_center_2d, generate_door_id};
+								if(need_door01) 
+									door = {edge01, door_center_2d, generate_door_id};
+								else 
+									door = {edge10, door_center_2d, generate_door_id};
 
-							doors_list_.push_back(door);
+								doors_list_.push_back(door);
 
-							tile->has_wall[d] = true;
+								tile->has_wall[d] = true;
 
-							GenerateLockedDoor(door_center, d, generate_door_id);
+								GenerateLockedDoor(door_center, d, generate_door_id);
+							}
 						}
 
 						// UnLocked Door or Merge Two Room
