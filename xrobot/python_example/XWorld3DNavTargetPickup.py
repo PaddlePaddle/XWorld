@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 import random
 
-meta       = "/home/ziyuli/XWorld/xrobot/data/ModelCategoryMapping.csv";
-gift       = "/home/ziyuli/XWorld/xrobot/data/gift/gift.json";
+meta       = "../data/ModelCategoryMapping.csv";
+gift       = "../data/gift/gift.json";
 crate1     = "./crate_1/crate.urdf";
 crate03    = "./crate_0.3/crate.urdf";
 

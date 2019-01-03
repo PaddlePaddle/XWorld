@@ -21,6 +21,8 @@
 
 #include "inventory.h"
 
+namespace xrobot {
+
 // TODO: Right now xScalar cannot be float
 #ifdef USE_DOUBLE_PRECISION
 typedef double xScalar;
@@ -28,7 +30,14 @@ typedef double xScalar;
 typedef float xScalar;
 #endif
 
-namespace xrobot {
+class Inventory;
+class RobotBase;
+class World;
+
+typedef std::shared_ptr<RobotBase> RobotBaseSPtr;
+typedef std::weak_ptr<RobotBase> RobotBaseWPtr;
+typedef std::shared_ptr<World> WorldSPtr;
+typedef std::weak_ptr<World> WorldWPtr;
 
 class Joint : public bullet_engine::BulletJoint {
 public:
@@ -53,8 +62,8 @@ public:
             const xScalar k_d,
             const xScalar max_force);
 
-    std::weak_ptr<World> bullet_world_;    
-    std::weak_ptr<RobotBase> bullet_robot_;
+    WorldWPtr bullet_world_;    
+    RobotBaseWPtr bullet_robot_;
 };
 
 class Object : public render_engine::RenderPart,
@@ -100,13 +109,13 @@ public:
                      const xScalar z, 
                      const int flags = EF_LINK_FRAME);
 public:
-    std::weak_ptr<World> bullet_world_;
+    WorldWPtr bullet_world_;
 
     int body_uid_; // id of Robot this Object belongs to
 
     std::string object_name_;
 
-    std::weak_ptr<RobotBase> attach_object_;
+    RobotBaseWPtr attach_object_;
 
 private:
     xScalar object_mass_original_;
@@ -129,7 +138,7 @@ class RobotBase : public render_engine::RenderBody,
                   public std::enable_shared_from_this<RobotBase> {
     using RenderPart = render_engine::RenderPart;
 public:
-    RobotBase(std::weak_ptr<World> bullet_world);
+    RobotBase(WorldWPtr bullet_world);
 
     virtual ~RobotBase() {}
 
@@ -228,7 +237,7 @@ public:
             const glm::vec3& from,
             const glm::vec3& to);
 
-    virtual void AttachTo(std::weak_ptr<RobotBase> object);
+    virtual void AttachTo(RobotBaseWPtr object);
 
     virtual void Detach();
 
@@ -254,7 +263,7 @@ public:
 
     int id() { return body_data_.body_uid; }
 
-    std::weak_ptr<World> bullet_world_;
+    WorldWPtr bullet_world_;
     std::shared_ptr<Object> root_part_;
     std::vector<std::shared_ptr<Object>> parts_;
     std::vector<std::shared_ptr<Joint>> joints_;
@@ -267,15 +276,15 @@ protected:
     void do_recycle(const std::string& key);
 
     bool occupy_test(
-            std::shared_ptr<World>& world,
-            std::shared_ptr<RobotBase>& item,
+            WorldSPtr& world,
+            RobotBaseSPtr& item,
             const glm::vec3& c,
             xScalar& low);
 };
 
 class Robot : public RobotBase {
 public:
-	Robot(std::weak_ptr<World> bullet_world) : RobotBase(bullet_world) {}
+	Robot(WorldWPtr bullet_world) : RobotBase(bullet_world) {}
 
 	~Robot() {}
 
@@ -290,7 +299,7 @@ public:
 
 class RobotWithConvertion : public xrobot::RobotBase {
 public:
-    RobotWithConvertion(std::weak_ptr<World> bullet_world);
+    RobotWithConvertion(WorldWPtr bullet_world);
 
     ~RobotWithConvertion() {}
 
@@ -323,8 +332,6 @@ public:
     std::vector<std::string> GetActions() const { return object_name_list_; }
  
 private:
-    void Remove();
-
     int status_;
     std::string label_;
     std::string unlock_tag_;
@@ -338,7 +345,7 @@ private:
 
 class RobotWithAnimation : public xrobot::RobotBase {
 public:
-    RobotWithAnimation(std::weak_ptr<World> bullet_world);
+    RobotWithAnimation(WorldWPtr bullet_world);
     ~RobotWithAnimation();
 
     void LoadAnimatedObject(
@@ -389,9 +396,8 @@ public:
     
     std::map<std::string, std::string> tag_list_;
     std::map<std::string, bool> pickable_list_;
-    std::vector<std::shared_ptr<RobotBase>> robot_list_;
-    std::map<int, std::shared_ptr<RobotBase>> id_to_robot_;
-    std::map<std::string, std::vector<std::shared_ptr<RobotBase>>> recycle_robot_map_;
+    std::map<int, RobotBaseSPtr> id_to_robot_;
+    std::map<std::string, std::vector<RobotBaseSPtr>> recycle_robot_map_;
     std::map<std::string, render_engine::ModelDataSPtr> model_cache_;
     std::map<std::string, std::vector<int>> object_locations_;
 
@@ -401,7 +407,7 @@ public:
     void AssignTag(const std::string& path, const std::string& tag);
     void UpdatePickableList(const std::string& tag, const bool pick);
 
-    std::weak_ptr<RobotBase> LoadRobot(
+    RobotBaseWPtr LoadRobot(
             const std::string& filename,
             const glm::vec3& pos,
             const glm::vec3& rot_axis,
@@ -413,7 +419,7 @@ public:
             const bool flip = false,
             const bool concave = false);
 
-    std::weak_ptr<RobotBase> LoadRobot(
+    RobotBaseWPtr LoadRobot(
             const std::string& filename,
             const glm::vec3& position,
             const glm::vec4& rotation,
@@ -424,7 +430,7 @@ public:
             const bool flip = false,
             const bool concave = false);
 
-    std::shared_ptr<RobotBase> LoadModelFromCache(
+    RobotBaseSPtr LoadModelFromCache(
             const std::string& filename,
             const glm::vec3& position,
             const glm::vec4& rotation);
@@ -434,18 +440,18 @@ public:
             std::vector<render_engine::ModelDataSPtr> &model_list,
             bool& reset);
 
-    void UpdateAttachObjects(std::shared_ptr<RobotBase> robot);
-    void FixLockedObjects(std::shared_ptr<RobotBase> robot);
-    void QueryPose(std::shared_ptr<RobotBase> robot);
+    void UpdateAttachObjects(RobotBaseSPtr robot);
+    void FixLockedObjects(RobotBaseSPtr robot);
+    void QueryPose(RobotBaseSPtr robot);
 
     void QueryMovable();
-    void QueryInteractable(std::shared_ptr<RobotBase> robot);
+    void QueryInteractable(RobotBaseSPtr robot);
 
     void ClearCache();
     void PrintCacheInfo();
     void BulletInit(const float gravity = 9.81f, const float timestep = 1.0/100.0);
     void BulletStep(const int skip_frames = 1);
-    void RemoveRobot(std::weak_ptr<RobotBase> rm_robot);
+    void RemoveRobot(RobotBaseWPtr rm_robot);
     void CleanEverything();
     void CleanEverything2();
     void ResetSimulation();
@@ -455,14 +461,14 @@ public:
                       std::vector<RayTestInfo>& result,
                       const int num_threads = 0);
 
-    void SetTransformation(std::weak_ptr<RobotBase> robot, const btTransform& tr);
+    void SetTransformation(RobotBaseWPtr robot, const btTransform& tr);
 
     void GetRootClosestPoints(
-            std::weak_ptr<RobotBase> robot_in, 
+            RobotBaseWPtr robot_in, 
             std::weak_ptr<Object> part_in,
             std::vector<ContactPoint>& contact_points);
     void GetContactPoints(
-            std::weak_ptr<RobotBase> robot_in, 
+            RobotBaseWPtr robot_in, 
             std::weak_ptr<Object> part_in,
             std::vector<ContactPoint>& contact_points,
             const int link = -2);
@@ -474,11 +480,16 @@ public:
             std::vector<ObjectAttributes>& result);
     
 public:
-    size_t size() const override { return robot_list_.size(); }
+    size_t size() const override { return id_to_robot_.size(); }
 
-    const RenderBody* render_body_ptr(const size_t i) const override;
+    void robot_iteration_begin() override;
 
-    RenderBody* render_body_ptr(const size_t i) override;
+    RenderBody* next_robot() override;
+    
+    bool has_next_robot() const override;
+
+private:
+    decltype(id_to_robot_)::iterator robot_it_;
 };
 
 }

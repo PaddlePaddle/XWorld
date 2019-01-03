@@ -208,12 +208,12 @@ void Capture::Draw(RenderWorld* world, const Shader& shader) {
 		}
 	};
 
-	for (size_t i = 0; i < world->size(); ++i) {
-		RenderBody* body = world->render_body_ptr(i);
-
-		if(body->is_hiding())
+    world->robot_iteration_begin();
+    while (world->has_next_robot()) {
+        RenderBody* body = world->next_robot();
+		if(body->is_hiding()) {
 			continue;
-
+        }
 		// Root
 		RenderPart* root = body->render_root_ptr();
 		if (root && !body->is_recycled()) {

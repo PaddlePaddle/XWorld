@@ -857,12 +857,12 @@ void Navigation::Voxelization()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    for (size_t i = 0; i < world_->size(); ++i) {
-        xrobot::render_engine::RenderBody* body = world_->render_body_ptr(i);
-
-        if(body->ignore_baking() || body->is_hiding())
+    world_->robot_iteration_begin();
+    while (world_->has_next_robot()) {
+        render_engine::RenderBody* body = world_->next_robot();
+        if(body->ignore_baking() || body->is_hiding()) {
             continue;
-
+        }
         // Root
         xrobot::render_engine::RenderPart* root = body->render_root_ptr();
         if (root && !body->is_recycled()) {
@@ -874,7 +874,7 @@ void Navigation::Voxelization()
                 }
             }
         }
-	}
+	} 
 
     // Sync Transfer Buffer To Array
 	glFlush();

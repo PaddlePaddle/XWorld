@@ -7,6 +7,7 @@ add_library(game_engine OBJECT
   navigation.cpp
   inventory.cpp
   world.cpp
+  robot.cpp
   python_binding.cpp)
 
 add_dependencies(game_engine render_engine bullet_engine)
