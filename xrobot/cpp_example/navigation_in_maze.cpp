@@ -40,13 +40,6 @@ namespace xrobot
 		scene_->world_->AssignTag(apple, "apple");
 		scene_->CreateAndLoadTileURDF(test_floor);
 		scene_->LoadWallURDF(test_wall);
-		scene_->CreateAndLoadKeyURDF(key_red, "red");
-		scene_->CreateAndLoadKeyURDF(key_blue, "blue");
-		scene_->CreateAndLoadKeyURDF(key_yellow, "yellow");
-		scene_->LoadUnlockedDoorJSON(door_green);
-		scene_->CreateAndLoadLockedDoorJSON(door_red);
-		scene_->CreateAndLoadLockedDoorJSON(door_blue);
-	    scene_->CreateAndLoadLockedDoorJSON(door_yellow);
 	    scene_->CreateAndLoadObjectFILE(crate1, "crate");
 	    scene_->CreateAndLoadObjectFILE(crate03, "crate");
 	    scene_->CreateAndLoadObjectFILE(apple, "apple");
