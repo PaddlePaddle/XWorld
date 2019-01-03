@@ -15,6 +15,8 @@ public:
 
     ~GLContext() {}
 
+    void PrintInfo();
+
     virtual void Hide() {};
     virtual void Terminate() {};
     virtual void PollEvent() {};
@@ -60,8 +62,6 @@ protected:
     void Init() {
         glViewport(0, 0, w_, h_);
     }
-
-    void PrintInfo();
 
 protected:
     int h_;

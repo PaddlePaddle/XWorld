@@ -150,7 +150,7 @@ public:
 
 private:
 	//  Update all the status
-	void Sync();
+	bool Sync();
 	std::string label_;
 	boost::python::tuple position_;
 	boost::python::tuple orientation_;

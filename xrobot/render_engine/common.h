@@ -85,8 +85,8 @@ struct PSSM {
     int cascade_count = 4;
     float pssm_lamda = 0.7f;
     float near_offset = 80.0f;
-    float shadow_bias_clamp = 0.0008f;
-    float shadow_bias_scale = 0.0002f;
+    float shadow_bias_clamp = 0.0005f;
+    float shadow_bias_scale = 0.0005f;
     bool first_run = true;
 };
 

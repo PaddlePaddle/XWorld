@@ -99,9 +99,12 @@ void Visualization::DrawPointCloud(const GLuint tex, Camera* camera,
 
 	auto pointcloud = shaders_[kPointCloud];
 
+	glDepthFunc(GL_ALWAYS);
+
 	glBindVertexArray(pc_vao_);
+	glEnable(GL_POINT_SMOOTH);
 	glEnable(GL_PROGRAM_POINT_SIZE);
-	glPointSize(1.5f);
+	glPointSize(2.0f);
 	pointcloud.use();
 	pointcloud.setInt("size", kLidarCaptureRes);
 	pointcloud.setInt("dir", dir);
@@ -112,6 +115,8 @@ void Visualization::DrawPointCloud(const GLuint tex, Camera* camera,
 	pointcloud.setMat4("projection", projection);
 	glDrawArrays(GL_POINTS, 0, size);
 	glBindVertexArray(0);
+
+	glDepthFunc(GL_LESS);
 }
 
 void Visualization::DrawRootAABB(RenderWorld* world, const Shader& shader) {
