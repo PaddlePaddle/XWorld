@@ -24,7 +24,7 @@ void split(const std::string& s, char delim, std::vector<std::string>& v);
 
 void cuda_visible_devices(std::vector<int>& device_ids);
 
-void padTo(std::string &str, const size_t num, const char paddingChar = '0');
+void pad_to(std::string &str, const size_t num, const char paddingChar = '0');
 
 bool json_parse_text(const std::string& filename, Json::Value& root);
 

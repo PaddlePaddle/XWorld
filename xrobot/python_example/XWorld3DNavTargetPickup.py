@@ -59,8 +59,6 @@ class XWorld3DNavTargetPickup(XWorld3DTask):
 		reward, time_out = self._time_reward()
 		next_stage = "dropdown"
 
-		print self.env.QueryLastEvent()
-
 		if not time_out:
 			if self.env.QueryObjectWithLabelAtCameraCenter("small crate"):
 				small_crate = self.env.QueryObjectAtCameraCenter()

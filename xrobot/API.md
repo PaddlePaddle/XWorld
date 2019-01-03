@@ -8,11 +8,9 @@ This is an in-depth version python tutorial. For a quick start, check out the ba
 # Rendering
 ## Playground
 
-The playground is essential to the simulation environment and rendering engine. Here we define the width and height of the virtual camera, and also select the rendering quality and assign it to a dedicated GPU (if you have a multi-GPU system)
+The playground is essential to the simulation environment and rendering engine. Width, height, rendering quality and gpu id must be assigned by user.
 
-
-
-Rendering Quality can be chosen between low and normal.  The low quality rendering is relatively fast and low memory usage, however, it only provides the most essential rendering functionalities. The normal quality rendering increase the contrast, reduces the jagged edges and enables the shadowfrom directional light but all these improvements will sacrifice the rendering speed. Exposure control is also available in normal rendering quality. To switch to low-quality mode, change the "RENDER_QUALITY_NORMAL" to "RENDER_QUALITY_LOW"
+Rendering Quality can be chosen between low and normal. The low quality rendering is relatively fast and low memory usage, however, it only provides the most essential rendering functionalities. The normal quality rendering increase the contrast, reduces the jagged edges and enables the shadowfrom directional light but all these improvements will sacrifice the rendering speed. Exposure control is also available in normal rendering quality. To switch to low-quality mode, change the "NORMAL" to "LOW"
 
 |          Low Quality         |            Normal Quality          |
 |:----------------------------:|:----------------------------------:|
@@ -21,11 +19,11 @@ Rendering Quality can be chosen between low and normal.  The low quality renderi
 
 Headless context is used for rendering a scene without associating a window. To disable headless context, change the "HEADLESS" to "VISUALIZATION".
 
-To create a playground, use `Playground(width, height, mode, quality, GPU)`
+To create a playground, use `Playground(width, height, mode, quality, gpu_id)`
 
 * Example:
 ```python
-    your_playground = Playground(640, 480, HEADLESS, RENDER_QUALITY_NORMAL, 0)
+    your_playground = Playground(640, 480, HEADLESS, NORMAL, 0)
 ```
 
 # Scene
@@ -41,7 +39,7 @@ To create a completely empty scene without any building block, use `CreateEmptyS
 
 ## SUNCG Scene
 
-To create a scene can load SUNCG JSON file, use `CreateSceneFromSUNCG()` and `LoadSUNCG(suncg_house_path, model_category_path, suncg_dir, filter)`
+To create a SUNCG scene, use `CreateSceneFromSUNCG()` and `LoadSUNCG(suncg_house_path, model_category_path, suncg_dir, filter)`
 
 To remove doors or stairs while loading the scene, assign `REMOVE_DOOR` or `REMOVE STAIR` to the filter.
 
@@ -62,7 +60,7 @@ To create a closed single room for testing, use `CreateArena(width, length)`.
 
 ## Randomly Generate Scene
 
-To create a scene with randomly generate tiles, use `CreateRandomGenerateScene()`. Assets and room configuration also needs to be assigned before generating the room.
+To create a scene with randomly generate rooms, use `CreateRandomGenerateScene()`. Assets and room configuration also needs to be assigned before generating the room.
 
 a) First, load the assets
 
@@ -103,7 +101,7 @@ There are three relationships between populated objects.
 
 d) Populate Objects
 
-* Example of generating the rooms using a profile:
+* Example of generating the rooms with a profile:
 
 ```python
     your_playground.SpawnModelsConf(spawn_conf)
@@ -129,9 +127,9 @@ For the tile arrangement, check out `xrobot/room_generator.cpp`.
     your_playground.SpawnAnObject("crate.obj", [0,0,0], [1,0,0,0], 1.0, "crate", False)
 ```
 
-`fixed` defines the root node in the model whether or not treated as a static object and rest node will still be activated
+`fixed` means the root node of a model will be treated as a static object and all the rest of nodes will still be activated rigid objects
 
-**Be aware of orientation representation!** It uses valid quaternion for orientation! [0, 0, 0, 0] is invalid in quaternion!
+**Axis-angle is the only valid orientation representation! [0, 0, 0, 0] is invalid!**
 
 # Reset and Initialize
 
@@ -144,8 +142,6 @@ This will remove any object in the environment including the camera.
 ```python
     your_playground.Clear()
 ```
-
-**Reset the scene before creating a new one!**
 
 ## Initialization
 
@@ -163,7 +159,7 @@ Initialize the scene. It tells the playground ready for rendering
 
 ```
 
-**Initialization before simulation start**
+**Initialization is necessary before simulation start**
 
 # Update
 
@@ -185,7 +181,7 @@ Initialize the scene. It tells the playground ready for rendering
 
 The return value `actions` is a python dictionary with which special actions can be applied int next step.
 
-The number of actions is limited to 10! It cannot execute any action id are larger than 10!
+However, the number of actions is limited to 10! It cannot step forward with any action id is larger than 10!
 
 ## Only Render One Frame
 
@@ -303,8 +299,6 @@ Grasp or drop the object in the center of the camera (also within 3 unit length)
     your_playground.UpdateSimulationWithAction(9) # Drop
 ```
 
-**Mix using Grasp / Drop and Attach / Detach is not recommended!**
-
 ## Attach / Detach
 
  Attach or detach the object root base at the center of the camera (also within 3 unit length).
@@ -323,11 +317,11 @@ Grasp or drop the object in the center of the camera (also within 3 unit length)
     your_playground.UpdateSimulationWithAction(7) # Drop
 ```
 
-**Mix using Grasp / Drop and Attach / Detach is not recommended!**
+**Attachable objects must be actived rigid obbjects!**
 
 ## Teleport
 
-Teleport an object or robot to a certain position in the scene
+Teleport an object or a robot to a certain position in the scene
 
 * Example:
 
@@ -540,8 +534,6 @@ Enable the lidar before using the single-ray lidar.
 ```
 The result is a list contains each ray's hitting distance. negative value means no-hit
 
-**Currently, multi lidars are not supported!**
-
 ## Position and Orientation
 
 You can get an object's (including robot's) position and orientation by using `GetPosition()` and `GetOrientation`
@@ -569,36 +561,16 @@ Inventory is robot temporary storage. Enable the inventory before using Grasp / 
     your_playground.EnableInventory(max_capacity)
 ```
 
-## Navigation Agent (Experimental)
+## HUD (Heads-up Display)
 
-Enable navigations to use path-finding for an object or robot. The range of the baking area is defined by two 'vectors'. The minimum y must smaller than the ground, and the maximum y cannot greater than the ceiling.
-
-Path-finding relies on a grid map which is generated by a special depth camera on top of the scene. The range of the baking area needs to be passed into this member function.
-
-Enable the navigation before using related functions.
+HUD is a visual aid system layover the virtual camera. Center highlight and inventory can be displayed in the HUD.
 
 * Example:
 
 ```python
-    your_playground.EnableNavigation(min_corner, max_corner, kill_after_arrived)
-    your_playground.AssignAgentRadius(0.2)
-    your_playground.BakeNavigationMesh()
-
-    nav_agent = your_playground.SpawnNavigationAgent("model.urdf", "label", position, orientation)
-    your_playground.AssignNavigationAgentTarget(nav_agent, target_position)
+    your_playground.HighlightCenter(True)
+    your_playground.DisplayInventory(True)
 ```
-
-For baking or re-baking the grid map for path-finding, use `BakeNavigationMesh()`
-
-The surface threshold will be automatically calculated base on the major depth samples in the grid map. However, you may need to assign it by yourself in some scenario, use `AssignSurfaceLevel(0.2)`. The threshold is a log-based value between 0 to 1
-
-In some cases, a large size agent cannot pass a small gap. You need to dilate the grid map to fill the gaps. A negative value for erodes the grid map. `AssignAgentRadius(0.1)`
-
-For assigning a target to an agent, use `AssignNavigationAgentTarget(agent, [0,0,0])`. If an agent is no longer available, it will be neglected automatically.
-
-For spawning an agent with the path-finding feature, use `SpawnNavigationAgent(...)`
-
-**Currently, Navigation Agent orientation is incorrect! We will fix it in the future.**
 
 # Miscellaneous
 
@@ -611,7 +583,6 @@ Adjust the basic light setting.
 ```python
 
     my_playground.SetLighting({
-        "ssr"      : False,
         "ambient"  : 0.1,
         "exposure" : 1.0
     })
@@ -621,9 +592,8 @@ Adjust the basic light setting.
 Use key `direction_x`, `direction_y`, `direction_z` to update direction
 Use key `ambient` to update ambient factor
 Use key `exposure` to update exposure factor
-Use key `ssr` to update screen space reflections
 
-**"ssr" and "exposure" are normal rendering mode only!**
+**Very low quality rendering does not support any features related to lighting**
 
 ## Thing
 

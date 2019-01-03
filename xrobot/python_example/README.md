@@ -24,4 +24,4 @@ Examples
 
 # Benchmark 
 
-- `Benchmark.sh`: Benchmark for SUNCG
+- `Benchmark.sh`: Benchmark for SUNCG (requires SUNCG 3D scene with models and textures!)
