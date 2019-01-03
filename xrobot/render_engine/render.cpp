@@ -28,6 +28,9 @@ Render::Render(const int width,
 		profile_.visualize = true;
 		ctx_ = render_engine::CreateContext(height, width);
 	}
+
+	// Check OpenGL Version
+	CheckVersion();
 	
 	// Create Framebuffers
 	geomtry_pass_ = std::make_shared<RenderTarget>(width, height);
@@ -61,6 +64,32 @@ Render::~Render() {
 	glDeleteBuffers(1, &quad_vbo_);
 	glDeleteBuffers(2, camera_pbos_);
 	CloseContext(ctx_);
+}
+
+void Render::CheckVersion() {
+	GLint major, minor;
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+	if(profile_.vct) {
+		if(major < 4 || major == 4 && minor < 2) {
+			printf("[Renderer] VCT requires at least OpenGL 4.2\n");
+			if(profile_.visualize)
+				printf("[Renderer] The driver or hardware is not OpenGL 4.2 compatible\n\n");
+			else
+				printf("[Renderer] Disable headless rendering!\n\n"); 
+			ctx_->PrintInfo();
+			CloseContext(ctx_);
+			exit(0);
+		}
+	} else {
+		if(major < 3 || major == 3 && minor < 3) {
+			printf("[Renderer] Renderer requires at least OpenGL 3.3\n\n");
+			ctx_->PrintInfo();
+			CloseContext(ctx_);
+			exit(0);
+		}
+	}
 }
 
 // --------------------------------------------------------------------------------------------
@@ -156,9 +185,8 @@ void Render::RenderHUD(RenderWorld* world,
 
 
 	// Draw Inventory
-	float scl = (float) (world->inventory_size_ - 1.0f) / world->inventory_size_;
-	float icon_size = (float)width_ * 0.1f * scl;
 	float inv_aspect = (float)height_ / width_;
+	float icon_size = (float)width_ * 0.1f * inv_aspect;
 	float start_u = 0.5f - (world->inventory_size_ * 0.05f * inv_aspect);
 	float end_u = 0.5f + (world->inventory_size_ * 0.05f * inv_aspect);
 	float draw_inventory = world->inventory_size_ < 0 ? 0 : 1;
@@ -230,7 +258,7 @@ void Render::RenderHUD(RenderWorld* world,
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, icon_texture_id);
 				glUniform1i(glGetUniformLocation(flat.id(), "tex"), 0);
-				glViewport((start_u + 0.1f * scl * n) * 
+				glViewport((start_u + 0.1f * inv_aspect * n) * 
 						(float)width_, 0, icon_size, icon_size);
 				RenderQuad();
 			}

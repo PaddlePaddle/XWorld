@@ -521,8 +521,7 @@ std::string RobotBase::PickUp(
         auto object = bullet_world->id_to_robot_[test[0].bullet_id];
         if (object->body_data_.pickable) {
             if(inventory->PutObject(object)) {
-                bullet_world->icon_inventory_.push_back(
-                        object->body_data_.path);
+                bullet_world->icon_inventory_.push_back(object->path());
             }
             return object->body_data_.label;
         }
@@ -721,6 +720,11 @@ void RobotBase::AttachTo(const RobotBaseWPtr& object) {
         return;
     }
 
+    if (object_sptr->body_data_.fixed) {
+        printf("Cannot attach fixed object!\n");
+        return;
+    }
+
     const int id = -1;
 
     body_data_.attach_to_id = id;
@@ -843,7 +847,8 @@ void RobotWithConvertion::LoadConvertedObject(
         const glm::vec4& quat, // quat
         const xScalar scale,
         const std::string& label,
-        const bool concave) {
+        const bool concave,
+        const bool fixed) {
 
     Json::Value json_root;
     if (!json_parse_text(filename, json_root)) {
@@ -891,7 +896,7 @@ void RobotWithConvertion::LoadConvertedObject(
                     quat, // quat
                     scale, 
                     std::string(label_),
-                    false,
+                    fixed,
                     false,
                     true,
                     concave);
@@ -951,7 +956,6 @@ bool RobotWithConvertion::TakeAction(const int act_id) {
     RemoveRobotFromBullet();
     bullet_world->RemoveObjectWithLabel(body_data_.body_uid);
 
-    body_data_ = BulletBodyData();
     body_data_.label = label_;
     BulletBody::load_urdf(
             bullet_world->client_,
@@ -959,7 +963,7 @@ bool RobotWithConvertion::TakeAction(const int act_id) {
             pos,
             quat,
             scale_,
-            true, /*fixed_base*/
+            body_data_.fixed, /*fixed_base*/
             false, /*self_collision*/
             true, /*use_multibody*/
             false /*concave*/);
@@ -967,8 +971,9 @@ bool RobotWithConvertion::TakeAction(const int act_id) {
     load_robot_shapes(scale_);
 
     bullet_world->id_to_robot_[body_data_.body_uid] = shared_from_this();
-
     status_ = act_id;    
+
+    bullet_world->AddObjectWithLabel(label_, body_data_.body_uid);
     return true;
 }
 
@@ -1024,7 +1029,8 @@ void RobotWithAnimation::LoadAnimatedObject(
         const glm::vec4& quat,
         const xScalar scale,
         const std::string& label,
-        const bool concave) {
+        const bool concave,
+        const bool fixed) {
     
     Json::Value json_root;
     if (!json_parse_text(filename, json_root)) {
@@ -1039,13 +1045,14 @@ void RobotWithAnimation::LoadAnimatedObject(
     std::string object_path =
             json_get_string(&json_root, "object", "NoObjectPath");
     LoadURDFFile(
-            object_path, pos, quat, scale, label, true, false, true, concave);
+            object_path, pos, quat, scale, label, fixed, false, true, concave);
 
     ignore_baking(true);
     DisableSleeping();
     SetStatus(0);
     SetJoint(joint_id);
     path_ = filename;
+    object_path_ = object_path;
 
     // Parse Actions
     Json::Value *json_level1, *json_level2;

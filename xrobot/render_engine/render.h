@@ -117,6 +117,9 @@ private:
     void InitLidarCapture();
     void RenderLidarCapture(RenderWorld* world, Camera* camera, GLuint& depth);
 
+    // Other
+    void CheckVersion();
+
     // Basic
     Profile profile_;
     Lighting lighting_;

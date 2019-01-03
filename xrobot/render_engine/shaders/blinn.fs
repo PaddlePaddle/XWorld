@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 
 out vec4 FragColor;
 in vec2 TexCoords;
@@ -10,10 +10,10 @@ struct DirectionalLight {
     vec3 direction;
 };
 
-layout(binding = 0) uniform sampler2D gPosition;
-layout(binding = 1) uniform sampler2D gNormal;
-layout(binding = 2) uniform sampler2D gAlbedo;
-layout(binding = 3) uniform sampler2D shadowMap[8];
+uniform sampler2D gPosition;
+uniform sampler2D gNormal;
+uniform sampler2D gAlbedo;
+uniform sampler2D shadowMap[8];
 
 uniform mat4 invView;
 uniform mat4 projection;

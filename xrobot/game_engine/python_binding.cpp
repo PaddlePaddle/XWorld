@@ -8,32 +8,39 @@ Thing::Thing() : label_("Nothing"),
 
 boost::python::tuple Thing::GetPosition()
 {
-	Sync();
-	return position_;
+	if(Sync()) 
+        return position_;
+	return vec2tuple(glm::vec3(INT_MIN));
 }
 
 boost::python::tuple Thing::GetOrientation()
 {
-    Sync();
-    return orientation_;
+    if(Sync()) 
+        return orientation_;
+    return vec2tuple(glm::vec4(INT_MIN));
 }
 
 std::string Thing::GetLabel()
 {
-	Sync();
-	return label_;
+	if(Sync()) 
+	   return label_;
+    return "Not available";
 }
 
-void Thing::Sync()
+bool Thing::Sync()
 {
 	if(auto robot_sptr = robot_.lock()) {
+        if(robot_sptr->is_hiding() || robot_sptr->is_recycled()) 
+            return false;
 		btTransform tr_bt = robot_sptr->root_part_->object_position_;
 		btVector3 pos_bt = tr_bt.getOrigin();
         btQuaternion orn_bt = tr_bt.getRotation();
 		position_ = vec2tuple(glm::vec3(pos_bt[0], pos_bt[1], pos_bt[2]));
         orientation_ = vec2tuple(glm::vec4(orn_bt[0], orn_bt[1], orn_bt[2], orn_bt[3]));
 		label_ = robot_sptr->body_data_.label;
-	}
+        return true;
+	} 
+    return false;
 }
 
 Playground::Playground(const int w, const int h,
@@ -1212,7 +1219,7 @@ float Playground::GetFarClippingDistance()
 boost::python::object Playground::GetCameraRGBDRaw()
 {
     std::vector<unsigned char> raw_image = renderer_->GetRenderedImage().data;
- 
+
     // why?
     const unsigned char padding[32] = {0};
     raw_image.insert(raw_image.end(), padding, padding + 32);

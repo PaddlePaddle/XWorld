@@ -46,6 +46,7 @@ void FXAA::FXAAPass(const GLuint color) {
 
 	aa.use();
 	aa.setInt("tex", 0);
+	aa.setVec2("res", glm::vec2(width_, height_));
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, color);
 	RenderQuad();
