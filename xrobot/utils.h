@@ -13,12 +13,6 @@
 
 #include "vendor/json.h"
 
-static std::clock_t benchmark_timer;
-
-void startBenchmark();
-
-void endBenchmark();
-
 inline bool exists_file(const char* fn) {
     struct stat buffer;
     return (stat(fn, &buffer) == 0);

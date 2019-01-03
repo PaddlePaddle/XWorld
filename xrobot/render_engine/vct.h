@@ -29,7 +29,7 @@ constexpr float kPropagationDistance = 0.5f;
 constexpr float kConeTracingDistance = 1.0f;
 constexpr float kSampleFactor = 0.5f;
 constexpr float kAOFalloff = 1000.0f;
-constexpr float kGIStrength = 0.4f;
+constexpr float kGIStrength = 0.3f;
 
 enum VCTShaders {
     kVoxelize,
@@ -59,6 +59,8 @@ public:
                      const float exposure,
                      std::shared_ptr<RenderTarget> gbuffer,
                      GLuint& out);
+
+    void ForceBakeOnNextFrame() { baked_ = false; }
     void Visualize(const int level) =delete;
 
 private:

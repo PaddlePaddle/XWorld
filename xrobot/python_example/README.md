@@ -24,8 +24,4 @@ Examples
 
 # Benchmark 
 
-The benchmark requires SUNCG OBJ+MTL insteads of JSON. The conversion tool is provided by SUNCGtoolbox (https://github.com/shurans/SUNCGtoolbox).
-
-- `Benchmark.sh`: SUNCG Benchmark
-
-
+- `Benchmark.sh`: Benchmark for SUNCG

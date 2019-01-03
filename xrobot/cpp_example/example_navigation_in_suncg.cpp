@@ -1,3 +1,5 @@
+#include "render_engine/render.h"
+#include "utils.h"
 
 #include <fstream>
 #include <iostream>
@@ -9,7 +11,8 @@
 #include <iomanip>
 #include <memory>
 
-#include "render_engine/render.h"
+#include "game_engine/task.h"
+#include "game_engine/state_machine.h"
 #include "navigation_in_suncg.h"
 
 using namespace xrobot;
@@ -22,7 +25,7 @@ int main(int argc, char **argv)
     assert(argc < 3);
 
     render_engine::Profile profile = render_engine::kVeryLowQualityVisualize;
-    if(argc == 2 && atoi(argv[1]) < 4) 
+    if(argc == 2 && atoi(argv[1]) < 5) 
         profile = render_engine::profiles[atoi(argv[1])];
 
     profile.shadow = false;

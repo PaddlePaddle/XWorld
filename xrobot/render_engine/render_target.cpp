@@ -7,14 +7,14 @@ void RenderTarget::active(const int shader, const std::string sampler,
 		const int target, const int unit) {
 	glActiveTexture(GL_TEXTURE0 + unit);
 	glBindTexture(GL_TEXTURE_2D, texture_ids_[target]);
-	glUniform1f(glGetUniformLocation(shader, sampler.c_str()), unit);
+	glUniform1i(glGetUniformLocation(shader, sampler.c_str()), unit);
 }
 
 void RenderTarget::active_depth(const int shader, const std::string sampler,
 		const int unit) {
 	glActiveTexture(GL_TEXTURE0 + unit);
 	glBindTexture(GL_TEXTURE_2D, depth_buffer_);
-	glUniform1f(glGetUniformLocation(shader, sampler.c_str()), unit);
+	glUniform1i(glGetUniformLocation(shader, sampler.c_str()), unit);
 }
 
 RenderTarget::RenderTarget(const int width, 

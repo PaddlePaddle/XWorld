@@ -19,7 +19,6 @@ door       = "../data/door/door.urdf";
 wall       = "../data/wall0/floor.urdf";
 floor_0    = "../data/floor0/floor.urdf";
 floor_1    = "../data/floor1/floor.urdf";
-floor_2    = "../data/floor2/floor.urdf";
 crate1     = "../data/crate_1/crate.urdf";
 crate03    = "../data/crate_0.3/crate.urdf";
 cat1       = "../data/cat_1/cat.urdf";
@@ -119,12 +118,7 @@ class XWorld3DNavTargetInMaze(XWorld3DTask):
 
 class XWorld3DEnv(object):
 	def __init__(self):
-		self.env = Playground(640, \
-							  480, \
-							  HEADLESS, \
-							  QUALITY_NORMAL, \
-							  0)
-
+		self.env = Playground(640, 480, HEADLESS, NORMAL, GPU0)
 		self.task_group = TaskGroup("TaskGroup")
 		self.task_group.add_task("NavTargetMaze", XWorld3DNavTargetInMaze(self.env))
 		self.first = True

@@ -15,10 +15,10 @@ namespace xrobot
 								        cam_pitch_(0) {
 		// Initialize Inventory and Lidar
 		inventory_= std::make_shared<Inventory>(1);
-		lidar_ = std::make_shared<Lidar>(map->world_.get(), 180, 4.0f);
+		lidar_ = std::make_shared<Lidar>(map->world_.get(), 90, 4.0f);
 
 		// Init Visualization for Lidar
-		renderer->InitDrawBatchRays(180);
+		renderer->InitDrawBatchRays(90);
 	}
 
 	Task_SUNCG::~Task_SUNCG() {}
@@ -85,8 +85,7 @@ namespace xrobot
 		}
 
 	    scene_->world_->BulletStep();
-	    renderer_->BakeGI(scene_->world_.get());
-
+	    renderer_->BakeGI();
 	    return "NavTarget";
 	}
 
@@ -110,7 +109,7 @@ namespace xrobot
 		    	glm::vec3 fromPosition = main_camera_->position_;
 		    	glm::vec3 toPosition = main_camera_->front_ * 3.0f + fromPosition;
 		    	agent_sptr->PickUp(inventory_, fromPosition, toPosition);
-		    	renderer_->BakeGI(scene_->world_.get());
+		    	renderer_->BakeGI();
 		    }
 
 		    // Put
@@ -118,7 +117,7 @@ namespace xrobot
 		    	glm::vec3 fromPosition = main_camera_->position_;
 		    	glm::vec3 toPosition = main_camera_->front_ * 3.0f + fromPosition;
 		    	agent_sptr->PutDown(inventory_, fromPosition, toPosition);
-		    	renderer_->BakeGI(scene_->world_.get());
+		    	renderer_->BakeGI();
 		    }
     	}
 
@@ -225,16 +224,9 @@ namespace xrobot
             }
         }
 
-        if(ctx_->GetKeyPressSpace()) {
-        	ctx_->PollEvent();
-        	return "idle";
-        }
-
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   
         renderer_->StepRender(scene_->world_.get());
-        ctx_->SwapBuffer();
-        ctx_->PollEvent();
 
         return "NavTarget";
 	}

@@ -1,26 +1,27 @@
 find_package(OpenGL REQUIRED)
 
 add_library(render_engine OBJECT 
-  render_utils.cpp
-  shader.cpp
-  frustum.cpp
-  camera.cpp
-  mesh.cpp
-  gl_context.cpp
-  visualization.cpp
-  csm.cpp
-  postprocess.cpp
-  composite.cpp
-  ssao.cpp
-  ssr.cpp
-  fxaa.cpp
-  vct.cpp
-  render.cpp
-  render_target.cpp
-  render_world.cpp
-  texture3d.cpp
-  texture2d.cpp
-  model.cpp)
+    render_utils.cpp
+    shader.cpp
+    frustum.cpp
+    camera.cpp
+    mesh.cpp
+    gl_context.cpp
+    visualization.cpp
+    csm.cpp
+    postprocess.cpp
+    composite.cpp
+    ssao.cpp
+    ssr.cpp
+    fxaa.cpp
+    vct.cpp
+    render.cpp
+    render_target.cpp
+    render_world.cpp
+    texture3d.cpp
+    texture2d.cpp
+    capture.cpp
+    model.cpp)
 
 add_dependencies(render_engine assimp glm glfw utils) 
 

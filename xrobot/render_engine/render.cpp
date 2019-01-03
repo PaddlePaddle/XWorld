@@ -53,33 +53,29 @@ Render::Render(const int width,
 	InitVCT();
 	InitPostProcessing();
 	InitVisualization();
+	InitLidarCapture();
 }
 
 Render::~Render() {
 	glDeleteVertexArrays(1, &quad_vao_);
 	glDeleteBuffers(1, &quad_vbo_);
-	glDeleteBuffers(2, pbos_);
+	glDeleteBuffers(2, camera_pbos_);
 	CloseContext(ctx_);
 }
 
-void Render::BakeGI(RenderWorld* world) {
-	if(profile_.vct) 
-		vct_->BakeGI(world, dir_light_, true);
-}
+// --------------------------------------------------------------------------------------------
 
 void Render::StepRender(RenderWorld* world) {
-	
 	if(!world->cameras_size()) return;
 	Camera* camera = world->camera(0);
 
-	// Visualization
-	if(profile_.visualize) visualize_->Visualize(world);
+	GLuint out, capture;
 
-	// Bake GI
-	if(profile_.vct) vct_->BakeGI(world, dir_light_);
+	// Visualization
+	RenderVisualization(world, camera);
 
 	// Shadow Map
-	if(profile_.shadow) RenderShadowMaps(world, camera);
+	RenderShadowMaps(world, camera);
 
 	// Render G-Buffer
 	RenderGeometryPass(world, camera);
@@ -90,22 +86,34 @@ void Render::StepRender(RenderWorld* world) {
 	position = geomtry_pass_->texture_id(0);
 
 	// Post-Processing
-	GLuint out;
 	std::vector<GLuint> postprocessing_in;
 	postprocessing_in.push_back(color);
 	postprocessing_in.push_back(geomtry_pass_->texture_id(0));
 	postprocessing_in.push_back(geomtry_pass_->texture_id(1));
 	RenderPostProcessingPasses(camera, postprocessing_in, out);
 
-	// HUD and IO
+	// HUD -> IO
 	RenderHUD(world, camera, out, position);
+
+	// Capture
+	RenderLidarCapture(world, camera, capture);
 
 	// Visualization
 	glClear(GL_COLOR_BUFFER_BIT);
 	if(profile_.visualize) {
-		RenderTexture(visualize_->GetTexture(), 640, 480);
-		RenderTexture(hud_pass_->texture_id(0), 213, 160, 10, 10, false);
-		RenderTexture(hud_pass_->texture_id(0), 213, 160, 233, 10, true);
+
+		float width_quater  = width_ * 0.25f;
+		float height_quater = height_ * 0.25f;
+
+		RenderTexture(visualize_->GetTexture(), width_, height_);
+		RenderTexture(hud_pass_->texture_id(0), width_quater, height_quater,
+				10, 10, false);
+		RenderTexture(hud_pass_->texture_id(0), width_quater, height_quater,
+				width_quater + 20, 10, true);
+
+		if(profile_.multirays) 
+			RenderTexture(capture, 280, 70, 
+					width_quater * 2 + 30, 10, true, 0);
 	}
 
 	// Swap
@@ -113,14 +121,18 @@ void Render::StepRender(RenderWorld* world) {
 	ctx_->SwapBuffer();
 }
 
+// --------------------------------------------------------------------------------------------
+
 void Render::RenderTexture(const GLuint id, const int width, const int height,
-            const int x, const int y, const bool display_alpha) {
+            const int x, const int y, const bool display_alpha, 
+            const int channel) {
 	glViewport(x, y, width, height); 
 	auto flat  = shaders_[kFlat];
 	auto alpha = shaders_[kAlpha];
 
 	if(display_alpha) {
 		alpha.use();
+		alpha.setFloat("channel", channel);
 		alpha.setInt("tex", 0);
 	} else {
 		flat.use();
@@ -130,55 +142,6 @@ void Render::RenderTexture(const GLuint id, const int width, const int height,
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, id);
 	RenderQuad();
-}
-
-void Render::RenderPostProcessingPasses(Camera* camera, 
-		const std::vector<GLuint>& in, GLuint& out) {
-	// SSAO
-	std::vector<GLuint> ssao_out(1);
-	if (profile_.ao) {
-		glm::mat4 view = camera->GetViewMatrix();
-		glm::mat4 projection = camera->GetProjectionMatrix();
-
-		std::vector<GLuint> ssao_in;
-		ssao_in.push_back(in[1]);
-		ssao_in.push_back(in[2]);
-		ssao_->Draw(ssao_in, ssao_out, view, projection);
-	}
-
-	// SSR
-	std::vector<GLuint> ssr_out(1);
-	if (profile_.ssr) {
-		glm::mat4 view = camera->GetViewMatrix();
-		glm::mat4 projection = camera->GetProjectionMatrix();
-
-		std::vector<GLuint> ssr_in;
-		ssr_in.push_back(in[0]);
-		ssr_in.push_back(in[1]);
-		ssr_in.push_back(in[2]);
-		ssr_->Draw(ssr_in, ssr_out, view, projection);
-	}
-
-	// Composite
-	std::vector<GLuint> composite_out(1);
-	std::vector<GLuint> composite_in;
-	composite_in.push_back(in[0]);
-	composite_in.push_back(ssao_out[0]);
-	composite_in.push_back(ssr_out[0]);
-	composite_->Draw(composite_in, composite_out, 
-			profile_.ao, profile_.ssr, profile_.shading);
-
-	// FXAA
-	std::vector<GLuint> fxaa_out(1);
-	if(profile_.fxaa) {
-		std::vector<GLuint> fxaa_in;
-		fxaa_in.push_back(composite_out[0]);
-		fxaa_->Draw(fxaa_in, fxaa_out);
-
-		out = fxaa_out[0];
-	} else {
-		out = composite_out[0];
-	}
 }
 
 void Render::RenderHUD(RenderWorld* world, 
@@ -277,17 +240,17 @@ void Render::RenderHUD(RenderWorld* world,
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);           
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos_[0]);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[0]);
 	glReadPixels(0, 0, width_, half_height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos_[1]);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[1]);
 	glReadPixels(0, half_height, width_, half_height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
 
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos_[0]);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[0]);
 	GLubyte* pbo_ptr= (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 	std::vector<unsigned char> temp0(pbo_ptr, pbo_ptr + half_pixels);
 	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos_[1]);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[1]);
 	pbo_ptr= (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 	std::vector<unsigned char> temp1(pbo_ptr, pbo_ptr + half_pixels);
 	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
@@ -306,6 +269,7 @@ void Render::RenderLightingPass(RenderWorld* world, Camera* camera, GLuint& rgb)
 		rgb   = lighting_pass_->texture_id(0);
 		RenderNormalShading(camera);
 	} else {
+		vct_->BakeGI(world, dir_light_);
 		vct_->ConeTracing(world, camera, dir_light_, shadow_,
 				lighting_.exposure, geomtry_pass_, rgb);
 	}
@@ -451,42 +415,101 @@ void Render::Draw(RenderWorld* world, const Shader& shader, const bool cull) {
 	}
 }
 
+// --------------------------------------------------------------------------------------------
 
-void Render::RenderQuad() {
-	if (quad_vao_ == 0) {
-		constexpr float quadVertices[] = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-		
-		glGenVertexArrays(1, &quad_vao_);
-		glGenBuffers(1, &quad_vbo_);
-		glBindVertexArray(quad_vao_);
-		glBindBuffer(GL_ARRAY_BUFFER, quad_vbo_);
-		glBufferData(GL_ARRAY_BUFFER,
-					 sizeof(quadVertices),
-					 &quadVertices,
-					 GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(
-				0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1,
-							  2,
-							  GL_FLOAT,
-							  GL_FALSE,
-							  5 * sizeof(float),
-							  (void*)(3 * sizeof(float)));
+void Render::InitPostProcessing() {
+	if(profile_.ao) 
+		ssao_ = std::make_shared<SSAO>(width_, height_);
+
+	if(profile_.ssr) 
+		ssr_ = std::make_shared<SSR>(width_, height_);
+	
+	if(profile_.fxaa) 
+		fxaa_ = std::make_shared<FXAA>(width_, height_);
+
+	composite_ = std::make_shared<Composite>(width_, height_);
+}
+
+void Render::RenderPostProcessingPasses(Camera* camera, 
+		const std::vector<GLuint>& in, GLuint& out) {
+	// SSAO
+	std::vector<GLuint> ssao_out(1);
+	if (profile_.ao) {
+		glm::mat4 view = camera->GetViewMatrix();
+		glm::mat4 projection = camera->GetProjectionMatrix();
+
+		std::vector<GLuint> ssao_in;
+		ssao_in.push_back(in[1]);
+		ssao_in.push_back(in[2]);
+		ssao_->Draw(ssao_in, ssao_out, view, projection);
 	}
-	glBindVertexArray(quad_vao_);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
+
+	// SSR
+	std::vector<GLuint> ssr_out(1);
+	if (profile_.ssr) {
+		glm::mat4 view = camera->GetViewMatrix();
+		glm::mat4 projection = camera->GetProjectionMatrix();
+
+		std::vector<GLuint> ssr_in;
+		ssr_in.push_back(in[0]);
+		ssr_in.push_back(in[1]);
+		ssr_in.push_back(in[2]);
+		ssr_->Draw(ssr_in, ssr_out, view, projection);
+	}
+
+	// Composite
+	std::vector<GLuint> composite_out(1);
+	std::vector<GLuint> composite_in;
+	composite_in.push_back(in[0]);
+	composite_in.push_back(ssao_out[0]);
+	composite_in.push_back(ssr_out[0]);
+	composite_->Draw(composite_in, composite_out, 
+			profile_.ao, profile_.ssr, profile_.shading);
+
+	// FXAA
+	std::vector<GLuint> fxaa_out(1);
+	if(profile_.fxaa) {
+		std::vector<GLuint> fxaa_in;
+		fxaa_in.push_back(composite_out[0]);
+		fxaa_->Draw(fxaa_in, fxaa_out);
+
+		out = fxaa_out[0];
+	} else {
+		out = composite_out[0];
+	}
+}
+
+// --------------------------------------------------------------------------------------------
+
+void Render::InitShadowMaps(const float fov) {
+	if(!profile_.shadow) 
+		return;
+
+	if(shadow_.first_run) {
+		shadow_.csm_uniforms.direction = glm::vec4(-1.0f * dir_light_.direction, 0.0f);
+		shadow_.csm_uniforms.direction = glm::normalize(shadow_.csm_uniforms.direction);
+		shadow_.csm_uniforms.options.x = 1;
+		shadow_.csm_uniforms.options.y = 0;
+		shadow_.csm_uniforms.options.z = 1;
+
+		shadow_.csm.initialize(
+			shadow_.pssm_lamda,
+			shadow_.near_offset,
+			shadow_.cascade_count,
+			shadow_.shadow_map_size,
+			fov,
+			width_,
+			height_,
+			shadow_.csm_uniforms.direction
+		);
+
+		shadow_.first_run = false;
+	}
 }
 
 void Render::RenderShadowMaps(RenderWorld* world, Camera* camera) {
+	if(!profile_.shadow) 
+		return;
 
 	InitShadowMaps(camera->GetFOV());
 
@@ -527,36 +550,46 @@ void Render::RenderShadowMaps(RenderWorld* world, Camera* camera) {
 	glCullFace(GL_BACK);
 }
 
-void Render::InitShadowMaps(const float fov) {
-	if(!profile_.shadow) 
-		return;
+// --------------------------------------------------------------------------------------------
 
-	if(shadow_.first_run) {
-		shadow_.csm_uniforms.direction = glm::vec4(-1.0f * dir_light_.direction, 0.0f);
-		shadow_.csm_uniforms.direction = glm::normalize(shadow_.csm_uniforms.direction);
-		shadow_.csm_uniforms.options.x = 1;
-		shadow_.csm_uniforms.options.y = 0;
-		shadow_.csm_uniforms.options.z = 1;
-
-		shadow_.csm.initialize(
-			shadow_.pssm_lamda,
-			shadow_.near_offset,
-			shadow_.cascade_count,
-			shadow_.shadow_map_size,
-			fov,
-			width_,
-			height_,
-			shadow_.csm_uniforms.direction
-		);
-
-		shadow_.first_run = false;
+void Render::InitVCT() {
+	if(profile_.vct) {
+		if(!profile_.shadow) {
+			printf("[Renderer] VCT requires shadow mapping!\n");
+			exit(-1);
+		}
+		vct_ = std::make_shared<VCT>(width_, height_);
 	}
 }
+
+void Render::BakeGI() {
+	if(profile_.vct) 
+		vct_->ForceBakeOnNextFrame();
+}
+
+// --------------------------------------------------------------------------------------------
 
 void Render::InitVisualization() {
 	if(profile_.visualize) {
 		visualize_ = std::make_shared<Visualization>(width_, height_, ctx_);
 	}
+}
+
+void Render::RenderVisualization(RenderWorld* world, Camera *camera) {
+	if(profile_.visualize) {
+		GLuint lidar_capture = 0;
+		if(profile_.multirays && capture_) { 
+			lidar_capture = capture_->GetRawCubeMap();
+		}		
+		visualize_->Visualize(world, camera, lidar_capture);
+	}
+}
+
+// --------------------------------------------------------------------------------------------
+
+void Render::UpdateRay(const int offset, const glm::vec3 from, const glm::vec3 to) {
+	if(profile_.visualize && visualize_)
+		visualize_->UpdateRay(offset, from, to);
 }
 
 void Render::InitDrawBatchRays(const int rays) {
@@ -565,42 +598,31 @@ void Render::InitDrawBatchRays(const int rays) {
 	}
 }
 
-void Render::UpdateRay(const int offset, const glm::vec3 from, const glm::vec3 to) {
-	if(profile_.visualize && visualize_) {
-		visualize_->UpdateRay(offset, from, to);
+// --------------------------------------------------------------------------------------------
+
+void Render::InitLidarCapture() {
+	if(profile_.multirays) {
+		capture_ = std::make_shared<Capture>(kLidarCaptureRes);
 	}
 }
 
-void Render::InitPostProcessing() {
-	if(profile_.ao) {
-		ssao_ = std::make_shared<SSAO>(width_, height_);
+void Render::RenderLidarCapture(RenderWorld* world, Camera* camera, GLuint& depth) {
+	if(profile_.multirays) {
+		capture_->RenderCubemap(world, camera);
+		capture_->Stitch(depth, lidar_image_);
 	}
-
-	if(profile_.ssr) {
-		ssr_ = std::make_shared<SSR>(width_, height_);
-	}
-	
-	if(profile_.fxaa) {
-		fxaa_ = std::make_shared<FXAA>(width_, height_);
-	}
-
-	composite_ = std::make_shared<Composite>(width_, height_);
 }
 
-void Render::InitVCT() {
-	if(!profile_.vct)
-		return;
+// --------------------------------------------------------------------------------------------
 
-	vct_ = std::make_shared<VCT>(width_, height_);
-}
 
 void Render::InitPBOs() {
-	glGenBuffers(2, pbos_);
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos_[0]);
+	glGenBuffers(2, camera_pbos_);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[0]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, 
 				 width_ * height_ * 2 * sizeof(unsigned char),
 				 nullptr, GL_STREAM_READ);
-	glBindBuffer(GL_PIXEL_PACK_BUFFER, pbos_[1]);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[1]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, 
 				 width_ * height_ * 2 * sizeof(unsigned char),
 				 nullptr, GL_STREAM_READ);
@@ -630,7 +652,37 @@ void Render::InitShaders() {
 							pwd + "/shaders/hud.fs");
 }
 
+void Render::RenderQuad() {
+	if (quad_vao_ == 0) {
+		constexpr float quadVertices[] = {
+			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		};
+		
+		glGenVertexArrays(1, &quad_vao_);
+		glGenBuffers(1, &quad_vbo_);
+		glBindVertexArray(quad_vao_);
+		glBindBuffer(GL_ARRAY_BUFFER, quad_vbo_);
+		glBufferData(GL_ARRAY_BUFFER,
+					 sizeof(quadVertices),
+					 &quadVertices,
+					 GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(
+				0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1,
+							  2,
+							  GL_FLOAT,
+							  GL_FALSE,
+							  5 * sizeof(float),
+							  (void*)(3 * sizeof(float)));
+	}
+	glBindVertexArray(quad_vao_);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
 
 }}
-
-								   

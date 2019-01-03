@@ -38,7 +38,6 @@ class XWorld3DNavTargetNear(XWorld3DTask):
 		self.target = "cat"
 		self.target_object = self.env.QueryObjectByLabel(self.target)[0]
 		self.near_objects = self.env.QueryObjectNearObject(self.target_object, True, 4.5)
-		print self.near_objects
 
 		self._bind("S -> start")
 		self._bind("G -> '" + self.target + "'")
@@ -100,12 +99,7 @@ class XWorld3DNavTargetNear(XWorld3DTask):
 
 class XWorld3DEnv(object):
 	def __init__(self):
-		self.env = Playground(640, \
-							  480, \
-							  HEADLESS, \
-							  QUALITY_NORMAL, \
-							  0)
-
+		self.env = Playground(640, 480, HEADLESS, NORMAL, GPU0)
 		self.task_group = TaskGroup("TaskGroup")
 		self.task_group.add_task("NavTargetNear", XWorld3DNavTargetNear(self.env))
 		self.first = True

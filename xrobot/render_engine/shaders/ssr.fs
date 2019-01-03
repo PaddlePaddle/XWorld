@@ -51,7 +51,7 @@ void main()
     float backfacingFactor = 1.0 - smoothstep(-1.0, -0.8, R.z);
     ssr *= backfacingFactor;
     error *= backfacingFactor;
-    FragColor = rough * 0.5 * mix(ssr, vec3(0), max(1.0 - error, 0.0));
+    FragColor = rough * 0.7 * mix(ssr, vec3(0), max(1.0 - error, 0.0));
 }
  
 vec3 binarySearch(inout vec3 dir, inout vec3 hitCoord, inout float dDepth)

@@ -425,11 +425,16 @@ void BulletBody::get_closest_points(const ClientHandle client,
 }
 
 void BulletBody::get_contact_points(const ClientHandle client,
-        std::vector<ContactPoint>& points) {
+        std::vector<ContactPoint>& points, const int link_id) {
     struct b3ContactInformation contact_point_data;
     CommandHandle cmd_handle = b3InitRequestContactPointInformation(client);
 
     b3SetContactFilterBodyA(cmd_handle, body_data_.body_uid);
+
+    if (link_id >= -1) {
+        b3SetContactFilterLinkA(cmd_handle, link_id);
+    }
+
     b3SubmitClientCommandAndWaitStatus(client, cmd_handle);
 
     b3GetContactPointInformation(client, &contact_point_data);

@@ -1227,7 +1227,7 @@ void MapGrid::ResetMap() {
 		world_->CleanEverything();
 	}
 
-	printf("[Reset] %d\n", world_->reset_count_);
+	printf("[World] Reset %d\n", world_->reset_count_);
 
 	agent_spawn_position_ = vec2();
 	agent_spawn_ = false;

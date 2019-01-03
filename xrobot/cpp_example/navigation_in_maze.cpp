@@ -87,18 +87,11 @@ namespace xrobot
 
 		// Initialize the Scene
 	    scene_->world_->BulletStep();
-	    renderer_->BakeGI(scene_->world_.get());
-
+	    renderer_->BakeGI();
 	    return "NavTarget";
 	}
 
 	std::string Task_NavToObject::NavTarget() {
-
-		ctx_->PollEvent();
-		if(ctx_->GetKeyPressSpace()) {
-			return "idle";
-		}
-
 		if(auto agent_sptr = agent_.lock()) {
 			if(ctx_->GetKeyPressUp())
 	            agent_sptr->MoveForward(2);
@@ -174,8 +167,6 @@ namespace xrobot
         // Step Simulation and Renderer
         scene_->world_->BulletStep();   
         renderer_->StepRender(scene_->world_.get());
-        ctx_->SwapBuffer();
-        ctx_->PollEvent();
 
         return "NavTarget";
 	}

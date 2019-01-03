@@ -1,14 +1,5 @@
 #include "utils.h"
 
-void startBenchmark() {
-    benchmark_timer = std::clock();
-}
-
-void endBenchmark() {
-    double duration = (std::clock() - benchmark_timer) / (double) CLOCKS_PER_SEC;
-    std::cout << "Duration: " << duration << std::endl;
-}
-
 std::string read_file(const std::string& fn) {
     FILE* f = fopen(fn.c_str(), "rt");
     if (!f) {

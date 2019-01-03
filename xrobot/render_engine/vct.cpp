@@ -92,7 +92,7 @@ void VCT::Draw(RenderWorld* world, const Shader& shader) {
 	for (size_t i = 0; i < world->size(); ++i) {
 		RenderBody* body = world->render_body_ptr(i);
 
-		if(body->is_hiding())
+		if(body->is_hiding() || body->ignore_baking())
 			continue;
 
 		// Root

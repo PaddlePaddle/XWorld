@@ -24,6 +24,7 @@ enum VisualizationShader {
 	kAABB,
 	kRay,
 	kLambert,
+	kPointCloud,
 	kVisualizationShaders
 };
 
@@ -34,11 +35,13 @@ public:
 				  GLContext* ctx);
 	~Visualization();
 
-	void Visualize(RenderWorld* world);
+	void Visualize(RenderWorld* world, Camera* camera, GLuint tex);
 	GLuint GetTexture() const { return visualization_->texture_id(0); }
 
 	void InitShaders();
 	void RenderAABB();
+	void DrawPointCloud(const GLuint tex, Camera* camera, const int size,
+			const int dir);
 	void DrawRootAABB(RenderWorld* world, const Shader& shader);
 	void DrawSubTiles(RenderWorld* world, const Shader& shader);
 	void DrawWorldAABB(RenderWorld* world, const Shader& shader);
@@ -60,6 +63,7 @@ private:
     GLContext* ctx_;
     int width_, height_;
     std::vector<Shader> shaders_;
+    GLuint pc_vao_, pc_vbo_;
 
     bool lidar_;
     int num_rays_;

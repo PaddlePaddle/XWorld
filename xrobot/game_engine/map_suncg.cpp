@@ -3,11 +3,7 @@
 namespace xrobot
 {
 
-MapSuncg::~MapSuncg()
-{
-	//delete world_;
-	world_ = nullptr;
-}
+MapSuncg::~MapSuncg() {}
 
 MapSuncg::MapSuncg() : Map(),
 					   all_labels_(),
@@ -269,7 +265,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Floor",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f
+							!isMirrored
 						);
 
 						if(auto object_sptr = object.lock())
@@ -290,7 +286,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Floor",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f
+							!isMirrored
 						);
 
 						if(auto object_sptr = object.lock())
@@ -310,7 +306,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Wall",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f,
+							!isMirrored,
 							concave
 						);
 
@@ -335,7 +331,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 							"Ceiling",
 							true,
 							0,
-							isMirrored == 1 ? -1.0f : 1.0f,
+							!isMirrored,
 							concave
 						);
 
@@ -372,7 +368,7 @@ void MapSuncg::LoadJSON(const char * houseFile, const char * input_data_director
 						all_labels_[modelId],
 						false,
 						mass,
-						isMirrored == 1 ? -1.0f : 1.0f,
+						!isMirrored,
 						concave
 					);
 
@@ -479,7 +475,7 @@ void MapSuncg::LoadCategoryCSV(const char * metadataFile)
 void MapSuncg::ResetMap()
 {
 	
-	printf("[Reset] %d\n", world_->reset_count_);
+	printf("[World] Reset %d\n", world_->reset_count_);
 
 	if(world_->reset_count_ % 1000 == 0)
 		world_->CleanEverything();
@@ -522,9 +518,6 @@ void MapSuncg::SetMapSize(const float min_x, const float min_z,
 	world_->set_world_size(min_x, min_z, max_x, max_z);
 }
 
-void MapSuncg::GetMapAABB()
-{
-
-}
+void MapSuncg::GetMapAABB() {}
 
 }

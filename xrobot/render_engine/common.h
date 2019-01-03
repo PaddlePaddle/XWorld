@@ -26,37 +26,40 @@ struct Profile {
     bool vct;
     bool fxaa;
     bool visualize;
+    bool multirays;
 };
 
+constexpr int kLidarCaptureRes = 64;
+
 const struct Profile kVeryLowQuality = {
-        false, false, false, false, false, false, false};
+        false, false, false, false, false, false, false, false};
 
 const struct Profile kLowQuality = {
-        true, false, false, false, false, false, false};
+        true, false, false, false, false, false, false, false};
 
 const struct Profile kNormalQualityNS = {
-        true, false, true, true, false, true, false};
+        true, false, true, true, false, true, false, false};
 
 const struct Profile kNormalQuality = {
-        true, true, true, false, false, true, false};
+        true, true, true, true, false, true, false, false};
 
 const struct Profile kHighQuality = {
-        true, true, true, false, true, true, false};
+        true, true, true, false, true, true, false, false};
 
 const struct Profile kVeryLowQualityVisualize = {
-        false, false, false, false, false, false, true};
+        false, false, false, false, false, false, true, false};
 
 const struct Profile kLowQualityVisualize  = {
-        true, false, false, false, false, false, true};
+        true, false, false, false, false, false, true, false};
 
 const struct Profile kNormalQualityNSVisualize = {
-        true, false, true, true, false, true, false};
+        true, false, true, true, false, true, false, false};
 
 const struct Profile kNormalQualityVisualize  = {
-        true, true, true, false, false, true, true};
+        true, true, true, false, false, true, true, false};
 
 const struct Profile kHighQualityVisualize  = {
-        true, true, true, false, true, true, true};
+        true, true, true, false, true, true, true, false};
 
 const Profile profiles[10] = {
         kVeryLowQuality, kLowQuality, kNormalQualityNS, kNormalQuality, kHighQuality,
@@ -87,9 +90,10 @@ struct PSSM {
     bool first_run = true;
 };
 
+template <typename T>
 struct Image {
     Image() : data(0) {}
-    std::vector<unsigned char> data;
+    std::vector<T> data;
 };
 
 static std::string get_pwd(const std::string& file) {
