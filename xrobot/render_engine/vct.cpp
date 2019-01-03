@@ -89,12 +89,12 @@ void VCT::Draw(RenderWorld* world, const Shader& shader) {
 		}
 	};
 
-	for (size_t i = 0; i < world->size(); ++i) {
-		RenderBody* body = world->render_body_ptr(i);
-
-		if(body->is_hiding() || body->ignore_baking())
+    world->robot_iteration_begin();
+    while (world->has_next_robot()) {
+        RenderBody* body = world->next_robot();
+		if(body->is_hiding() || body->ignore_baking()) {
 			continue;
-
+        }
 		// Root
 		RenderPart* root = body->render_root_ptr();
 		if (root && !body->is_recycled()) {

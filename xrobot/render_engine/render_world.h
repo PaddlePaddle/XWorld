@@ -77,9 +77,7 @@ public:
     virtual void attach_camera(const glm::vec3& offset,
                                const float pitch,
                                glm::vec3& loc,
-                               glm::vec3& front,
-                               glm::vec3& right,
-                               glm::vec3& up) = 0;
+                               glm::vec3& front, glm::vec3& right, glm::vec3& up) = 0;
 
 protected:
     bool hide_;
@@ -136,9 +134,17 @@ public:
 
     int get_highlight_center() const { return highlight_center_; }
 
+    virtual void robot_iteration_begin() = 0;
+
+    virtual RenderBody* next_robot() = 0;
+    
+    virtual bool has_next_robot() const = 0;
+
+    /* lxc
     virtual const RenderBody* render_body_ptr(const size_t i) const = 0;
  
     virtual RenderBody* render_body_ptr(const size_t i) = 0;
+    */
 
     void render_step();
 

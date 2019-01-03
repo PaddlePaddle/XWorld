@@ -15,10 +15,6 @@
 
 namespace xrobot {
     
-class Inventory;
-class RobotBase;
-class World;
-
 struct ContactPoint {
     glm::vec3 contact_normal;
     glm::vec3 contact_position_a;
@@ -41,11 +37,6 @@ struct RayTestInfo {
 };
 
 namespace bullet_engine {
-
-typedef std::shared_ptr<RobotBase> RobotBaseSPtr;
-typedef std::weak_ptr<RobotBase> RobotBaseWPtr;
-typedef std::shared_ptr<World> WorldSPtr;
-typedef std::weak_ptr<World> WorldWPtr;
 
 constexpr int kAllThreads = 0;
 constexpr int kCacheSize = 32;

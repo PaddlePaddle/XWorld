@@ -385,9 +385,15 @@ void Render::Draw(RenderWorld* world, const Shader& shader, const bool cull) {
 		}
 	};
 
+    /* lxc
 	for (size_t i = 0; i < world->size(); ++i) {
 		RenderBody* body = world->render_body_ptr(i);
-
+    */
+    // lxc begin
+    world->robot_iteration_begin();
+    while (world->has_next_robot()) {
+        RenderBody* body = world->next_robot();
+    // lxc end
 		if(body->is_hiding())
 			continue;
 

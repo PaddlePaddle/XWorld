@@ -1307,9 +1307,8 @@ boost::python::list Playground::EnableInteraction()
 
     auto bullet_world = scene_->world_;
 
-    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
-    {
-        auto body = bullet_world->robot_list_[i];
+    for (auto& kv : bullet_world->id_to_robot_) {
+        auto body = kv.second;
 
         if (!body->is_recycled()) {
 
@@ -1457,9 +1456,8 @@ bool Playground::TakeAction(const int action_id)
 
     auto bullet_world = scene_->world_;
 
-    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
-    {
-        auto body = bullet_world->robot_list_[i];
+    for (auto& kv : bullet_world->id_to_robot_) {
+        auto body = kv.second;
         if (!body->is_recycled()) {
 
             if(std::dynamic_pointer_cast<RobotWithAnimation>(body) || 
@@ -1511,9 +1509,8 @@ void Playground::Use(const int object_id)
 
     auto bullet_world = scene_->world_;
 
-    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
-    {
-        auto body = bullet_world->robot_list_[i];
+    for (auto& kv : bullet_world->id_to_robot_) {
+        auto body = kv.second;
 
         if (!body->is_recycled()) {
 
@@ -1647,9 +1644,8 @@ boost::python::list Playground::QueryObjectNearObject(Thing& object, const bool 
     float pos_z = boost::python::extract<float>(object_position[2]); 
     glm::vec3 object_pos(pos_x, pos_y, pos_z);
 
-    for (int i = 0; i < bullet_world->robot_list_.size(); ++i)
-    {
-        auto body = bullet_world->robot_list_[i];
+    for (auto& kv : bullet_world->id_to_robot_) {
+        auto body = kv.second;
 
         if (!body->is_recycled() && body->body_data_.body_uid >= 0) {
 
