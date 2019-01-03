@@ -202,6 +202,8 @@ void Render::RenderHUD(RenderWorld* world,
 
 	RenderQuad();
 
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+
 	if(world->inventory_size_) {
 		Shader flat = shaders_[kFlat];
 		flat.use();
@@ -235,6 +237,8 @@ void Render::RenderHUD(RenderWorld* world,
 		}
 	}
 
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
 	const float half_height = height_ * 0.5f;
 	const int   half_pixels = width_ * height_ * 2;
 
@@ -243,7 +247,7 @@ void Render::RenderHUD(RenderWorld* world,
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[0]);
 	glReadPixels(0, 0, width_, half_height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[1]);
-	glReadPixels(0, half_height + 1, width_, half_height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+	glReadPixels(0, half_height, width_, half_height, GL_BGRA, GL_UNSIGNED_BYTE, 0);
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, camera_pbos_[0]);
 	GLubyte* pbo_ptr= (GLubyte*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);

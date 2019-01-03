@@ -40,6 +40,7 @@ The code in the `xrobot/directory` is organized as follows:
 - bullet_engine/ contains code for simulation
 - render_engine/ contains code for rendering the scene
     - render_engine/EGL/ contains EGL extensions
+    - render_engine/KHR/ contains Khronos platform-specific types and definitions
     - render_engine/shaders/ contains various shaders which are necessary for render engine
 
 # Performance
@@ -227,7 +228,7 @@ class XWorld3DEnv(object):
     def __init__(self):
 
         ## Create playground here
-        self.env = Playground(640,480,HEADLESS,RENDER_QUALITY_LOW,0)
+        self.env = Playground(640,480,HEADLESS,LOW,0)
 
         ## Create a task group. A task group is a container for the same type of tasks.
         ## By calling the function 'run_stage' to randomly run a task in the task group.

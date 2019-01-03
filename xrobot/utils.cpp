@@ -62,7 +62,7 @@ void cuda_visible_devices(std::vector<int>& device_ids) {
     }
 }
 
-void padTo(std::string &str, const size_t num, const char paddingChar) {
+void pad_to(std::string &str, const size_t num, const char paddingChar) {
     if(num > str.size()) str.insert(0, num - str.size(), paddingChar);
 }
 
