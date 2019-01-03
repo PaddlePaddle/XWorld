@@ -4,45 +4,39 @@
 
 namespace xrobot {
 
-Grid::Grid(const int width, const int length) : width_(width),
-                                                length_(length),
-                                                world_min_(glm::vec2(0,0)),
-                                                grid_size_(glm::vec2(0,0)),
-                                                data_(width * length) {}
+Grid::Grid(const int width, const int length) : 
+        width_(width),
+        length_(length),
+        world_min_(glm::vec2(0,0)),
+        grid_size_(glm::vec2(0,0)),
+        data_(width * length) {}
 
-Grid::Grid(const Grid& other) : width_(other.width_),
-                                length_(other.length_),
-                                world_min_(other.world_min_),
-                                grid_size_(other.grid_size_),
-                                data_(other.data_) {}
+Grid::Grid(const Grid& other) : 
+        width_(other.width_),
+        length_(other.length_),
+        world_min_(other.world_min_),
+        grid_size_(other.grid_size_),
+        data_(other.data_) {}
 
-void Grid::Visualize()
-{
-    for (int i = 0; i < length_; ++i)
-    {
-        for (int j = 0; j < width_; ++j)
-        {
+void Grid::Visualize() {
+    for (int i = 0; i < length_; ++i) {
+        for (int j = 0; j < width_; ++j) {
             printf("%s ", data_[i * width_ + j]->block ? "x" : " ");
         }
         printf("\n");
     }
 }
 
-std::vector<std::shared_ptr<Node>> Grid::GetNeighbours(
-    std::shared_ptr<Node> node)
-{
-    std::vector<std::shared_ptr<Node>> neighbours(0);
+std::vector<NodeSPtr> Grid::GetNeighbours(const NodeSPtr& node) {
+    std::vector<NodeSPtr> neighbours(0);
 
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
-            if(x == 0 && y == 0)
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            if(x == 0 && y == 0) {
                 continue;
-
+            }
             int check_x = node->x + x;
             int check_y = node->y + y;
-
             if(check_x >= 0 && check_x < width_ &&
                check_y >= 0 && check_y < length_) {
                 neighbours.push_back(data_[check_y * width_ + check_x]);
@@ -53,28 +47,22 @@ std::vector<std::shared_ptr<Node>> Grid::GetNeighbours(
     return neighbours;
 }
 
-std::shared_ptr<Node> Grid::GetNodeFromWorldPosition(const glm::vec2 position)
-{
-    glm::vec2 relative_position = (position - world_min_)
-        / (glm::vec2(width_, length_) * grid_size_);
-
-    relative_position = glm::clamp(relative_position, 
-                                   glm::vec2(0,0),
-                                   glm::vec2(1,1));
-
-    int x = round((width_ - 1) * relative_position.x);
-    int y = round((length_ - 1) * relative_position.y);
-
+NodeSPtr Grid::GetNodeFromWorldPosition(const glm::vec2& pos2d) {
+    glm::vec2 rel_pos =
+            (pos2d - world_min_) / (glm::vec2(width_, length_) * grid_size_);
+    rel_pos = glm::clamp(rel_pos, glm::vec2(0,0), glm::vec2(1,1));
+    int x = round((width_ - 1) * rel_pos.x);
+    int y = round((length_ - 1) * rel_pos.y);
     if(x >= 0 && x < width_ && y >= 0 && y < length_) {
-        return data_[y * width_ + x];
+        return data_[y*width_ + x];
     }
 
     return nullptr;
 }
 
 Navigation::Navigation(
-		render_engine::GLContext * ctx,
-		World * world,
+		render_engine::GLContext* ctx,
+		World* world,
 		const unsigned int width,
 		const unsigned int length) : ctx_(ctx),
 									 world_(world),
@@ -88,8 +76,7 @@ Navigation::Navigation(
                                      update_counter_(0),
                                      counter_(0),
                                      agent_id_base_(0),
-                                     agent_radius_(0.0f)
-{
+                                     agent_radius_(0.0f) {
 	assert(ctx && world);
 	assert(width > 0 && length > 0);
 
@@ -119,47 +106,44 @@ Navigation::Navigation(
     	pwd + "/render_engine/shaders/navmap.fs");
 }
 
-Navigation::~Navigation()
-{
+Navigation::~Navigation() {
 	glDeleteFramebuffers(1, &fbo_);
 	glDeleteTextures(1, &grid_texture_);
     Reset();
 }
 
-void Navigation::Reset()
-{
+void Navigation::Reset() {
     crowd_.clear();
     request_manager_.Flush();
 
-    for (int i = 0; i < grid_map_.data_.size(); ++i)
-    {
+    for (int i = 0; i < grid_map_.data_.size(); ++i) {
         grid_map_.data_[i] = nullptr;
     }
 }
 
 // Testing
-void Navigation::SpawnAgent(const glm::vec3 position,
-                            const glm::quat orientation,
-                            const std::string& path, 
-                            const std::string& label)
-{
+void Navigation::SpawnAgent(
+        const glm::vec3& pos,
+        const glm::quat& quat,
+        const std::string& path, 
+        const std::string& label) {
     // Greate Robot
     std::weak_ptr<RobotBase> robot = world_->LoadRobot(
-        path,
-        glm::vec3(position.x, 0.001, position.z),
-        glm::vec4(orientation.x,orientation.y,orientation.z,orientation.w),
-        glm::vec3(1, 1, 1),
-        label,
-        false
-    );
+            path,
+            glm::vec3(pos.x, 0.001, pos.z),
+            glm::vec4(quat.x, quat.y, quat.z, quat.w),
+            glm::vec3(1, 1, 1),
+            label,
+            false);
 
-    if(auto robot_sptr = robot.lock()) 
+    if(auto robot_sptr = robot.lock()) {
         robot_sptr->ignore_baking(true);
+    }
 
     world_->BulletStep();
 
     Agent agent;
-    agent.current_position_ = position;
+    agent.current_pos_ = pos;
     agent.robot_ = robot;
     agent.speed_ = 0.005f;
     agent.uid_ = agent_id_base_++;
@@ -167,43 +151,44 @@ void Navigation::SpawnAgent(const glm::vec3 position,
     crowd_.push_back(agent);
 }
 
-Agent::Agent() : robot_(),
-                 target_index_(0),
-                 speed_(0.1f),
-                 path_(0),
-                 distance_(0.0f),
-                 angle_(0.0f),
-                 uid_(0),
-                 last_direction_(glm::vec3(0,0,0)),
-                 current_position_(glm::vec3(0,0,0)),
-                 target_position_(glm::vec3(0,0,0)),
-                 request_update_(true) {}
+Agent::Agent() :
+        robot_(),
+        target_index_(0),
+        speed_(0.1f),
+        path_(0),
+        distance_(0.0f),
+        angle_(0.0f),
+        uid_(0),
+        last_direction_(glm::vec3(0,0,0)),
+        current_pos_(glm::vec3(0,0,0)),
+        target_pos_(glm::vec3(0,0,0)),
+        request_update_(true) {}
 
 void Agent::FollowPath() {
 
-    if(path_.size() < 1)
-        return;
-
-    if(target_index_ >= path_.size())
-	    return;
-
-    if(auto robot_sptr = robot_.lock()) {
-
+    if(path_.size() < 1) {
+        return; 
+    }
+                
+    if(target_index_ >= path_.size()) {
+	    return; 
+    }
+                
+    if (auto robot_sptr = robot_.lock()) {
         //Update Current Status
         btTransform current_transform_bt = robot_sptr->root_part_->object_position_;
-        btVector3 current_position_bt = current_transform_bt.getOrigin();
+        btVector3 current_pos_bt = current_transform_bt.getOrigin();
 
-        current_position_ = glm::vec3(
-            current_position_bt[0],
-            current_position_bt[1],
-            current_position_bt[2]
-        );
+        current_pos_ = glm::vec3(
+                current_pos_bt[0],
+                current_pos_bt[1],
+                current_pos_bt[2]);
 
         // On Track
-        glm::vec2 current_position_2d(current_position_.x, current_position_.z);
-        glm::vec2 current_waypoint_2d = path_[target_index_]->world_position;
+        glm::vec2 current_pos_2d(current_pos_.x, current_pos_.z);
+        glm::vec2 current_waypoint_2d = path_[target_index_]->world_pos;
 
-        if(glm::distance(current_position_2d, current_waypoint_2d) < 0.2f) {
+        if(glm::distance(current_pos_2d, current_waypoint_2d) < 0.2f) {
             target_index_++;
             if(target_index_ >= path_.size()) {
                 return;
@@ -211,21 +196,22 @@ void Agent::FollowPath() {
         }
 
         // Move to Waypoint
-        glm::vec2 direction_2d = glm::normalize(current_waypoint_2d - current_position_2d);
+        glm::vec2 direction_2d =
+                glm::normalize(current_waypoint_2d - current_pos_2d);
         glm::vec3 direction_3d = glm::vec3(direction_2d.x, 0, direction_2d.y);
-        current_position_ += direction_3d * speed_;
+        current_pos_ += direction_3d * speed_;
     }
 }
 
-void Agent::AssignTarget(const glm::vec3 position) {
-    target_position_ = position;
+void Agent::AssignTarget(const glm::vec3& pos) {
+    target_pos_ = pos;
     request_update_ = true;
 }
 
-PathRequestManager::PathRequestManager() : requests_(),
-                                           current_request_(),
-                                           grid_map_() 
-{
+PathRequestManager::PathRequestManager() :
+        requests_(),
+        current_request_(),
+        grid_map_() {
 
     // for (int i = 0; i < workers_.size(); ++i)
     // {
@@ -245,16 +231,15 @@ PathRequestManager::PathRequestManager() : requests_(),
     // }
 }
 
-std::vector<std::shared_ptr<Node>> PathRequestManager::RequestPath(
-    glm::vec2 path_start, glm::vec2 path_end) 
-{
+std::vector<NodeSPtr> PathRequestManager::RequestPath(
+        const glm::vec2& path_start, const glm::vec2& path_end) {
     PathRequest new_request(path_start, path_end);
     requests_.push(new_request);
     //requests_.enqueue(new_request);
     return ProcessNext();
 }
 
-std::vector<std::shared_ptr<Node>> PathRequestManager::ProcessNext() {
+std::vector<NodeSPtr> PathRequestManager::ProcessNext() {
     if(requests_.size()) {
         current_request_ = requests_.front();
         requests_.pop();
@@ -266,7 +251,7 @@ std::vector<std::shared_ptr<Node>> PathRequestManager::ProcessNext() {
         );
     }
 
-    std::vector<std::shared_ptr<Node>> no_result(0);
+    std::vector<NodeSPtr> no_result(0);
     return no_result;
 }
 
@@ -275,23 +260,19 @@ void PathRequestManager::Flush() {
     std::swap(requests_, empty);
 }
 
-Pathfinding::Pathfinding(Grid grid_map) : grid_map_(grid_map) {}
+std::vector<NodeSPtr> Pathfinding::FindPath(
+        const glm::vec2& seek, const glm::vec2& target) {
+    NodeSPtr start_node = grid_map_.GetNodeFromWorldPosition(seek);
+    NodeSPtr end_node = grid_map_.GetNodeFromWorldPosition(target);
 
-std::vector<std::shared_ptr<Node>> Pathfinding::FindPath(const glm::vec2 seek, 
-                                                         const glm::vec2 target)
-{
-    std::shared_ptr<Node> start_node = grid_map_.GetNodeFromWorldPosition(seek);
-    std::shared_ptr<Node> end_node = grid_map_.GetNodeFromWorldPosition(target);
-
-    std::vector<std::shared_ptr<Node>> open_set;
-    std::unordered_set<std::shared_ptr<Node>> closed_set;
+    std::vector<NodeSPtr> open_set;
+    std::unordered_set<NodeSPtr> closed_set;
     open_set.push_back(start_node);
 
     while(open_set.size() > 0) {
-        std::shared_ptr<Node> node = open_set.front();
+        NodeSPtr node = open_set.front();
 
-        for (int i = 1; i < open_set.size(); ++i)
-        {
+        for (int i = 1; i < open_set.size(); ++i) {
             if(open_set[i]->FCost() <  node->FCost() || 
                open_set[i]->FCost() == node->FCost()) {
                 if(open_set[i]->h_cost < node->h_cost)
@@ -300,8 +281,7 @@ std::vector<std::shared_ptr<Node>> Pathfinding::FindPath(const glm::vec2 seek,
         }
 
         auto it = std::find (open_set.begin(), open_set.end(), node);
-        if(it != open_set.end())
-        {
+        if(it != open_set.end()) {
             int offset = it - open_set.begin();
             open_set.erase(open_set.begin() + offset);
         }
@@ -312,8 +292,7 @@ std::vector<std::shared_ptr<Node>> Pathfinding::FindPath(const glm::vec2 seek,
             return RetracePath(start_node, end_node);
         }
 
-        for (std::shared_ptr<Node> neighbour : grid_map_.GetNeighbours(node))
-        {
+        for (NodeSPtr neighbour : grid_map_.GetNeighbours(node)) {
             auto it_t = closed_set.find(neighbour);
             if((neighbour->block || neighbour->carve) || it_t != closed_set.end()) {
                 continue;
@@ -336,49 +315,44 @@ std::vector<std::shared_ptr<Node>> Pathfinding::FindPath(const glm::vec2 seek,
         }
     }
 
-    std::vector<std::shared_ptr<Node>> no_result(0);
+    std::vector<NodeSPtr> no_result(0);
     return no_result;
 }
 
-std::vector<std::shared_ptr<Node>> Pathfinding::RetracePath(
-    std::shared_ptr<Node> start_node, std::shared_ptr<Node> end_node)
-{
-    std::vector<std::shared_ptr<Node>> path;
+std::vector<NodeSPtr> Pathfinding::RetracePath(
+    const NodeSPtr& start_node, const NodeSPtr& end_node) {
+    std::vector<NodeSPtr> path;
 
-    std::shared_ptr<Node> current_node = end_node;
+    NodeSPtr current_node = end_node;
 
     while (current_node != start_node) {
         path.push_back(current_node);
         current_node = current_node->parent;
     }
 
-    std::vector<std::shared_ptr<Node>> waypoints = SimplifyPath(path);
+    SimplifyPath(path);
 
-    std::reverse(waypoints.begin(), waypoints.end());
+    std::reverse(path.begin(), path.end());
 
-    return waypoints;
+    return path;
 }
 
-std::vector<std::shared_ptr<Node>> Pathfinding::SimplifyPath(
-    std::vector<std::shared_ptr<Node>> path)
-{
-    std::vector<std::shared_ptr<Node>> waypoints;
+void Pathfinding::SimplifyPath(std::vector<NodeSPtr>& path) {
     glm::vec2 direction_old = glm::vec2(0,0);
-
-    for (int i = 1; i < path.size(); ++i)
-    {
+    int p = 0;
+    for (int i = 1; i < path.size(); ++i) {
         glm::vec2 direction_new = glm::vec2(
-            path[i - 1]->x - path[i]->x,
-            path[i - 1]->y - path[i]->y
-        );
+                path[i - 1]->x - path[i]->x,
+                path[i - 1]->y - path[i]->y);
 
-        path[i - 1]->angle = glm::dot(direction_new, direction_old);
+        path[i-1]->angle = glm::dot(direction_new, direction_old);
 
         if(direction_new != direction_old) {
-            waypoints.push_back(path[i - 1]);
+            path[p++] = path[i-1];
         }
         direction_old = direction_new;
     }
+    path.resize(p);
 
     // Testing
     
@@ -421,99 +395,81 @@ std::vector<std::shared_ptr<Node>> Pathfinding::SimplifyPath(
     //     }
     //     printf("\n");
     // }
-
-    return waypoints;
 }
 
-int Pathfinding::GetDistance(std::shared_ptr<Node> node_a,
-                             std::shared_ptr<Node> node_b)
-{
+int Pathfinding::GetDistance(
+        const NodeSPtr& node_a, const NodeSPtr& node_b) {
     int dst_x = abs(node_a->x - node_b->x);
     int dst_y = abs(node_a->y - node_b->y);
 
-    if(dst_x > dst_y) 
+    if(dst_x > dst_y) {
         return 14 * dst_y + 10 * (dst_x - dst_y);
+    }
 
     return 14 * dst_x + 10 * (dst_y - dst_x);
 }
 
-void Navigation::Speration(const int current_id)
-{
+void Navigation::Speration(const int current_id) {
     glm::vec2 vel_speration = glm::vec2(0, 0);
 
     glm::vec2 agent_current = glm::vec2(
-        crowd_[current_id].current_position_.x, 
-        crowd_[current_id].current_position_.z
+            crowd_[current_id].current_pos_.x, 
+            crowd_[current_id].current_pos_.z
     );
 
-    for (int j = 0; j < crowd_.size(); ++j)
-    {
-        if(j == current_id)
-            continue;
+    for (int j = 0; j < crowd_.size(); ++j) {
+        if(j == current_id) { continue; }
 
-        if(crowd_[j].path_.size() < 1)
-            continue;
+        if(crowd_[j].path_.size() < 1) { continue; }
 
         glm::vec2 near_current = glm::vec2(
-            crowd_[j].current_position_.x, 
-            crowd_[j].current_position_.z
-        );
+                crowd_[j].current_pos_.x, crowd_[j].current_pos_.z);
 
         if(glm::distance(near_current, agent_current) < 1.0f) {
             vel_speration -= (near_current - agent_current);
         }
     }
 
-    for (int k = 0; k < carve_shapes_.size(); ++k)
-    {
-        glm::vec2 near_current = carve_shapes_[k].position;
-
-        if(glm::distance(near_current, agent_current) < carve_shapes_[k].radius * 0.75f) {
+    for (int k = 0; k < carve_shapes_.size(); ++k) {
+        glm::vec2 near_current = carve_shapes_[k].pos;
+        if (glm::distance(near_current, agent_current) <
+                carve_shapes_[k].radius * 0.75f) {
             vel_speration -= (near_current - agent_current) * 1.5f;
         }
     }
 
     vel_speration *= 0.00125f;
 
-    crowd_[current_id].current_position_ += glm::vec3(
-        vel_speration.x,
-        0,
-        vel_speration.y
-    );
+    crowd_[current_id].current_pos_ += glm::vec3(
+            vel_speration.x, 0, vel_speration.y);
 }
 
-void Navigation::Alignment(const int current_id)
-{
+void Navigation::Alignment(const int current_id) {
     glm::vec2 vel_alignment = glm::vec2(0, 0);
 
     glm::vec2 agent_current = glm::vec2(
-        crowd_[current_id].current_position_.x, 
-        crowd_[current_id].current_position_.z
+        crowd_[current_id].current_pos_.x, 
+        crowd_[current_id].current_pos_.z
     );
 
     float num_alignment = 0.0f;
 
-    for (int j = 0; j < crowd_.size(); ++j)
-    {
-        if(j == current_id)
-            continue;
+    for (int j = 0; j < crowd_.size(); ++j) {
+        if(j == current_id) { continue; }
 
-        if(crowd_[j].path_.size() < 1)
-            continue;
+        if(crowd_[j].path_.size() < 1) { continue; }
 
         glm::vec2 near_current = glm::vec2(
-            crowd_[j].current_position_.x, 
-            crowd_[j].current_position_.z
-        );
+                crowd_[j].current_pos_.x, 
+                crowd_[j].current_pos_.z);
 
-        if(glm::distance(near_current, agent_current) < 0.5f) {
-
+        if (glm::distance(near_current, agent_current) < 0.5f) {
             int target_index = crowd_[j].target_index_;
-
-            if(target_index >= crowd_[j].path_.size())
+            if(target_index >= crowd_[j].path_.size()) {
                 return;
+            }
 
-            glm::vec2 target = crowd_[j].path_[target_index]->world_position;
+            glm::vec2 target = crowd_[j].path_[target_index]->world_pos;
             glm::vec2 direction = glm::normalize(target - near_current);
 
             vel_alignment += direction;
@@ -526,36 +482,27 @@ void Navigation::Alignment(const int current_id)
         vel_alignment *= 0.0002f;
     }
 
-    crowd_[current_id].current_position_ += glm::vec3(
-        vel_alignment.x,
-        0,
-        vel_alignment.y
-    );
+    crowd_[current_id].current_pos_ += glm::vec3(
+            vel_alignment.x, 0, vel_alignment.y);
 }
 
-void Navigation::Cohesion(const int current_id)
-{
+void Navigation::Cohesion(const int current_id) {
     glm::vec2 vel_cohesion = glm::vec2(0, 0);
 
     glm::vec2 agent_current = glm::vec2(
-        crowd_[current_id].current_position_.x, 
-        crowd_[current_id].current_position_.z
-    );
+            crowd_[current_id].current_pos_.x, 
+            crowd_[current_id].current_pos_.z);
 
     float num_cohesion = 0.0f;
 
-    for (int j = 0; j < crowd_.size(); ++j)
-    {
-        if(j == current_id)
-            continue;
+    for (int j = 0; j < crowd_.size(); ++j) {
+        if(j == current_id) { continue; }
 
-        if(crowd_[j].path_.size() < 1)
-            continue;
+        if(crowd_[j].path_.size() < 1) { continue; }
 
         glm::vec2 near_current = glm::vec2(
-            crowd_[j].current_position_.x, 
-            crowd_[j].current_position_.z
-        );
+                crowd_[j].current_pos_.x, 
+                crowd_[j].current_pos_.z);
 
         if(glm::distance(near_current, agent_current) < 2.0f) {
             vel_cohesion += near_current;
@@ -568,63 +515,54 @@ void Navigation::Cohesion(const int current_id)
         vel_cohesion = (vel_cohesion - agent_current) * 0.0001f;
     }
 
-    crowd_[current_id].current_position_ += glm::vec3(
-        vel_cohesion.x,
-        0,
-        vel_cohesion.y
-    );
+    crowd_[current_id].current_pos_ += glm::vec3(
+            vel_cohesion.x, 0, vel_cohesion.y);
 }
 
-void Navigation::Blocking(const int current_id, const glm::vec3 current_position)
-{
-    glm::vec3 next_position = crowd_[current_id].current_position_;
+void Navigation::Blocking(
+        const int current_id, const glm::vec3& current_pos) {
+    glm::vec3 next_pos = crowd_[current_id].current_pos_;
 
-    glm::vec2 next_position_2d(next_position.x, next_position.z);
-    glm::vec2 current_position_2d(current_position.x, current_position.z);
+    glm::vec2 next_pos_2d(next_pos.x, next_pos.z);
+    glm::vec2 current_pos_2d(current_pos.x, current_pos.z);
 
-    std::shared_ptr<Node> next_pos_locate_node = 
-        grid_map_.GetNodeFromWorldPosition(next_position_2d);
-    std::shared_ptr<Node> curr_pos_locate_node = 
-        grid_map_.GetNodeFromWorldPosition(current_position_2d);
+    NodeSPtr next_pos_locate_node = 
+        grid_map_.GetNodeFromWorldPosition(next_pos_2d);
+    NodeSPtr curr_pos_locate_node = 
+        grid_map_.GetNodeFromWorldPosition(current_pos_2d);
 
     if(next_pos_locate_node->carve) {
 
-        glm::vec2 reflect = current_position_2d - next_position_2d;
+        glm::vec2 reflect = current_pos_2d - next_pos_2d;
 
-	    //crowd_[current_id].current_position_ = current_position + glm::vec3(reflect.x, 0, reflect.y);
+	    //crowd_[current_id].current_pos_ = current_pos + glm::vec3(reflect.x, 0, reflect.y);
         //printf("Agent #%d Request Re-Path (Block) \n", current_id);
         crowd_[current_id].target_index_ = 0;
         crowd_[current_id].request_update_ = true;
     }
 }
 
-void Navigation::ClearCarving()
-{
-    for (int i = 0; i < grid_map_.data_.size(); ++i)
-    {
+void Navigation::ClearCarving() {
+    for (int i = 0; i < grid_map_.data_.size(); ++i) {
         grid_map_.data_[i]->carve = false;
     }
 }
 
-bool Navigation::Carving()
-{
+bool Navigation::Carving() {
     bool update = false;
 
     ClearCarving();
 
-    for (int i = 0; i < grid_map_.length_; ++i)
-    {
-        for (int j = 0; j < grid_map_.width_; ++j)
-        {
+    for (int i = 0; i < grid_map_.length_; ++i) {
+        for (int j = 0; j < grid_map_.width_; ++j) {
 
-            glm::vec2 world_position = 
-                grid_map_.data_[i * width_ + j]->world_position;
+            glm::vec2 world_pos = 
+                grid_map_.data_[i * width_ + j]->world_pos;
 
-            for (int k = 0; k < carve_shapes_.size(); ++k)
-            {
-                glm::vec2 carve_position = carve_shapes_[k].position;
+            for (int k = 0; k < carve_shapes_.size(); ++k) {
+                glm::vec2 carve_pos = carve_shapes_[k].pos;
 
-                if(glm::distance(carve_position, world_position) <= carve_shapes_[k].radius) {
+                if(glm::distance(carve_pos, world_pos) <= carve_shapes_[k].radius) {
                     grid_map_.data_[i * width_ + j]->carve = true;
                     update |= carve_shapes_[k].moving;
                 }
@@ -637,35 +575,31 @@ bool Navigation::Carving()
     return update;
 }
 
-void Navigation::Update() 
-{
+void Navigation::Update() {
     // Carve Navivation Grid
     bool update = Carving();
 
-    for (int i = 0; i < crowd_.size(); ++i)
-    {
+    for (int i = 0; i < crowd_.size(); ++i) {
         // Update NavMesh and Request Path
         if(crowd_[i].request_update_) {
-            std::vector<std::shared_ptr<Node>> new_path;
+            std::vector<NodeSPtr> new_path;
 
-            new_path = request_manager_.RequestPath(
-                glm::vec2(crowd_[i].current_position_.x, crowd_[i].current_position_.z),
-                glm::vec2(crowd_[i].target_position_.x, crowd_[i].target_position_.z)
-            );
-
+            glm::vec2 path_start(
+                    crowd_[i].current_pos_.x, crowd_[i].current_pos_.z);
+            glm::vec2 path_end(crowd_[i].target_pos_.x, crowd_[i].target_pos_.z);
+            new_path = request_manager_.RequestPath(path_start, path_end);
             crowd_[i].path_ = new_path;
             crowd_[i].request_update_ = false;
         }
 
-        glm::vec3 last_position = crowd_[i].current_position_;
+        glm::vec3 last_pos = crowd_[i].current_pos_;
 
         // Check Arrive?
-        float dist = glm::distance(crowd_[i].current_position_, crowd_[i].target_position_);
+        float dist = glm::distance(crowd_[i].current_pos_, crowd_[i].target_pos_);
         if(dist > 0.4f) {
-
             // Apply Path Finding
             crowd_[i].FollowPath();
-            glm::vec3 current_position = crowd_[i].current_position_;
+            glm::vec3 current_pos = crowd_[i].current_pos_;
 
             // Apply Flocking Behavior
             Speration(i);
@@ -674,8 +608,8 @@ void Navigation::Update()
 
             // Auto Repath
             if(counter_ % 16) {
-                glm::vec3 updated_position = crowd_[i].current_position_;
-                crowd_[i].distance_ += glm::length(updated_position - last_position);
+                glm::vec3 updated_pos = crowd_[i].current_pos_;
+                crowd_[i].distance_ += glm::length(updated_pos - last_pos);
             } else {
                 if(crowd_[i].distance_ < (crowd_[i].speed_ * 0.5f * 15)) {
                     crowd_[i].target_index_ = 0;
@@ -686,9 +620,9 @@ void Navigation::Update()
             }
 
             if(counter_ % 3 == 0 && update) {
-                Blocking(i, current_position);
+                Blocking(i, current_pos);
             }
-        } else if(crowd_[i].target_index_ >= crowd_[i].path_.size() - 1){
+        } else if(crowd_[i].target_index_ >= crowd_[i].path_.size() - 1) {
             continue;
         }
 
@@ -698,31 +632,32 @@ void Navigation::Update()
         // Agent Rotation
         auto robot = crowd_[i].robot_;
 
-        if(auto robot_sptr = robot.lock()) {
+        if (auto robot_sptr = robot.lock()) {
 
             btQuaternion orn = btQuaternion(btVector3(-1,0,0), 1.57);
 
-            glm::vec3 next_position = crowd_[i].current_position_;
+            glm::vec3 next_pos = crowd_[i].current_pos_;
             
-            glm::vec3 current_direction = glm::normalize(next_position - last_position);
+            glm::vec3 current_direction = glm::normalize(next_pos - last_pos);
             float angle = glm::angle(current_direction, glm::vec3(-1,0,0));
 
             // if(glm::abs(angle - crowd_[i].angle_) > 0.05f)
             // {
-            //     crowd_[i].current_position_ = last_position;
-            //     next_position = last_position;
+            //     crowd_[i].current_pos_ = last_pos;
+            //     next_pos = last_pos;
             // }
 
-            crowd_[i].angle_ = crowd_[i].angle_ + glm::sign(angle - crowd_[i].angle_) * 0.01f;
+            crowd_[i].angle_ = crowd_[i].angle_ +
+                    glm::sign(angle - crowd_[i].angle_) * 0.01f;
 
-            btQuaternion angle_orn = btQuaternion(btVector3(0,1,0), crowd_[i].angle_);
+            btQuaternion angle_orn =
+                    btQuaternion(btVector3(0,1,0), crowd_[i].angle_);
 
             btTransform transform_temp;
             transform_temp.setIdentity();
             transform_temp.setRotation(angle_orn * orn);
             transform_temp.setOrigin(
-                btVector3(next_position.x, next_position.y, next_position.z)
-            );
+                    btVector3(next_pos.x, next_pos.y, next_pos.z));
 
             world_->SetTransformation(robot_sptr, transform_temp);
 
@@ -733,15 +668,12 @@ void Navigation::Update()
     counter_++;
 }
 
-void Navigation::KillAgentOnceArrived()
-{
-    for (int i = 0; i < crowd_.size(); ++i)
-    {
+void Navigation::KillAgentOnceArrived() {
+    for (int i = 0; i < crowd_.size(); ++i) {
         // Check Arrive?
-        float dist = glm::distance(crowd_[i].current_position_, crowd_[i].target_position_);
+        float dist = glm::distance(crowd_[i].current_pos_, crowd_[i].target_pos_);
 
-        if(dist < 1.0f) 
-        {
+        if(dist < 1.0f) {
 
             auto robot = crowd_[i].robot_;
             if(auto robot_sptr = robot.lock()) {
@@ -768,14 +700,13 @@ void Navigation::KillAgentOnceArrived()
     }
 }
 
-void Navigation::SetBakeArea(const glm::vec3 world_min, const glm::vec3 world_max) 
-{
+void Navigation::SetBakeArea(
+        const glm::vec3& world_min, const glm::vec3& world_max) {
     world_min_ = world_min;
     world_max_ = world_max;
 }
 
-void Navigation::BakeNavMesh()
-{
+void Navigation::BakeNavMesh() {
     auto gl_extension_supported = [](const std::string& name) -> bool {
         // Conservative Rasterization EXT
         // At Least NVIDIA Maxwell
@@ -805,8 +736,7 @@ void Navigation::BakeNavMesh()
     //printf("Update Navigation Map...\n");
 }
 
-void Navigation::Voxelization()
-{
+void Navigation::Voxelization() {
 	// Update Projection Matrices
 	glm::vec3 center = (world_min_ + world_max_) * 0.5f;
     glm::vec3 axis_size = world_max_ - world_min_;
@@ -885,11 +815,8 @@ void Navigation::Voxelization()
 
     // Calculate Surface Level
     if (surface_level_ < 0) {
-        
         std::unordered_map<float, int> major;
-        
-        for (int i = 0; i < depth_map_.size(); ++i)
-        {
+        for (int i = 0; i < depth_map_.size(); ++i) {
             if (major.find(depth_map_[i]) != major.end()) {
                 int count = major[depth_map_[i]] + 1;
                 if(count > depth_map_.size() / 2) {
@@ -907,16 +834,14 @@ void Navigation::Voxelization()
     }
 
     // Build NavMesh
-    for (int i = 0; i < length_; ++i)
-    {
-        for (int j = 0; j < width_; ++j)
-        {
-            std::shared_ptr<Node> node = std::make_shared<Node>();
+    for (int i = 0; i < length_; ++i) {
+        for (int j = 0; j < width_; ++j) {
+            NodeSPtr node = std::make_shared<Node>();
 
             node->x = j;
             node->y = i;
-            node->world_position.x = world_min_.x + pixel_size.x * 0.5f + pixel_size.x * j;
-            node->world_position.y = world_min_.z + pixel_size.z * 0.5f + pixel_size.z * i;
+            node->world_pos.x = world_min_.x + pixel_size.x*.5 + pixel_size.x*j;
+            node->world_pos.y = world_min_.z + pixel_size.z*.5 + pixel_size.z*i;
 
             // ????
             if(depth_map_[j * length_ + i] == 1.0f) {

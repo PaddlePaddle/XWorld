@@ -159,11 +159,11 @@ glm::mat4 Object::local_inertial_frame() const {
     return BulletObject::local_inertial_frame();
 }
 
-RobotBase::RobotBase(WorldWPtr bullet_world)
-        : bullet_world_(bullet_world),
-          root_part_(nullptr),
-          parts_(),
-          joints_() {}
+RobotBase::RobotBase(const WorldWPtr& bullet_world) :
+        bullet_world_(bullet_world),
+        root_part_(nullptr),
+        parts_(),
+        joints_() {}
 
 void RobotBase::LoadURDFFile(
         const std::string& filename,
@@ -699,7 +699,7 @@ void RobotBase::Detach() {
     body_data_.attach_to_id = -2;
 }
 
-void RobotBase::AttachTo(RobotBaseWPtr object) {
+void RobotBase::AttachTo(const RobotBaseWPtr& object) {
 
     auto object_sptr = object.lock();
     if (!object_sptr || 
@@ -825,7 +825,7 @@ void Robot::CalculateInverseKinematics(
             num_poses);
 }
 
-RobotWithConvertion::RobotWithConvertion(WorldWPtr bullet_world) :
+RobotWithConvertion::RobotWithConvertion(const WorldWPtr& bullet_world) :
         RobotBase(bullet_world),
         status_(0),
         label_("unlabeled"),
@@ -978,13 +978,13 @@ void RobotWithConvertion::recycle() {
     do_recycle(path_);
 }
 
-RobotWithAnimation::RobotWithAnimation(WorldWPtr bullet_world) 
-    : RobotBase(bullet_world),
-      status_(0),
-      joint_(1),
-      lock_(false),
-      unlock_tag_(""),
-      positions_() {}
+RobotWithAnimation::RobotWithAnimation(const WorldWPtr& bullet_world) :
+        RobotBase(bullet_world),
+        status_(0),
+        joint_(1),
+        lock_(false),
+        unlock_tag_(""),
+        positions_() {}
 
 RobotWithAnimation::~RobotWithAnimation() {}
 

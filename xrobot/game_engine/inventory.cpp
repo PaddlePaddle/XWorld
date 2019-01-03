@@ -16,7 +16,7 @@ Inventory::~Inventory() {
     ClearInventory();
 }
 
-bool Inventory::PutObject(std::weak_ptr<RobotBase> put_object) {
+bool Inventory::PutObject(const RobotBaseWPtr& put_object) {
     if(rest_ < 1) {
         printf("Inventory Is Full!\n");
         return false;
@@ -56,15 +56,15 @@ std::vector<std::string> Inventory::GetObjectTagInInventory() {
     return ret;
 }
 
-std::weak_ptr<RobotBase> Inventory::GetObjectLast() {
+RobotBaseWPtr Inventory::GetObjectLast() {
     if(size_ == rest_) {
         printf("Inventory Is Empty!\n");
-        return std::weak_ptr<RobotBase>();
+        return RobotBaseWPtr();
     }
 
     rest_++;
 
-    std::weak_ptr<RobotBase> get_object = inventory_.back();
+    RobotBaseWPtr get_object = inventory_.back();
     inventory_.pop_back();
 
     if(auto object = get_object.lock()) {
@@ -72,29 +72,7 @@ std::weak_ptr<RobotBase> Inventory::GetObjectLast() {
         return object;
     }
 
-    return std::weak_ptr<RobotBase>();
-}
-
-bool Inventory::GetObject(std::weak_ptr<RobotBase> get_object, const std::string& label) {
-    assert(label.size());
-
-    if(size_ == rest_) {
-        printf("Inventory Is Empty!\n");
-        return false;
-    }
-
-    for (int i = 0; i < inventory_.size(); ++i) {
-        if(auto object = inventory_[i].lock()) {
-            if(object->body_data_.label == label) {
-                get_object = object;
-                inventory_.erase(inventory_.begin() + i);
-                rest_++;
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return RobotBaseWPtr();
 }
 
 bool Inventory::DiscardObject(const std::string& object_label) {

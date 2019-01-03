@@ -17,25 +17,25 @@
 
 using namespace glm;
 
-namespace xrobot
-{
+namespace xrobot {
 
-	class Map
-	{
-	public:
-		Map() : world_(nullptr) {}
-		virtual ~Map() {}
-		virtual void ResetMap() { world_->CleanEverything(); }
+class Map {
+public:
+    Map() : world_(nullptr) {}
+    
+    virtual ~Map() {}
 
-		void GenerateGenetricMap() { 
-			if(!world_) {
-				world_ = std::make_shared<World>();
-				world_->BulletInit(-9.81f, 0.01f);
-			}
-		}
+    virtual void ResetMap() { world_->CleanEverything(); }
 
-		std::shared_ptr<World> world_;
-	};
+    void GenerateGenetricMap() { 
+        if(!world_) {
+            world_ = std::make_shared<World>();
+            world_->BulletInit(-9.81f, 0.01f);
+        }
+    }
+
+    std::shared_ptr<World> world_;
+};
 
 }
 

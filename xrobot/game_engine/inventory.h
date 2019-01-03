@@ -11,15 +11,20 @@ namespace xrobot {
 class RobotBase;
 
 class Inventory {
+    using RobotBaseWPtr = std::weak_ptr<RobotBase>;
 public:
 	Inventory(const int size);
+
 	~Inventory();
 
-	bool PutObject(std::weak_ptr<RobotBase> put_object);
-	std::weak_ptr<RobotBase> GetObjectLast();
+	bool PutObject(const RobotBaseWPtr& put_object);
+
+	RobotBaseWPtr GetObjectLast();
+
 	std::vector<std::string> GetObjectTagInInventory();
-	bool GetObject(std::weak_ptr<RobotBase> get_object, const std::string& label);
+
 	bool DiscardObject(const std::string& object_label);
+
 	void ClearInventory();
 	void PrintInventory();
 
@@ -27,7 +32,7 @@ public:
 	int GetNumFreeSpace() { return rest_; }
 
 private:
-	std::vector<std::weak_ptr<RobotBase>> inventory_;
+	std::vector<RobotBaseWPtr> inventory_;
 	int size_;
 	int rest_;
 };
