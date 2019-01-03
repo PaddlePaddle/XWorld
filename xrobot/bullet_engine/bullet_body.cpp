@@ -377,8 +377,8 @@ void BulletBody::inverse_kinematics(
     }
 }
 
-void BulletBody::get_closest_points(const ClientHandle client, 
-        std::vector<ContactPoint>& points) {
+void BulletBody::get_closest_points(
+        const ClientHandle client, std::vector<ContactPoint>& points) {
     struct b3ContactInformation contact_point_data;
     CommandHandle cmd_handle = b3InitClosestDistanceQuery(client);
 

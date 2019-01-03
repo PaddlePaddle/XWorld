@@ -80,8 +80,7 @@ void Playground::AssignTag(const std::string& path, const std::string& tag)
     scene_->world_->AssignTag(path, tag);
 }
 
-void Playground::LoadTag(const std::string& path)
-{
+void Playground::LoadTag(const std::string& path) {
     scene_->world_->LoadMetadata(path.c_str());
 }
 

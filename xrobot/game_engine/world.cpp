@@ -28,7 +28,7 @@ void World::AssignTag(const std::string& path, const std::string& tag) {
     tag_list_[path] = tag;
 }
 
-void World::LoadMetadata(const char * filename) {
+void World::LoadMetadata(const char* filename) {
     errno = 0;
     FILE *fp = fopen(filename, "r");
     if (!fp) {
@@ -371,7 +371,7 @@ void World::ResetSimulation() {
     reset();
 }
 
-void World::RemoveRobot(std::weak_ptr<RobotBase> rm_robot) {
+void World::RemoveRobot(const RobotBaseWPtr& rm_robot) {
     
     auto robot = wptr_to_sptr(rm_robot);
     int uid = robot->body_data_.body_uid;
@@ -396,12 +396,9 @@ void World::CleanEverything2() {
             kv.second->recycle();
     }
 
-    for(auto &recycle_robot : recycle_robot_map_)
-    {
-        if(recycle_robot.second.size() >= kCacheSize)
-        {
-            while(recycle_robot.second.size() > kCacheSize - 4)
-            {
+    for(auto &recycle_robot : recycle_robot_map_) {
+        if(recycle_robot.second.size() >= kCacheSize) {
+            while(recycle_robot.second.size() > kCacheSize - 4) {
                 auto robot = recycle_robot.second.back();
                 robot->RemoveRobotFromBullet();
                 RemoveRobot(robot);
@@ -419,10 +416,8 @@ void World::CleanEverything2() {
     icon_inventory_.clear();
 }
 
-void World::PrintCacheInfo()
-{
-    for(auto& recycle_robot : recycle_robot_map_)
-    {
+void World::PrintCacheInfo() {
+    for(auto& recycle_robot : recycle_robot_map_) {
         printf("urdf: %s   ", recycle_robot.first.c_str());
         printf("size: %d\n", (int) recycle_robot.second.size());
     }
@@ -443,7 +438,7 @@ void World::CleanEverything() {
     ResetSimulation();
 }
 
-void World::UpdateAttachObjects(RobotBaseSPtr robot) {
+void World::UpdateAttachObjects(const RobotBaseSPtr& robot) {
     if(robot->body_data_.attach_to_id < -1) 
         return;
 
@@ -455,34 +450,34 @@ void World::UpdateAttachObjects(RobotBaseSPtr robot) {
 
             bool contact = false;
             std::vector<ContactPoint> contact_points;
-            GetContactPoints(attach_object_sptr, 
-                    attach_object_sptr->root_part_, contact_points);
+            GetContactPoints(
+                    attach_object_sptr, 
+                    attach_object_sptr->root_part_,
+                    contact_points);
 
             for (int i = 0; i < contact_points.size(); ++i) {
                 ContactPoint cp = contact_points[i];
-
                 if(cp.contact_distance < -0.008f) {
                     robot->Detach();
                     contact = true;
                     break;
                 }
             }
-
             // TODO
-            // camera
-            float pitch = glm::radians(camera(0)->pre_pitch_);
-            glm::vec3 offset = camera(0)->offset_;
-
-            btTransform mat_rc_r;
-            btQuaternion cam_q(pitch, 0, 0);
-            mat_rc_r.setIdentity();
-            mat_rc_r.setRotation(cam_q);
-
-            btTransform mat_rc_t;
-            mat_rc_t.setIdentity();
-            mat_rc_t.setOrigin(btVector3(0,offset.y,0));
-
+            // camera 
             if(!contact) {
+                float pitch = glm::radians(camera(0)->pre_pitch_);
+                glm::vec3 offset = camera(0)->offset_;
+
+                btTransform mat_rc_r;
+                btQuaternion cam_q(pitch, 0, 0);
+                mat_rc_r.setIdentity();
+                mat_rc_r.setRotation(cam_q);
+
+                btTransform mat_rc_t;
+                mat_rc_t.setIdentity();
+                mat_rc_t.setOrigin(btVector3(0,offset.y,0));
+
                 btTransform new_transform = 
                         robot->root_part_->object_position_;
                 btTransform attach_transform = 
@@ -499,7 +494,7 @@ void World::UpdateAttachObjects(RobotBaseSPtr robot) {
     }
 }
 
-void World::FixLockedObjects(RobotBaseSPtr robot) {
+void World::FixLockedObjects(const RobotBaseSPtr& robot) {
     if(auto anim_robot = std::dynamic_pointer_cast<RobotWithAnimation>(robot)) {
         if(anim_robot->GetLock()) {
             int joint = anim_robot->GetJoint();
@@ -509,7 +504,7 @@ void World::FixLockedObjects(RobotBaseSPtr robot) {
     }
 }
 
-void World::QueryPose(RobotBaseSPtr robot) {
+void World::QueryPose(RobotBaseSPtr& robot) {
     const xScalar* root_inertial_frame;
     const xScalar* q;
     const xScalar* q_dot;
@@ -621,7 +616,7 @@ void World::QueryMovable() {
     set_highlight_center(0);
 }
 
-void World::QueryInteractable(std::shared_ptr<RobotBase> robot) {
+void World::QueryInteractable(const std::shared_ptr<RobotBase>& robot) {
     // TODO
     // Camera
     glm::vec3 from_3d = camera(0)->position_;
@@ -656,7 +651,7 @@ void World::BulletInit(const float gravity, const float timestep) {
     init(gravity, timestep);    
 }
 
-void World::SetTransformation(RobotBaseWPtr robot, const btTransform& tr) {
+void World::SetTransformation(const RobotBaseWPtr& robot, const btTransform& tr) {
 
     if (auto robot_sptr = robot.lock()) {
         xScalar p[3];
@@ -675,8 +670,8 @@ void World::SetTransformation(RobotBaseWPtr robot, const btTransform& tr) {
 }
 
 void World::GetRootClosestPoints(
-        std::weak_ptr<RobotBase> robot_in,
-        std::weak_ptr<Object> part_in,
+        const RobotBaseWPtr& robot_in,
+        const std::weak_ptr<Object>& part_in,
         std::vector<ContactPoint>& contact_points) {
     if (auto robot = robot_in.lock()) {
         robot->get_closest_points(client_, contact_points);
@@ -684,8 +679,8 @@ void World::GetRootClosestPoints(
 }
 
 void World::GetContactPoints(
-        std::weak_ptr<RobotBase> robot_in,
-        std::weak_ptr<Object> part_in,
+        const std::weak_ptr<RobotBase>& robot_in,
+        const std::weak_ptr<Object>& part_in,
         std::vector<ContactPoint>& contact_points,
         const int link) {
     if(auto robot = robot_in.lock()) {
@@ -694,14 +689,14 @@ void World::GetContactPoints(
 }
 
 void World::BatchRayTest(
-        const std::vector<Ray> rays,
+        const std::vector<Ray>& rays,
         std::vector<RayTestInfo>& result,
         const int num_threads) {
     cast_rays(rays, result, num_threads);
 }
 
 void World::RayTest(
-        const glm::vec3 from, const glm::vec3 to, RayTestInfo& result) {
+        const glm::vec3& from, const glm::vec3& to, RayTestInfo& result) {
     cast_ray({from, to}, result);
 }
 
@@ -734,8 +729,7 @@ void World::QueryObjectByLabel(
         auto find = object_locations_[label];
 
         result.clear();
-        for (int i = 0; i < find.size(); ++i)
-        {
+        for (int i = 0; i < find.size(); ++i) {
             int bullet_id = find[i];
             auto object = id_to_robot_[bullet_id];
 
@@ -776,8 +770,8 @@ void World::RemoveObjectWithLabel(const int id) {
 }
 
 render_engine::ModelDataSPtr World::FindInCache(
-        const std::string &key, 
-        std::vector<render_engine::ModelDataSPtr> &model_list,
+        const std::string& key, 
+        std::vector<render_engine::ModelDataSPtr>& model_list,
         bool& reset) {
     auto it = model_cache_.find(key);
     if (it != model_cache_.end()) {

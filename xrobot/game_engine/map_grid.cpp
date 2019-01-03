@@ -1,7 +1,6 @@
 #include "map_grid.h"
 
-namespace xrobot
-{
+namespace xrobot {
 
 MapGrid::~MapGrid() {
 	world_ = nullptr;
@@ -23,7 +22,7 @@ MapGrid::MapGrid() : wall_urdf_path_(""),
 					 doors_list_(0),
 					 doors_map_(),
 					 map_bounding_(),
-					 agent_spawn_position_(vec2(0)),
+					 agent_spawn_position_(glm::vec2(0)),
 					 tiles_(),
 					 resolve_path_(false),
 					 agent_spawn_(false),
@@ -82,10 +81,10 @@ void MapGrid::CreateAndLoadObjectFILE(const std::string& file_path,
 	if(auto obj_sptr = obj.lock()) {
 		obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 	
-		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
+		BBox b(glm::vec2(min_aabb.x, min_aabb.z), glm::vec2(max_aabb.x, max_aabb.z));
 		object_bbox_list_.push_back(b);
 	
-		object_height_list_.push_back(vec2(min_aabb.y, max_aabb.y));
+		object_height_list_.push_back(glm::vec2(min_aabb.y, max_aabb.y));
 
 		obj_sptr->recycle();
 	}
@@ -110,13 +109,13 @@ inline float MapGrid::VanDerCorpus(unsigned int bits) {
     return (float) bits * 2.3283064365386963e-10;
 }
 
-inline vec2 MapGrid::Hammersley(const unsigned int i, const unsigned int N) {
-	return vec2((float) i / (float) N, VanDerCorpus(i));
+inline glm::vec2 MapGrid::Hammersley(const unsigned int i, const unsigned int N) {
+	return glm::vec2((float) i / (float) N, VanDerCorpus(i));
 }
 
 // Generate Assets
 
-void MapGrid::GenerateWall(const vec3 position, const int d) {
+void MapGrid::GenerateWall(const glm::vec3& position, const int d) {
 	const int dir[4] = {0, 0, 1, 1};
 
 	auto obj = world_->LoadRobot(
@@ -134,11 +133,11 @@ void MapGrid::GenerateWall(const vec3 position, const int d) {
 		obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 	}
 
-	BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
+	BBox b(glm::vec2(min_aabb.x, min_aabb.z), glm::vec2(max_aabb.x, max_aabb.z));
 	bbox_list_.push_back(b);
 }
 
-void MapGrid::GenerateKey(const vec3 position, const int key_id) {
+void MapGrid::GenerateKey(const glm::vec3& position, const int key_id) {
 	const int dir[4] = {0, 0, 1, 1};
 
 	if(key_path_list_[key_id].tag.size()) {
@@ -158,24 +157,24 @@ void MapGrid::GenerateKey(const vec3 position, const int key_id) {
 			obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 		}
 
-		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
+		BBox b(glm::vec2(min_aabb.x, min_aabb.z), glm::vec2(max_aabb.x, max_aabb.z));
 		bbox_list_.push_back(b);
 	}
 }
 
-void MapGrid::GenerateTile(const vec3 position, const int tile_id) {
+void MapGrid::GenerateTile(const glm::vec3& position, const int tile_id) {
 	world_->LoadRobot(
-		tile_urdf_list_[tile_id],
-		glm::vec3(position.x,position.y,position.z),
-		glm::vec3(0,1,0),
-		0,
-		glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
-		"Floor",
-		true
-	);
+            tile_urdf_list_[tile_id],
+            glm::vec3(position.x,position.y,position.z),
+            glm::vec3(0,1,0),
+            0,
+            glm::vec3(1.0f, 1.0f, 1.0f) * kUniformScale,
+            "Floor",
+            true);
 }
 
-void MapGrid::GenerateLockedDoor(const vec3 position, const int d, const int door_id) {
+void MapGrid::GenerateLockedDoor(
+        const glm::vec3& position, const int d, const int door_id) {
 	const int dir[4] = {0, 0, 1, 1};
 
 	if(locked_door_path_list_[door_id].size()) {
@@ -194,12 +193,12 @@ void MapGrid::GenerateLockedDoor(const vec3 position, const int d, const int doo
 			obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 		}
 
-		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
+		BBox b(glm::vec2(min_aabb.x, min_aabb.z), glm::vec2(max_aabb.x, max_aabb.z));
 		bbox_list_.push_back(b);
 	}
 }
 
-void MapGrid::GenerateUnlockedDoor(const vec3 position, const int d) {
+void MapGrid::GenerateUnlockedDoor(const glm::vec3& position, const int d) {
 	const int dir[4] = {0, 0, 1, 1};
 
 	if(unlocked_door_path_.size()) {
@@ -218,7 +217,7 @@ void MapGrid::GenerateUnlockedDoor(const vec3 position, const int d) {
 			obj_sptr->root_part_->GetAABB(min_aabb, max_aabb);
 		}
 
-		BBox b(vec2(min_aabb.x, min_aabb.z), vec2(max_aabb.x, max_aabb.z));
+		BBox b(glm::vec2(min_aabb.x, min_aabb.z), glm::vec2(max_aabb.x, max_aabb.z));
 		bbox_list_.push_back(b);
 
 	}
@@ -231,7 +230,7 @@ void MapGrid::GenerateObjects() {
 			int object_id = pile.object_id_list[i];
 			std::string file_path = object_path_list_[object_id].file_path;
 			std::string tag = object_path_list_[object_id].tag;
-			vec3 position = pile.positions[i];
+            glm::vec3 position = pile.positions[i];
 
 			auto obj = world_->LoadRobot(
 				file_path,
@@ -259,7 +258,7 @@ int MapGrid::FindObject(const std::string& path) {
 	return -1;
 }
 
-void MapGrid::SpawnSingleObjectAt(const std::string& path, const vec3 position) {
+void MapGrid::SpawnSingleObjectAt(const std::string& path, const glm::vec3& position) {
 	int obj_id = FindObject(path);
 	assert(obj_id > -1);
 
@@ -284,9 +283,11 @@ bool MapGrid::SpawnPairOfObjects(const std::string& left_path,
 }
 
 
-bool MapGrid::SpawnStackOfObjects(const std::string& top_path, 
-						 const std::string& bottom_path, 
-					     const int num, const int roomgroup_id) {
+bool MapGrid::SpawnStackOfObjects(
+        const std::string& top_path, 
+        const std::string& bottom_path, 
+        const int num,
+        const int roomgroup_id) {
 	int top_id = FindObject(top_path);
 	int bottom_id = FindObject(bottom_path);
 	assert(top_id > -1 && bottom_id > -1);
@@ -314,10 +315,10 @@ bool MapGrid::SpawnSingleObject(const int obj_id, const int roomgroup_id) {
 
 		// printf("01\n");
 
-		std::vector<std::shared_ptr<Tile>> tiles_copy(tiles);
+		std::vector<TileSPtr> tiles_copy(tiles);
 		std::random_shuffle(tiles_copy.begin(), tiles_copy.end());
 
-		std::shared_ptr<Tile> select_tile = nullptr;
+		TileSPtr select_tile = nullptr;
 		for(auto& tile : tiles_copy) {
 			if(!tile->occupied) {
 				select_tile = tile;
@@ -338,7 +339,7 @@ bool MapGrid::SpawnSingleObject(const int obj_id, const int roomgroup_id) {
 		while(!found_empty_in_subtile && num_attempts_in_tile++ < max_attemps) {
 			int select_subtile   = (int) GetRandom(0, kNSubTile * kNSubTile);
 			auto select_subtile_ptr = select_tile->subtiles[select_subtile];
-			vec2 select_subtile_center = select_subtile_ptr->center;
+            glm::vec2 select_subtile_center = select_subtile_ptr->center;
 			BBox object_bbox_offset = object_bbox.Offset(select_subtile_center);
 
 			// printf("03\n");
@@ -364,7 +365,7 @@ bool MapGrid::SpawnSingleObject(const int obj_id, const int roomgroup_id) {
 
 					float height_min = object_height_list_[obj_id].x;
 
-					vec3 point(select_subtile_center.x,
+                    glm::vec3 point(select_subtile_center.x,
 					           -height_min + kPadding,
 					           select_subtile_center.y);
 
@@ -394,23 +395,24 @@ bool MapGrid::SpawnSingleObject(const int obj_id, const int roomgroup_id) {
 	return false;
 }
 
-vec2 MapGrid::GetASpaceNearPosition(const vec2 position, const float radius) {
+glm::vec2 MapGrid::GetASpaceNearPosition(
+        const glm::vec2& position, const float radius) {
 	assert(radius > 0.0f);
 
 	constexpr float sqrt2 = 1.41421f;
 	constexpr float padding = 0.01f;
 
-	const vec2 offset_raw[8] = { 
-		vec2(0, 1),
-		vec2(sqrt2, sqrt2),
-		vec2(1, 0),
-		vec2(sqrt2, -sqrt2),
-		vec2(0, -1),
-		vec2(-sqrt2, -sqrt2),
-		vec2(-1, 0),
-		vec2(-sqrt2, sqrt2)
+	const glm::vec2 offset_raw[8] = { 
+        glm::vec2(0, 1),
+		glm::vec2(sqrt2, sqrt2),
+		glm::vec2(1, 0),
+		glm::vec2(sqrt2, -sqrt2),
+		glm::vec2(0, -1),
+		glm::vec2(-sqrt2, -sqrt2),
+		glm::vec2(-1, 0),
+		glm::vec2(-sqrt2, sqrt2)
 	};
-	std::vector<vec2> offset(offset_raw, offset_raw + sizeof(offset_raw) / sizeof(vec2));
+	std::vector<glm::vec2> offset(offset_raw, offset_raw + sizeof(offset_raw) / sizeof(glm::vec2));
 
 	std::random_shuffle(offset.begin(), offset.end());
 
@@ -419,15 +421,15 @@ vec2 MapGrid::GetASpaceNearPosition(const vec2 position, const float radius) {
 	
 	float bbox_half_width = radius / sqrt2;
 	BBox b(
-		vec2(-bbox_half_width, -bbox_half_width),
-		vec2( bbox_half_width,  bbox_half_width)
+		glm::vec2(-bbox_half_width, -bbox_half_width),
+		glm::vec2( bbox_half_width,  bbox_half_width)
 	);
 
-	vec2 res(-1000, -1000);
+    glm::vec2 res(-1000, -1000);
 
 	for (int i = 0; i < 8; ++i) {
 
-		vec2 offset_vector = position + ((radius + padding) * offset[i]);
+        glm::vec2 offset_vector = position + ((radius + padding) * offset[i]);
 		BBox b_offset = b.Offset(offset_vector);
 
 		if(IntersectWithBBox(b_offset)) {
@@ -454,7 +456,7 @@ bool MapGrid::SpawnPairOfObjects(const int left_id, const int right_id,
 
 	if(found_left) {
 		auto pile = pile_list_.back();
-		vec2 bbox_center = pile.bbox.Center();
+        glm::vec2 bbox_center = pile.bbox.Center();
 		float bbox_bounding_sphere = pile.bbox.BoundingSphereRadius();
 		float min_distance_w_sph = min_distance + bbox_bounding_sphere;
 		float max_distance_w_sph = max_distance + bbox_bounding_sphere;
@@ -468,7 +470,7 @@ bool MapGrid::SpawnPairOfObjects(const int left_id, const int right_id,
 		}
 
 
-		std::vector<std::shared_ptr<SubTile>> subtiles_candidates;
+		std::vector<SubTileSPtr> subtiles_candidates;
 		if(tile_room_id > -1) {
 			auto& tiles = rooms_[tile_room_id - 1].tiles;
 			for(auto& tile : tiles) {
@@ -500,14 +502,14 @@ bool MapGrid::SpawnPairOfObjects(const int left_id, const int right_id,
 			  !found_right) 
 		{
 			auto select_subtile_ptr = subtiles_candidates.front();
-			vec2 select_subtile_center = select_subtile_ptr->center;
+            glm::vec2 select_subtile_center = select_subtile_ptr->center;
 			BBox object_bbox_offset = object_bbox.Offset(select_subtile_center);
 			if(IntersectWithBBox(object_bbox_offset)) {
 				found_right = true;
 
 				float height_min = object_height_list_[right_id].x;
 
-				vec3 point(select_subtile_center.x,
+                glm::vec3 point(select_subtile_center.x,
 				           -height_min + kPadding,
 				           select_subtile_center.y);
 
@@ -533,8 +535,11 @@ bool MapGrid::SpawnPairOfObjects(const int left_id, const int right_id,
 	return false;
 }
 
-bool MapGrid::SpawnStackOfObjects(const int top_id, const int bottom_id, 
-							      const int num, const int roomgroup_id) {
+bool MapGrid::SpawnStackOfObjects(
+        const int top_id,
+        const int bottom_id, 
+        const int num,
+        const int roomgroup_id) {
 	
 	const int max_attemps_bottom = 2;
 	const int max_attemps_top = 2 << num;
@@ -563,7 +568,7 @@ bool MapGrid::SpawnStackOfObjects(const int top_id, const int bottom_id,
 				float y = GetRandom(bbox.min_aabb.y + 0.05f,
 									bbox.max_aabb.y - 0.05f);
 
-				BBox top_bbox_offset = top_bbox.Offset(vec2(x,y));
+				BBox top_bbox_offset = top_bbox.Offset(glm::vec2(x,y));
 
 				for(const auto& box : pile.upper_bbox_list) {
 					if(box.Intersect(top_bbox_offset)) {
@@ -572,7 +577,7 @@ bool MapGrid::SpawnStackOfObjects(const int top_id, const int bottom_id,
 				}
 
 				if(!collide) {
-					vec3 point(x, height - height_min + kPadding, y);
+                    glm::vec3 point(x, height - height_min + kPadding, y);
 					pile.object_id_list.push_back(top_id);
 					pile.positions.push_back(point);
 					pile.upper_bbox_list.push_back(top_bbox_offset);
@@ -585,12 +590,12 @@ bool MapGrid::SpawnStackOfObjects(const int top_id, const int bottom_id,
 	return false;
 }
 
-void MapGrid::SpawnSingleObjectAt(const int obj_id, const vec3 position) {
-	vec2 position_2d(position.x, position.z);
+void MapGrid::SpawnSingleObjectAt(const int obj_id, const glm::vec3& position) {
+    glm::vec2 position_2d(position.x, position.z);
 	auto subtile_sptr = GetSubTileFromWorldPosition(position_2d);
 
 	if(subtile_sptr) {
-		vec2 select_subtile_center = subtile_sptr->center;
+        glm::vec2 select_subtile_center = subtile_sptr->center;
 		BBox object_bbox = object_bbox_list_[obj_id];
 		BBox object_bbox_offset = object_bbox.Offset(select_subtile_center);
 		bbox_list_.push_back(object_bbox_offset);
@@ -613,17 +618,17 @@ void MapGrid::SpawnSingleObjectAt(const int obj_id, const vec3 position) {
 	}
 }
 
-void MapGrid::GenerateEmpty(const BBox box) {
+void MapGrid::GenerateEmpty(const BBox& box) {
 	
 	for (auto& room : rooms_) {
 		for (int i = 0; i < room.tiles.size(); ++i) {
-			std::shared_ptr<Tile> tile_ptr = room.tiles[i];
+			TileSPtr tile_ptr = room.tiles[i];
 			BBox tile_bbox = tile_ptr->GetTileBBox();
 
 			// Tile Intersect / Contains
 			if(box.Intersect(tile_bbox) || box.Contains(tile_bbox)) {
 				for (int j = 0; j < kNSubTile * kNSubTile; ++j) {
-					std::shared_ptr<SubTile> subtile_ptr = tile_ptr->subtiles[j];
+					SubTileSPtr subtile_ptr = tile_ptr->subtiles[j];
 					BBox subtile_bbox = tile_ptr->GetSubTileBBox(j);
 
 					if(box.Intersect(subtile_bbox) || box.Contains(subtile_bbox)) {
@@ -677,12 +682,12 @@ void MapGrid::GenerateArena(const int w, const int l) {
 
 	for(int i = 0; i < w; ++i)
 	for(int j = 0; j < l; ++j) {
-		vec3 tile_center(kTileSize * i, 0, kTileSize * j);
-		vec2 tile_center_2d(kTileSize * i, kTileSize * j);
-		vec3 tile_bbox_min = tile_center - 0.5f * vec3(kTileSize, 0, kTileSize);
-		vec3 tile_bbox_max = tile_center + 0.5f * vec3(kTileSize, 0, kTileSize);
+        glm::vec3 tile_center(kTileSize * i, 0, kTileSize * j);
+        glm::vec2 tile_center_2d(kTileSize * i, kTileSize * j);
+        glm::vec3 tile_bbox_min = tile_center - 0.5f * glm::vec3(kTileSize, 0, kTileSize);
+        glm::vec3 tile_bbox_max = tile_center + 0.5f * glm::vec3(kTileSize, 0, kTileSize);
 
-		std::shared_ptr<Tile> tile = std::make_shared<Tile>(tile_urdf_list_[0], 
+		TileSPtr tile = std::make_shared<Tile>(tile_urdf_list_[0], 
 			tile_center_2d);
 
 		for (int d = 0; d < 4; ++d) {
@@ -691,7 +696,7 @@ void MapGrid::GenerateArena(const int w, const int l) {
 
 			if(!(x >= 0 && x < w && y >= 0 && y < l)) {
 				tile->has_wall[d] = true;
-				GenerateWall(vec3(kTileSize * i + 0.5f * kTileSize * dirx[d],
+				GenerateWall(glm::vec3(kTileSize * i + 0.5f * kTileSize * dirx[d],
 								  1,
 								  kTileSize * j + 0.5f * kTileSize * diry[d]), d);
 			}
@@ -713,9 +718,8 @@ void MapGrid::GenerateArena(const int w, const int l) {
 	UpdateSceneBBox();
 }
 
-std::shared_ptr<SubTile> 
-MapGrid::GetSubTileFromWorldPosition(const vec2 position) {
-	vec2 position_offset = position + vec2(kTileSize, kTileSize) * 0.5f;
+SubTileSPtr MapGrid::GetSubTileFromWorldPosition(const glm::vec2& position) {
+    glm::vec2 position_offset = position + glm::vec2(kTileSize, kTileSize) * 0.5f;
 
 	int tile_x = position_offset.x / kTileSize;
 	int tile_y = position_offset.y / kTileSize;
@@ -724,7 +728,7 @@ MapGrid::GetSubTileFromWorldPosition(const vec2 position) {
 
 	if(tile) {
 
-		vec2 offset = position_offset - vec2(tile_x, tile_y) * kTileSize;
+        glm::vec2 offset = position_offset - glm::vec2(tile_x, tile_y) * kTileSize;
 
 		int subtile_x = offset.x / (kTileSize / kNSubTile);
 		int subtile_y = offset.y / (kTileSize / kNSubTile);
@@ -748,12 +752,12 @@ void MapGrid::ClearVisited() {
 void MapGrid::ResolvePath() {
 
 	// TEST
-	std::vector<std::vector<vec2>> path(0);
-	std::vector<std::vector<std::shared_ptr<SubTile>>> dests_map(roomgroups_.size());
+	std::vector<std::vector<glm::vec2>> path(0);
+	std::vector<std::vector<SubTileSPtr>> dests_map(roomgroups_.size());
 
 	for (int i = 0; i < roomgroups_.size(); ++i) {
 
-		std::vector<std::shared_ptr<SubTile>>& dests = dests_map[i];
+		std::vector<SubTileSPtr>& dests = dests_map[i];
 
 		// Find Agent
 		if(agent_spawn_) {
@@ -773,11 +777,11 @@ void MapGrid::ResolvePath() {
 
 			if(door_spawn_room_0 || door_spawn_room_1) {
 
-				vec2 door_position_2d = door.center;
+                glm::vec2 door_position_2d = door.center;
 
 				// Jitter the Center Position
-				vec2 door_position_2d_0 = door_position_2d + vec2(0.05f,0.05f);
-				vec2 door_position_2d_1 = door_position_2d - vec2(0.05f,0.05f);
+                glm::vec2 door_position_2d_0 = door_position_2d + glm::vec2(0.05f,0.05f);
+                glm::vec2 door_position_2d_1 = door_position_2d - glm::vec2(0.05f,0.05f);
 
 				auto subtile_tmp_0 = GetSubTileFromWorldPosition(door_position_2d_0);
 				auto subtile_tmp_1 = GetSubTileFromWorldPosition(door_position_2d_1);
@@ -808,33 +812,33 @@ void MapGrid::ResolvePath() {
 
 	for (int i = 0; i < roomgroups_.size(); ++i) {
 
-		std::vector<std::shared_ptr<SubTile>>& dests = dests_map[i];
+		std::vector<SubTileSPtr>& dests = dests_map[i];
 
 		// Generate Path
 		while(dests.size() > 1) {
 
-			std::shared_ptr<SubTile> start = dests.back();
+			SubTileSPtr start = dests.back();
 			dests.pop_back();
-			std::shared_ptr<SubTile> end   = dests.back();
+			SubTileSPtr end   = dests.back();
 			dests.pop_back();
 			
 			// BFS
 			ClearVisited();
-			std::vector<std::shared_ptr<SubTile>> path;
-			std::vector<std::shared_ptr<SubTile>> p;
-			std::queue<std::vector<std::shared_ptr<SubTile>>> q;
+			std::vector<SubTileSPtr> path;
+			std::vector<SubTileSPtr> p;
+			std::queue<std::vector<SubTileSPtr>> q;
 
 			start->visited = true;
 			p.push_back(start);
 			q.push(p);
 
 			while(!q.empty()) {
-				std::vector<std::shared_ptr<SubTile>> vp = q.front();
-				std::shared_ptr<SubTile> v  = vp.back();
+				std::vector<SubTileSPtr> vp = q.front();
+				SubTileSPtr v  = vp.back();
 				q.pop();
 
 				if(v == end) 
-					path = std::vector<std::shared_ptr<SubTile>>(vp);
+					path = std::vector<SubTileSPtr>(vp);
 
 				auto subtile_neighbors = GetSubTileNeighbors(v);
 
@@ -844,7 +848,7 @@ void MapGrid::ResolvePath() {
 				for (auto& neighbor : subtile_neighbors) {
 					if(neighbor && !neighbor->visited) {
 
-						std::vector<std::shared_ptr<SubTile>> vp_tmp(vp);
+						std::vector<SubTileSPtr> vp_tmp(vp);
 						neighbor->visited = true;
 						vp_tmp.push_back(neighbor);
 						q.push(vp_tmp);
@@ -867,13 +871,12 @@ void MapGrid::ResolvePath() {
 }
 
 
-std::vector<std::shared_ptr<Tile>> 
-MapGrid::GetTileNeighbors(const std::shared_ptr<Tile> tile) {
+std::vector<TileSPtr> MapGrid::GetTileNeighbors(const TileSPtr& tile) {
 
 	const int dirx[4] = {1, -1, 0, 0};
 	const int diry[4] = {0, 0, 1, -1};
 	
-	std::vector<std::shared_ptr<Tile>> neighbors(4); // +x -x +y -y
+	std::vector<TileSPtr> neighbors(4); // +x -x +y -y
 
 	if(tile) {
 		std::pair<int,int> tile_position = tile->position;
@@ -884,7 +887,7 @@ MapGrid::GetTileNeighbors(const std::shared_ptr<Tile> tile) {
 				tile_position.second + diry[i]
 			);
 
-			std::shared_ptr<Tile> neighbor_tile = nullptr;
+			TileSPtr neighbor_tile = nullptr;
 			if(tiles_.find(neighbor_position) != tiles_.end()) {
 				neighbor_tile = tiles_[neighbor_position];
 			}
@@ -895,13 +898,13 @@ MapGrid::GetTileNeighbors(const std::shared_ptr<Tile> tile) {
 	return neighbors;
 }
 
-std::vector<std::shared_ptr<SubTile>>
-MapGrid::GetSubTileNeighbors(const std::shared_ptr<SubTile> subtile) {
+std::vector<SubTileSPtr> MapGrid::GetSubTileNeighbors(
+        const SubTileSPtr& subtile) {
 
 	const int dirx[4] = {1, -1, 0, 0};
 	const int diry[4] = {0, 0, 1, -1};
 
-	std::vector<std::shared_ptr<SubTile>> neighbors(4); // +x -x +y -y
+	std::vector<SubTileSPtr> neighbors(4); // +x -x +y -y
 
 	if(subtile) {
 		auto parent = subtile->parent.lock();
@@ -914,13 +917,13 @@ MapGrid::GetSubTileNeighbors(const std::shared_ptr<SubTile> subtile) {
 
 			// printf("found %d\n", found);
 
-			vec2 subtile_position = parent->GetSubTileRelativePosition(found);
+            glm::vec2 subtile_position = parent->GetSubTileRelativePosition(found);
 
 			for (int i = 0; i < 4; ++i) {
-				vec2 neighbor_position(subtile_position.x + dirx[i],
+                glm::vec2 neighbor_position(subtile_position.x + dirx[i],
 									   subtile_position.y + diry[i]);
 
-				std::shared_ptr<SubTile> neighbor_subtile = nullptr;
+				SubTileSPtr neighbor_subtile = nullptr;
 				if(neighbor_position.x > -1 && neighbor_position.x < kNSubTile &&
 				   neighbor_position.y > -1 && neighbor_position.y < kNSubTile) {
 
@@ -964,7 +967,7 @@ MapGrid::GetSubTileNeighbors(const std::shared_ptr<SubTile> subtile) {
 }
 
 
-vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d) {
+glm::vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d) {
 	assert(w > 0 && l > 0 && n > 0 && d > 0);
 	assert(locked_door_path_list_.size() >= d);
 	assert(unlocked_door_path_.size());
@@ -997,7 +1000,7 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 	}
 
 	bool agent_placed = false;
-	vec3 agent_center;
+    glm::vec3 agent_center;
 
 	rooms_.resize(n);
 	roomgroups_.resize(num_roomgroups);
@@ -1010,13 +1013,13 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 
 		const int room_id = map_ptr[i][j];
 		if(room_id > 0) {
-			vec3 tile_center(kTileSize * i, 0, kTileSize * j);
-			vec2 tile_center_2d(kTileSize * i, kTileSize * j);
+            glm::vec3 tile_center(kTileSize * i, 0, kTileSize * j);
+            glm::vec2 tile_center_2d(kTileSize * i, kTileSize * j);
 
 			int tile_urdf_id = (room_id - 1) % (int) tile_urdf_list_.size();
 
-			std::shared_ptr<Tile> tile = std::make_shared<Tile>(
-				tile_urdf_list_[tile_urdf_id], vec2(tile_center.x, tile_center.z));
+			TileSPtr tile = std::make_shared<Tile>(
+				tile_urdf_list_[tile_urdf_id], glm::vec2(tile_center.x, tile_center.z));
 			tile->room_id = room_id;
 			tile->position = std::make_pair(i,j);
 
@@ -1052,7 +1055,7 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 					// Outside
 					if(map_ptr[x][y] < 1) {
 						tile->has_wall[d] = true;
-						GenerateWall(vec3(kTileSize * i + 0.5f * kTileSize * dirx[d],
+						GenerateWall(glm::vec3(kTileSize * i + 0.5f * kTileSize * dirx[d],
 										  1,
 										  kTileSize * j + 0.5f * kTileSize * diry[d]), d);
 					}
@@ -1081,12 +1084,12 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 							}
 						}
 
-						vec3 door_center(kTileSize * i + 0.5f * kTileSize * dirx[d],
+                        glm::vec3 door_center(kTileSize * i + 0.5f * kTileSize * dirx[d],
 										 1,
 										 kTileSize * j + 0.5f * kTileSize * diry[d]);
-						vec2 door_center_2d(door_center.x, door_center.z);
-						vec2 door_bbox_min_2d = door_center_2d - 0.5f * vec2(kTileSize);
-						vec2 door_bbox_max_2d = door_center_2d + 0.5f * vec2(kTileSize);
+                        glm::vec2 door_center_2d(door_center.x, door_center.z);
+                        glm::vec2 door_bbox_min_2d = door_center_2d - 0.5f * glm::vec2(kTileSize);
+                        glm::vec2 door_bbox_max_2d = door_center_2d + 0.5f * glm::vec2(kTileSize);
 
 						// Locked Door
 						if((need_door01 || need_door10) && !door_between_rooms) {
@@ -1139,7 +1142,7 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 				else {
 					tile->has_wall[d] = true;
 
-					vec3 wall_center(kTileSize * i + 0.5f * kTileSize * dirx[d],
+                    glm::vec3 wall_center(kTileSize * i + 0.5f * kTileSize * dirx[d],
 									 1,
 									 kTileSize * j + 0.5f * kTileSize * diry[d]);
 
@@ -1152,9 +1155,9 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 	}
 
 	// Empty Space at Agent
-	vec2 agent_center_2d(agent_center.x, agent_center.z);
-	vec2 agent_bbox_min = agent_center_2d - 0.25f * vec2(kTileSize);
-	vec2 agent_bbox_max = agent_center_2d + 0.25f * vec2(kTileSize);
+    glm::vec2 agent_center_2d(agent_center.x, agent_center.z);
+    glm::vec2 agent_bbox_min = agent_center_2d - 0.25f * glm::vec2(kTileSize);
+    glm::vec2 agent_bbox_max = agent_center_2d + 0.25f * glm::vec2(kTileSize);
 	GenerateEmpty(BBox(agent_bbox_min,agent_bbox_max));
 	agent_spawn_position_ = agent_center_2d;
 
@@ -1163,10 +1166,10 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 	for (auto door : doors_list_) {
 		int room_0 = door.edge.first;
 		int room_1 = door.edge.second;
-		vec3 door_center = doors_map_[std::make_pair(room_0, room_1)];
-		vec2 door_center_2d(door_center.x, door_center.z);
-		vec2 door_bbox_min = door_center_2d - 0.21f * vec2(kTileSize);
-		vec2 door_bbox_max = door_center_2d + 0.21f * vec2(kTileSize);
+        glm::vec3 door_center = doors_map_[std::make_pair(room_0, room_1)];
+        glm::vec2 door_center_2d(door_center.x, door_center.z);
+        glm::vec2 door_bbox_min = door_center_2d - 0.21f * glm::vec2(kTileSize);
+        glm::vec2 door_bbox_max = door_center_2d + 0.21f * glm::vec2(kTileSize);
 		GenerateEmpty(BBox(door_bbox_min,door_bbox_max));
 	}
 
@@ -1199,9 +1202,9 @@ vec3 MapGrid::GenerateLayout(const int w, const int l, const int n, const int d)
 				auto subtile_ptr = tile_ptr->subtiles[rand_subtile];
 
 				if(subtile_ptr && !subtile_ptr->occupied) {
-					vec2 key_pos = subtile_ptr->center;
+                    glm::vec2 key_pos = subtile_ptr->center;
 
-					GenerateKey(vec3(key_pos.x, 0, key_pos.y), door.door_id);
+					GenerateKey(glm::vec3(key_pos.x, 0, key_pos.y), door.door_id);
 
 					subtile_ptr->occupied = true;
 					tile_ptr->occupied = true;
@@ -1229,7 +1232,7 @@ void MapGrid::ResetMap() {
 
 	printf("[World] Reset %d\n", world_->reset_count_);
 
-	agent_spawn_position_ = vec2();
+	agent_spawn_position_ = glm::vec2();
 	agent_spawn_ = false;
 	resolve_path_ = false;
 	map_ = nullptr;
@@ -1267,12 +1270,12 @@ void MapGrid::UpdateDebugVisualization() {
 
 	for (auto& room : rooms_) {
 		for (int i = 0; i < room.tiles.size(); ++i) {
-			std::shared_ptr<Tile> tile_ptr = room.tiles[i];
+			TileSPtr tile_ptr = room.tiles[i];
 
 			// Tile Intersect / Contains
 			if(tile_ptr) {
 				for (int j = 0; j < kNSubTile * kNSubTile; ++j) {
-					std::shared_ptr<SubTile> subtile_ptr = tile_ptr->subtiles[j];
+					SubTileSPtr subtile_ptr = tile_ptr->subtiles[j];
 					BBox subtile_bbox = tile_ptr->GetSubTileBBox(j);					
 
 					if(tile_ptr->occupied) {

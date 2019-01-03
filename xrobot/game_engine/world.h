@@ -138,7 +138,7 @@ class RobotBase : public render_engine::RenderBody,
                   public std::enable_shared_from_this<RobotBase> {
     using RenderPart = render_engine::RenderPart;
 public:
-    RobotBase(WorldWPtr bullet_world);
+    RobotBase(const WorldWPtr& bullet_world);
 
     virtual ~RobotBase() {}
 
@@ -237,7 +237,7 @@ public:
             const glm::vec3& from,
             const glm::vec3& to);
 
-    virtual void AttachTo(RobotBaseWPtr object);
+    virtual void AttachTo(const RobotBaseWPtr& object);
 
     virtual void Detach();
 
@@ -284,7 +284,7 @@ protected:
 
 class Robot : public RobotBase {
 public:
-	Robot(WorldWPtr bullet_world) : RobotBase(bullet_world) {}
+	Robot(const WorldWPtr& bullet_world) : RobotBase(bullet_world) {}
 
 	~Robot() {}
 
@@ -299,7 +299,7 @@ public:
 
 class RobotWithConvertion : public xrobot::RobotBase {
 public:
-    RobotWithConvertion(WorldWPtr bullet_world);
+    RobotWithConvertion(const WorldWPtr& bullet_world);
 
     ~RobotWithConvertion() {}
 
@@ -345,7 +345,8 @@ private:
 
 class RobotWithAnimation : public xrobot::RobotBase {
 public:
-    RobotWithAnimation(WorldWPtr bullet_world);
+    RobotWithAnimation(const WorldWPtr& bullet_world);
+
     ~RobotWithAnimation();
 
     void LoadAnimatedObject(
@@ -393,18 +394,11 @@ class World : public render_engine::RenderWorld,
 public:
     World();
     ~World();
-    
-    std::map<std::string, std::string> tag_list_;
-    std::map<std::string, bool> pickable_list_;
-    std::map<int, RobotBaseSPtr> id_to_robot_;
-    std::map<std::string, std::vector<RobotBaseSPtr>> recycle_robot_map_;
-    std::map<std::string, render_engine::ModelDataSPtr> model_cache_;
-    std::map<std::string, std::vector<int>> object_locations_;
-
-    int reset_count_;
-
+     
     void LoadMetadata(const char * filename);
+
     void AssignTag(const std::string& path, const std::string& tag);
+
     void UpdatePickableList(const std::string& tag, const bool pick);
 
     RobotBaseWPtr LoadRobot(
@@ -436,50 +430,55 @@ public:
             const glm::vec4& rotation);
 
     render_engine::ModelDataSPtr FindInCache(
-            const std::string &key,
-            std::vector<render_engine::ModelDataSPtr> &model_list,
+            const std::string& key,
+            std::vector<render_engine::ModelDataSPtr>& model_list,
             bool& reset);
 
-    void UpdateAttachObjects(RobotBaseSPtr robot);
-    void FixLockedObjects(RobotBaseSPtr robot);
-    void QueryPose(RobotBaseSPtr robot);
+    void UpdateAttachObjects(const RobotBaseSPtr& robot);
 
+    void FixLockedObjects(const RobotBaseSPtr& robot);
+
+    void QueryPose(RobotBaseSPtr& robot);
     void QueryMovable();
-    void QueryInteractable(RobotBaseSPtr robot);
+    void QueryInteractable(const RobotBaseSPtr& robot);
 
     void ClearCache();
     void PrintCacheInfo();
+
     void BulletInit(const float gravity = 9.81f, const float timestep = 1.0/100.0);
     void BulletStep(const int skip_frames = 1);
-    void RemoveRobot(RobotBaseWPtr rm_robot);
+
+    void RemoveRobot(const RobotBaseWPtr& rm_robot);
     void CleanEverything();
     void CleanEverything2();
     void ResetSimulation();
 
-    void RayTest(const glm::vec3 from, const glm::vec3 to, RayTestInfo& result);
-    void BatchRayTest(const std::vector<Ray> rays, 
-                      std::vector<RayTestInfo>& result,
-                      const int num_threads = 0);
+    void RayTest(
+            const glm::vec3& from, const glm::vec3& to, RayTestInfo& result);
 
-    void SetTransformation(RobotBaseWPtr robot, const btTransform& tr);
+    void BatchRayTest(
+            const std::vector<Ray>& rays, 
+            std::vector<RayTestInfo>& result,
+            const int num_threads = 0);
+
+    void SetTransformation(const RobotBaseWPtr& robot, const btTransform& tr);
 
     void GetRootClosestPoints(
-            RobotBaseWPtr robot_in, 
-            std::weak_ptr<Object> part_in,
+            const RobotBaseWPtr& robot_in, 
+            const std::weak_ptr<Object>& part_in,
             std::vector<ContactPoint>& contact_points);
     void GetContactPoints(
-            RobotBaseWPtr robot_in, 
-            std::weak_ptr<Object> part_in,
+            const RobotBaseWPtr& robot_in, 
+            const std::weak_ptr<Object>& part_in,
             std::vector<ContactPoint>& contact_points,
             const int link = -2);
 
     void AddObjectWithLabel(const std::string& label, const int id);
     void RemoveObjectWithLabel(const int id);
 
-    void QueryObjectByLabel(const std::string& label,
-            std::vector<ObjectAttributes>& result);
-    
-public:
+    void QueryObjectByLabel(
+            const std::string& label, std::vector<ObjectAttributes>& result);
+
     size_t size() const override { return id_to_robot_.size(); }
 
     void robot_iteration_begin() override;
@@ -488,6 +487,15 @@ public:
     
     bool has_next_robot() const override;
 
+    std::map<std::string, std::string> tag_list_;
+    std::map<std::string, bool> pickable_list_;
+    std::map<int, RobotBaseSPtr> id_to_robot_;
+    std::map<std::string, std::vector<RobotBaseSPtr>> recycle_robot_map_;
+    std::map<std::string, render_engine::ModelDataSPtr> model_cache_;
+    std::map<std::string, std::vector<int>> object_locations_;
+
+    int reset_count_;
+ 
 private:
     decltype(id_to_robot_)::iterator robot_it_;
 };
